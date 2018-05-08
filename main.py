@@ -1,16 +1,16 @@
 import logging
 import sys
 import argparse
+from config.config import Config
+from config.cli import Cli
 
 
 def main(args):
+    cli = Cli(args)
     logging.warning("Hello, world")
-    if len(args) == 0:
-        logging.error('No args given')
-    else:
-        logging.info(str(args))
 
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    logging.basicConfig(level=logging.DEBUG)
+    main(sys.argv[1:])
