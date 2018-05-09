@@ -26,4 +26,5 @@ def main(args):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
+    # We don't need the first argument.
     main(sys.argv[1:])
