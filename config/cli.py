@@ -12,7 +12,7 @@ class Cli(object):
     """
 
     def __init__(self, args):
-        self.log = logging.getLogger()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.log.debug(args)
         self.config = None
 
@@ -21,10 +21,10 @@ class Cli(object):
         required_group.add_argument('-epa', '--epa-defs', help='Location of EPA definition file.', required=True)
         required_group.add_argument('-i', '--input', help='json string to validate mixes.', required=True)
 
-        function_group = parser.add_mutually_exclusive_group(required=True)
-        function_group.add_argument('-s', '--store', help='Is this a storage problem?', action='store_true')
-        function_group.add_argument('-dis', '--disposal', help='Is this a disposal problem?', action='store_true')
-        function_group.add_argument('-m', '--mix', help='Is this a mixing problem?', action='store_true')
+        problem_group = parser.add_mutually_exclusive_group(required=True)
+        problem_group.add_argument('-s', '--store', help='Is this a storage problem?', action='store_true')
+        problem_group.add_argument('-dis', '--disposal', help='Is this a disposal problem?', action='store_true')
+        problem_group.add_argument('-m', '--mix', help='Is this a mixing problem?', action='store_true')
 
         parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', default=False)
         parser.add_argument('-l', '--level', help='What level to report errors.', default="error",
