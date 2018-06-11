@@ -1,35 +1,37 @@
 import json
 
-#hard-coded "hacky" kind of code...kind of works for now...maybe there's better
-#way to do it????
-#this function returns a list of dictionaries of all the attributes of a
-#json object
-def extract_chem_objects(json_string):
-    json_dict = json.loads(json_string)
-    for k, v in json_dict.items():
-        for kk, vv, in v.items():
-            return vv
 
 #creates a sparse_matrix dictionary w/ key = id, value = reaction_list (id: xxx, outcome: yyy)
-def create_sparse_matrix(chem_objects):
+def create_sparse_matrix(file_name):
+    file_read = open(file_name)
+    json_dict = json.loads(file_read.read())['chemicalgroups']['group']
     sparse_matrix = {}
-    for chem in chem_objects:
-        if 'reactivegroups' in chem:
-            #Hacky but doable...
-            chem_group = chem['reactivegroups']
-            if chem_group != None and 'reaction' in chem_group:
-                sparse_matrix[chem['id']] = chem_group['reaction']
-                
-                for x in chem_group['reaction']:
-                    for yyyy in x:
-                        print(len(yyyy))
+
+    for json_item in json_dict:  #json_dict is NOT a dict.... the .items() function doesn't work!!!
+        if 'reactivegroups' in json_item and json_item['reactivegroups'] != None and len(json_item['reactivegroups']) != 0:
+            key   = int(json_item['id'])
+            value = []
+            
+            #horrible naming convention...find a better one....
+            for j in json_item['reactivegroups']['reaction']:
+                if ('id' in j) and ('outcome' in j): #and (j['outcome'] == 'N'):
+                    value.append(j)
+
+            sparse_matrix[key] = value
 
 
     return sparse_matrix
 
 
-file_read = open(r"C:\Users\Daniel Tan\Documents\ChemType\resources\epa.json")
-sparse_matrix = create_sparse_matrix(extract_chem_objects(file_read.read())) #id's and list
-#for key_id, reaction_list in sparse_matrix.items():
-#    print('Group Key ID: ', key_id)
-#    print(reaction_list)
+sparse_matrix = create_sparse_matrix(r"C:\Users\Daniel Tan\Documents\ChemType\resources\epa.json") #id's and list
+for k, v in sparse_matrix.items():
+    print('id: ', k)
+    print('reactive groups: ', v)
+    print('\n\n\n\n\n')
+
+    #for vv in v:
+    #    print(vv['outcome'])
+
+    #print(len(v), v['id'], v['outcome'])
+
+
