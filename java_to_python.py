@@ -133,7 +133,6 @@ class Consequence:
 
 
 
-print(Consequence(Consequence.N))
 
 
 
