@@ -50,15 +50,10 @@ def look_up_a_b(a, b, reaction_matrix):
 
 
 def get_type_from_id(x):
-    return 100
+    return x
 
 
 
 print(look_up_type({1, 2, 3}, {1: {2: {1,2,3,4,5}}}))
-
-
-#sparse_matrix = create_sparse_matrix(r"C:\Users\Daniel Tan\Documents\ChemType\resources\epa.json") #id's and list
-#print(check_sparse_matrix(sparse_matrix, 3, 1))
-#print(sparse_matrix[100][20])
 
 
