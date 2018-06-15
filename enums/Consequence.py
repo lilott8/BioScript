@@ -2,19 +2,19 @@ from enum import Enum
 
 #python enum is called by: x = Consequence(Consequence.H)
 class Consequence(Enum):
-    Head_Generation   = 0
-    Fire   = 1
-    Innocuous_and_Non_Flammable_Gas_Generation   = 2
-    Toxic_Gas_Formation  = 3
-    Flammable_Gas_Formation  = 4
-    Explosion   = 5
-    Violent_Polymerization   = 6
-    Solubilization_of_Toxic_Substance   = 7
-    Unknown   = 8
-    Water_Reactive_Substance = 9
-    Incompatible   = 10
-    Caution   = 11
-    Self_Reactive  = 12
+    HEAD_GENERATION   = 0
+    FIRE   = 1
+    INNOCUOUS_AND_NON_FLAMMABLE_GAS_GENERATION = 2
+    TOXIC_GAS_FORMATION  = 3
+    FLAMMABLE_GAS_FORMATION = 4
+    EXPLOSION   = 5
+    VIOLENT_POLYMERIZATION = 6
+    SOLUBILIZATION_OF_TOXIC_SUBSTANCE = 7
+    UNKNOWN = 8
+    WATER_REACTIVE_SUBSTANCE = 9
+    INCOMPATIBLE = 10
+    CAUTION = 11
+    SELF_REACTIVE  = 12
 
     #dummy function for now...
     def get_type_from_id(x):

@@ -29,6 +29,4 @@ class EpaManager(object):
                 f(x, y, c)
 
 
-#matrix = EpaManager.create_sparse_matrix(r'C:\Users\Daniel Tan\Documents\ChemType\resources\epa.json')
-#EpaManager.for_each_sparse_matrix_item(matrix, lambda x, y, c: print(x, y, c))
 
