@@ -1,6 +1,6 @@
 import json
 
-class EpaManager:
+class EpaManager(object):
     #creates a sparse_matrix dictionary w/ (key = id), value = dictionary of ( key = id, value = outcome)
     def create_sparse_matrix(file_name):
         file_read = open(file_name)
