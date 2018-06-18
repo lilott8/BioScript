@@ -1,4 +1,11 @@
 import json
+import sys
+
+if __name__ == '__main__':
+    string = sys.path[0][:-10] #add main directory to the system path, so we can have the 'enums'
+    sys.path.append(string)
+
+from enums.Consequence import Consequence
 
 class EpaManager(object):
     #creates a sparse_matrix dictionary w/ (key = id), value = dictionary of ( key = id, value = outcome)
@@ -27,6 +34,5 @@ class EpaManager(object):
         for x, yy in sparse_matrix.items():
             for y, c in yy.items():
                 f(x, y, c)
-
 
 

@@ -6,7 +6,6 @@ from enums.problem import Problem
 from problem.mix import Mix
 from problem.storage import Storage
 from problem.disposal import Disposal
-from Enum.Consequence import Consequence
 
 def main(args):
     cli = Cli(args)
