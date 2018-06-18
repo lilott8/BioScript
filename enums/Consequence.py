@@ -1,6 +1,6 @@
 from enum import Enum
 
-#python enum is called by: x = Consequence(Consequence.H)
+#python enum is called by: x = Consequence.HEAD_GENERATION
 class Consequence(Enum):
     HEAD_GENERATION   = 0
     FIRE   = 1
