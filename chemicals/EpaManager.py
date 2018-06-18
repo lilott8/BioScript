@@ -35,4 +35,21 @@ class EpaManager(object):
             for y, c in yy.items():
                 f(x, y, c)
 
+    #based off of the java consequence enum values
+    def get_sparse_matrix_reaction(sparse_matrix, x, y):
+        val = sparse_matrix[x][y]
+        if val == 'N':
+            return Consequence.INCOMPATIBLE
+        elif val == 'C':
+            return Consequence.CAUTION
+        elif val == 'SR':
+            return Consequence.SELF_REACTIVE
+        else:
+            return Consequence.UNKNOWN
+
+
+
+
+
+
 
