@@ -1,8 +1,8 @@
 from enum import Enum
 
-#python enum is called by: x = Consequence.HEAD_GENERATION
+#python enum is called by: x = Consequence.HEAT_GENERATION
 class Consequence(Enum):
-    HEAD_GENERATION   = 0
+    HEAT_GENERATION   = 0
     FIRE   = 1
     INNOCUOUS_AND_NON_FLAMMABLE_GAS_GENERATION = 2
     TOXIC_GAS_FORMATION  = 3
@@ -19,23 +19,4 @@ class Consequence(Enum):
     #dummy function for now...
     def get_type_from_id(x):
         return x
-
-    def look_up_type(types, reaction_matrix):
-        results = set()
-        for t1 in types:
-            for t2 in types:
-                results.update(look_up_a_b(t1, t2, reaction_matrix))
-
-        return results
-
-
-    def look_up_a_b(a, b, reaction_matrix):
-        if a > b:
-            a, b = b, a
-
-        if a in reaction_matrix and b in reaction_matrix[a]:
-            return map(Problem.get_type_from_id, reaction_matrix[a][b])
-        else:
-            return {Problem.get_type_from_id(a), Problem.get_type_from_id(b)}
-
 
