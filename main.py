@@ -1,5 +1,6 @@
 import logging
 import sys
+from chemicals.EpaManager import EpaManager
 from config.cli import Cli
 from config.config import Config
 from enums.problem import Problem
