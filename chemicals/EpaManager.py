@@ -1,5 +1,6 @@
 import json
 import sys
+import logging
 
 if __name__ == '__main__':
     string = sys.path[0][:-10] #add main directory to the system path, so we can have the 'enums'
@@ -11,14 +12,13 @@ class EpaManager(object):
 
     __sparse_matrix = {}
 
-
     #constructor
     def __init__(self, file_name):
-        self.sparse_matrix = create_sparse_matrix(file_name)
+        self.__sparse_matrix = self.create_sparse_matrix(file_name)
 
 
     #creates a sparse_matrix dictionary w/ (key = id), value = dictionary of ( key = id, value = outcome)
-    def create_sparse_matrix(file_name):
+    def create_sparse_matrix(self, file_name):
         json_parsed_struct = []
         sparse_matrix      = {}
 
@@ -31,7 +31,6 @@ class EpaManager(object):
                 value = dict(map(lambda x: (int(x['id']), {'outcome':x['outcome']}), \
                     filter(lambda y: 'id' in y and 'outcome' in y, json_item['reactivegroups']['reaction'])))
                 sparse_matrix[key] = value
-
         return sparse_matrix
 
 
@@ -40,7 +39,7 @@ class EpaManager(object):
 
 
     def for_each_sparse_matrix_item(self, f):
-        for x, yy in self.__sparse_matrix.items():
+        for x, yy in self.__sparse_matrix.items():  
             for y, c in yy.items():
                 f(x, y, c)
 
@@ -70,9 +69,21 @@ class EpaManager(object):
 
         if a in self.__sparse_matrix and b in self.__sparse_matrix[a]:
             return map(Consequence.get_type_from_id, self.__sparse_matrix[a][b])
-        else
+        else:
             return {Consequence.get_type_from_id(a), Consequence.get_type_from_id(b)}
 
+
+
+#this tests whether we can initialize and use the EpaManager
+def _test_():
+    #make sure we can successfully initialize the EpaManager
+    e = EpaManager(sys.path[0][:-10] + r'/resources/epa.json')
+    e.for_each_sparse_matrix_item(lambda x, y, c: logging.info('{0:5}, {1:5}: {2}'.format(x, y, c)))
+    
+
+if __name__ == '__main__':
+    logging.basicConfig(level = logging.DEBUG)
+    _test_()
 
 
 
