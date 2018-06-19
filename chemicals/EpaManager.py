@@ -1,11 +1,6 @@
 import json
 import sys
 import logging
-
-if __name__ == '__main__':
-    string = sys.path[0][:-10] #add main directory to the system path, so have 'enums'
-    sys.path.append(string)
-
 from enums.Consequence import Consequence
 
 class EpaManager(object):
@@ -73,18 +68,4 @@ class EpaManager(object):
             return set(map(Consequence.get_type_from_id, self.__sparse_matrix[a][b]['outcome']))
         else:
             return {Consequence.get_type_from_id(a), Consequence.get_type_from_id(b)}
-
-
-def __test_():
-    e = EpaManager(sys.path[0][:-10] + r'/resources/epa.json')
-    results = e.look_up_types({1, 2, 3})
-    e.for_each_sparse_matrix_item(lambda x, y, c: logging.info('{0:5}, {1:5}: {2}'.format(x, y, c)))
-    logging.info(results)
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level = logging.DEBUG)
-    __test_()
-
-
 
