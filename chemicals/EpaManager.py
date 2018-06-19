@@ -2,12 +2,14 @@ import json
 import sys
 import logging
 
-if __name__ == '__main__':
+if __name__ == '__main__': 
     string = sys.path[0][:-10] #add main directory to the system path, so we can have the 'enums'
     sys.path.append(string)
 
 from enums.Consequence import Consequence
 
+
+#this tests whether we can initialize and use the EpaManager
 class EpaManager(object):
 
     __sparse_matrix = {}
@@ -55,37 +57,41 @@ class EpaManager(object):
         else:
             return Consequence.UNKNOWN
 
-    def look_up_type(self, types):
+
+    def get_sparse_matrix_at_index(self, x, y):
+        return self.__sparse_matrix[x][y]
+
+
+    def look_up_types(self, types):
         results = set()
         for t1 in types:
             for t2 in types:
                 results.update(self.look_up_a_b(t1, t2))
-
+                logging.info(results)
         return results
+
 
     def look_up_a_b(self, a, b):
         if a > b:
             a, b = b, a
 
         if a in self.__sparse_matrix and b in self.__sparse_matrix[a]:
-            return map(Consequence.get_type_from_id, self.__sparse_matrix[a][b])
+            return set(map(Consequence.get_type_from_id, self.__sparse_matrix[a][b]['outcome']))
         else:
             return {Consequence.get_type_from_id(a), Consequence.get_type_from_id(b)}
 
 
-
-#this tests whether we can initialize and use the EpaManager
-def _test_():
+def __test_():
     #make sure we can successfully initialize the EpaManager
     e = EpaManager(sys.path[0][:-10] + r'/resources/epa.json')
-    e.for_each_sparse_matrix_item(lambda x, y, c: logging.info('{0:5}, {1:5}: {2}'.format(x, y, c)))
-    
+    results = e.look_up_types({1, 2, 3})
+    #e.for_each_sparse_matrix_item(lambda x, y, c: logging.info('{0:5}, {1:5}: {2}'.format(x, y, c)))
+    logging.info(results)
 
-if __name__ == '__main__':
+
+if __name__ == '__main__': 
     logging.basicConfig(level = logging.DEBUG)
-    _test_()
-
-
+    __test_()
 
 
 
