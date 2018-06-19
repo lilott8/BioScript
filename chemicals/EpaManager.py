@@ -1,7 +1,7 @@
 import json
 import sys
 import logging
-from enums.Consequence import Consequence
+from enums.consequence import Consequence
 
 class EpaManager(object):
     def __init__(self, file_name):
