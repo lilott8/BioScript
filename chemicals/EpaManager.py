@@ -4,8 +4,6 @@ import logging
 from enums.Consequence import Consequence
 
 class EpaManager(object):
-    __sparse_matrix = {}
-
     def __init__(self, file_name):
         self.__sparse_matrix = self.create_sparse_matrix(file_name)
 
