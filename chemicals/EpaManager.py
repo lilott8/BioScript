@@ -70,7 +70,7 @@ class EpaManager(object):
             a, b = b, a
 
         if a in self.__sparse_matrix and b in self.__sparse_matrix[a]:
-            return set(map(Consequence.get_type, self.__sparse_matrix[a][b]['outcome']))
+            return set(map(Consequence.get_type_from_id, self.__sparse_matrix[a][b]['outcome']))
         else:
             return {Consequence.get_type_from_id(a), Consequence.get_type_from_id(b)}
 
