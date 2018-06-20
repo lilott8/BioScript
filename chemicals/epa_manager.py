@@ -5,7 +5,7 @@ from enums.consequence import Consequence
 
 class EpaManager(object):
     def __init__(self, file_name):
-        self.__sparse_matrix = self.create_sparse_matrix(file_name)
+        self.sparse_matrix = self.create_sparse_matrix(file_name)
 
 
     def create_sparse_matrix(self, file_name):
@@ -25,17 +25,17 @@ class EpaManager(object):
 
 
     def check_sparse_matrix(self, x, y):
-        return x in self.__sparse_matrix and y in self.__sparse_matrix[x]
+        return x in self.sparse_matrix and y in self.__sparse_matrix[x]
 
     
     def for_each_sparse_matrix_item(self, f):
-        for x, yy in self.__sparse_matrix.items():
+        for x, yy in self.sparse_matrix.items():
             for y, c in yy.items():
                 f(x, y, c)
 
 
     def get_sparse_matrix_reaction(self, x, y):
-        val = self.__sparse_matrix[x][y]['outcome']
+        val = self.sparse_matrix[x][y]['outcome']
         if val == 'N':
             return Consequence.INCOMPATIBLE
         elif val == 'C':
@@ -47,7 +47,7 @@ class EpaManager(object):
 
     
     def get_sparse_matrix_at_index(self, x, y):
-        return self.__sparse_matrix[x][y]
+        return self.sparse_matrix[x][y]
 
     
     def look_up_types(self, types):
@@ -62,8 +62,8 @@ class EpaManager(object):
         if a > b:
             a, b = b, a
 
-        if a in self.__sparse_matrix and b in self.__sparse_matrix[a]:
-            return set(map(Consequence.get_type_from_id, self.__sparse_matrix[a][b]['outcome']))
+        if a in self.sparse_matrix and b in self.sparse_matrix[a]:
+            return set(map(Consequence.get_type_from_id, self.sparse_matrix[a][b]['outcome']))
         else:
             return {Consequence.get_type_from_id(a), Consequence.get_type_from_id(b)}
 
