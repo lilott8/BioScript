@@ -27,7 +27,9 @@ class Identifier(object):
 
     @staticmethod
     def is_inchi_key(string):
-        return DBIdentifier.inchi_key_regex(string) != None
+        return len(string) == 25 \
+               && string[14] == '-'
+               && DBIdentifier.inchi_key_regex.match(string) != None
   
 
 
