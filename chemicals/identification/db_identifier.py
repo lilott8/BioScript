@@ -2,6 +2,7 @@ from chemicals.identification.identifier import Identifier
 from io.database import Database
 
 class DBIdentifier(Identifier):
+
     def __init__(self, db):
         Identifier.__init__(self)  
         self.db = db
