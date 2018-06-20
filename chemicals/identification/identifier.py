@@ -7,7 +7,7 @@ class Identifier(object):
     #direct copy from the Java code.
     formula_regex    = re.compile('[A-Z][a-z]?\\d*|\\((?:[^()]*(?:\\(.*\\)0?[^()]*)+\\)\\d+')
     smiles_regex     = re.compile('OC[C@@H](O1)[C@@H](0)[C@H](0)[C@@H]2[C@@H]1c3c(O)c(OC)c(O)cc3C(=O)O2')
-    inchi_key_regx   = re.compile('^([0-9A-Z\\-]+)$')
+    inchi_key_regex   = re.compile('^([0-9A-Z\\-]+)$')
 
 
     def __init__(self):
