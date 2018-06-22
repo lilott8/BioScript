@@ -51,10 +51,4 @@ class DBIdentifier(Identifier):
         raise NotImplementedError()
 
 
-db = Database('root', '', 'localhost', 1433, 'chem_trails')
-dbIdent = DBIdentifier(db)
-db.close()
-
-
-
 

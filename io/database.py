@@ -9,6 +9,9 @@ class Database(object):
     def close(self):
         self.connection.close()
 
+    def is_connected(self):
+        return True if self.connection else False
+
 
     def sql_query(self, sql_string):
         cursor = self.connection.cursor()

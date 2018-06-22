@@ -2,7 +2,7 @@ import re
 
 class Identifier(object):
      
-    cas_number_regex = re.compile('^[0-9].*-.*-.*[0-9]$')
+    cas_number_regex = re.compile('^[0-9]{2,7}-[0-9]{2}-[0-9]$')
     formula_regex    = re.compile('[A-Z][a-z]?\\d*|\\((?:[^()]*(?:\\(.*\\))?[^()]*)+\\)\\d+')
     smiles_regex     = re.compile('OC[C@@H](O1)[C@@H](0)[C@H](0)[C@@H]2[C@@H]1c3c(O)c(OC)c(O)cc3C(=O)O2')
     inchi_key_regex  = re.compile('^([0-9A-Z\-]+)$')
