@@ -1,3 +1,5 @@
+import sys
+if __name__ == '__main__': sys.path[0] = (sys.path[0][:-25])
 from chemicals.identification.identifier import Identifier
 from io.database import Database
 
@@ -7,12 +9,23 @@ class DBIdentifier(Identifier):
         Identifier.__init__(self)  
         self.db = db
     
-    #according to mysql syntax, '=' means check for equality....
-    #check whether name is valid
+    #fix(daniel): figure out if there is a way to prevent exceptions from firing... 
     def is_name(self, string):
-        cursor = self.db.sql_query('SELECT name FROM chemicals WHERE name = {0};'.format(string))
-        return len(cursor.fetchone()) != 0 #fetch a single row from cursor
+        try:
+            cursor = self.db.sql_query('SELECT name FROM chemicals WHERE name = {0};'.format(string))
+            cursor.close()
+            return True
+        except:
+            return False
 
+
+    def is_pub_chem_id(self, string):
+        try:
+            cursor = self.db.sql_query('SELECT * FROM chemicals WHERE pubchem_id = {0}'.format(string))
+            cursor.close()
+            return True
+        except:
+            return False
 
     def search_by_cas_number(self, string):
         cursor = self.db.sql_query('SELECT * FROM cas_numbers WHERE cas_number_string = {0}'.format(string))
@@ -38,8 +51,9 @@ class DBIdentifier(Identifier):
         raise NotImplementedError()
 
 
-
-
+db = Database('root', '', 'localhost', 1433, 'chem_trails')
+dbIdent = DBIdentifier(db)
+db.close()
 
 
 
