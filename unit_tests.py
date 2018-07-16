@@ -45,11 +45,12 @@ class Test_Identifiers(unittest.TestCase):
 
 
     def test_smile_validation(self): 
-        self.assertTrue(Identifier.is_smile('N#N'))
-        self.assertTrue(Identifier.is_smile('CN=C=O'))
-        self.assertTrue(Identifier.is_smile('[Cu+2].[O-]S(=O)(=O)[O-]'))
-        self.assertTrue(Identifier.is_smile('OC[C@@H](O1)[C@@H](O)[C@H](O)[C@@H](O)[C@@H](O)1'))
-        self.assertFalse(Identifier.is_smile(''))
+        self.assertTrue(Identifier.is_smiles('N#N'))
+        self.assertTrue(Identifier.is_smiles('CN=C=O'))
+        self.assertTrue(Identifier.is_smiles('[Cu+2].[O-]S(=O)(=O)[O-]'))
+        self.assertTrue(Identifier.is_smiles('CC[C@H](O1)CC[C@@]12CCCO2'))
+        self.assertTrue(Identifier.is_smiles('OC[C@@H](O1)[C@@H](O)[C@H](O)[C@@H](O)[C@@H](O)1'))
+        self.assertFalse(Identifier.is_smiles(''))
 
 
     def test_inchi_validation(self):
