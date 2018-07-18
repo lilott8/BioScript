@@ -56,6 +56,7 @@ class Test_Identifiers(unittest.TestCase):
     def test_inchi_validation(self):
         self.assertTrue(Identifier.is_inchi_key('InChI=1/C2H6O/c1-2-3/h3H,2H2,1H3'))
         self.assertTrue(Identifier.is_inchi_key('InChI=1/C6H8O6/c7-1-2(8)5-3(9)4(10)6(11)12-5/h2,5,7-10H,1H2/t2-,5+/m0/s1'))
+        self.assertFalse(Identifier.is_inchi_key('InChI=1/../c1-2-3/h3H,2H2,1H3'))
         self.assertFalse(Identifier.is_inchi_key(''))
         self.assertFalse(Identifier.is_inchi_key('Hello'))
 
