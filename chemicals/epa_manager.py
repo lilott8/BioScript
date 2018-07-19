@@ -4,6 +4,7 @@ import logging
 from enums.consequence import Consequence
 
 class EpaManager(object):
+
     def __init__(self, file_name):
         self.sparse_matrix = self.create_sparse_matrix(file_name)
 
@@ -23,16 +24,13 @@ class EpaManager(object):
                 sparse_matrix[key] = value
         return sparse_matrix
 
-
     def check_sparse_matrix(self, x, y):
         return x in self.sparse_matrix and y in self.__sparse_matrix[x]
 
-    
     def for_each_sparse_matrix_item(self, f):
         for x, yy in self.sparse_matrix.items():
             for y, c in yy.items():
                 f(x, y, c)
-
 
     def get_sparse_matrix_reaction(self, x, y):
         val = self.sparse_matrix[x][y]['outcome']
@@ -45,11 +43,9 @@ class EpaManager(object):
         else:
             return Consequence.UNKNOWN
 
-    
     def get_sparse_matrix_at_index(self, x, y):
         return self.sparse_matrix[x][y]
 
-    
     def look_up_types(self, types):
         results = set()
         for t1 in types:
