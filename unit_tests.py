@@ -36,18 +36,18 @@ class Test_Identifiers(unittest.TestCase):
 
 
     def test_chemical_formula_validation(self):
-        self.assertTrue(Identifier.is_chemical_formula('NaCl'))
-        self.assertTrue(Identifier.is_chemical_formula('H2O'))
-        self.assertTrue(Identifier.is_chemical_formula('C2O'))
-        self.assertTrue(Identifier.is_chemical_formula('Al2(SO4)3'))
-        self.assertTrue(Identifier.is_chemical_formula('(CH3)3CH'))
-        self.assertTrue(Identifier.is_chemical_formula('H(CH3)4(SO4)5(Ba)B'))
+        self.assertTrue(Identifier.is_chemical_formula(r'NaCl'))
+        self.assertTrue(Identifier.is_chemical_formula(r'H2O'))
+        self.assertTrue(Identifier.is_chemical_formula(r'C2O'))
+        self.assertTrue(Identifier.is_chemical_formula(r'Al2(SO4)3'))
+        self.assertTrue(Identifier.is_chemical_formula(r'(CH3)3CH'))
+        self.assertTrue(Identifier.is_chemical_formula(r'H(CH3)4(SO4)5(Ba)B'))
         
-        self.assertFalse(Identifier.is_chemical_formula('3('))
-        self.assertFalse(Identifier.is_chemical_formula('(H2()'))
-        self.assertFalse(Identifier.is_chemical_formula('2HO'))
-        self.assertFalse(Identifier.is_chemical_formula('A((BO3)'))
-        self.assertFalse(Identifier.is_chemical_formula('NaCl[]'))
+        self.assertFalse(Identifier.is_chemical_formula(r'3('))
+        self.assertFalse(Identifier.is_chemical_formula(r'(H2()'))
+        self.assertFalse(Identifier.is_chemical_formula(r'2HO'))
+        self.assertFalse(Identifier.is_chemical_formula(r'A((BO3)'))
+        self.assertFalse(Identifier.is_chemical_formula(r'NaCl[]'))
 
     def test_smile_validation(self):
         self.assertTrue(Identifier.is_smiles(r'[n+]'))
@@ -75,13 +75,13 @@ class Test_Identifiers(unittest.TestCase):
 
 
     def test_inchi_validation(self):
-        self.assertTrue(Identifier.is_inchi_key('InChI=1/C2H6O/c1-2-3/h3H,2H2,1H3'))
-        self.assertTrue(Identifier.is_inchi_key('InChI=1/C6H8O6/c7-1-2(8)5-3(9)4(10)6(11)12-5/h2,5,7-10H,1H2/t2-,5+/m0/s1'))
-        self.assertTrue(Identifier.is_inchi_key('InChI=1/C17H13CIN4/c1-11-20-21-16-10-19-17(12-5-3-2-4-6-12)14-9-13(18)7-8-15(14)22(11)16/h2-9H'))
+        self.assertTrue(Identifier.is_inchi_key(r'InChI=1/C2H6O/c1-2-3/h3H,2H2,1H3'))
+        self.assertTrue(Identifier.is_inchi_key(r'InChI=1/C6H8O6/c7-1-2(8)5-3(9)4(10)6(11)12-5/h2,5,7-10H,1H2/t2-,5+/m0/s1'))
+        self.assertTrue(Identifier.is_inchi_key(r'InChI=1/C17H13CIN4/c1-11-20-21-16-10-19-17(12-5-3-2-4-6-12)14-9-13(18)7-8-15(14)22(11)16/h2-9H'))
 
-        self.assertFalse(Identifier.is_inchi_key('InChI=1/../c1-2-3/h3H,2H2,1H3'))
-        self.assertFalse(Identifier.is_inchi_key(''))
-        self.assertFalse(Identifier.is_inchi_key('INCHI'))
+        self.assertFalse(Identifier.is_inchi_key(r'InChI=1/../c1-2-3/h3H,2H2,1H3'))
+        self.assertFalse(Identifier.is_inchi_key(r''))
+        self.assertFalse(Identifier.is_inchi_key(r'INCHI'))
 
 
 
