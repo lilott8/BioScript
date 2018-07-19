@@ -5,3 +5,4 @@ class Z3Solver(BaseSolver):
 
     def __init__(self):
         BaseSolver.__init__(self)
+
