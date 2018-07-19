@@ -60,6 +60,12 @@ class Test_Identifiers(unittest.TestCase):
         self.assertTrue(Identifier.is_smiles(r'OC[C@@H](O1)[C@@H](O)[C@H](O)[C@@H](O)[C@@H](O)1'))
         self.assertTrue(Identifier.is_smiles(r'OCCc1c(C)[n+](cs1)Cc2cnc(C)nc2N'))       
         self.assertTrue(Identifier.is_smiles(r'CN1CCC[C@H]1c2cccnc2'))
+        self.assertTrue(Identifier.is_smiles('C1=CC=CC=C1'))
+        self.assertTrue(Identifier.is_smiles('c1ccccc1'))
+        self.assertTrue(Identifier.is_smiles('[O-][n+]1ccccc1'))
+        self.assertTrue(Identifier.is_smiles('s1cccc1'))
+        self.assertTrue(Identifier.is_smiles('[cH-]1cccc1'))
+        self.assertTrue(Identifier.is_smiles('[Na+].[Cl-]'))
 
         self.assertFalse(Identifier.is_smiles(r''))
         self.assertFalse(Identifier.is_smiles(r'(A=#A'))
@@ -71,8 +77,9 @@ class Test_Identifiers(unittest.TestCase):
     def test_inchi_validation(self):
         self.assertTrue(Identifier.is_inchi_key('InChI=1/C2H6O/c1-2-3/h3H,2H2,1H3'))
         self.assertTrue(Identifier.is_inchi_key('InChI=1/C6H8O6/c7-1-2(8)5-3(9)4(10)6(11)12-5/h2,5,7-10H,1H2/t2-,5+/m0/s1'))
-        self.assertFalse(Identifier.is_inchi_key('InChI=1/../c1-2-3/h3H,2H2,1H3'))
+        self.assertTrue(Identifier.is_inchi_key('InChI=1/C17H13CIN4/c1-11-20-21-16-10-19-17(12-5-3-2-4-6-12)14-9-13(18)7-8-15(14)22(11)16/h2-9H'))
 
+        self.assertFalse(Identifier.is_inchi_key('InChI=1/../c1-2-3/h3H,2H2,1H3'))
         self.assertFalse(Identifier.is_inchi_key(''))
         self.assertFalse(Identifier.is_inchi_key('INCHI'))
 
