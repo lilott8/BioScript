@@ -2,6 +2,8 @@ import unittest
 from chemicals.identification.identifier import Identifier
 from chemicals.identification.db_identifier import DBIdentifier
 from io.database import Database
+from typechecker.solvers.Z3Solver import Z3Solver
+
 
 class Test_Identifiers(unittest.TestCase):
 
@@ -82,6 +84,18 @@ class Test_Identifiers(unittest.TestCase):
         self.assertFalse(Identifier.is_inchi_key(r'InChI=1/../c1-2-3/h3H,2H2,1H3'))
         self.assertFalse(Identifier.is_inchi_key(r''))
         self.assertFalse(Identifier.is_inchi_key(r'INCHI'))
+
+
+    def test_z3_solver(self):
+        solver = Z3Solver()
+        x = solver.create_int('x')
+        y = solver.create_int('y')
+        solver.solve(x + y, x = 1, y = 2)
+
+
+
+
+
 
 
 
