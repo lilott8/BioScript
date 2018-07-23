@@ -1,8 +1,3 @@
-import sys
-
-print('TYPE_CHECKER: ', sys.path)
-
-
 import logging
 from config.config import Config
 

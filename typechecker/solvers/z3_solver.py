@@ -2,7 +2,7 @@ from typechecker.solvers.base_solver import BaseSolver
 import z3
 
 
-#z3-solver can be installed through: pip install z3-solver
+#z3-solver can be installed through: pip3 install z3-solver
 class Z3Solver(BaseSolver):
 
     def __init__(self):

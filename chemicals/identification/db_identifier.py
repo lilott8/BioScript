@@ -1,6 +1,5 @@
-import sys
 from chemicals.identification.identifier import Identifier
-from io.database import Database
+from IO.database import Database
 
 class DBIdentifier(Identifier):
 
