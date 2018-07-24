@@ -6,9 +6,9 @@ from enums.consequence import Consequence
 
 class EpaManager(object):
 
-    def __init__(self, sparse_matrix_file_name, interpretation_file_name):
-        self.sparse_matrix = self.create_sparse_matrix(sparse_matrix_file_name)
-        self.interactions  = self.create_interactions(interpretation_file_name)
+    def __init__(self, sm_file_name, interaction_file_name):
+        self.sparse_matrix = self.create_sparse_matrix(sm_file_name)
+        self.interactions  = self.create_interactions(interaction_file_name)
 
 
     def create_interactions(self, file_name):
@@ -25,7 +25,8 @@ class EpaManager(object):
                 value[x] = {y:rest}
             else:
                 value[x].update({y:rest})
-        
+        file_read.close()
+
         return value
 
 
@@ -33,10 +34,15 @@ class EpaManager(object):
         json_parsed_struct = []
         sparse_matrix      = {}
 
+        print('Hello2')
+
         with open(file_name) as file_read:
             json_parsed_struct = json.loads(file_read.read())['chemicalgroups']['group']
 
+        print('Hello3')
+
         for json_item in json_parsed_struct:
+            print('LOOP')
             if 'reactivegroups' in json_item and json_item['reactivegroups'] != None and len(json_item['reactivegroups']) != 0:
                 key   = int(json_item['id'])
                 value = dict(map(lambda x: (int(x['id']), {'outcome': x['outcome']}), \

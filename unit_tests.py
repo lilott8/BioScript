@@ -88,5 +88,22 @@ class Test_Identifiers(unittest.TestCase):
 
 
 
+    def test_epa_manager(self):
+        epa = EpaManager('resources/epa.json', 'resources/abstract-interpretation.txt')        
+        self.assertTrue(len(epa.sparse_matrix) != 0)
+        self.assertTrue(len(epa.interactions)  != 0)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
