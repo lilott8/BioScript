@@ -86,14 +86,6 @@ class Test_Identifiers(unittest.TestCase):
         self.assertFalse(Identifier.is_inchi_key(r'INCHI'))
 
 
-    def test_z3_solver(self):
-        x = z3.Int('x')
-        y = z3.Int('y')
-        z3.solve(x > 2, y < 10, x + 2 * y == 7)
-
-
-
-
 
 
 
