@@ -1,10 +1,9 @@
+#z3prover.github.io/api/html/namespacez3py.html#a09fe122cbfbc6d3fa30a79850b2a2414
+#z3-solver can be installed through: pip3 install z3-solver
+
 from typechecker.solvers.base_solver import BaseSolver
 import z3
 
-#z3prover.github.io/api/html/namespacez3py.html#a09fe122cbfbc6d3fa30a79850b2a2414
-
-#parse_smt2_file, parse_smt2_string
-#z3-solver can be installed through: pip3 install z3-solver
 class Z3Solver(BaseSolver):
 
     def __init__(self):
@@ -13,7 +12,8 @@ class Z3Solver(BaseSolver):
     def solve_with_smt2(self, smt2_string):
         try:
             solver    = z3.Solver()
-            solver.add(z3.parse_smt2_string(smt2_string))
+            bool_expr = z3.parse_smt2_string(smt2_string)
+            solver.add(bool_expr)
             status    = solver.check()
             if status == z3.CheckSatResult(z3.Z3_L_TRUE):
                 log.trace('This BioScript program is safe.')
