@@ -7,7 +7,7 @@ from enums.consequence import Consequence
 class EpaManager(object):
 
     def __init__(self, sparse_matrix_file_name, interpretation_file_name):
-#        self.sparse_matrix = self.create_sparse_matrix(sparse_matrix_file_name)
+        self.sparse_matrix = self.create_sparse_matrix(sparse_matrix_file_name)
         self.interactions  = self.create_interactions(interpretation_file_name)
 
 
