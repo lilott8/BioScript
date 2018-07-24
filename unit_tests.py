@@ -4,6 +4,7 @@ from chemicals.identification.db_identifier import DBIdentifier
 from IO.database import Database
 from typechecker.solvers.z3_solver import Z3Solver
 import z3
+from chemicals.epa_manager import EpaManager
 
 class Test_Identifiers(unittest.TestCase):
 
@@ -84,7 +85,6 @@ class Test_Identifiers(unittest.TestCase):
         self.assertFalse(Identifier.is_inchi_key(r'InChI=1/../c1-2-3/h3H,2H2,1H3'))
         self.assertFalse(Identifier.is_inchi_key(r''))
         self.assertFalse(Identifier.is_inchi_key(r'INCHI'))
-
 
 
 

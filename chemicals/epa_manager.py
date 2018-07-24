@@ -1,12 +1,32 @@
 import json
 import sys
 import logging
+import re
 from enums.consequence import Consequence
 
 class EpaManager(object):
 
-    def __init__(self, file_name):
-        self.sparse_matrix = self.create_sparse_matrix(file_name)
+    def __init__(self, sparse_matrix_file_name, interpretation_file_name):
+        #self.sparse_matrix = self.create_sparse_matrix(sparse_matrix_file_name)
+        self.interpretation = self.create_2D_dict(interpretation_file_name)
+
+
+    def create_2D_dict(self, file_name):
+        regex = re.compile(r'[0-9]+')
+        value = dict()
+
+        file_read = open(file_name)
+        for line in (file_read.readlines()[1:]):
+            match = regex.findall(line)
+            x = int(match[0])
+            y = int(match[1])
+            rest = set(map(int, match[2:]))
+            if x not in value:
+                value[x] = {y:rest}
+            else:
+                value[x].update({y:rest})
+        
+        return value
 
 
     def create_sparse_matrix(self, file_name):
@@ -24,13 +44,16 @@ class EpaManager(object):
                 sparse_matrix[key] = value
         return sparse_matrix
 
+
     def check_sparse_matrix(self, x, y):
         return x in self.sparse_matrix and y in self.__sparse_matrix[x]
+
 
     def for_each_sparse_matrix_item(self, f):
         for x, yy in self.sparse_matrix.items():
             for y, c in yy.items():
                 f(x, y, c)
+
 
     def get_sparse_matrix_reaction(self, x, y):
         val = self.sparse_matrix[x][y]['outcome']
@@ -43,8 +66,10 @@ class EpaManager(object):
         else:
             return Consequence.UNKNOWN
 
+
     def get_sparse_matrix_at_index(self, x, y):
         return self.sparse_matrix[x][y]
+
 
     def look_up_types(self, types):
         results = set()
@@ -53,6 +78,7 @@ class EpaManager(object):
                 results.update(self.look_up_a_b(t1, t2))
 
         return results
+
 
     def look_up_a_b(self, a, b):
         if a > b:
