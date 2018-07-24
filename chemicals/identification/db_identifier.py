@@ -1,7 +1,5 @@
-import sys
-if __name__ == '__main__': sys.path[0] = (sys.path[0][:-25])
 from chemicals.identification.identifier import Identifier
-from io.database import Database
+from IO.database import Database
 
 class DBIdentifier(Identifier):
 
