@@ -6,8 +6,10 @@ import z3
 
 class Z3Solver(BaseSolver):
 
+
     def __init__(self):
         BaseSolver.__init__(self)
+
     
     def solve_with_smt2(self, smt2_string):
         try:
