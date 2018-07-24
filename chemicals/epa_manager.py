@@ -47,7 +47,11 @@ class EpaManager(object):
 
 
     def check_sparse_matrix(self, x, y):
-        return x in self.sparse_matrix and y in self.__sparse_matrix[x]
+        return x in self.sparse_matrix and y in self.sparse_matrix[x]
+
+
+    def check_interactions(self, x, y):
+        return x in self.interactions and y in self.interactions[x]
 
 
     def for_each_sparse_matrix_item(self, f):

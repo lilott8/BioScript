@@ -93,8 +93,13 @@ class Test_Identifiers(unittest.TestCase):
         self.assertTrue(len(epa.sparse_matrix) != 0)
         self.assertTrue(len(epa.interactions)  != 0)
 
-
-
+        self.assertTrue(epa.check_interactions(2, 7) and epa.interactions[2][7] == {1, 2, 3, 4, 68, 5, 7, 39, 8, 10, 44, 13, 45, 14, 16, 51, 59, 61, 29, 31})
+        self.assertTrue(epa.check_interactions(76, 99) and epa.interactions[76][99] == {76})
+        self.assertTrue(epa.check_interactions(99, 99) and epa.interactions[99][99] == {99})
+        self.assertTrue(epa.check_interactions(4, 14) and epa.interactions[4][14] == {4, 14})
+        self.assertTrue(epa.check_sparse_matrix(100, 1) and epa.sparse_matrix[100][1]['outcome'] == 'C')
+        self.assertTrue(epa.check_sparse_matrix(76, 62) and epa.sparse_matrix[76][62]['outcome'] == 'C')
+        self.assertTrue(epa.check_sparse_matrix(31,  5) and epa.sparse_matrix[31][5]['outcome'] == 'N')
 
 
 
