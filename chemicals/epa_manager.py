@@ -40,10 +40,22 @@ class EpaManager(object):
         for json_item in json_parsed_struct:
             if 'reactivegroups' in json_item and json_item['reactivegroups'] != None and len(json_item['reactivegroups']) != 0:
                 key   = int(json_item['id'])
-                value = dict(map(lambda x: (int(x['id']), {'outcome': x['outcome']}), \
+                value = dict(map(lambda x: (int(x['id']), {'outcome': EpaManager.to_consequence_enum(x['outcome'])}), \
                         filter(lambda y: 'id' in y and 'outcome' in y, json_item['reactivegroups']['reaction'])))
                 sparse_matrix[key] = value
         return sparse_matrix
+
+
+    @staticmethod    
+    def to_consequence_enum(string):
+        if string == 'N':
+            return Consequence.INCOMPATIBLE
+        elif string == 'C':
+            return Consequence.CAUTION
+        elif string == 'SR':
+            return Consequence.SELF_REACTIVE
+        else:
+            return Consequence.UNKNOWN
 
 
     def check_sparse_matrix(self, x, y):
@@ -59,19 +71,7 @@ class EpaManager(object):
             for y, c in yy.items():
                 f(x, y, c)
 
-
-    def get_sparse_matrix_reaction(self, x, y):
-        val = self.sparse_matrix[x][y]['outcome']
-        if val == 'N':
-            return Consequence.INCOMPATIBLE
-        elif val == 'C':
-            return Consequence.CAUTION
-        elif val == 'SR':
-            return Consequence.SELF_REACTIVE
-        else:
-            return Consequence.UNKNOWN
-
-
+    
     def get_sparse_matrix_at_index(self, x, y):
         return self.sparse_matrix[x][y]
 

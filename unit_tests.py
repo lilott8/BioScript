@@ -5,6 +5,7 @@ from IO.database import Database
 from typechecker.solvers.z3_solver import Z3Solver
 import z3
 from chemicals.epa_manager import EpaManager
+from enums.consequence import Consequence
 
 class Test_Identifiers(unittest.TestCase):
 
@@ -97,9 +98,9 @@ class Test_Identifiers(unittest.TestCase):
         self.assertTrue(epa.check_interactions(76, 99) and epa.interactions[76][99] == {76})
         self.assertTrue(epa.check_interactions(99, 99) and epa.interactions[99][99] == {99})
         self.assertTrue(epa.check_interactions(4, 14) and epa.interactions[4][14] == {4, 14})
-        self.assertTrue(epa.check_sparse_matrix(100, 1) and epa.sparse_matrix[100][1]['outcome'] == 'C')
-        self.assertTrue(epa.check_sparse_matrix(76, 62) and epa.sparse_matrix[76][62]['outcome'] == 'C')
-        self.assertTrue(epa.check_sparse_matrix(31,  5) and epa.sparse_matrix[31][5]['outcome'] == 'N')
+        self.assertTrue(epa.check_sparse_matrix(100, 1) and epa.sparse_matrix[100][1]['outcome'] == Consequence.CAUTION)
+        self.assertTrue(epa.check_sparse_matrix(76, 62) and epa.sparse_matrix[76][62]['outcome'] == Consequence.CAUTION)
+        self.assertTrue(epa.check_sparse_matrix(31,  5) and epa.sparse_matrix[31][5]['outcome'] == Consequence.INCOMPATIBLE)
 
 
 
