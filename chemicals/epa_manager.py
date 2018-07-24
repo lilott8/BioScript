@@ -34,15 +34,10 @@ class EpaManager(object):
         json_parsed_struct = []
         sparse_matrix      = {}
 
-        print('Hello2')
-
         with open(file_name) as file_read:
             json_parsed_struct = json.loads(file_read.read())['chemicalgroups']['group']
 
-        print('Hello3')
-
         for json_item in json_parsed_struct:
-            print('LOOP')
             if 'reactivegroups' in json_item and json_item['reactivegroups'] != None and len(json_item['reactivegroups']) != 0:
                 key   = int(json_item['id'])
                 value = dict(map(lambda x: (int(x['id']), {'outcome': x['outcome']}), \
