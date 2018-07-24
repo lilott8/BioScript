@@ -7,7 +7,6 @@ from problem.mix import Mix
 from problem.storage import Storage
 from problem.disposal import Disposal
 
-
 def main(args):
     cli = Cli(args)
     logging.warning("Hello, world")
