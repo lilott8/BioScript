@@ -7,11 +7,11 @@ from enums.consequence import Consequence
 class EpaManager(object):
 
     def __init__(self, sparse_matrix_file_name, interpretation_file_name):
-        #self.sparse_matrix = self.create_sparse_matrix(sparse_matrix_file_name)
-        self.interpretation = self.create_2D_dict(interpretation_file_name)
+#        self.sparse_matrix = self.create_sparse_matrix(sparse_matrix_file_name)
+        self.interactions  = self.create_interactions(interpretation_file_name)
 
 
-    def create_2D_dict(self, file_name):
+    def create_interactions(self, file_name):
         regex = re.compile(r'[0-9]+')
         value = dict()
 
