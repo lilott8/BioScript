@@ -21,3 +21,6 @@ class SymbolTable(object):
 
     def add_local(self, local):
         self.current_scope.add_local(local)
+
+    def add_parent(self, parent):
+        self.current_scope.set_parent(parent)

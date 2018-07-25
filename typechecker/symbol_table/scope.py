@@ -18,3 +18,6 @@ class Scope(object):
 
     def get_locals(self):
         return self.locals
+
+    def set_parent(self, parent):
+        self.parent = parent
