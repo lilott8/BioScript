@@ -13,18 +13,18 @@ class Cli(object):
 
     def __init__(self, args):
         self.log = logging.getLogger(self.__class__.__name__)
-        self.log.debug(args)
         self.config = None
 
         parser = argparse.ArgumentParser()
         required_group = parser.add_argument_group('required', 'Required flags for operations.')
         required_group.add_argument('-epa', '--epa-defs', help='Location of EPA definition file.', required=False)
-        required_group.add_argument('-i', '--input', help='json string to validate mixes.', required=True)
+        required_group.add_argument('-i', '--input', help='input file.', required=True)
 
-        problem_group = parser.add_mutually_exclusive_group(required=True)
-        problem_group.add_argument('-s', '--store', help='Is this a storage problem?', action='store_true')
-        problem_group.add_argument('-dis', '--disposal', help='Is this a disposal problem?', action='store_true')
-        problem_group.add_argument('-m', '--mix', help='Is this a mixing problem?', action='store_true')
+        problem_group = parser.add_mutually_exclusive_group(required=False)
+        problem_group.add_argument('-s', '--store', help='Is this a storage problem?', action='store_true', default=False)
+        problem_group.add_argument('-dis', '--disposal', help='Is this a disposal problem?', action='store_true', default=False)
+        problem_group.add_argument('-m', '--mix', help='Is this a mixing problem?', action='store_true', default=False)
+        problem_group.add_argument('-tc', '--typecheck', help='Type check a problem', action='store_true', default=True)
 
         parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', default=False)
         parser.add_argument('-l', '--level', help='What level to report errors.', default="error",
@@ -49,8 +49,8 @@ class Cli(object):
         self.validate_config()
 
         # This should always be the first instantiation of a Config.
-        config = Config.getInstance(self.args)
-        self.log.warning(config.epa_defs)
+        # config = Config.getInstance(self.args)
+        self.log.warning(self.config.input)
 
     def validate_config(self):
         if self.args.debug:

@@ -1,5 +1,6 @@
 from shared.enums.reporting_level import ReportingLevel
 from shared.enums.problem import Problem
+import logging
 
 
 class Config(object):
@@ -17,13 +18,15 @@ class Config(object):
         return Config.__instance
 
     def __init__(self, args=None, db_enabled=False):
+        self.log = logging.getLogger(self.__class__.__name__)
         self.db_enabled = False
         self.debug = False
         self.epa_defs = './resources/epa_defs.json'
         self.input = None
         self.storage = False
         self.disposal = False
-        self.mix = True
+        self.mix = False
+        self.typecheck = True
         self.db_name = None
         self.db_pass = None
         self.db_addr = None
@@ -38,15 +41,19 @@ class Config(object):
         self.store = None
         self.dispose = None
         self.problem = None
+
         if Config.__instance is not None:
             raise Exception('This is a singleton.')
         else:
+            self.log.warning(args.input)
             self.debug = args.debug
-            self.epa_defs = args.epa_defs
+            if args.epa_defs:
+                self.epa_defs = args.epa_defs
             self.input = args.input
             self.storage = args.store
             self.disposal = args.disposal
             self.mix = args.mix
+            self.typecheck = args.typecheck
             self.db_name = args.dbname
             self.db_pass = args.dbpass
             self.db_addr = args.dbaddr
@@ -69,7 +76,9 @@ class Config(object):
                 self.problem = Problem.STORAGE
             elif self.disposal:
                 self.problem = Problem.DISPOSAL
-            else:
+            elif self.mix:
                 self.problem = Problem.MIX
+            else:
+                self.problem = Problem.TYPECHECK
 
             Config.__instance = self

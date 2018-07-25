@@ -5,13 +5,18 @@ from typechecker.visitors.symbol_visitor import SymbolTableVisitor
 from typechecker.visitors.type_visitor import TypeCheckVisitor
 from typechecker.symbol_table.symbol_table import SymbolTable
 from config.config import Config
+import logging
 
 
 class BSTranslator(object):
 
     def __init__(self):
         config = Config.getInstance(None)
+        self.log = logging.getLogger(self.__class__.__name__)
+        self.log.warning(config.input)
+
         file_stream = FileStream(config.input)
+
         self.lexer = BSLexer(file_stream)
         stream = CommonTokenStream(self.lexer)
         self.parser = BSParser(stream)

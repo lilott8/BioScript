@@ -1,5 +1,6 @@
 from grammar.parsers.python.BSParser import BSParser
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
+import logging
 
 
 class TypeCheckVisitor(BSParserVisitor):
@@ -7,6 +8,7 @@ class TypeCheckVisitor(BSParserVisitor):
     def __init__(self, symbol_table):
         BSParserVisitor.__init__(self)
         self.symbol_table = symbol_table
+        self.log = logging.getLogger(self.__class__.__name__)
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         return super().visitProgram(ctx)

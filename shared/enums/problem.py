@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class Problem(Enum):
-    STORAGE = 100
-    DISPOSAL = 10
-    MIX = 0
+    STORAGE = 8
+    DISPOSAL = 4
+    MIX = 2
+    TYPECHECK = 1

@@ -7,7 +7,7 @@ class SymbolTableVisitor(BSParserVisitor):
     def __init__(self, symbol_table):
         BSParserVisitor.__init__(self)
         self.symbol_table = symbol_table
-        pass
+        self.log = logging.getLogger(self.__class__.__name__)
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         return super().visitProgram(ctx)

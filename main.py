@@ -6,13 +6,17 @@ from shared.enums.problem import Problem
 from problem.mix import Mix
 from problem.storage import Storage
 from problem.disposal import Disposal
+from problem.typecheck import TypeCheck
 
 def main(args):
     cli = Cli(args)
     logging.warning("Hello, world")
     config = Config.getInstance(None)
 
-    if config.problem == Problem.MIX:
+    if config.problem == Problem.TYPECHECK:
+        logging.info("Running a typecheck problem")
+        typecheck = TypeCheck()
+    elif config.problem == Problem.MIX:
         logging.info("Running a mix problem")
         mix = Mix()
     elif config.problem == Problem.DISPOSAL:
