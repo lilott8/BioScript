@@ -1,5 +1,5 @@
-from enums.reporting_level import ReportingLevel
-from enums.problem import Problem
+from shared.enums.reporting_level import ReportingLevel
+from shared.enums.problem import Problem
 
 
 class Config(object):

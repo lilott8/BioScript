@@ -1,5 +1,5 @@
 from chemicals.identification.identifier import Identifier
-from IO.database import Database
+
 
 class DBIdentifier(Identifier):
 

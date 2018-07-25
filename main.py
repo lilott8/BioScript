@@ -2,7 +2,7 @@ import logging
 import sys
 from config.cli import Cli
 from config.config import Config
-from enums.problem import Problem
+from shared.enums.problem import Problem
 from problem.mix import Mix
 from problem.storage import Storage
 from problem.disposal import Disposal

@@ -1,7 +1,5 @@
 import json
-import sys
-import logging
-from enums.consequence import Consequence
+from shared.enums import Consequence
 
 class EpaManager(object):
 

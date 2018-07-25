@@ -5,7 +5,7 @@ from config.config import Config
 
 class Cli(object):
     """
-    A CLI parsing class.
+    A CLI visitors class.
     Handles building the argsparser and validating the CLI arguments.
     This is the first class to build a config object.  It shouldn't be
     created before this point.

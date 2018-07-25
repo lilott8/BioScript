@@ -1,9 +1,7 @@
 import unittest
 from chemicals.identification.identifier import Identifier
-from chemicals.identification.db_identifier import DBIdentifier
-from IO.database import Database
-from typechecker.solvers.z3_solver import Z3Solver
-import z3
+from shared.io import Database
+
 
 class Test_Identifiers(unittest.TestCase):
 

@@ -1,0 +1,32 @@
+module mod
+stationary sss
+manifest aaa
+manifest bbb
+
+functions:
+
+function do_mix(mat func_arg_a, mat func_arg_b, nat func_arg_c) {
+    func_do_mix_temp = mix 10.0mL of func_arg_a with func_arg_b
+    return func_do_mix_temp
+}
+
+function do_split(mat func_arg_a, nat func_arg_b) {
+    func_do_split_temp = split func_arg_a into 3
+    return func_do_split_temp
+}
+
+instructions:
+
+iii = mix aaa with bbb
+temp = detect m on a
+
+new = do_mix(a, b)
+drain new
+
+new = do_split(a, 3)
+drain new
+
+if (temp < 5) {
+    drain temp
+    x = 4
+}
