@@ -1,5 +1,6 @@
 from grammar.parsers.python.BSParser import BSParser
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
+import logging
 
 
 class SymbolTableVisitor(BSParserVisitor):
