@@ -17,14 +17,15 @@ class Cli(object):
 
         parser = argparse.ArgumentParser()
         required_group = parser.add_argument_group('required', 'Required flags for operations.')
-        required_group.add_argument('-epa', '--epa-defs', help='Location of EPA definition file.', required=False)
+        required_group.add_argument('-epa', '--epa-defs', help='Location of EPA definition file.', required=False,
+                                    default='./resources/epa.json')
         required_group.add_argument('-i', '--input', help='input file.', required=True)
 
         problem_group = parser.add_mutually_exclusive_group(required=False)
         problem_group.add_argument('-s', '--store', help='Is this a storage problem?', action='store_true', default=False)
         problem_group.add_argument('-dis', '--disposal', help='Is this a disposal problem?', action='store_true', default=False)
         problem_group.add_argument('-m', '--mix', help='Is this a mixing problem?', action='store_true', default=False)
-        problem_group.add_argument('-tc', '--typecheck', help='Type check a problem', action='store_true', default=True)
+        problem_group.add_argument('-b', '--bioscript', help='Compile a Bioscript program.', action='store_true', default=True)
 
         parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', default=False)
         parser.add_argument('-l', '--level', help='What level to report errors.', default="error",

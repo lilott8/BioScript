@@ -1,4 +1,4 @@
-from typechecker.symbol_table.scope import Scope
+from bioscript.symbol_table.scope import Scope
 import colorlog
 from shared.enums.chemtypes import ChemTypes
 

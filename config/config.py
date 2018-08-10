@@ -53,7 +53,7 @@ class Config(object):
             self.storage = args.store
             self.disposal = args.disposal
             self.mix = args.mix
-            self.typecheck = args.typecheck
+            self.bioscript = args.bioscript
             self.db_name = args.dbname
             self.db_pass = args.dbpass
             self.db_addr = args.dbaddr
@@ -79,6 +79,6 @@ class Config(object):
             elif self.mix:
                 self.problem = Problem.MIX
             else:
-                self.problem = Problem.TYPECHECK
+                self.problem = Problem.BIOSCRIPT
 
             Config.__instance = self

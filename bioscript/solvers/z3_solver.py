@@ -1,6 +1,6 @@
 #z3prover.github.io/api/html/namespacez3py.html#a09fe122cbfbc6d3fa30a79850b2a2414
 #z3-solver can be installed through: pip3 install z3-solver
-from typechecker.solvers.base_solver import BaseSolver
+from bioscript.solvers.base_solver import BaseSolver
 import z3
 
 

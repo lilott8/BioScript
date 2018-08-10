@@ -6,26 +6,29 @@ from shared.enums.problem import Problem
 from problem.mix import Mix
 from problem.storage import Storage
 from problem.disposal import Disposal
-from problem.typecheck import TypeCheck
+from problem.bioscript import BioScript
 import colorlog
+
 
 def main(args):
     cli = Cli(args)
     logging.warning("Hello, world")
     config = Config.getInstance(None)
 
-    if config.problem == Problem.TYPECHECK:
-        logging.info("Running a typecheck problem")
-        typecheck = TypeCheck()
+    if config.problem == Problem.BIOSCRIPT:
+        logging.info("Compiling a BioScript program.")
+        problem = BioScript()
     elif config.problem == Problem.MIX:
         logging.info("Running a mix problem")
-        mix = Mix()
+        problem = Mix()
     elif config.problem == Problem.DISPOSAL:
         logging.info("Running a disposal problem")
-        dispose = Disposal()
+        problem = Disposal()
     else:
         logging.info("Running a storage problem")
-        store = Storage()
+        problem = Storage()
+
+    problem.run()
 
 
 if __name__ == '__main__':

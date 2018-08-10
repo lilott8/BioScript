@@ -2,7 +2,7 @@ import unittest
 from chemicals.identification.identifier import Identifier
 from chemicals.identification.db_identifier import DBIdentifier
 from shared.io.database import Database
-from typechecker.solvers.z3_solver import Z3Solver
+from bioscript.solvers.z3_solver import Z3Solver
 import z3
 from chemicals.epa_manager import EpaManager
 from shared.enums.consequence import Consequence
