@@ -1,12 +1,8 @@
 import json
-<<<<<<< HEAD
-from shared.enums import Consequence
-=======
 import sys
 import colorlog
 import re
-from enums.consequence import Consequence
->>>>>>> cd07c55146281a3240b1cf408a38f8119c90948b
+from shared.enums.consequence import Consequence
 
 class EpaManager(object):
 
