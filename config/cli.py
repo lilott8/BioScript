@@ -1,5 +1,5 @@
 import argparse
-import logging
+import colorlog
 from config.config import Config
 
 
@@ -12,7 +12,7 @@ class Cli(object):
     """
 
     def __init__(self, args):
-        self.log = logging.getLogger(self.__class__.__name__)
+        self.log = colorlog.getLogger(self.__class__.__name__)
         self.config = None
 
         parser = argparse.ArgumentParser()
@@ -62,4 +62,4 @@ class Cli(object):
 
         self.config = Config.getInstance(self.args, db_enabled)
 
-        logging.error("Don't forget to validate configs.")
+        colorlog.error("Don't forget to validate configs.")

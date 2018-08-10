@@ -7,6 +7,7 @@ from problem.mix import Mix
 from problem.storage import Storage
 from problem.disposal import Disposal
 from problem.typecheck import TypeCheck
+import colorlog
 
 def main(args):
     cli = Cli(args)
@@ -28,6 +29,8 @@ def main(args):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    handler = colorlog.StreamHandler()
+    handler.setFormatter(colorlog.ColoredFormatter('%(log_color)s%(levelname)s:[%(name)s%(funcName)@%(lineno)]:%(message)s'))
+    colorlog.basicConfig(level=logging.DEBUG)
     # We don't need the first argument.
     main(sys.argv[1:])

@@ -1,6 +1,6 @@
 from shared.enums.reporting_level import ReportingLevel
 from shared.enums.problem import Problem
-import logging
+import colorlog
 
 
 class Config(object):
@@ -18,7 +18,7 @@ class Config(object):
         return Config.__instance
 
     def __init__(self, args=None, db_enabled=False):
-        self.log = logging.getLogger(self.__class__.__name__)
+        self.log = colorlog.getLogger(self.__class__.__name__)
         self.db_enabled = False
         self.debug = False
         self.epa_defs = './resources/epa_defs.json'
