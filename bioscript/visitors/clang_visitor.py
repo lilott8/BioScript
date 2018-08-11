@@ -1,6 +1,10 @@
 from grammar.parsers.python.BSParser import BSParser
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
 import colorlog
+from config.log_config import bslog
+from shared.enums.bs_properties import BSTime, BSTemperature, BSVolume
+from shared.enums.chemtypes import ChemTypes
+import re
 
 
 class ClangVisitor(BSParserVisitor):
@@ -8,7 +12,7 @@ class ClangVisitor(BSParserVisitor):
     def __init__(self, symbol_table):
         BSParserVisitor.__init__(self)
         self.symbol_table = symbol_table
-        self.log = colorlog.getLogger(self.__class__.__name__)
+        self.log = bslog.getLogger(self.__class__.__name__)
         self.nl = "\n"
         self.program = "// BSProgram!" + self.nl
         self.program += "#include <unistd.h>" + self.nl + "#include <random>" + self.nl
@@ -54,9 +58,28 @@ class ClangVisitor(BSParserVisitor):
         pass
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
-        name = ctx.IDENTIFIER()
+        name = ctx.IDENTIFIER().__str__()
+        func = self.symbol_table.functions[name]
 
-        return super().visitFunctionDeclaration(ctx)
+        if ChemTypes.MAT in func.types:
+            output = "mat "
+        else:
+            output = "double "
+
+        output += "{} (".format(name)
+        if func.args:
+            for arg in func.args:
+                output += "{}, ".format(arg.name)
+            output = output[:-2]
+        output += ") {{{}".format(self.nl)
+
+        for statement in ctx.statements():
+            self.visitStatements(statement)
+
+        output += "return {};{}".format(self.visitReturnStatement(ctx.returnStatement()), self.nl)
+        output += "}} {}".format(self.nl)
+
+        self.add(output)
 
     def visitFormalParameters(self, ctx: BSParser.FormalParametersContext):
         return super().visitFormalParameters(ctx)
@@ -71,7 +94,7 @@ class ClangVisitor(BSParserVisitor):
         return super().visitFunctionTyping(ctx)
 
     def visitReturnStatement(self, ctx: BSParser.ReturnStatementContext):
-        return super().visitReturnStatement(ctx)
+        return ctx.IDENTIFIER().__str__()
 
     def visitBlockStatement(self, ctx: BSParser.BlockStatementContext):
         return super().visitBlockStatement(ctx)
@@ -98,7 +121,11 @@ class ClangVisitor(BSParserVisitor):
         return super().visitDetect(ctx)
 
     def visitHeat(self, ctx: BSParser.HeatContext):
-        return super().visitHeat(ctx)
+        name = ctx.IDENTIFIER()
+        temp = self.visitTemperatureIdentifier(ctx.temperatureIdentifier())
+        time = self.visitTimeIdentifier(ctx.timeIdentifier())
+        output = "{} = heat({}, {}, {});".format(name, name, temp['quantity'], time['quantity'])
+        self.add(output)
 
     def visitSplit(self, ctx: BSParser.SplitContext):
         return super().visitSplit(ctx)
@@ -131,18 +158,19 @@ class ClangVisitor(BSParserVisitor):
         return super().visitTypesList(ctx)
 
     def visitVariableDeclaratorId(self, ctx: BSParser.VariableDeclaratorIdContext):
-        return super().visitVariableDeclaratorId(ctx)
+        return ctx.IDENTIFIER().__str__()
 
     def visitVariableDeclarator(self, ctx: BSParser.VariableDeclaratorContext):
-        return super().visitVariableDeclarator(ctx)
+        return self.visitChildren(ctx)
 
     def visitVariableInitializer(self, ctx: BSParser.VariableInitializerContext):
-        return super().visitVariableInitializer(ctx)
+        return self.visitChildren(ctx)
 
     def visitArrayInitializer(self, ctx: BSParser.ArrayInitializerContext):
         return super().visitArrayInitializer(ctx)
 
     def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
+
         return super().visitLocalVariableDeclaration(ctx)
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
@@ -155,13 +183,46 @@ class ClangVisitor(BSParserVisitor):
         return super().visitPrimitiveType(ctx)
 
     def visitVolumeIdentifier(self, ctx: BSParser.VolumeIdentifierContext):
-        return super().visitVolumeIdentifier(ctx)
+        quantity = 10
+        units = BSVolume.MICROLITRE
+        if ctx.VOLUME_NUMBER():
+            x = self.split_number_from_unit(ctx.VOLUME_NUMBER().__str__())
+            units = BSVolume.get_from_string(x['units'])
+            quantity = units.normalize(x['quantity'])
+        return {'quantity': quantity, 'units': units,
+                'variable': self.symbol_table.get_variable(ctx.IDENTIFIER().__str__())}
 
     def visitTimeIdentifier(self, ctx: BSParser.TimeIdentifierContext):
-        return super().visitTimeIdentifier(ctx)
+        x = self.split_number_from_unit(ctx.TIME_NUMBER().__str__())
+        # self.log.info(x)
+        units = BSTime.get_from_string(x['units'])
+        self.log.error(type(units))
+        quantity = units.normalize(x['quantity'])
+        self.log.error(quantity)
+        return {'quantity': quantity, 'units': units}
 
     def visitTemperatureIdentifier(self, ctx: BSParser.TemperatureIdentifierContext):
-        return super().visitTemperatureIdentifier(ctx)
+        x = self.split_number_from_unit(ctx.TEMP_NUMBER().__str__())
+        units = BSTemperature.get_from_string(x['units'])
+        self.log.error(units)
+        quantity = units.normalize(x['quantity'])
+        return {'quantity': quantity, 'units': units}
+
+    def split_number_from_unit(self, text):
+        temp_float = ""
+        temp_unit = ""
+        for x in text[0:]:
+            if str.isdigit(x):
+                temp_float += x
+            elif x == ".":
+                temp_float += x
+            elif x == ",":
+                continue
+            else:
+                temp_unit += x
+
+        self.log.info("{} {}".format(temp_float, temp_unit))
+        return {'quantity': float(temp_float), 'units': temp_unit}
 
     def build_structs(self):
         output = "struct mat {double quantity;};" + self.nl
@@ -187,8 +248,8 @@ class ClangVisitor(BSParserVisitor):
         output += "return output;" + self.nl
         output += "}" + self.nl
 
-        output += "mat heat(mat input, double quantity) {" + self.nl
-        output += "sleep(quantity);" + self.nl
+        output += "mat heat(mat input, double temp, double time) {" + self.nl
+        output += "sleep(time);" + self.nl
         output += "return input;" + self.nl
         output += "}" + self.nl
 

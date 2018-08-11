@@ -10,4 +10,3 @@ class BioScript(Problem):
 
     def run(self):
         self.translator.translate()
-        self.log.info(self.translator.symbol_visitor.symbol_table)

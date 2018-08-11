@@ -25,6 +25,7 @@ instructions:
 [mat; nat] iii = mix aaa with bbb
 temp = detect mod on aaa
 x = 2
+heat temp at 24c for 25d
 y = mix x with temp
 x = (5*y+(4+x))
 

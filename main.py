@@ -32,8 +32,7 @@ def main(args):
 
 
 if __name__ == '__main__':
-    handler = colorlog.StreamHandler()
-    handler.setFormatter(colorlog.ColoredFormatter('%(log_color)s%(levelname)s:[%(name)s%(funcName)@%(lineno)]:%(message)s'))
     colorlog.basicConfig(level=logging.DEBUG)
+
     # We don't need the first argument.
     main(sys.argv[1:])
