@@ -18,6 +18,7 @@ class ClangVisitor(BSParserVisitor):
         self.program += "#include <unistd.h>" + self.nl + "#include <random>" + self.nl
         self.program += self.build_structs()
         self.program += self.build_functions()
+        self.scope_stack = list()
 
     def add(self, input):
         self.program += input + self.nl
@@ -27,6 +28,7 @@ class ClangVisitor(BSParserVisitor):
         pass
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
+        self.scope_stack.append("main")
         self.visitModuleDeclaration(ctx.moduleDeclaration())
         self.visitManifestDeclaration(ctx.manifestDeclaration())
         self.visitStationaryDeclaration(ctx.stationaryDeclaration())
@@ -39,7 +41,7 @@ class ClangVisitor(BSParserVisitor):
         for statement in ctx.statements():
             self.visitStatements(statement)
 
-        self.add("}")
+        self.add("} // main")
 
         #return super().visitProgram(ctx)
 
@@ -61,6 +63,7 @@ class ClangVisitor(BSParserVisitor):
         name = ctx.IDENTIFIER().__str__()
         func = self.symbol_table.functions[name]
 
+        self.scope_stack.append(name)
         if ChemTypes.MAT in func.types:
             output = "mat "
         else:
@@ -77,9 +80,10 @@ class ClangVisitor(BSParserVisitor):
             self.visitStatements(statement)
 
         output += "return {};{}".format(self.visitReturnStatement(ctx.returnStatement()), self.nl)
-        output += "}} {}".format(self.nl)
+        output += "}} // end {} {}".format(name, self.nl)
 
         self.add(output)
+        self.scope_stack.pop()
 
     def visitFormalParameters(self, ctx: BSParser.FormalParametersContext):
         return super().visitFormalParameters(ctx)
@@ -106,7 +110,13 @@ class ClangVisitor(BSParserVisitor):
         return super().visitStatements(ctx)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
-        return super().visitIfStatement(ctx)
+        output = "if () {"
+        output += self.nl
+
+        super().visitStatements(ctx)
+
+        output += "}"
+        self.add(output)
 
     def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
         return super().visitWhileStatement(ctx)
@@ -115,10 +125,27 @@ class ClangVisitor(BSParserVisitor):
         return super().visitRepeat(ctx)
 
     def visitMix(self, ctx: BSParser.MixContext):
-        return super().visitMix(ctx)
+        output = "mix("
+        for v in ctx.volumeIdentifier():
+            var = self.visit(v)
+            output += "{}, {}, ".format(var['variable'].name, var['quantity'])
+        output = output[:-2]
+        output += ");{}".format(self.nl)
+        return output
 
     def visitDetect(self, ctx: BSParser.DetectContext):
-        return super().visitDetect(ctx)
+        output = "detect("
+        module = ctx.IDENTIFIER(0).__str__()
+        material = ctx.IDENTIFIER(1).__str__()
+        output += "{}, {}, ".format(module, material)
+        if ctx.timeIdentifier():
+            time = self.visitTimeIdentifier(ctx.timeIdentifier())
+            output += "{}".format(time['quantity'])
+        else:
+            output += "10.0"
+
+        output += ");{}".format(self.nl)
+        return output
 
     def visitHeat(self, ctx: BSParser.HeatContext):
         name = ctx.IDENTIFIER()
@@ -128,13 +155,15 @@ class ClangVisitor(BSParserVisitor):
         self.add(output)
 
     def visitSplit(self, ctx: BSParser.SplitContext):
-        return super().visitSplit(ctx)
+        return "split({}, {});{}".format(ctx.IDENTIFIER().__str__(), ctx.INTEGER_LITERAL().__str__(), self.nl)
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
-        return super().visitDispense(ctx)
+        return "dispense({});{}".format("INSERT_NAME", self.nl)
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
-        return super().visitDispose(ctx)
+        name = ctx.IDENTIFIER().__str__()
+        output = "drain({});{}".format(name, self.nl)
+        self.add(output)
 
     def visitExpression(self, ctx: BSParser.ExpressionContext):
         return super().visitExpression(ctx)
@@ -170,8 +199,9 @@ class ClangVisitor(BSParserVisitor):
         return super().visitArrayInitializer(ctx)
 
     def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
-
-        return super().visitLocalVariableDeclaration(ctx)
+        name = ctx.IDENTIFIER().__str__()
+        output = "{} = {}".format(name, self.visit(ctx.assignmentOperations()))
+        self.add(output)
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         return super().visitPrimary(ctx)
@@ -189,8 +219,9 @@ class ClangVisitor(BSParserVisitor):
             x = self.split_number_from_unit(ctx.VOLUME_NUMBER().__str__())
             units = BSVolume.get_from_string(x['units'])
             quantity = units.normalize(x['quantity'])
+            self.log.info(self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1]))
         return {'quantity': quantity, 'units': units,
-                'variable': self.symbol_table.get_variable(ctx.IDENTIFIER().__str__())}
+                'variable': self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])}
 
     def visitTimeIdentifier(self, ctx: BSParser.TimeIdentifierContext):
         x = self.split_number_from_unit(ctx.TIME_NUMBER().__str__())
@@ -220,8 +251,6 @@ class ClangVisitor(BSParserVisitor):
                 continue
             else:
                 temp_unit += x
-
-        self.log.info("{} {}".format(temp_float, temp_unit))
         return {'quantity': float(temp_float), 'units': temp_unit}
 
     def build_structs(self):
@@ -232,9 +261,12 @@ class ClangVisitor(BSParserVisitor):
         return output
 
     def build_functions(self):
-        output = "mat mix(mat input1, mat input2, double quantity) {" + self.nl
+        output = "mat mix(mat input1, double input1_quantity, mat input2, " \
+                 "double input2_quantity, double quantity) {" + self.nl
         output += "mat output;" + self.nl
         output += "output.quantity = input1.quantity + input2.quantity;" + self.nl
+        output += "input1.quantity -= input1_quantity;" + self.nl
+        output += "input2.quantity -= input2_quantity;" + self.nl
         output += "sleep(quantity);" + self.nl
         output += "return output;" + self.nl
         output += "}" + self.nl

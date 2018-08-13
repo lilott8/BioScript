@@ -21,29 +21,29 @@ class BSTime(IntEnum):
     def normalize(self, quantity: float):
         bslog.getLogger(BSTime.__class__.__name__).warning(self)
         if self.value == BSTime.NANOSECOND:
-            return quantity * 100000.0
+            return quantity / 100000.0
         elif self == BSTime.MICROSECOND:
-            return quantity * 10000.0
+            return quantity / 10000.0
         elif self == BSTime.MILLISECOND:
-            return quantity * 1000.0
+            return quantity / 1000.0
         elif self == BSTime.CENTISECOND:
-            return quantity * 100.0
+            return quantity / 100.0
         elif self == BSTime.DECISECOND:
-            return quantity * 10.0
+            return quantity / 10.0
         elif self == BSTime.SECOND:
             return quantity
         elif self == BSTime.MINUTE:
-            return quantity / 60.0
+            return quantity * 60.0
         elif self == BSTime.HOUR:
-            return quantity / 60 / 60.0
+            return quantity * 60 * 60.0
         elif self == BSTime.DAY:
-            return quantity / 60 / 60 / 24.0
+            return quantity * 60 * 60 * 24.0
         elif self == BSTime.WEEK:
-            return quantity / 60 / 60 / 24 / 7.0
+            return quantity * 60 * 60 * 24 * 7.0
         elif self == BSTime.MONTH:
-            return quantity / 60 / 60 / 24 / 7 / 30.0
+            return quantity * 60 * 60 * 24 * 7 * 30.0
         elif self == BSTime.YEAR:
-            return quantity / 60 / 60 / 24 / 365.0
+            return quantity * 60 * 60 * 24 * 365.0
         else:
             return quantity
 
@@ -113,19 +113,19 @@ class BSVolume(Enum):
 
     def normalize(self, quantity: float):
         if self == BSVolume.NANOLITRE:
-            return quantity * 10.0
+            return quantity / 10.0
         elif self == BSVolume.MICROLITRE:
             return quantity
         elif self == BSVolume.MILLILITRE:
-            return quantity / 10.0
+            return quantity * 10.0
         elif self == BSVolume.CENTILITRE:
-            return quantity / 100.0
+            return quantity * 100.0
         elif self == BSVolume.DECILITRE:
-            return quantity / 1000.0
+            return quantity * 1000.0
         elif self == BSVolume.LITRE:
-            return quantity / 10000.0
+            return quantity * 10000.0
         elif self == BSVolume.DECALITRE:
-            return quantity / 100000.0
+            return quantity * 100000.0
         else:
             return quantity
 

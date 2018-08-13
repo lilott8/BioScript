@@ -49,9 +49,15 @@ class SymbolTable(object):
         variable.types = variable.types.union(types)
         self.current_scope.add_local(variable)
 
-    def get_local(self, name):
-        if name in self.current_scope.get_locals():
-            return self.current_scope.get_locals()[name]
+    def get_local(self, name, scope_name=False):
+        # Check for scope.
+        if scope_name is not False:
+            scope = self.scope_map[scope_name]
+        else:
+            scope = self.current_scope
+        # Now that we have the scope, get the local.
+        if name in scope.get_locals():
+            return scope.get_locals()[name]
         elif name in self.globals:
             return False
         else:
@@ -65,13 +71,19 @@ class SymbolTable(object):
             self.log.fatal("No global variable found: {}".format(name))
             return False
 
-    def get_variable(self, variable):
+    def get_variable(self, variable, scope_name=False):
+        # Check for scope.
+        if scope_name is not False:
+            scope = self.scope_map[scope_name]
+        else:
+            scope = self.current_scope
+        # Now check for the variable.
         if variable in self.globals:
             return self.globals[variable]
-        elif variable in self.current_scope.get_locals():
-            return self.current_scope.get_locals()[variable]
+        elif variable in scope.get_locals():
+            return scope.get_locals()[variable]
         else:
-            self.log.fatal("No variable found: {}".format(variable))
+            self.log.fatal("No variable found: {} in {}".format(variable, scope.name))
             return False
 
     def __str__(self):
