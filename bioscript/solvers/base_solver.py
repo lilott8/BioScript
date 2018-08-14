@@ -1,4 +1,5 @@
 import colorlog
+
 from config.config import Config
 
 

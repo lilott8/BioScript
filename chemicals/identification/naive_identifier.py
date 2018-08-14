@@ -6,4 +6,4 @@ class NaiveIdentifier(Identifier):
         Identifier.__init__(self)
 
     def identify_compound(self, name):
-        return 
+        return

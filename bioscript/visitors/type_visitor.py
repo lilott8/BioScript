@@ -1,6 +1,7 @@
+import colorlog
+
 from grammar.parsers.python.BSParser import BSParser
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
-import colorlog
 
 
 class TypeCheckVisitor(BSParserVisitor):
@@ -126,4 +127,3 @@ class TypeCheckVisitor(BSParserVisitor):
 
     def visitTemperatureIdentifier(self, ctx: BSParser.TemperatureIdentifierContext):
         return super().visitTemperatureIdentifier(ctx)
-

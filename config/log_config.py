@@ -1,7 +1,7 @@
 import colorlog
 
-class bslog(object):
 
+class bslog(object):
     formatter = '%(log_color)s%(levelname)s:[%(name)s.%(funcName)s@%(lineno)s]:%(message)s'
 
     @staticmethod

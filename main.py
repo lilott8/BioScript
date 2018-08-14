@@ -1,13 +1,15 @@
 import logging
 import sys
+
+import colorlog
+
 from config.cli import Cli
 from config.config import Config
-from shared.enums.problem import Problem
+from problem.bioscript import BioScript
+from problem.disposal import Disposal
 from problem.mix import Mix
 from problem.storage import Storage
-from problem.disposal import Disposal
-from problem.bioscript import BioScript
-import colorlog
+from shared.enums.problem import Problem
 
 
 def main(args):

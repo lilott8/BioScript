@@ -1,7 +1,5 @@
 from enum import Enum
 from enum import IntEnum
-from .helpers import *
-from config.log_config import bslog
 
 
 class BSTime(IntEnum):
@@ -19,7 +17,6 @@ class BSTime(IntEnum):
     YEAR = 12
 
     def normalize(self, quantity: float):
-        bslog.getLogger(BSTime.__class__.__name__).warning(self)
         if self.value == BSTime.NANOSECOND:
             return quantity / 100000.0
         elif self == BSTime.MICROSECOND:

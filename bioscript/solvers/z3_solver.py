@@ -1,7 +1,8 @@
-#z3prover.github.io/api/html/namespacez3py.html#a09fe122cbfbc6d3fa30a79850b2a2414
-#z3-solver can be installed through: pip3 install z3-solver
-from bioscript.solvers.base_solver import BaseSolver
+# z3prover.github.io/api/html/namespacez3py.html#a09fe122cbfbc6d3fa30a79850b2a2414
+# z3-solver can be installed through: pip3 install z3-solver
 import z3
+
+from bioscript.solvers.base_solver import BaseSolver
 
 
 class Z3Solver(BaseSolver):
@@ -28,7 +29,3 @@ class Z3Solver(BaseSolver):
             self.log.error('There was an error solving the given constraints')
             self.log.error(str(e))
             return False
-
-
-
-

@@ -26,13 +26,13 @@ instructions:
 temp = detect mod on aaa
 x = 2
 heat temp at 24c for 25d
-y = mix x with temp
+y = mix aaa with temp
 x = (5*y+(4+x))
 
-new = do_mix(a, b)
+new = do_mix(aaa, bbb)
 drain new
 
-new = do_split(a, 3)
+new = do_split(aaa, 3)
 drain new
 
 if (temp < 5) {

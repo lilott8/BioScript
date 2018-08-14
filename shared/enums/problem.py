@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import IntEnum
 
 
-class Problem(Enum):
+class Problem(IntEnum):
     STORAGE = 8
     DISPOSAL = 4
     MIX = 2

@@ -1,5 +1,5 @@
-from problem.problem import Problem
 from bioscript.bs_translator import BSTranslator
+from problem.problem import Problem
 
 
 class BioScript(Problem):

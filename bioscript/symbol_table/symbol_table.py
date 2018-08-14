@@ -1,5 +1,6 @@
-from bioscript.symbol_table.scope import Scope
 import colorlog
+
+from bioscript.symbol_table.scope import Scope
 from shared.enums.chemtypes import ChemTypes
 
 

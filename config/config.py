@@ -1,6 +1,7 @@
-from shared.enums.reporting_level import ReportingLevel
-from shared.enums.problem import Problem
 import colorlog
+
+from shared.enums.problem import Problem
+from shared.enums.reporting_level import ReportingLevel
 
 
 class Config(object):

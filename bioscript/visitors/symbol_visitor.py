@@ -1,9 +1,10 @@
+import colorlog
+
 from grammar.parsers.python.BSParser import BSParser
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
 from shared.enums.chemtypes import ChemTypes
-from shared.variable import Variable
 from shared.function import Function
-import colorlog
+from shared.variable import Variable
 
 
 class SymbolTableVisitor(BSParserVisitor):

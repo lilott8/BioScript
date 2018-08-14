@@ -1,4 +1,3 @@
-
 class Variable(object):
 
     def __init__(self, name, types, scope="unkown", is_array=False):
@@ -6,6 +5,7 @@ class Variable(object):
         self.types = types
         self.scope = scope
         self.is_array = is_array
+        self.is_declared = False
 
     def __str__(self):
         output = "\t["

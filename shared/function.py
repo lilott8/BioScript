@@ -1,5 +1,3 @@
-
-
 class Function(object):
 
     def __init__(self, name, return_types, args):

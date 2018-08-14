@@ -1,8 +1,9 @@
-from enum import Enum
+from enum import IntEnum
 
-class Consequence(Enum):
+
+class Consequence(IntEnum):
     HEAT_GENERATION = 0
-    FIRE            = 1
+    FIRE = 1
     INNOCUOUS_AND_NON_FLAMMABLE_GAS_GENERATION = 2
     TOXIC_GAS_FORMATION = 3
     FLAMMABLE_GAS_FORMATION = 4
