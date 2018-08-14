@@ -1,18 +1,14 @@
-import colorlog
-
 from grammar.parsers.python.BSParser import BSParser
-from grammar.parsers.python.BSParserVisitor import BSParserVisitor
 from shared.enums.chemtypes import ChemTypes
 from shared.function import Function
 from shared.variable import Variable
+from .bs_base_visitor import BSBaseVisitor
 
 
-class SymbolTableVisitor(BSParserVisitor):
+class SymbolTableVisitor(BSBaseVisitor):
 
     def __init__(self, symbol_table):
-        BSParserVisitor.__init__(self)
-        self.log = colorlog.getLogger(self.__class__.__name__)
-        self.symbol_table = symbol_table
+        super().__init__(symbol_table)
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.visitModuleDeclaration(ctx.moduleDeclaration())
@@ -56,6 +52,7 @@ class SymbolTableVisitor(BSParserVisitor):
         if ctx.formalParameters():
             args = self.visitFormalParameters(ctx.formalParameters())
         for arg in args:
+            arg = self.check_identifier(arg)
             self.symbol_table.add_local(arg)
 
         for statement in ctx.statements():
@@ -230,7 +227,7 @@ class SymbolTableVisitor(BSParserVisitor):
         declared_types = set()
         final_types = set()
 
-        name = ctx.IDENTIFIER().__str__()
+        name = self.check_identifier(ctx.IDENTIFIER().__str__())
 
         if ctx.unionType():
             declared_types = self.visitUnionType(ctx.unionType())

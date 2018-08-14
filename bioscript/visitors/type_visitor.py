@@ -1,15 +1,11 @@
-import colorlog
-
 from grammar.parsers.python.BSParser import BSParser
-from grammar.parsers.python.BSParserVisitor import BSParserVisitor
+from .bs_base_visitor import BSBaseVisitor
 
 
-class TypeCheckVisitor(BSParserVisitor):
+class TypeCheckVisitor(BSBaseVisitor):
 
     def __init__(self, symbol_table):
-        BSParserVisitor.__init__(self)
-        self.symbol_table = symbol_table
-        self.log = colorlog.getLogger(self.__class__.__name__)
+        super().__init__(symbol_table)
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         return super().visitProgram(ctx)

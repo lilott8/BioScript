@@ -23,20 +23,20 @@ function test_empty() {
 instructions:
 
 [mat; nat] iii = mix aaa with bbb
-temp = detect mod on aaa
+heatTemp = detect mod on aaa
 x = 2
-heat temp at 24c for 25d
-y = mix aaa with temp
-x = (5*y+(4+x))
+heat aaa at 24c for 25d
+y = mix aaa with bbb
+x = (5*x+(4+x))
 
-new = do_mix(aaa, bbb)
+new = do_mix(aaa, bbb, 6)
 drain new
 
 new = do_split(aaa, 3)
 drain new
 
-if (temp < 5) {
-    drain temp
-    in_if = mix x with bbb
-    [mat] x = split bbb into 4
+if (heatTemp < 5) {
+    drain y
+    in_if = mix new with bbb
+    [mat] z = split bbb into 4
 }
