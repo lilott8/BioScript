@@ -4,7 +4,7 @@ from antlr4 import *
 from bioscript.symbol_table.symbol_table import SymbolTable
 from bioscript.visitors.clang_visitor import ClangVisitor
 from bioscript.visitors.symbol_visitor import SymbolTableVisitor
-from bioscript.visitors.type_visitor import TypeCheckVisitor
+from bioscript.visitors.types.type_visitor import TypeCheckVisitor
 from config.config import Config
 from grammar.parsers.python.BSLexer import BSLexer
 from grammar.parsers.python.BSParser import BSParser
@@ -16,7 +16,7 @@ class BSTranslator(object):
         self.config = Config.getInstance(None)
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.log.warning(self.config.input)
-
+        self.type_check = ""
         # This must be globally declared.
         self.symbol_visitor = SymbolTableVisitor(SymbolTable())
 
@@ -36,7 +36,7 @@ class BSTranslator(object):
 
     def visit_type_check(self, tree):
         type_checker = TypeCheckVisitor(self.symbol_visitor.symbol_table)
-        smt = type_checker.visit(tree)
+        smt = type_checker.problem
         # z3 = Z3Solver()
         # z3.solve_with_smt2(smt)
 

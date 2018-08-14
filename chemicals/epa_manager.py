@@ -1,7 +1,7 @@
 import json
 import re
 
-from shared.enums.consequence import Consequence
+from shared.enums.chemtypes import Consequence
 
 
 class EpaManager(object):

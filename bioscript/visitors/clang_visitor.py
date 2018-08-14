@@ -153,7 +153,7 @@ class ClangVisitor(BSBaseVisitor):
         output = "mix("
         for v in ctx.volumeIdentifier():
             var = self.visit(v)
-            output += "{}, {}, ".format(var['variable'].name, var['quantity'])
+            output += "{}, {}, ".format(self.check_identifier(var['variable'].name), var['quantity'])
         if ctx.timeIdentifier():
             time = self.visitTimeIdentifier(ctx.timeIdentifier())
             output += time['quantity']
@@ -272,13 +272,13 @@ class ClangVisitor(BSBaseVisitor):
         return super().visitArrayInitializer(ctx)
 
     def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
-        name = self.check_identifier(ctx.IDENTIFIER().__str__())
+        name = ctx.IDENTIFIER().__str__()
         variable = self.symbol_table.get_variable(name, self.scope_stack[-1])
         type_def = ""
         if not variable.is_declared:
             type_def = self.get_types(variable.types)
             variable.is_declared = True
-        return "{} {} = {};".format(type_def, name, self.visit(ctx.assignmentOperations()))
+        return "{} {} = {};".format(type_def, self.check_identifier(name), self.visit(ctx.assignmentOperations()))
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         if ctx.IDENTIFIER():
@@ -306,7 +306,7 @@ class ClangVisitor(BSBaseVisitor):
     def visitVolumeIdentifier(self, ctx: BSParser.VolumeIdentifierContext):
         quantity = 10.0
         units = BSVolume.MICROLITRE
-        name = self.check_identifier(ctx.IDENTIFIER().__str__())
+        name = ctx.IDENTIFIER().__str__()
         if ctx.VOLUME_NUMBER():
             x = self.split_number_from_unit(ctx.VOLUME_NUMBER().__str__())
             units = BSVolume.get_from_string(x['units'])

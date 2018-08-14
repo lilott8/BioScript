@@ -52,7 +52,6 @@ class SymbolTableVisitor(BSBaseVisitor):
         if ctx.formalParameters():
             args = self.visitFormalParameters(ctx.formalParameters())
         for arg in args:
-            arg = self.check_identifier(arg)
             self.symbol_table.add_local(arg)
 
         for statement in ctx.statements():
@@ -227,7 +226,7 @@ class SymbolTableVisitor(BSBaseVisitor):
         declared_types = set()
         final_types = set()
 
-        name = self.check_identifier(ctx.IDENTIFIER().__str__())
+        name = ctx.IDENTIFIER().__str__()
 
         if ctx.unionType():
             declared_types = self.visitUnionType(ctx.unionType())

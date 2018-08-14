@@ -2,7 +2,7 @@ import unittest
 
 from chemicals.epa_manager import EpaManager
 from chemicals.identification.identifier import Identifier
-from shared.enums.consequence import Consequence
+from shared.enums.chemtypes import Consequence
 from shared.io.database import Database
 
 

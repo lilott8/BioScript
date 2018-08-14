@@ -9,7 +9,7 @@ from problem.bioscript import BioScript
 from problem.disposal import Disposal
 from problem.mix import Mix
 from problem.storage import Storage
-from shared.enums.problem import Problem
+from shared.enums.config_flags import Problem
 
 
 def main(args):

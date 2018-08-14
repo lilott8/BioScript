@@ -1,8 +1,8 @@
 from grammar.parsers.python.BSParser import BSParser
-from .bs_base_visitor import BSBaseVisitor
+from .type_visitor import TypeCheckVisitor
 
 
-class TypeCheckVisitor(BSBaseVisitor):
+class NaiveTypeVisitor(TypeCheckVisitor):
 
     def __init__(self, symbol_table):
         super().__init__(symbol_table)
@@ -90,6 +90,9 @@ class TypeCheckVisitor(BSBaseVisitor):
 
     def visitUnionType(self, ctx: BSParser.UnionTypeContext):
         return super().visitUnionType(ctx)
+
+    def visitTypesList(self, ctx: BSParser.TypesListContext):
+        return super().visitTypesList(ctx)
 
     def visitVariableDeclaratorId(self, ctx: BSParser.VariableDeclaratorIdContext):
         return super().visitVariableDeclaratorId(ctx)

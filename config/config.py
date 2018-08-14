@@ -1,7 +1,8 @@
 import colorlog
 
-from shared.enums.problem import Problem
-from shared.enums.reporting_level import ReportingLevel
+from shared.enums.config_flags import Problem
+from shared.enums.config_flags import ReportingLevel
+from shared.enums.config_flags import TypeChecker
 
 
 class Config(object):
@@ -37,7 +38,8 @@ class Config(object):
         self.filters = True
         self.classify = 4
         self.simulate = True
-        self.error_level = "ERROR"
+        self.error_level = ReportingLevel.ERROR
+        self.type_checker = TypeChecker.NAIVE
         self.validate = None
         self.store = None
         self.dispose = None
@@ -64,6 +66,7 @@ class Config(object):
             self.smarts_length = args.smarts
             self.filters = not args.no_filters
             self.classify = args.classify
+            self.log.fatal("Not parsing classify correctly")
             self.simulate = args.simulate
 
             if args.level.lower() == "none":
@@ -72,6 +75,13 @@ class Config(object):
                 self.error_level = ReportingLevel.WARNING
             else:
                 self.error_level = ReportingLevel.ERROR
+
+            if args.solver.lower() == "d" or args.solver.lower() == "disable":
+                self.type_checker = TypeChecker.DISABLED
+            elif args.solver.lower() == "z3":
+                self.type_checker = TypeChecker.Z3
+            else:
+                self.type_checker = TypeChecker.NAIVE
 
             if self.storage:
                 self.problem = Problem.STORAGE

@@ -33,16 +33,20 @@ class Cli(object):
                                    default=True)
 
         parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', default=False)
-        parser.add_argument('-l', '--level', help='What level to report errors.', default="error",
-                            choices={'error', 'warn', 'none'})
 
         chemistry = parser.add_argument_group('chemistry', 'Chemistry specific arguments')
         chemistry.add_argument('-sim', '--simulate', help='Simulate chemistry.', default=False,
                                choices={True, False}, type=bool)
         chemistry.add_argument('-c', '--classify', help='Chemical classification level.', default=4,
-                               choices={0, 1, 2, 4, 8, 16}, type=int)
+                               choices={1, 2, 4, 8, 16, 32}, type=int)
         chemistry.add_argument('-nf', '--no-filters', help='Disable smart filter creation.', action='store_true')
         chemistry.add_argument('-smarts', '--smarts', help='Length of smart filters to use.', default=5, type=int)
+
+        typing_group = parser.add_argument_group('typing', 'Typing specific arguments')
+        typing_group.add_argument('-l', '--level', help='What level to report errors.', default="error",
+                                  choices={'error', 'warn', 'none'})
+        typing_group.add_argument('-sol', '--solver', help='How to solve this typing problem.', default='n',
+                                  choices={'naive', 'n', 'z3', 'd', 'disable'})
 
         db_group = parser.add_argument_group('db', 'Database specific arguments:')
         db_group.add_argument('--dbname', help='Name of database.', default='')
