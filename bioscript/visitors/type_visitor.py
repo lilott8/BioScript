@@ -1,3 +1,5 @@
+import copy
+
 from bioscript.visitors.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.enums.chemtypes import ChemTypeResolver
@@ -8,7 +10,9 @@ from shared.enums.config_flags import TypeChecker
 class TypeCheckVisitor(BSBaseVisitor):
 
     def __init__(self, symbol_table):
-        super().__init__(symbol_table)
+        # We deep copy symbol table because we don't
+        # want to affect change on the created one.
+        super().__init__(copy.deepcopy(symbol_table))
         self.check = self.config.typecheck
         self.smt_string = ""
         self.build_declares()
@@ -24,9 +28,20 @@ class TypeCheckVisitor(BSBaseVisitor):
                     self.smt_string += "declare-const {}_{} Bool\n".format(var, ChemTypes(enum).name)
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
-        return super().visitProgram(ctx)
+        self.scope_stack.append("main")
+
+        self.visitModuleDeclaration(ctx.moduleDeclaration())
+        self.visitManifestDeclaration(ctx.manifestDeclaration())
+        self.visitStationaryDeclaration(ctx.stationaryDeclaration())
+
+        for func in ctx.functionDeclaration():
+            self.visitFunctionDeclaration(func)
+
+        for statement in ctx.statements():
+            self.visitStatements(statement)
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
+
         return super().visitModuleDeclaration(ctx)
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
@@ -72,8 +87,11 @@ class TypeCheckVisitor(BSBaseVisitor):
         return super().visitRepeat(ctx)
 
     def visitMix(self, ctx: BSParser.MixContext):
+        inputs = list()
+        for volume in ctx.volumeIdentifier():
+            inputs.append(self.visit(volume))
 
-        return super().visitMix(ctx)
+        self.log.warning(inputs)
 
     def visitDetect(self, ctx: BSParser.DetectContext):
         return super().visitDetect(ctx)
@@ -135,11 +153,3 @@ class TypeCheckVisitor(BSBaseVisitor):
     def visitPrimitiveType(self, ctx: BSParser.PrimitiveTypeContext):
         return super().visitPrimitiveType(ctx)
 
-    def visitVolumeIdentifier(self, ctx: BSParser.VolumeIdentifierContext):
-        return super().visitVolumeIdentifier(ctx)
-
-    def visitTimeIdentifier(self, ctx: BSParser.TimeIdentifierContext):
-        return super().visitTimeIdentifier(ctx)
-
-    def visitTemperatureIdentifier(self, ctx: BSParser.TemperatureIdentifierContext):
-        return super().visitTemperatureIdentifier(ctx)

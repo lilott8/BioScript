@@ -1,6 +1,5 @@
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import UndefinedException
-from shared.enums.bs_properties import BSTime, BSTemperature, BSVolume
 from shared.enums.chemtypes import ChemTypes
 from .bs_base_visitor import BSBaseVisitor
 
@@ -13,7 +12,6 @@ class ClangVisitor(BSBaseVisitor):
         self.program = "// BSProgram!" + self.nl
         self.program += "#include <unistd.h>" + self.nl + "#include <random>" + self.nl
         self.program += "{}{}{}".format(self.build_structs(), self.nl, self.build_functions())
-        self.scope_stack = list()
 
     def add(self, input):
         self.program += input + self.nl
@@ -28,8 +26,8 @@ class ClangVisitor(BSBaseVisitor):
         self.visitManifestDeclaration(ctx.manifestDeclaration())
         self.visitStationaryDeclaration(ctx.stationaryDeclaration())
 
-        for function in ctx.functionDeclaration():
-            self.visitFunctionDeclaration(function)
+        for func in ctx.functionDeclaration():
+            self.visitFunctionDeclaration(func)
 
         self.add("int main() {")
 
@@ -302,43 +300,6 @@ class ClangVisitor(BSBaseVisitor):
 
     def visitPrimitiveType(self, ctx: BSParser.PrimitiveTypeContext):
         return super().visitPrimitiveType(ctx)
-
-    def visitVolumeIdentifier(self, ctx: BSParser.VolumeIdentifierContext):
-        quantity = 10.0
-        units = BSVolume.MICROLITRE
-        name = ctx.IDENTIFIER().__str__()
-        if ctx.VOLUME_NUMBER():
-            x = self.split_number_from_unit(ctx.VOLUME_NUMBER().__str__())
-            units = BSVolume.get_from_string(x['units'])
-            quantity = units.normalize(x['quantity'])
-        return {'quantity': quantity, 'units': units,
-                'variable': self.symbol_table.get_variable(name, self.scope_stack[-1])}
-
-    def visitTimeIdentifier(self, ctx: BSParser.TimeIdentifierContext):
-        x = self.split_number_from_unit(ctx.TIME_NUMBER().__str__())
-        units = BSTime.get_from_string(x['units'])
-        quantity = units.normalize(x['quantity'])
-        return {'quantity': quantity, 'units': units}
-
-    def visitTemperatureIdentifier(self, ctx: BSParser.TemperatureIdentifierContext):
-        x = self.split_number_from_unit(ctx.TEMP_NUMBER().__str__())
-        units = BSTemperature.get_from_string(x['units'])
-        quantity = units.normalize(x['quantity'])
-        return {'quantity': quantity, 'units': units}
-
-    def split_number_from_unit(self, text):
-        temp_float = ""
-        temp_unit = ""
-        for x in text[0:]:
-            if str.isdigit(x):
-                temp_float += x
-            elif x == ".":
-                temp_float += x
-            elif x == ",":
-                continue
-            else:
-                temp_unit += x
-        return {'quantity': float(temp_float), 'units': temp_unit}
 
     def get_types(self, types):
         if ChemTypes.MAT in types:

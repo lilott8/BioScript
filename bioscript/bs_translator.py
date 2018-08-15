@@ -36,7 +36,8 @@ class BSTranslator(object):
 
     def visit_type_check(self, tree):
         type_checker = TypeCheckVisitor(self.symbol_visitor.symbol_table)
-        self.log.info(type_checker.smt_string)
+        type_checker.visit(tree)
+        # self.log.info(type_checker.smt_string)
         # z3 = Z3Solver()
         # z3.solve_with_smt2(smt)
 

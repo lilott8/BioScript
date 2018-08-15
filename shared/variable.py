@@ -1,6 +1,6 @@
 class Variable(object):
 
-    def __init__(self, name, types, scope="unkown", is_array=False):
+    def __init__(self, name, types=None, scope="unknown", is_array=False):
         self.name = name
         self.types = types
         self.scope = scope

@@ -1,10 +1,7 @@
-import colorlog
-
-
 class Scope(object):
 
     def __init__(self, name, parent=""):
-        self.log = colorlog.getLogger(self.__class__.__name__)
+        # self.log = colorlog.getLogger(self.__class__.__name__)
         self.name = name
         self.parent = parent
         self.locals = dict()

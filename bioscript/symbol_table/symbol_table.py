@@ -1,5 +1,3 @@
-import colorlog
-
 from bioscript.symbol_table.scope import Scope
 from shared.enums.chemtypes import ChemTypes
 
@@ -7,7 +5,7 @@ from shared.enums.chemtypes import ChemTypes
 class SymbolTable(object):
 
     def __init__(self, name="main"):
-        self.log = colorlog.getLogger(self.__class__.__name__)
+        # self.log = colorlog.getLogger(self.__class__.__name__)
         self.current_scope = Scope(name)
         self.scope_stack = list()
         self.scope_map = dict()
@@ -47,6 +45,8 @@ class SymbolTable(object):
             return
         if ChemTypes.UNKNOWN in variable.types:
             variable.types.remove(ChemTypes.UNKNOWN)
+        if ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION in variable.types:
+            variable.types.remove(ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION)
         variable.types = variable.types.union(types)
         self.current_scope.add_local(variable)
 
@@ -62,14 +62,14 @@ class SymbolTable(object):
         elif name in self.globals:
             return False
         else:
-            self.log.fatal("No local variable found: {}".format(name))
+            # self.log.fatal("No local variable found: {}".format(name))
             return False
 
     def get_global(self, name):
         if name in self.globals:
             return self.globals[name]
         else:
-            self.log.fatal("No global variable found: {}".format(name))
+            #self.log.fatal("No global variable found: {}".format(name))
             return False
 
     def get_variable(self, variable, scope_name=False):
@@ -84,7 +84,7 @@ class SymbolTable(object):
         elif variable in scope.get_locals():
             return scope.get_locals()[variable]
         else:
-            self.log.fatal("No variable found: {} in {}".format(variable, scope.name))
+            #self.log.fatal("No variable found: {} in {}".format(variable, scope.name))
             return False
 
     def __str__(self):
