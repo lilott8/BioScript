@@ -3,8 +3,8 @@ import MySQLdb
 
 class Database(object):
 
-    def __init__(self, user, password, host, port, db):
-        self.connection = MySQLdb.connect(host=host, user=user, passwd=password, db=db)
+    def __init__(self, db: dict):
+        self.connection = MySQLdb.connect(host=db['addr'], user=db['user'], passwd=db['pass'], db=db['driver'])
 
     def close(self):
         self.connection.close()

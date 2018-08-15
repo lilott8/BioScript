@@ -1,11 +1,27 @@
+from bioscript.visitors.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
-from .type_visitor import TypeCheckVisitor
+from shared.enums.chemtypes import ChemTypeResolver
+from shared.enums.chemtypes import ChemTypes
+from shared.enums.config_flags import TypeChecker
 
 
-class NaiveTypeVisitor(TypeCheckVisitor):
+class TypeCheckVisitor(BSBaseVisitor):
 
     def __init__(self, symbol_table):
         super().__init__(symbol_table)
+        self.check = self.config.typecheck
+        self.smt_string = ""
+        self.build_declares()
+        self.identifier = None
+        if self.check == TypeChecker.NAIVE:
+            pass
+
+    def build_declares(self):
+        for scope in self.symbol_table.scope_map:
+            for var in self.symbol_table.scope_map[scope].get_locals():
+                self.smt_string += "; Declaring constants for: {}\n".format(var)
+                for enum in ChemTypeResolver.available_types:
+                    self.smt_string += "declare-const {}_{} Bool\n".format(var, ChemTypes(enum).name)
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         return super().visitProgram(ctx)
@@ -56,6 +72,7 @@ class NaiveTypeVisitor(TypeCheckVisitor):
         return super().visitRepeat(ctx)
 
     def visitMix(self, ctx: BSParser.MixContext):
+
         return super().visitMix(ctx)
 
     def visitDetect(self, ctx: BSParser.DetectContext):

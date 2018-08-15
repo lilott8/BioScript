@@ -1,6 +1,7 @@
 import colorlog
 
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
+from shared.helpers import *
 
 
 class BSBaseVisitor(BSParserVisitor):
@@ -8,6 +9,11 @@ class BSBaseVisitor(BSParserVisitor):
     def __init__(self, symbol_table):
         super().__init__()
         self.log = colorlog.getLogger(self.__class__.__name__)
+        self.config = Config.getInstance(None)
+        # The identifier to use.
+        self.identifier = get_identifier(self.config.identify)
+        # The combiner to use.
+        self.combiner = get_combiner(self.config.combine)
         self.symbol_table = symbol_table
         self.keywords = ("alignas", "alignof", "and", "and_eq", "asm", "atomic_cancel", "atomic_commit",
                          "atomic_noexcept", "auto", "bitand", "bitor", "bool", "break", "case", "catch", "char",

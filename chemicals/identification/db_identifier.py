@@ -1,13 +1,21 @@
 from chemicals.identification.identifier import Identifier
+from shared.enums.chemtypes import ChemTypes
+from shared.enums.config_flags import IdentifyLevel
+from shared.variable import Variable
 
 
 class DBIdentifier(Identifier):
 
-    def __init__(self, db):
-        Identifier.__init__(self)
+    def __init__(self, level: IdentifyLevel, db):
+        super().__init__(level)
         self.db = db
 
-    # fix(daniel): figure out if there is a way to prevent exceptions from firing... 
+    def identify(self, search_for: str) -> Variable:
+        self.log.fatal("DB Identifier isn't functioning correctly.")
+        var = Variable(search_for, {ChemTypes.UNKNOWN})
+        return var
+
+    # fix(daniel): figure out if there is a way to prevent exceptions from firing...
     def is_name(self, string):
         try:
             cursor = self.db.sql_query('SELECT name FROM chemicals WHERE name = {0};'.format(string))

@@ -18,13 +18,19 @@ class ReportingLevel(IntEnum):
 class TypeChecker(IntEnum):
     DISABLED = 0
     NAIVE = 1
-    Z3 = 2
+    UNION = 2
 
 
-class Classification(IntFlag):
+class IdentifyLevel(IntFlag):
+    DISABLED = 0
     PUBCHEM_ID = 1
     INCHL_KEY = 2
     CAS_NUMBER = 4
     SMILES = 8
     FORMULA = 16
     NAME = 32
+
+
+class ClassifyLevel(IntFlag):
+    NAIVE = 1
+    SIMULATE = 2
