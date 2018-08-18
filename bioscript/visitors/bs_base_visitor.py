@@ -18,7 +18,10 @@ class BSBaseVisitor(BSParserVisitor):
         self.identifier = get_identifier(self.config.identify)
         # The combiner to use.
         self.combiner = get_combiner(self.config.combine)
+        self.global_scope = "global"
         self.symbol_table = symbol_table
+        self.nl = "\n"
+        self.tab = "\t"
         self.scope_stack = list()
         self.keywords = ("alignas", "alignof", "and", "and_eq", "asm", "atomic_cancel", "atomic_commit",
                          "atomic_noexcept", "auto", "bitand", "bitor", "bool", "break", "case", "catch", "char",
@@ -61,6 +64,10 @@ class BSBaseVisitor(BSParserVisitor):
             return "{}{}".format(name, name)
         else:
             return name
+
+    @staticmethod
+    def get_safe_name(name: str) -> str:
+        return name.replace(" ", "_").replace("-", "_")
 
     def split_number_from_unit(self, text):
         temp_float = ""

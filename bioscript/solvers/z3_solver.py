@@ -11,8 +11,8 @@ class Z3Solver(BaseSolver):
         BaseSolver.__init__(self)
 
     def solve(self, problem):
-        if self.config.debug:
-            self.log.info("z3 version: {}".format(z3.get_full_version()))
+        # if self.config.debug:
+        # self.log.info("z3 version: {}".format(z3.get_full_version()))
         try:
             solver = z3.Solver()
             bool_expr = z3.parse_smt2_string(problem)

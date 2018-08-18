@@ -1,88 +1,118 @@
 import json
-import re
 
+import colorlog
+
+from chemicals.reactive_group import ReactiveGroup
+from shared.enums.chemtypes import ChemTypes
 from shared.enums.chemtypes import Consequence
 
 
 class EpaManager(object):
 
-    def __init__(self, sm_file_name, interaction_file_name):
-        self.sparse_matrix = self.create_sparse_matrix(sm_file_name)
-        self.interactions = self.create_interactions(interaction_file_name)
-
-    def create_interactions(self, file_name):
-        regex = re.compile(r'[0-9]+')
-        value = dict()
-
-        file_read = open(file_name)
-        for line in (file_read.readlines()[1:]):
-            match = regex.findall(line)
-            x = int(match[0])
-            y = int(match[1])
-            rest = set(map(int, match[2:]))
-            if x not in value:
-                value[x] = {y: rest}
-            else:
-                value[x].update({y: rest})
-        file_read.close()
-
-        return value
-
-    def create_sparse_matrix(self, file_name):
-        json_parsed_struct = []
-        sparse_matrix = {}
-
-        with open(file_name) as file_read:
-            json_parsed_struct = json.loads(file_read.read())['chemicalgroups']['group']
-
-        for json_item in json_parsed_struct:
-            if 'reactivegroups' in json_item and json_item['reactivegroups'] != None and len(
-                    json_item['reactivegroups']) != 0:
-                key = int(json_item['id'])
-                value = dict(map(lambda x: (int(x['id']), {'outcome': EpaManager.to_consequence_enum(x['outcome'])}), \
-                                 filter(lambda y: 'id' in y and 'outcome' in y,
-                                        json_item['reactivegroups']['reaction'])))
-                sparse_matrix[key] = value
-        return sparse_matrix
+    def __init__(self, epa_defs_file_name, interaction_file_name):
+        self.log = colorlog.getLogger(self.__class__.__name__)
+        self.interactions = EpaManager.build_interaction_table(interaction_file_name)
+        # We store both the entire reactive groups and the associated data in conjunction with
+        # The simplified table.  This is only to make access less verbose.
+        (self.reactive_groups, self.reactive_table) = EpaManager.build_reactive_table(epa_defs_file_name)
 
     @staticmethod
-    def to_consequence_enum(string):
-        if string == 'N':
-            return Consequence.INCOMPATIBLE
-        elif string == 'C':
-            return Consequence.CAUTION
-        elif string == 'SR':
-            return Consequence.SELF_REACTIVE
-        else:
-            return Consequence.UNKNOWN
+    def build_interaction_table(file_name: str) -> dict:
+        """
+        Build the abstract interaction table.
+        :param file_name: path to abstract interaction table.
+        :return: dict of the abstract interaction table.
+        """
+        result = dict()
+        with open(file_name, 'r') as file_read:
+            z = 0
+            for line in file_read:
+                line = line.strip()
+                if z == 0:
+                    z += 1
+                    continue
+                keys = line.strip().split("|")
+                row = int(keys[0])
+                column = int(keys[1])
+                output = set()
+                for a in keys[2].split("_"):
+                    output.add(int(a))
+                if row not in result:
+                    result[row] = dict()
+                result[row][column] = output
+        return result
 
-    def check_sparse_matrix(self, x, y):
-        return x in self.sparse_matrix and y in self.sparse_matrix[x]
+    @staticmethod
+    def build_reactive_table(file_name: str) -> tuple:
+        """
+        Build the EPA reactivity table.
+        :param file_name: path to the epa_defs.json file.
+        :return: tuple of the constructed EPA reactivity table and
+            corresponding groups.
+        """
+        reactive_groups = {}
+        reactive_table = {}
+
+        with open(file_name) as file_read:
+            for group in json.loads(file_read.read())['chemicalgroups']['group']:
+                rid = ChemTypes(int(group['id']))
+                name = group['name']
+
+                filters = {'smiles': set(), 'smarts': set(), 'elements': set(), 'words': ()}
+                for smile in group['classifiers']['smiles']:
+                    filters['smiles'].add(smile)
+
+                for smart in group['classifiers']['smarts']:
+                    filters['smarts'].add(smart)
+
+                reactivegroups = dict()
+                if 'reactivegroups' in group and group['reactivegroups'] is not None:
+                    for rg in group['reactivegroups']['reaction']:
+                        reactivegroups[int(rg['id'])] = Consequence.from_string(rg['outcome'])
+                reactive_table[rid] = reactivegroups
+                reactive_groups[rid] = ReactiveGroup(rid, name, filters, reactivegroups)
+        return reactive_groups, reactive_table
+
+    def check_reactive_table(self, x, y):
+        return x in self.reactive_table and y in self.reactive_table[x]
 
     def check_interactions(self, x, y):
         return x in self.interactions and y in self.interactions[x]
 
-    def for_each_sparse_matrix_item(self, f):
-        for x, yy in self.sparse_matrix.items():
-            for y, c in yy.items():
-                f(x, y, c)
-
     def get_sparse_matrix_at_index(self, x, y):
-        return self.sparse_matrix[x][y]
+        return self.reactive_table[x][y]
 
-    def look_up_types(self, types):
-        results = set()
-        for t1 in types:
-            for t2 in types:
-                results.update(self.look_up_a_b(t1, t2))
+    def get_consequence(self, t1: ChemTypes, t2: ChemTypes) -> Consequence:
+        return self.reactive_table[t1][t1]
 
-        return results
+    def validate(self, t1: ChemTypes, t2: ChemTypes) -> bool:
+        """
+        Checks for a valid interaction.
+        :param t1: ChemTypes demonstrating a reactive group.
+        :param t2: ChemTypes demonstrating a reactive group.
+        :return: True is the groups can interact.
+        """
+        # Check the regular way.
+        if t1 in self.reactive_table:
+            if t2 in self.reactive_table[t1]:
+                return False
+        # Check the inverse.
+        if t2 in self.reactive_table:
+            if t1 in self.reactive_table[t2]:
+                return False
+        return True
 
-    def look_up_a_b(self, a, b):
-        if a > b:
-            a, b = b, a
-
-        if a in self.sparse_matrix and b in self.sparse_matrix[a]:
-            return set(map(Consequence.get_type_from_id, self.sparse_matrix[a][b]['outcome']))
-        else:
-            return {Consequence.get_type_from_id(a), Consequence.get_type_from_id(b)}
+    def get_interaction_result(self, t1: ChemTypes, t2: ChemTypes) -> set:
+        """
+        Get the resulting types from an interaction.
+        :param t1: ChemTypes demonstrating a reactive group.
+        :param t2: ChemTypes demonstrating a reactive group.
+        :return: Set of resulting types.
+        """
+        if t1 in self.interactions:
+            if t2 in self.interactions[t1]:
+                return self.interactions[t1][t2]
+        if t2 in self.interactions:
+            if t1 in self.interactions[t2]:
+                return self.interactions[t2][t1]
+        return set()

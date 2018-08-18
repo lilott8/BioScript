@@ -21,7 +21,7 @@ class Identifier(object):
         self.log = colorlog.getLogger(__name__)
         pass
 
-    def identify(self, search_for: str) -> Variable:
+    def identify(self, search_for: str, types: set = frozenset(), scope: str = "") -> Variable:
         raise NotImplementedError
 
     @staticmethod

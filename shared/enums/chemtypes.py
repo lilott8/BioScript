@@ -25,6 +25,7 @@ class ChemTypes(IntEnum):
     METALS_ALKALI_VERY_ACTIVE = 21
     METALS_ELEMENTAL_AND_POWDER_ACTIVE = 22
     METALS_LESS_REACTIVE = 23
+    METALS_AND_METAL_COMPOUNDS_TOXIC = 24
     DIAZONIUM_SALTS = 25
     NITRILES = 26
     NITRO_NITROSO_NITRATE_AND_NITRITE_COMPOUNDS_ORGANIC = 27
@@ -89,7 +90,7 @@ class ChemTypeResolver(object):
                  ChemTypes.CARBAMATES, ChemTypes.BASES_STRONG, ChemTypes.CYANIDES_INORGANIC,
                  ChemTypes.THIOCARBAMATE_ESTERS_AND_SALTS_DITHIOCARBAMATE_ESTERS_AND_SALTS,
                  ChemTypes.ESTERS_SULFATE_ESTERS_PHOSPHATE_ESTERS_THIOPHOSPHATE_ESTERS_AND_BORATE_ESTERS,
-                 ChemTypes.ETHERS,
+                 ChemTypes.ETHERS, ChemTypes.METALS_AND_METAL_COMPOUNDS_TOXIC,
                  ChemTypes.FLUORIDES_INORGANIC, ChemTypes.HYDROCARBONS_AROMATIC,
                  ChemTypes.HALOGENATED_ORGANIC_COMPOUNDS, ChemTypes.ISOCYANATES_AND_ISOTHIOCYANATES,
                  ChemTypes.KETONES, ChemTypes.SULFIDES_ORGANIC, ChemTypes.METALS_ALKALI_VERY_ACTIVE,
@@ -120,7 +121,7 @@ class ChemTypeResolver(object):
                  ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION, ChemTypes.WATER_AND_AQUEOUS_SOLUTIONS,
                  ChemTypes.MAT}
 
-    numbers = (ChemTypes.REAL, ChemTypes.MAT, ChemTypes.CONST, ChemTypes.BOOL)
+    numbers = {ChemTypes.REAL, ChemTypes.NAT, ChemTypes.CONST, ChemTypes.BOOL}
 
     available_types = {ChemTypes.ACIDS_STRONG_NON_OXIDIZING, ChemTypes.ACIDS_STRONG_OXIDIZING,
                        ChemTypes.ACIDS_CARBOXYLIC,
@@ -130,7 +131,7 @@ class ChemTypeResolver(object):
                        ChemTypes.CARBAMATES, ChemTypes.BASES_STRONG, ChemTypes.CYANIDES_INORGANIC,
                        ChemTypes.THIOCARBAMATE_ESTERS_AND_SALTS_DITHIOCARBAMATE_ESTERS_AND_SALTS,
                        ChemTypes.ESTERS_SULFATE_ESTERS_PHOSPHATE_ESTERS_THIOPHOSPHATE_ESTERS_AND_BORATE_ESTERS,
-                       ChemTypes.ETHERS,
+                       ChemTypes.ETHERS, ChemTypes.METALS_AND_METAL_COMPOUNDS_TOXIC,
                        ChemTypes.FLUORIDES_INORGANIC, ChemTypes.HYDROCARBONS_AROMATIC,
                        ChemTypes.HALOGENATED_ORGANIC_COMPOUNDS, ChemTypes.ISOCYANATES_AND_ISOTHIOCYANATES,
                        ChemTypes.KETONES, ChemTypes.SULFIDES_ORGANIC, ChemTypes.METALS_ALKALI_VERY_ACTIVE,
@@ -221,6 +222,8 @@ class ChemTypeResolver(object):
             return ChemTypes.METALS_ELEMENTAL_AND_POWDER_ACTIVE
         elif chemtype == 'METALS_LESS_REACTIVE':
             return ChemTypes.METALS_LESS_REACTIVE
+        elif chemtype == 'METALS_AND_METAL_COMPOUNDS_TOXIC':
+            return ChemTypes.METALS_AND_METAL_COMPOUNDS_TOXIC
         elif chemtype == 'DIAZONIUM_SALTS':
             return ChemTypes.DIAZONIUM_SALTS
         elif chemtype == 'NITRILES':
@@ -320,6 +323,7 @@ class ChemTypeResolver(object):
         else:
             return ChemTypes.UNKNOWN
 
+
 class Consequence(IntEnum):
     HEAT_GENERATION = 0
     FIRE = 1
@@ -337,3 +341,14 @@ class Consequence(IntEnum):
 
     def get_type_from_id(self, x):
         return x
+
+    @staticmethod
+    def from_string(consequence: str):
+        if consequence == 'N':
+            return Consequence.INCOMPATIBLE
+        elif consequence == 'C':
+            return Consequence.CAUTION
+        elif consequence == 'SR':
+            return Consequence.SELF_REACTIVE
+        else:
+            return Consequence.UNKNOWN

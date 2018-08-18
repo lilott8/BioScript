@@ -8,7 +8,6 @@ class ClangVisitor(BSBaseVisitor):
 
     def __init__(self, symbol_table):
         super().__init__(symbol_table)
-        self.nl = "\n"
         self.program = "// BSProgram!" + self.nl
         self.program += "#include <unistd.h>" + self.nl + "#include <random>" + self.nl
         self.program += "{}{}{}".format(self.build_structs(), self.nl, self.build_functions())

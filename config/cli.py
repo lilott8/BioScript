@@ -21,6 +21,8 @@ class Cli(object):
         required_group = parser.add_argument_group('required', 'Required flags for operations.')
         required_group.add_argument('-epa', '--epa-defs', help='Location of EPA definition file.', required=False,
                                     default='./resources/epa.json')
+        required_group.add_argument('-abs', '--abs-int', help="Location for the abstract interaction files.",
+                                    required=False, default='./resources/abstract-interaction.txt')
         required_group.add_argument('-i', '--input', help='input file.', required=True)
 
         problem_group = parser.add_mutually_exclusive_group(required=False)

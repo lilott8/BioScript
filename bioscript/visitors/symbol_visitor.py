@@ -24,19 +24,22 @@ class SymbolTableVisitor(BSBaseVisitor):
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         types = {ChemTypes.MODULE}
         for name in ctx.IDENTIFIER():
-            variable = Variable(name.__str__(), types, "global")
+            variable = self.identifier.identify(name.__str__())
+            variable.scope = self.global_scope
             self.symbol_table.add_global(variable)
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
         types = {ChemTypes.MAT}
         for name in ctx.IDENTIFIER():
-            variable = Variable(name.__str__(), types, "global")
+            variable = self.identifier.identify(name.__str__())
+            variable.scope = self.global_scope
             self.symbol_table.add_global(variable)
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
         types = {ChemTypes.MAT}
         for name in ctx.IDENTIFIER():
-            variable = Variable(name.__str__(), types, "global")
+            variable = self.identifier.identify(name.__str__())
+            variable.scope = self.global_scope
             self.symbol_table.add_global(variable)
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
@@ -137,13 +140,15 @@ class SymbolTableVisitor(BSBaseVisitor):
         if not self.symbol_table.get_variable(material_name):
             self.log.fatal("Undefined Variable: {}".format(material_name))
         material_types = {ChemTypes.MAT}
-        self.symbol_table.update_symbol(material_name, material_types)
+        var = self.identifier.identify(material_name, material_types, self.symbol_table.current_scope.name)
+        self.symbol_table.update_symbol(material_name, var.types)
         return types
 
     def visitHeat(self, ctx: BSParser.HeatContext):
         name = ctx.IDENTIFIER().__str__()
         types = {ChemTypes.MAT}
-        self.symbol_table.update_symbol(name, types)
+        var = self.identifier.identify(name, types, self.symbol_table.current_scope.name)
+        self.symbol_table.update_symbol(name, var.types)
         return types
 
     def visitSplit(self, ctx: BSParser.SplitContext):
@@ -276,8 +281,7 @@ class SymbolTableVisitor(BSBaseVisitor):
         """
         name = ctx.IDENTIFIER().__str__()
         types = {ChemTypes.MAT}
-        variable = Variable(name, types, self.symbol_table.current_scope.name)
-        return variable
+        return self.identifier.identify(name, types, self.symbol_table.current_scope.name)
 
     def visitTimeIdentifier(self, ctx: BSParser.TimeIdentifierContext):
         return super().visitTimeIdentifier(ctx)

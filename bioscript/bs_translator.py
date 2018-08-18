@@ -8,6 +8,7 @@ from bioscript.visitors.type_visitor import TypeCheckVisitor
 from config.config import Config
 from grammar.parsers.python.BSLexer import BSLexer
 from grammar.parsers.python.BSParser import BSParser
+from shared.enums.config_flags import TypeChecker
 
 
 class BSTranslator(object):
@@ -31,7 +32,8 @@ class BSTranslator(object):
         # We must visit the symbol table.
         self.symbol_visitor.visit(tree)
 
-        self.visit_type_check(tree)
+        if self.config.typecheck != TypeChecker.DISABLED:
+            self.visit_type_check(tree)
         self.visit_clang(tree)
 
     def visit_type_check(self, tree):
@@ -39,7 +41,7 @@ class BSTranslator(object):
         type_checker.visit(tree)
         # self.log.info(type_checker.smt_string)
         # z3 = Z3Solver()
-        # z3.solve_with_smt2(smt)
+        # z3.solve(type_checker.smt_string)
 
     def visit_clang(self, tree):
         clang = ClangVisitor(self.symbol_visitor.symbol_table)

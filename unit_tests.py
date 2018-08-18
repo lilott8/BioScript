@@ -2,6 +2,7 @@ import unittest
 
 from chemicals.epa_manager import EpaManager
 from chemicals.identification.identifier import Identifier
+from shared.enums.chemtypes import ChemTypes
 from shared.enums.chemtypes import Consequence
 from shared.io.database import Database
 
@@ -86,8 +87,8 @@ class Test_Identifiers(unittest.TestCase):
         self.assertFalse(Identifier.is_inchi_key(r'INCHI'))
 
     def test_epa_manager(self):
-        epa = EpaManager('resources/epa.json', 'resources/abstract-interpretation.txt')
-        self.assertTrue(len(epa.sparse_matrix) != 0)
+        epa = EpaManager('resources/epa.json', 'resources/abstract-interaction.txt')
+        self.assertTrue(len(epa.reactive_table) != 0)
         self.assertTrue(len(epa.interactions) != 0)
 
         self.assertTrue(
@@ -96,7 +97,10 @@ class Test_Identifiers(unittest.TestCase):
         self.assertTrue(epa.check_interactions(76, 99) and epa.interactions[76][99] == {76})
         self.assertTrue(epa.check_interactions(99, 99) and epa.interactions[99][99] == {99})
         self.assertTrue(epa.check_interactions(4, 14) and epa.interactions[4][14] == {4, 14})
-        self.assertTrue(epa.check_sparse_matrix(100, 1) and epa.sparse_matrix[100][1]['outcome'] == Consequence.CAUTION)
-        self.assertTrue(epa.check_sparse_matrix(76, 62) and epa.sparse_matrix[76][62]['outcome'] == Consequence.CAUTION)
         self.assertTrue(
-            epa.check_sparse_matrix(31, 5) and epa.sparse_matrix[31][5]['outcome'] == Consequence.INCOMPATIBLE)
+            epa.validate(ChemTypes(100), ChemTypes(1)) and epa.reactive_table[100][1]['outcome'] == Consequence.CAUTION)
+        self.assertTrue(
+            epa.validate(ChemTypes(76), ChemTypes(62)) and epa.reactive_table[76][62]['outcome'] == Consequence.CAUTION)
+        self.assertTrue(
+            epa.validate(ChemTypes(31), ChemTypes(5)) and epa.reactive_table[31][5][
+                'outcome'] == Consequence.INCOMPATIBLE)

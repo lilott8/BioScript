@@ -26,6 +26,7 @@ class Config(object):
         self.db_enabled = False
         self.debug = False
         self.epa_defs = './resources/epa_defs.json'
+        self.abstract_interaction = './resources/abstract-interaction.txt'
         self.input = None
         self.typecheck = TypeChecker.NAIVE
         # Database stuff.
@@ -48,6 +49,8 @@ class Config(object):
             self.debug = args.debug
             if args.epa_defs:
                 self.epa_defs = args.epa_defs
+            if args.abs_int:
+                self.abstract_interaction = args.abs_int
             self.input = args.input
             self.db['name'] = args.dbname
             self.db['user'] = args.dbuser
