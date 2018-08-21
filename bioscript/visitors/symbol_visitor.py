@@ -24,22 +24,18 @@ class SymbolTableVisitor(BSBaseVisitor):
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         types = {ChemTypes.MODULE}
         for name in ctx.IDENTIFIER():
-            variable = self.identifier.identify(name.__str__())
-            variable.scope = self.global_scope
+            variable = self.identifier.identify(name.__str__(), types=types, scope=self.global_scope)
             self.symbol_table.add_global(variable)
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
         types = {ChemTypes.MAT}
         for name in ctx.IDENTIFIER():
-            variable = self.identifier.identify(name.__str__())
-            variable.scope = self.global_scope
+            variable = self.identifier.identify(name.__str__(), types=types, scope=self.global_scope)
             self.symbol_table.add_global(variable)
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
-        types = {ChemTypes.MAT}
         for name in ctx.IDENTIFIER():
-            variable = self.identifier.identify(name.__str__())
-            variable.scope = self.global_scope
+            variable = self.identifier.identify(name.__str__(), types=types, scope=self.global_scope)
             self.symbol_table.add_global(variable)
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):

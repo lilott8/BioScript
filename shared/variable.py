@@ -1,13 +1,13 @@
 class Variable(object):
 
-    def __init__(self, name, types=None, scope="unknown", is_array=False):
+    def __init__(self, name: str, types: set() = None, scope: str = "unknown", is_array: bool = False):
         self.name = name
         self.types = types
         self.scope = scope
         self.is_array = is_array
         self.is_declared = False
 
-    def __str__(self):
+    def __repr__(self):
         output = "\t["
         if self.types:
             for t in self.types:

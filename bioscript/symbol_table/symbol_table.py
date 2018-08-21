@@ -87,7 +87,7 @@ class SymbolTable(object):
             #self.log.fatal("No variable found: {} in {}".format(variable, scope.name))
             return False
 
-    def __str__(self):
+    def __repr__(self):
         output = "[GLOBALS]:\n"
         for glob in self.globals:
             output += "{}\n".format(self.globals[glob])

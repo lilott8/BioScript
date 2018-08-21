@@ -19,6 +19,7 @@ class TypeCheckVisitor(BSBaseVisitor):
         self.smt_string = ""
         self.build_declares()
         self.output = None
+        self.expressions = list()
 
     def get_smt_name(self, var: Variable, chemtype: ChemTypes = None) -> str:
         string = "{}_{}".format(BSBaseVisitor.get_safe_name(var.scope), BSBaseVisitor.get_safe_name(var.name))
@@ -29,6 +30,11 @@ class TypeCheckVisitor(BSBaseVisitor):
     def add_smt(self, smt: str):
         self.smt_string += "{}{}".format(smt, self.nl)
 
+    def kill_switch(self):
+        kill = ";===================={};KILL SWITCH{};===================={}".format(self.nl, self.nl, self.nl)
+        kill += "(assert (= true false)){}".format(self.nl)
+        return kill
+
     def build_declares(self):
         if self.check == TypeChecker.UNION:
             types = ChemTypeResolver.available_types
@@ -37,34 +43,76 @@ class TypeCheckVisitor(BSBaseVisitor):
             types.add(ChemTypes.UNKNOWN)
 
         declares = ""
-        mats = ""
+        defines = ""
+        asserts = ""
+
         for name, var in self.symbol_table.globals.items():
-            declares += "; Declaring constants for: {}{}".format(self.get_smt_name(var), self.nl)
+            """
+            Declare the constants for all global variables.
+            """
+            declares += "; Declaring constants for: {}{}".format(self.get_smt_name(var).upper(), self.nl)
             for enum in types:
                 declares += "(declare-const {} Bool){}".format(self.get_smt_name(var, ChemTypes(enum)), self.nl)
+            declares += self.nl
+            defines += "; Defining the assignment of: {}{}".format(self.get_smt_name(var).upper(), self.nl)
+            for t in var.types:
+                """
+                Now we actually state the typing assignment of each variable.
+                """
+                defines += "(assert (= {} true)){}".format(self.get_smt_name(var, t), self.nl)
+
+            if self.config.typecheck == TypeChecker.NAIVE:
+                """
+                If it's naive, then make sure that unknown is false.
+                In other words, we must have a nat/real/mat type.
+                """
+                defines += "; Ensure that {} is a not unknown type{}".format(self.get_smt_name(var).upper(), self.nl)
+                defines += "(assert (= {} false)){}".format(self.get_smt_name(var, ChemTypes.UNKNOWN), self.nl)
         for name, scope in self.symbol_table.scope_map.items():
+            """
+            Declare the constants for all local variables.
+            """
             for symbol in scope.locals:
                 var = scope.locals[symbol]
-                declares += "; Declaring constants for: {}{}".format(self.get_smt_name(var), self.nl)
+                declares += "; Declaring constants for: {}{}".format(self.get_smt_name(var).upper(), self.nl)
                 for enum in types:
+                    """
+                    Declare the constants for all scoped variables.
+                    """
                     declares += "(declare-const {} Bool){}".format(self.get_smt_name(var, ChemTypes(enum)), self.nl)
-                if not var.types - ChemTypeResolver.numbers:
-                    mats += "; {} is a mat{}".format(self.get_smt_name(var), self.nl)
-                    mats += "(assert {}{}(not{}{}{}(or{}{}{}{}(= {} true)" \
-                            "{}{}{}{}(= {} true){}{}{}){}{}){}){}".format(self.nl, self.tab, self.nl,
-                                                                          self.tab, self.tab, self.nl,
-                                                                          self.tab, self.tab, self.tab,
-                                                                          self.get_smt_name(var,
-                                                                                            ChemTypes.REAL),
-                                                                          self.nl, self.tab, self.tab,
-                                                                          self.tab,
-                                                                          self.get_smt_name(var,
-                                                                                            ChemTypes.NAT),
-                                                                          self.nl,
-                                                                          self.tab, self.tab, self.nl,
-                                                                          self.tab, self.nl, self.nl)
+
+                declares += self.nl
+                defines += "; Defining the assignment of: {}{}".format(self.get_smt_name(var).upper(), self.nl)
+                for t in var.types:
+                    defines += "(assert (= {} true)){}".format(self.get_smt_name(var, t), self.nl)
+
+                if self.config.typecheck == TypeChecker.NAIVE:
+                    """
+                    If it's naive, then make sure that unknown is false.
+                    In other words, we must have a nat/real/mat type.
+                    """
+                    defines += "; Ensure that {} is not unknown type{}".format(self.get_smt_name(var).upper(), self.nl)
+                    defines += "(assert (= {} false)){}".format(self.get_smt_name(var, ChemTypes.UNKNOWN), self.nl)
+                if var.types & ChemTypeResolver.numbers:
+                    """
+                    Build the asserts for things that are numbers.
+                    We will only check naively: in that if we intersect,
+                    And we have something, then we know it's a number.
+                    """
+                    asserts += self.assert_material(var, False)
+                if var.types & ChemTypeResolver.materials:
+                    """
+                    Build the asserts for things that are numbers.
+                    We will only check naively: in that if we intersect,
+                    And we have something, then we know it's a mat.
+                    """
+                    asserts += self.assert_material(var)
+        self.add_smt("; ==============={}; Declaring Constants{}; ==============={}".format(self.nl, self.nl, self.nl))
         self.add_smt(declares)
-        self.add_smt(mats)
+        # self.add_smt("; ==============={}; Declaring typing{}; ==============={}".format(self.nl, self.nl, self.nl))
+        # self.add_smt(defines)
+        self.add_smt("; ==============={}; Declaring Asserts{}; ==============={}".format(self.nl, self.nl, self.nl))
+        self.add_smt(asserts)
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
@@ -73,13 +121,16 @@ class TypeCheckVisitor(BSBaseVisitor):
         self.visitManifestDeclaration(ctx.manifestDeclaration())
         self.visitStationaryDeclaration(ctx.stationaryDeclaration())
 
+        smt = ""
+
         for func in ctx.functionDeclaration():
-            self.visitFunctionDeclaration(func)
+            smt += self.visitFunctionDeclaration(func)
 
         for statement in ctx.statements():
-            self.visitStatements(statement)
+            smt += self.visitStatements(statement)
 
-        self.add_smt("(check-sat)")
+        smt += "(check-sat)"
+        self.smt_string += smt
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         return super().visitModuleDeclaration(ctx)
@@ -94,13 +145,15 @@ class TypeCheckVisitor(BSBaseVisitor):
         name = ctx.IDENTIFIER().__str__()
         func = self.symbol_table.functions[name]
 
+        smt = ""
+
         self.scope_stack.append(name)
 
         for statement in ctx.statements():
-            self.visitStatements(statement)
+            smt += self.visitStatements(statement)
 
         self.scope_stack.pop()
-        return ""
+        return smt
 
     def visitFormalParameters(self, ctx: BSParser.FormalParametersContext):
         return super().visitFormalParameters(ctx)
@@ -115,102 +168,134 @@ class TypeCheckVisitor(BSBaseVisitor):
         return super().visitFunctionTyping(ctx)
 
     def visitReturnStatement(self, ctx: BSParser.ReturnStatementContext):
-        return super().visitReturnStatement(ctx)
+        return ""
 
     def visitBlockStatement(self, ctx: BSParser.BlockStatementContext):
         return super().visitBlockStatement(ctx)
 
     def visitAssignmentOperations(self, ctx: BSParser.AssignmentOperationsContext):
-        ret = {"op": ''}
+        smt = ""
         if ctx.mix():
-            ret['op'] = 'mix'
-            self.visitMix(ctx.mix())
+            smt = self.visitMix(ctx.mix())
         elif ctx.detect():
-            ret['op'] = 'detect'
-            ret.update(self.visitDetect(ctx.detect()))
+            smt = self.visitDetect(ctx.detect())
         elif ctx.expression():
-            ret['op'] = 'expression'
-            temp = self.visitExpression(ctx.expression())
-            if temp:
-                ret.update(temp)
+            self.expressions = list()
+            smt = self.visitExpression(ctx.expression())
         elif ctx.split():
-            ret['op'] = 'split'
-            ret.update(self.visitSplit(ctx.split()))
+            smt = self.visitSplit(ctx.split())
         elif ctx.methodCall():
-            ret['op'] = 'function'
-            ret.update(self.visitMethodCall(ctx.methodCall()))
+            smt = self.visitMethodCall(ctx.methodCall())
         else:
             self.log.fatal("No operation: {}".format(ctx.getText()))
             return ""
-        return ret
+        return smt
 
     def visitStatements(self, ctx: BSParser.StatementsContext):
-        return super().visitStatements(ctx)
+        return self.visitChildren(ctx)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
-        return super().visitIfStatement(ctx)
+        return ""
 
     def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
-        return super().visitWhileStatement(ctx)
+        return ""
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
-        return super().visitRepeat(ctx)
+        return ""
 
-    def visitMix(self, ctx: BSParser.MixContext) -> dict:
-        inputs = {'variable': list()}
-        x = 0
+    def visitMix(self, ctx: BSParser.MixContext) -> str:
+        smt = ""
+
+        vars = list()
+
         for volume in ctx.volumeIdentifier():
-            inputs['variable'].append(self.visit(volume)['variable'])
-            x += 1
+            vars.append(self.visit(volume)['variable'])
 
-        output = ""
-        kill_switch = False
-        for input1 in inputs['variable'][0].types:
-            for input2 in inputs['variable'][1].types:
-                if not self.combiner.epa_manager.validate(input1, input2):
-                    kill_switch = True
-                output += self.generate_mix_smt(self.output, inputs['variable'][0], inputs['variable'][1], input1,
-                                                input2)
-        return inputs
+        for var1 in vars:
+            for var2 in vars:
+                if var1 == var2:
+                    continue
+                smt = "; building asserts for mixing {} and {} in {}{}".format(var1.name.upper(),
+                                                                               var2.name.upper(),
+                                                                               self.scope_stack[-1].upper(),
+                                                                               self.nl)
+                for t1 in var1.types:
+                    for t2 in var2.types:
+                        smt += "(assert {}{}(=>{}{}{}(and{}{}{}{}(= {} true){}{}{}{}(= {} true){}{}{}){}{}{}(and{}" \
+                            .format(self.nl,
+                                    self.tab, self.nl,
+                                    self.tab, self.tab, self.nl,
+                                    self.tab, self.tab, self.tab, self.get_smt_name(var1, t1), self.nl,
+                                    self.tab, self.tab, self.tab, self.get_smt_name(var2, t2), self.nl,
+                                    self.tab, self.tab, self.nl,
+                                    self.tab, self.tab, self.nl,
+                                    self.tab, self.tab, self.nl)
+                        for out_type in self.combiner.combine_types(t1, t2):
+                            smt += "{}{}{}(= {} true){}".format(self.tab, self.tab, self.tab,
+                                                                self.get_smt_name(self.output, out_type),
+                                                                self.nl)
+                        smt += "{}{}){}{}){})".format(self.tab, self.tab, self.nl, self.tab, self.nl)
 
-    def visitDetect(self, ctx: BSParser.DetectContext) -> dict:
+        return smt
+
+    def visitDetect(self, ctx: BSParser.DetectContext) -> str:
         module = self.symbol_table.get_variable(ctx.IDENTIFIER(0).__str__(), self.scope_stack[-1])
         material = self.symbol_table.get_variable(ctx.IDENTIFIER(1).__str__(), self.scope_stack[-1])
-        return {"module": module, 'variable': material}
 
-    def visitHeat(self, ctx: BSParser.HeatContext):
+        smt = "; building asserts for detect {} in {}{}".format(material.name.upper(),
+                                                                self.scope_stack[-1].upper(), self.nl)
+        smt += "(assert (or (= {} true)(= {} true))){}".format(self.get_smt_name(self.output, ChemTypes.NAT),
+                                                               self.get_smt_name(self.output, ChemTypes.REAL), self.nl)
+        smt += self.assert_material(material)
+        smt += "; building asserts for module {} in {}{}".format(module.name.upper(), "global", self.nl)
+        smt += "(assert (= {} true))".format(self.get_smt_name(module, ChemTypes.MODULE))
 
-        return super().visitHeat(ctx)
+        return smt
 
-    def visitSplit(self, ctx: BSParser.SplitContext) -> dict:
-        return {'variable': self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])}
+    def visitHeat(self, ctx: BSParser.HeatContext) -> str:
+        var = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+        smt = "; building asserts for heat{} in {}{}".format(var.name.upper(), self.scope_stack[-1], self.nl)
+        smt += self.assert_material(var)
+        return smt
 
-    def visitDispense(self, ctx: BSParser.DispenseContext):
-        return super().visitDispense(ctx)
+    def visitSplit(self, ctx: BSParser.SplitContext) -> str:
+        var = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
 
-    def visitDispose(self, ctx: BSParser.DisposeContext):
-        return super().visitDispose(ctx)
+        smt = "; building asserts for split {} in {}{}".format(var.name.upper(),
+                                                               self.scope_stack[-1].upper(), self.nl)
+        for t in var.types:
+            smt += "(assert (= {} true))".format(self.get_smt_name(self.output, t), self.nl)
 
-    def visitExpression(self, ctx: BSParser.ExpressionContext) -> dict:
-        ret = {'variable': list()}
+        return smt
+
+    def visitDispense(self, ctx: BSParser.DispenseContext) -> str:
+        smt = "; Not doing any work in dispense{}".format(self.nl)
+        return smt
+
+    def visitDispose(self, ctx: BSParser.DisposeContext) -> str:
+        smt = "; Not doing any work in dispose{}".format(self.nl)
+        return smt
+
+    def visitExpression(self, ctx: BSParser.ExpressionContext) -> str:
+        smt = ""
         if ctx.primary():
-            ret['variable'].append(self.visitPrimary(ctx.primary()))
+            smt += self.visitPrimary(ctx.primary())
         else:
-            temp = self.visitExpression(ctx.expression(0))
-            if temp:
-                ret['variable'].append(temp)
-            temp = None
-            temp = self.visitExpression(ctx.expression(1))
-            if temp:
-                ret['variable'].append(temp)
-            pass
-        return ret
+            for expr in ctx.expression():
+                smt += self.visitExpression(expr)
+        return smt
 
     def visitParExpression(self, ctx: BSParser.ParExpressionContext):
         return self.visit(ctx.expression())
 
-    def visitMethodCall(self, ctx: BSParser.MethodCallContext) -> dict:
-        return {"function": self.symbol_table.functions[ctx.IDENTIFIER().__str__()]}
+    def visitMethodCall(self, ctx: BSParser.MethodCallContext) -> str:
+        func = self.symbol_table.functions[ctx.IDENTIFIER().__str__()]
+
+        smt = "; building asserts for method call {} in {}{}".format(self.output.name.upper(),
+                                                                     self.scope_stack[-1].upper(), self.nl)
+        for t in func.types:
+            smt += "(assert (= {} true)){}".format(self.get_smt_name(self.output, t), self.nl)
+        return smt
 
     def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
         output = list()
@@ -241,29 +326,23 @@ class TypeCheckVisitor(BSBaseVisitor):
 
     def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
         self.output = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+        return self.visit(ctx.assignmentOperations())
 
-        data = self.visit(ctx.assignmentOperations())
-
-        # if data['op'] == 'mix':
-        #     self.log.info("mix: {}".format(data))
-        # elif data['op'] == 'split':
-        #     self.log.info("split: {}".format(data))
-        # elif data['op'] == 'detect':
-        #     self.log.info("detect: {}".format(data))
-        # elif data['op'] == 'function':
-        #     self.log.info("function: {}".format(data))
-        # elif data['op'] == 'expression':
-        #     self.log.info("expression: {}".format(data))
-
-    def visitPrimary(self, ctx: BSParser.PrimaryContext):
+    def visitPrimary(self, ctx: BSParser.PrimaryContext) -> str:
+        ret = ""
         if ctx.IDENTIFIER():
             if not self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1]):
                 raise UndefinedException("Undeclared variable: {}".format(ctx.IDENTIFIER().__str__()))
-            return self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+            else:
+                var = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+                ret += "; building asserts for expression {} in {}{}".format(var.name.upper(),
+                                                                             self.scope_stack[-1].upper(), self.nl)
+                ret += self.assert_material(var, False)
         elif ctx.literal():
-            return self.visitLiteral(ctx.literal())
+            ret += ""
         else:
-            return self.visitExpression(ctx.expression())
+            ret += self.visitExpression(ctx.expression())
+        return ret
 
     def visitLiteral(self, ctx: BSParser.LiteralContext):
         if ctx.INTEGER_LITERAL():
@@ -278,23 +357,23 @@ class TypeCheckVisitor(BSBaseVisitor):
     def visitPrimitiveType(self, ctx: BSParser.PrimitiveTypeContext):
         return super().visitPrimitiveType(ctx)
 
-    def generate_mix_smt(self, output, var1, var2, t1, t2):
-        smt = "; building asserts for mixing {} and {} in {}{}".format(var1.name.upper(),
-                                                                       var2.name.upper(),
-                                                                       self.scope_stack[-1].upper(), self.nl)
-        smt += "(assert {}{}(=>{}{}{}(and{}{}{}{}(= {} true){}{}{}{}(= {} true){}{}{}){}{}{}(and{}" \
-            .format(self.nl,
-                    self.tab, self.nl,
-                    self.tab, self.tab, self.nl,
-                    self.tab, self.tab, self.tab, self.get_smt_name(var1, t1), self.nl,
-                    self.tab, self.tab, self.tab, self.get_smt_name(var2, t2), self.nl,
-                    self.tab, self.tab, self.nl,
-                    self.tab, self.tab, self.nl,
-                    self.tab, self.tab, self.nl)
-        for out_type in self.combiner.combine_types(t1, t2):
-            smt += "{}{}{}(= {} true){}".format(self.tab, self.tab, self.tab, self.get_smt_name(output, out_type),
-                                                self.nl)
-        smt += ("{}{}){}{}){}){}".format(self.tab, self.tab, self.nl, self.tab, self.nl, self.nl))
+    def assert_material(self, var: Variable, is_mat: bool = True) -> str:
+        mats = "; {} is ".format(self.get_smt_name(var))
+        knot1 = knot2 = ""
 
-        self.add_smt(smt)
-        return smt
+        if is_mat:
+            mats += "a MAT{}".format(self.nl)
+            knot1 = "{}(not{}".format(self.tab, self.nl)
+            knot2 = "{}{}){}".format(self.tab, self.tab, self.nl)
+        else:
+            mats += "a NAT/REAL{}".format(self.nl)
+
+        mats += "(assert{}".format(self.nl)
+        if is_mat:
+            mats += knot1
+        mats += "(or{}{}{}(= {} true)".format(self.tab, self.tab, self.tab, self.get_smt_name(var, ChemTypes.REAL))
+        mats += "{}{}{}(= {} true)".format(self.nl, self.tab, self.tab, self.get_smt_name(var, ChemTypes.NAT))
+        if is_mat:
+            mats += knot2
+        mats += "{}{}){})".format(self.tab, self.tab, self.nl)
+        return mats

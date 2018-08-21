@@ -37,9 +37,10 @@ class BSTranslator(object):
         self.visit_clang(tree)
 
     def visit_type_check(self, tree):
+        # self.log.info(self.symbol_visitor.symbol_table)
         type_checker = TypeCheckVisitor(self.symbol_visitor.symbol_table)
         type_checker.visit(tree)
-        # self.log.info(type_checker.smt_string)
+        self.log.info(type_checker.smt_string)
         # z3 = Z3Solver()
         # z3.solve(type_checker.smt_string)
 
