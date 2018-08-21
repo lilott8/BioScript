@@ -130,7 +130,7 @@ class TypeCheckVisitor(BSBaseVisitor):
             smt += self.visitStatements(statement)
 
         smt += "(check-sat)"
-        self.smt_string += smt
+        self.add_smt(smt)
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         return super().visitModuleDeclaration(ctx)

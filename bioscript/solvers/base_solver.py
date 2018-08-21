@@ -9,5 +9,5 @@ class BaseSolver(object):
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.config = Config.getInstance(None)
 
-    def solve(self, problem):
+    def solve(self, problem) -> bool:
         raise NotImplementedError

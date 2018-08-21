@@ -22,7 +22,7 @@ function test_empty() {
 
 instructions:
 
-[mat] iii = mix aaa with bbb
+[mat; nat] iii = mix aaa with bbb
 heatTemp = detect mod on aaa
 x = 2
 heat aaa at 24c for 25d

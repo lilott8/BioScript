@@ -18,6 +18,7 @@ class BSTranslator(object):
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.log.warning(self.config.input)
         self.type_check = ""
+        self.typeable = False
         # This must be globally declared.
         self.symbol_visitor = SymbolTableVisitor(SymbolTable())
 
@@ -34,15 +35,21 @@ class BSTranslator(object):
 
         if self.config.typecheck != TypeChecker.DISABLED:
             self.visit_type_check(tree)
-        self.visit_clang(tree)
+        else:
+            self.typeable = True
+
+        if self.typeable:
+            self.visit_clang(tree)
+        else:
+            self.log.fatal("The BioScript program could not be safely type checked.")
 
     def visit_type_check(self, tree):
-        # self.log.info(self.symbol_visitor.symbol_table)
         type_checker = TypeCheckVisitor(self.symbol_visitor.symbol_table)
         type_checker.visit(tree)
-        self.log.info(type_checker.smt_string)
+        # self.log.info(type_checker.smt_string)
         # z3 = Z3Solver()
-        # z3.solve(type_checker.smt_string)
+        # if z3.solve(type_checker.smt_string):
+        #     self.typeable = True
 
     def visit_clang(self, tree):
         clang = ClangVisitor(self.symbol_visitor.symbol_table)

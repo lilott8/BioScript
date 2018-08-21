@@ -10,7 +10,7 @@ class Z3Solver(BaseSolver):
     def __init__(self):
         BaseSolver.__init__(self)
 
-    def solve(self, problem):
+    def solve(self, problem) -> bool:
         # if self.config.debug:
         # self.log.info("z3 version: {}".format(z3.get_full_version()))
         try:
