@@ -1,7 +1,8 @@
-#z3prover.github.io/api/html/namespacez3py.html#a09fe122cbfbc6d3fa30a79850b2a2414
-#z3-solver can be installed through: pip3 install z3-solver
-from typechecker.solvers.base_solver import BaseSolver
+# z3prover.github.io/api/html/namespacez3py.html#a09fe122cbfbc6d3fa30a79850b2a2414
+# z3-solver can be installed through: pip3 install z3-solver
 import z3
+
+from bioscript.solvers.base_solver import BaseSolver
 
 
 class Z3Solver(BaseSolver):
@@ -9,12 +10,12 @@ class Z3Solver(BaseSolver):
     def __init__(self):
         BaseSolver.__init__(self)
 
-    def solve_with_smt2(self, smt2_string):
-        if self.config.debug:
-            self.log.info("z3 version: {}".format(z3.get_full_version()))
+    def solve(self, problem) -> bool:
+        # if self.config.debug:
+        # self.log.info("z3 version: {}".format(z3.get_full_version()))
         try:
             solver = z3.Solver()
-            bool_expr = z3.parse_smt2_string(smt2_string)
+            bool_expr = z3.parse_smt2_string(problem)
             solver.add(bool_expr)
             status = solver.check()
             if status == z3.CheckSatResult(z3.Z3_L_TRUE):
@@ -28,7 +29,3 @@ class Z3Solver(BaseSolver):
             self.log.error('There was an error solving the given constraints')
             self.log.error(str(e))
             return False
-
-
-
-

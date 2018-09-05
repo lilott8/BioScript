@@ -1,14 +1,11 @@
 from grammar.parsers.python.BSParser import BSParser
-from grammar.parsers.python.BSParserVisitor import BSParserVisitor
-import logging
+from .bs_base_visitor import BSBaseVisitor
 
 
-class SymbolTableVisitor(BSParserVisitor):
+class VolumeVisitor(BSBaseVisitor):
 
-    def __init__(self, symbol_table):
-        BSParserVisitor.__init__(self)
-        self.symbol_table = symbol_table
-        self.log = logging.getLogger(self.__class__.__name__)
+    def __init(self, symbol_table):
+        super().__init__(symbol_table)
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         return super().visitProgram(ctx)
@@ -94,11 +91,8 @@ class SymbolTableVisitor(BSParserVisitor):
     def visitUnionType(self, ctx: BSParser.UnionTypeContext):
         return super().visitUnionType(ctx)
 
-    def visitAllTypesList(self, ctx: BSParser.AllTypesListContext):
-        return super().visitAllTypesList(ctx)
-
-    def visitAllTypes(self, ctx: BSParser.AllTypesContext):
-        return super().visitAllTypes(ctx)
+    def visitTypesList(self, ctx: BSParser.TypesListContext):
+        return super().visitTypesList(ctx)
 
     def visitVariableDeclaratorId(self, ctx: BSParser.VariableDeclaratorIdContext):
         return super().visitVariableDeclaratorId(ctx)
@@ -132,4 +126,3 @@ class SymbolTableVisitor(BSParserVisitor):
 
     def visitTemperatureIdentifier(self, ctx: BSParser.TemperatureIdentifierContext):
         return super().visitTemperatureIdentifier(ctx)
-

@@ -1,32 +1,42 @@
 module mod
-stationary sss
 manifest aaa
 manifest bbb
 
 functions:
 
-function do_mix(mat func_arg_a, mat func_arg_b, nat func_arg_c) {
+function do_mix([mat] func_arg_a, [mat] func_arg_b, [nat] func_arg_c) : [mat] {
     func_do_mix_temp = mix 10.0mL of func_arg_a with func_arg_b
     return func_do_mix_temp
 }
 
-function do_split(mat func_arg_a, nat func_arg_b) {
+function do_split(func_arg_a, [nat; real] func_arg_b) {
     func_do_split_temp = split func_arg_a into 3
     return func_do_split_temp
 }
 
+function test_empty() {
+    x = 5
+    func_test_empty_temp = mix aaa with bbb
+    return x
+}
+
 instructions:
 
-iii = mix aaa with bbb
-temp = detect m on a
+[mat; nat] iii = mix aaa with bbb
+heatTemp = detect mod on aaa
+x = 2
+heat aaa at 24c for 25d
+y = mix aaa with bbb
+x = (5*x+(4+x))
 
-new = do_mix(a, b)
+new = do_mix(aaa, bbb, 6)
 drain new
 
-new = do_split(a, 3)
+new = do_split(aaa, 3)
 drain new
 
-if (temp < 5) {
-    drain temp
-    x = 4
+if (heatTemp < 5) {
+    drain y
+    in_if = mix new with bbb
+    [mat] z = split bbb into 4
 }
