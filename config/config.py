@@ -4,6 +4,7 @@ from shared.enums.config_flags import ClassifyLevel
 from shared.enums.config_flags import IdentifyLevel
 from shared.enums.config_flags import Problem
 from shared.enums.config_flags import ReportingLevel
+from shared.enums.config_flags import Target
 from shared.enums.config_flags import TypeChecker
 
 
@@ -39,14 +40,19 @@ class Config(object):
         self.identify = 4
         # What level to report things.
         self.error_level = ReportingLevel.ERROR
+        # What is the target?
+        self.target = None
+        # Use LLVM for optimizations
+        self.llvm = False
         # What is the problem that is being solved.
         self.problem = None
 
         if Config.__instance is not None:
             raise Exception('This is a singleton.')
         else:
-            self.log.warning(args.input)
+            self.log.warning(args)
             self.debug = args.debug
+            self.llvm = args.llvm
             if args.epa_defs:
                 self.epa_defs = args.epa_defs
             if args.abs_int:
@@ -78,6 +84,13 @@ class Config(object):
                 self.typecheck = TypeChecker.UNION
             else:
                 self.typecheck = TypeChecker.NAIVE
+
+            if args.target.lower() == "m" or args.target.lower() == "mfsim":
+                self.target = Target.MFSIM
+            elif args.target.lower() == "i" or args.target.lower() == "inkwell":
+                self.target = Target.INKWELL
+            elif args.target.lower() == "p" or args.target.lower() == "puddle":
+                self.target = Target.PUDDLE
 
             if self.db['name'] and self.db['user'] and self.db['pass']:
                 self.db_enabled = True

@@ -34,3 +34,9 @@ class IdentifyLevel(IntFlag):
 class ClassifyLevel(IntFlag):
     NAIVE = 1
     SIMULATE = 2
+
+
+class Target(IntFlag):
+    MFSIM = 0
+    PUDDLE = 1
+    INKWELL = 2

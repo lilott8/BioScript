@@ -24,6 +24,8 @@ class Cli(object):
         required_group.add_argument('-abs', '--abs-int', help="Location for the abstract interaction files.",
                                     required=False, default='./resources/abstract-interaction.txt')
         required_group.add_argument('-i', '--input', help='input file.', required=True)
+        required_group.add_argument('-llvm', '--llvm', help="Use the LLVM for various optimizations.", required=False,
+                                    default=False, action='store_true')
 
         problem_group = parser.add_mutually_exclusive_group(required=False)
         problem_group.add_argument('-s', '--store', help='Is this a storage problem?', action='store_true',
@@ -31,10 +33,12 @@ class Cli(object):
         problem_group.add_argument('-dis', '--disposal', help='Is this a disposal problem?', action='store_true',
                                    default=False)
         problem_group.add_argument('-m', '--mix', help='Is this a mixing problem?', action='store_true', default=False)
-        problem_group.add_argument('-b', '--bioscript', help='Compile a Bioscript program.', action='store_true',
+        problem_group.add_argument('-b', '--bioscript', help='Compile a BioScript program.', action='store_true',
                                    default=True)
 
         parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', default=False)
+        parser.add_argument('-t', '--target', help='What platform to target.', default=None,
+                            choices={'mfsim', 'puddle', 'inkwell', 'm', 'p', 'i'})
 
         chemistry = parser.add_argument_group('chemistry', 'Chemistry specific arguments')
         chemistry.add_argument('-sim', '--simulate', help='Simulate chemistry.', default=False,
