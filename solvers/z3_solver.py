@@ -2,7 +2,7 @@
 # z3-solver can be installed through: pip3 install z3-solver
 import z3
 
-from bioscript.solvers.base_solver import BaseSolver
+from solvers import BaseSolver
 
 
 class Z3Solver(BaseSolver):
