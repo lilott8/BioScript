@@ -9,7 +9,7 @@
               "name": "",
               "volume": 100,
               "pubchem_id": 1,
-              "reactive_groups": [ 1, 7, 15]
+              "reactive_groups": [1, 7, 15]
             }
           },
           {}
@@ -30,7 +30,7 @@
               "name": "",
               "volume": 100,
               "pubchem_id": 1,
-              "reactive_groups": [ 1, 7, 15]
+              "reactive_groups": [1, 7, 15]
             }
           }
         ],
@@ -52,7 +52,7 @@
         "name": "",
         "volume": 100,
         "pubchem_id": 1,
-        "reactive_groups": [ 1, 7, 15]
+        "reactive_groups": [1, 7, 15]
       }
     },
     {}
