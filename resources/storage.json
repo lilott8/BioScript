@@ -1,0 +1,57 @@
+{
+  "problem": "storage",
+  "storage": {
+    "shelves": [
+      {
+        "store": [
+          {
+            "chemical": {
+              "name": "",
+              "volume": 100,
+              "pubchem_id": 1
+            }
+          },
+          {}
+        ],
+        "quantity": {
+          "max": 5,
+          "current": 2
+        },
+        "volume": {
+          "current": 100,
+          "max": 100
+        }
+      },
+      {
+        "store": [
+          {
+            "chemical": {
+              "name": "",
+              "volume": 100,
+              "pubchem_id": 1
+            }
+          }
+        ],
+        "quantity": {
+          "max": 10,
+          "current": 3
+        },
+        "volume": {
+          "current": 100,
+          "max": 0
+        }
+      }
+    ],
+    "quantity": 2
+  },
+  "manifest": [
+    {
+      "chemical": {
+        "name": "",
+        "volume": 100,
+        "pubchem_id": 1
+      }
+    },
+    {}
+  ]
+}
