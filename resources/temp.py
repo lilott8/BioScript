@@ -1,4 +1,5 @@
 import json
+import z3
 
 def solve_graph(ver_weights, uses, edges):
     """
@@ -23,30 +24,39 @@ def solve_graph(ver_weights, uses, edges):
 
 
 def solve_problem(file_name):
-
+    '''
+    open .json file and solve the problem given in the file.
+    '''
     parsed = {}
     with open(file_name) as file:
         parsed = json.loads(file.read())
 
     quantity = parsed['storage']['quantity']
-    print(quantity)
-    for shelves in parsed['storage']['shelves']:
+    #^^^^^^^
+    #number of shelves in storage,
+    #this variable will be used to
+    #determine number of vertices in graph
+    #
+
+    #Perhaps this is slow, but doing it this way for readability...
+    solver   = z3.Optimize()
     
-        #create graph for modeling shelf storage:
-        for chem in shelves['store']:
-            print('    ', chem)#['pubchem_id']
+    #store chemicals as (id, volume taken up)
+    chems_to_store       = [(chem['chemical']['pubchem_id'], chem['chemical']['volume']) \
+                            for chem in parsed['manifest'] if chem != {} ]
+    chems_binned         = [(chem['chemical']['pubchem_id'], chem['chemical']['volume']) \
+                            for shelves in parsed['storage']['shelves'] \
+                                for chem in shelves['store'] if chem != {} ]
+    chems_all            = chems_to_store + chems_binned
 
-            #figure bin storage:
-            print('     quantity: ', shelves['quantity'])#['max'], ['current'], ['reactive_groups']
-            print('     volume:   ', shelves['volume'])  #['max'], ['current'], ['reactive_groups']
-
-
-    print('MANIFEST: ')
-    for chem in parsed['manifest']:
-        #create graph for chemicals to be stored:
-        print('    ', chem)#['volume']['pubchem_id']['reactive_groups']
-
-
+    bin_volumes = [(shelves['volume']['max'] - shelves['volume']['current']) for shelves in parsed['storage']['shelves']]
+    
+    chems_to_store_color = [z3.Int('mani_%s' % x) for x in range(len(chems_to_store))]
+    chems_binned_color   = [z3.Int('bin_%s' %x) for x in range(len(chems_binned))]
+    vertex_constraint    = [z3.And(v >= 0, v < quantity) for v in chems_all]
+    #edges, bin constraint
+    edges                = ...
+    bin_constraint       = ...
 
 
 solve_problem('storage.json')
