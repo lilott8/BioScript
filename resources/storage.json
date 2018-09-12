@@ -8,7 +8,8 @@
             "chemical": {
               "name": "",
               "volume": 100,
-              "pubchem_id": 1
+              "pubchem_id": 1,
+              "reactive_groups": [ 1, 7, 15]
             }
           },
           {}
@@ -28,7 +29,8 @@
             "chemical": {
               "name": "",
               "volume": 100,
-              "pubchem_id": 1
+              "pubchem_id": 1,
+              "reactive_groups": [ 1, 7, 15]
             }
           }
         ],
@@ -49,7 +51,8 @@
       "chemical": {
         "name": "",
         "volume": 100,
-        "pubchem_id": 1
+        "pubchem_id": 1,
+        "reactive_groups": [ 1, 7, 15]
       }
     },
     {}
