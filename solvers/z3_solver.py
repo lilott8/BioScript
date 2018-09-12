@@ -19,7 +19,7 @@ class Z3Solver:#(BaseSolver):
             bool_expr = z3.parse_smt2_string(problem)
             solver.add(bool_expr)
             status = solver.check()
-            if status == z3.CheckSatResult(z3.Z3_L_TRUE):
+            if status == z3.sat:
                 self.log.trace('This BioScript program is safe.')
                 return True
             else:
@@ -56,14 +56,14 @@ class Z3Solver:#(BaseSolver):
         return solver.model() if solver.check() == z3.sat else None
 
 
-
+'''
 s = Z3Solver()
 model = s.solve_graph([5, 3, 2, 4], [2, 5, 4, 3], [(0, 1), (1, 3), (2, 3), (0, 2)])
 if model != None:
     print(model)
 else:
     print('unsat')
-
+'''
 
 
 
