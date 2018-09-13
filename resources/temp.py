@@ -10,7 +10,6 @@ def solve_problem(file_name, safe_funct = lambda x, y: False):
         parsed = json.loads(file.read())
 
     quantity = parsed['storage']['quantity']
-
     solver   = z3.Optimize()
 
     #chemicals to store as (id, volume)
@@ -50,12 +49,9 @@ def solve_problem(file_name, safe_funct = lambda x, y: False):
         model = solver.model()
         return [(num, model.evaluate(num)) for num in chems_to_store_shelf_num]
     else:
-        return solver.model() if solver.check() == z3.sat else None
+        return None
 
 
-
-
-#chems_binned_volume = [chem['chemical']['volume'] for shelves in parsed['storage']['shelves'] for chem in shelves['store'] if chem != {}]
 m = solve_problem('storage.json', lambda x, y: x not in {1, 7, 15} and y not in {1, 7, 15})
 if m != None:
     print(m)
