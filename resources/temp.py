@@ -27,12 +27,13 @@ def solve_problem(file_name, safe_funct = lambda x, y: False):
     chems_to_store_shelf_num   = [z3.Int('chem_store_%s' %x) for x in range(chems_store_num)]
     chems_to_store_shelf_num_c = [z3.And(x >= 0, x < quantity) for x in chems_to_store_shelf_num]
     
-    #edges:
+    #edges between chemicals that need to be stored:
     for i in range(chems_store_num):
         for j in range(i, chems_store_num):
             if not safe_funct(chems_store_ids[i], chems_store_ids[j]):
                 solver.add(chems_to_store_shelf_num[i] != chems_to_store_shelf_num[j])
 
+    #edges between chemicals that need to be stored and chemicals already stored:
     for i in range(chems_store_num):
         for j in range(chems_binned_num):
             if not safe_funct(chems_store_ids[i], chems_binned_ids[j]):
