@@ -1,9 +1,7 @@
 # z3prover.github.io/api/html/namespacez3py.html#a09fe122cbfbc6d3fa30a79850b2a2414
 # z3-solver can be installed through: pip3 install z3-solver
 import z3
-
-#from solvers import BaseSolver
-
+import json
 
 class Z3Solver:#(BaseSolver):
 
@@ -33,7 +31,7 @@ class Z3Solver:#(BaseSolver):
 
 
 
-
+    @staticmethod
     def solve_graph(self, ver_weights, uses, edges):
         """
         Parameters:
@@ -56,10 +54,12 @@ class Z3Solver:#(BaseSolver):
         return solver.model() if solver.check() == z3.sat else None
 
 
-
-    def solve_problem(file_name, safe_funct = lambda x, y: False):
+    @staticmethod
+    def solve_problem(file_name, safe_funct = lambda x, y: False, solution = True):
         """
         open .json file and solve the problem given in the file.
+        safe_funct determines whether chemicals x, y can be safely mixed
+        solution variable determines whether return the solution or not, or just report True/False
         """
         parsed = {}
         with open(file_name) as file:
@@ -100,7 +100,10 @@ class Z3Solver:#(BaseSolver):
                       for bin_num, volume in enumerate(bin_volumes)]
         solver.add(bin_constraint)
         solver.minimize(z3.Sum(chems_to_store_shelf_num))
-    
+   
+        if not solution:
+            return solver.check() == z3.sat
+ 
         #check & solve: 
         if solver.check() == z3.sat:
             model = solver.model()
@@ -109,21 +112,6 @@ class Z3Solver:#(BaseSolver):
             return None
 
 
-m = Z3Solver.solve_problem('storage.json', lambda x, y: x not in {1, 7, 15} and y not in {1, 7, 15})
-if m != None:
-    print(m)
-else:
-    print('unsat')
-
-
-'''
-s = Z3Solver()
-model = s.solve_graph([5, 3, 2, 4], [2, 5, 4, 3], [(0, 1), (1, 3), (2, 3), (0, 2)])
-if model != None:
-    print(model)
-else:
-    print('unsat')
-'''
 
 
 

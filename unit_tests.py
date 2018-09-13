@@ -1,11 +1,10 @@
 import unittest
-
 from chemicals.epa_manager import EpaManager
 from chemicals.identification.identifier import Identifier
 from shared.enums.chemtypes import ChemTypes
 from shared.enums.chemtypes import Consequence
 from shared.io.database import Database
-
+from solvers.z3_solver import Z3Solver
 
 class Test_Identifiers(unittest.TestCase):
 
@@ -100,3 +99,11 @@ class Test_Identifiers(unittest.TestCase):
         self.assertTrue(not epa.validate(ChemTypes(100), ChemTypes(1)) and epa.reactive_table[100][1] == Consequence.CAUTION)
         self.assertTrue(not epa.validate(ChemTypes(76), ChemTypes(62)) and epa.reactive_table[76][62] == Consequence.CAUTION)
         self.assertTrue(not epa.validate(ChemTypes(31),  ChemTypes(5)) and epa.reactive_table[31][5] == Consequence.INCOMPATIBLE)
+
+
+    def test_z3solver(self):
+        epa = EpaManager('resources/epa.json', 'resources/abstract-interaction.txt')
+        self.assertFalse(Z3Solver.solve_problem('resources/storage.json', epa.validate, solution=False))
+
+
+
