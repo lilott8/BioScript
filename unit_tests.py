@@ -92,13 +92,7 @@ class Test_Identifiers(unittest.TestCase):
         self.assertTrue(len(epa.reactive_table) != 0)
         self.assertTrue(len(epa.interactions) != 0)
         
-        for x, yy in epa.reactive_table.items():
-            for y, val in yy.items():
-                if x == y:
-                    print(int(x), y, epa.reactive_table[x][y])
-        
-        self.assertTrue(
-            epa.check_interactions(2, 7) and epa.interactions[2][7] == {1, 2, 3, 4, 68, 5, 7, 39, 8, 10, 44, 13, 45, 14,
+        self.assertTrue(epa.check_interactions(2, 7) and epa.interactions[2][7] == {1, 2, 3, 4, 68, 5, 7, 39, 8, 10, 44, 13, 45, 14,
                                                                         16, 51, 59, 61, 29, 31})
         self.assertTrue(epa.check_interactions(76, 99) and epa.interactions[76][99] == {76})
         self.assertTrue(epa.check_interactions(99, 99) and epa.interactions[99][99] == {99})
