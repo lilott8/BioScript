@@ -82,11 +82,11 @@ class Z3Solver:#(BaseSolver):
         #which chemicals can be safely stored together.    
         chems_to_store_shelf_num   = [z3.Int('chem_store_%s' %x) for x in range(chems_store_num)]
         chems_to_store_shelf_num_c = [z3.And(x >= 0, x < quantity) for x in chems_to_store_shelf_num]
-    
+        
         #edges between chemicals that need to be stored:
         for i in range(chems_store_num):
             for j in range(i, chems_store_num):
-                if not safe_funct(chems_store_ids[i], chems_store_ids[j]):
+                if i != j and not safe_funct(chems_store_ids[i], chems_store_ids[j]):
                     solver.add(chems_to_store_shelf_num[i] != chems_to_store_shelf_num[j])
 
         #edges between chemicals that need to be stored and chemicals already stored:
@@ -98,9 +98,11 @@ class Z3Solver:#(BaseSolver):
         #bin constraint:
         bin_constraint = [z3.PbLe(tuple((shelf == bin_num, vol) for shelf, vol in zip(chems_to_store_shelf_num, chems_store_volume)), volume) \
                       for bin_num, volume in enumerate(bin_volumes)]
+
         solver.add(bin_constraint)
+        solver.add(chems_to_store_shelf_num_c)
         solver.minimize(z3.Sum(chems_to_store_shelf_num))
-   
+
         if not sol:
             return solver.check() == z3.sat
  
