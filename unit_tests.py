@@ -104,6 +104,19 @@ class Test_Identifiers(unittest.TestCase):
     def test_z3solver(self):
         epa = EpaManager('resources/epa.json', 'resources/abstract-interaction.txt')
         self.assertFalse(Z3Solver.solve_problem('resources/storage.json', epa.validate, solution=False))
+        self.assertFalse(Z3Solver.solve_problem('resources/chem_test1.json', epa.validate, solution=False))
+        
+
+
+
+
+
+
+
+
+
+
+
 
 
 
