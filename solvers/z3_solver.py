@@ -55,7 +55,7 @@ class Z3Solver:#(BaseSolver):
 
 
     @staticmethod
-    def solve_problem(file_name, safe_funct = lambda x, y: False, solution = True):
+    def solve_problem(file_name, safe_funct = lambda x, y: False, sol=True):
         """
         open .json file and solve the problem given in the file.
         safe_funct determines whether chemicals x, y can be safely mixed
@@ -101,7 +101,7 @@ class Z3Solver:#(BaseSolver):
         solver.add(bin_constraint)
         solver.minimize(z3.Sum(chems_to_store_shelf_num))
    
-        if not solution:
+        if not sol:
             return solver.check() == z3.sat
  
         #check & solve: 
