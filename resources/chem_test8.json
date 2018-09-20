@@ -1,0 +1,38 @@
+{
+    "problem": "drain",
+    "storage": {
+        "shelves": [
+            {
+                "store": [
+                    {
+                        "chemical": {
+                            "name": "diaminopropane",
+                            "pubchem_id":-1,
+                            "reactive_groups":[7]
+                        }
+                    },
+                    {}
+                ]
+            }
+        ],
+        "quantity": 1
+    },
+    "manifest": [
+        {
+            "chemical": {
+                "name": "potassium_hyride",
+                "pubchem_id": -1,
+                "reactive_groups": [35]
+            }
+        },
+        {
+            "chemical": {
+                "name": "nitrogen",
+                "pubchem_id": -1,
+                "reactive_groups": [98]
+            }
+        },
+        {}
+    ]
+
+}

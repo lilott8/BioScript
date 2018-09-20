@@ -68,9 +68,8 @@ class Z3Solver:#(BaseSolver):
         quantity = parsed['storage']['quantity']
         solver   = z3.Optimize()
 
-        #chemicals to store as (id, volume)
+        #chemicals to be stored
         chems_store_ids = [chem['chemical']['pubchem_id'] for chem in parsed['manifest'] if chem != {} ]
-        chems_store_volume = [chem['chemical']['volume'] for chem in parsed['manifest'] if chem != {} ]
         chems_store_num = len(chems_store_ids)
         chems_store_groups = [chem['chemical']['reactive_groups'] for chem in parsed['manifest'] if chem != {}]
 
@@ -114,6 +113,7 @@ class Z3Solver:#(BaseSolver):
         #bin constraint if we have a storage problem:
         if parsed['problem'] == 'storage':
             bin_volumes = [(shelves['volume']['max'] - shelves['volume']['current']) for shelves in parsed['storage']['shelves']]
+            chems_store_volume = [chem['chemical']['volume'] for chem in parsed['manifest'] if chem != {} ]
             bin_constraint = [z3.PbLe(tuple((shelf == bin_num, vol) for shelf, vol in zip(chems_to_store_shelf_num, chems_store_volume)), volume) \
                       for bin_num, volume in enumerate(bin_volumes)]
             solver.add(bin_constraint)

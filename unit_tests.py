@@ -105,11 +105,13 @@ class Test_Identifiers(unittest.TestCase):
         self.assertFalse(Z3Solver.solve_problem('resources/chem_test2.json', epa.validate, sol=False))        
         self.assertFalse(Z3Solver.solve_problem('resources/chem_test3.json', epa.validate, sol=False))
         self.assertFalse(Z3Solver.solve_problem('resources/chem_test4.json', epa.validate, sol=False))
+        self.assertFalse(Z3Solver.solve_problem('resources/chem_test7.json', epa.validate, sol=False))
+        self.assertFalse(Z3Solver.solve_problem('resources/chem_test8.json', epa.validate, sol=False))
+        self.assertFalse(Z3Solver.solve_problem('resources/chem_test9.json', epa.validate, sol=False))
 
         self.assertTrue(Z3Solver.solve_problem('resources/chem_test5.json', epa.validate, sol=False))        
         self.assertTrue(Z3Solver.solve_problem('resources/chem_test6.json', epa.validate, sol=False))
-
-
+        self.assertTrue(Z3Solver.solve_problem('resources/chem_test0.json', epa.validate, sol=False))
 
 
 
