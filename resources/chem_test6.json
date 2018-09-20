@@ -66,14 +66,16 @@
             "chemical": {
                 "name": "sodium_hydroxide",
                 "volume": 50,
-                "pubchem_id":100
+                "pubchem_id": -1,
+                "reactive_groups": [10, 100]
             }
         },
         {
             "chemical": {
                 "name": "isopropyl_alcohol",
                 "volume": 50,
-                "pubchem_id":4
+                "pubchem_id": -1,
+                "reactive_groups": [4]
             }
         },
         {}

@@ -8,7 +8,8 @@
                         "chemical": {
                             "name": "dichlor",
                             "volume": 50,
-                            "pubchem_id":21
+                            "pubchem_id":-1,
+                            "reactive_groups": [21, 66, 68]
                         }
                     },
                     {}
@@ -28,9 +29,10 @@
     "manifest": [
         {
             "chemical": {
-                "name": "calcium hypo",
+                "name": "calcium_hypo",
                 "volume": 50,
-                "pubchem_id": 39
+                "pubchem_id": -1,
+                "reactive_groups": [39, 44]
             }
         },
         {}

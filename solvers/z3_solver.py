@@ -72,29 +72,48 @@ class Z3Solver:#(BaseSolver):
         chems_store_ids = [chem['chemical']['pubchem_id'] for chem in parsed['manifest'] if chem != {} ]
         chems_store_volume = [chem['chemical']['volume'] for chem in parsed['manifest'] if chem != {} ]
         chems_store_num = len(chems_store_ids)
+        chems_store_groups = [chem['chemical']['reactive_groups'] for chem in parsed['manifest'] if chem != {}]
 
         #chemicals already stored as (shelf num, id, volume)
         chems_binned_shelf_num = [num for shelves in parsed['storage']['shelves'] for num, chem in enumerate(shelves['store']) if chem != {}]
         chems_binned_ids = [chem['chemical']['pubchem_id'] for shelves in parsed['storage']['shelves'] for chem in shelves['store'] if chem != {}]
+        chems_binned_groups = [chem['chemical']['reactive_groups'] for shelves in parsed['storage']['shelves'] for chem in shelves['store'] if chem != {}]
         chems_binned_num = len(chems_binned_ids)
         bin_volumes = [(shelves['volume']['max'] - shelves['volume']['current']) for shelves in parsed['storage']['shelves']]
+        
 
         #which chemicals can be safely stored together.    
         chems_to_store_shelf_num   = [z3.Int('chem_store_%s' %x) for x in range(chems_store_num)]
         chems_to_store_shelf_num_c = [z3.And(x >= 0, x < quantity) for x in chems_to_store_shelf_num]
         
         #edges between chemicals that need to be stored:
+        for i, chem_group1 in enumerate(chems_store_groups):
+            for j, chem_group2 in enumerate(chems_store_groups):
+                if i != j:
+                    for chem1 in chem_group1:
+                        for chem2 in chem_group2:
+                            if not safe_funct(chem1, chem2):
+                                solver.add(chems_to_store_shelf_num[i] != chems_to_store_shelf_num[j])
+        '''pubchem_id's
         for i in range(chems_store_num):
             for j in range(i, chems_store_num):
                 if i != j and not safe_funct(chems_store_ids[i], chems_store_ids[j]):
                     solver.add(chems_to_store_shelf_num[i] != chems_to_store_shelf_num[j])
-
+        '''
         #edges between chemicals that need to be stored and chemicals already stored:
+        for i, chem_group1 in enumerate(chems_store_groups):
+            for j, chem_group2 in enumerate(chems_binned_groups):
+                for chem1 in chem_group1:
+                    for chem2 in chem_group2:
+                        if not safe_funct(chem1, chem2):
+                            solver.add(chems_to_store_shelf_num[i] != chems_binned_shelf_num[j])
+
+        '''pubchem_id's
         for i in range(chems_store_num):
             for j in range(chems_binned_num):
                 if not safe_funct(chems_store_ids[i], chems_binned_ids[j]):
                     solver.add(chems_to_store_shelf_num[i] != chems_binned_shelf_num[j])
-
+        '''
         #bin constraint:
         bin_constraint = [z3.PbLe(tuple((shelf == bin_num, vol) for shelf, vol in zip(chems_to_store_shelf_num, chems_store_volume)), volume) \
                       for bin_num, volume in enumerate(bin_volumes)]
@@ -102,7 +121,7 @@ class Z3Solver:#(BaseSolver):
         solver.add(bin_constraint)
         solver.add(chems_to_store_shelf_num_c)
         solver.minimize(z3.Sum(chems_to_store_shelf_num))
-
+        
         if not sol:
             return solver.check() == z3.sat
  

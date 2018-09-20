@@ -8,7 +8,8 @@
                         "chemical": {
                             "name": "methanol",
                             "volume": 50,
-                            "pubchem_id":4
+                            "pubchem_id":-1,
+                            "reactive_groups": [4]
                         }
                     },
                     {}
@@ -30,7 +31,8 @@
             "chemical": {
                 "name": "nitric_acid",
                 "volume": 50,
-                "pubchem_id": 2
+                "pubchem_id": -1,
+                "reactive_groups": [2]
             }
         },
         {}

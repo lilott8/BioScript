@@ -8,7 +8,8 @@
                         "chemical": {
                             "name": "diaminopropane",
                             "volume": 50,
-                            "pubchem_id":7
+                            "pubchem_id":-1,
+                            "reactive_groups":[7]
                         }
                     },
                     {}
@@ -30,14 +31,16 @@
             "chemical": {
                 "name": "potassium_hyride",
                 "volume": 50,
-                "pubchem_id": 35
+                "pubchem_id": -1,
+                "reactive_groups": [35]
             }
         },
         {
             "chemical": {
                 "name": "nitrogen",
                 "volume": 50,
-                "pubchem_id": 98
+                "pubchem_id": -1,
+                "reactive_groups": [98]
             }
         },
         {}

@@ -9,7 +9,7 @@
                             "name": "Tetracholoroethylene",
                             "volume": 50,
                             "pubchem_id":-1,
-                            "reactive_groups": [28]
+                            "reactive_groups": [17, 28]
                         }
                     },
                     {}

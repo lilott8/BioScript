@@ -23,21 +23,24 @@
             "chemical": {
                 "name": "benzene",
                 "volume": 50,
-                "pubchem_id":16
+                "pubchem_id": -1,
+                "reactive_groups": [16]
             }
         },
         {
             "chemical": {
                 "name": "urea",
                 "volume": 50,
-                "pubchem_id":6
+                "pubchem_id": -1,
+                "reactive_groups": [6]
             }
         },
         {
             "chemical": {
                 "name": "benzotrichloride",
                 "volume": 50,
-                "pubchem_id":66
+                "pubchem_id": -1,
+                "reactive_groups": [66]
             }
         },
         {}
