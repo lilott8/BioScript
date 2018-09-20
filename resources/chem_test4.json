@@ -6,10 +6,9 @@
                 "store": [
                     {
                         "chemical": {
-                            "name": "Tetracholoroethylene",
+                            "name": "dichlor",
                             "volume": 50,
-                            "pubchem_id":-1,
-                            "reactive_groups": [28]
+                            "pubchem_id":21
                         }
                     },
                     {}
@@ -29,10 +28,9 @@
     "manifest": [
         {
             "chemical": {
-                "name": "nitric_acid",
+                "name": "calcium hypo",
                 "volume": 50,
-                "pubchem_id": -1,
-                "reactive_groups": [2]
+                "pubchem_id": 39
             }
         },
         {}

@@ -4,14 +4,6 @@
         "shelves": [
             {
                 "store": [
-                    {
-                        "chemical": {
-                            "name": "Tetracholoroethylene",
-                            "volume": 50,
-                            "pubchem_id":-1,
-                            "reactive_groups": [28]
-                        }
-                    },
                     {}
                 ],
                 "quantity": {
@@ -19,8 +11,8 @@
                     "current": 2
                 },
                 "volume": {
-                    "current": 50,
-                    "max": 200
+                    "current": 0,
+                    "max": 400
                 }
             }
         ],
@@ -29,10 +21,23 @@
     "manifest": [
         {
             "chemical": {
-                "name": "nitric_acid",
+                "name": "benzene",
                 "volume": 50,
-                "pubchem_id": -1,
-                "reactive_groups": [2]
+                "pubchem_id":16
+            }
+        },
+        {
+            "chemical": {
+                "name": "urea",
+                "volume": 50,
+                "pubchem_id":6
+            }
+        },
+        {
+            "chemical": {
+                "name": "benzotrichloride",
+                "volume": 50,
+                "pubchem_id":66
             }
         },
         {}
