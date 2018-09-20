@@ -78,9 +78,6 @@ class Z3Solver:#(BaseSolver):
         chems_binned_shelf_num = [num for shelves in parsed['storage']['shelves'] for num, chem in enumerate(shelves['store']) if chem != {}]
         chems_binned_ids = [chem['chemical']['pubchem_id'] for shelves in parsed['storage']['shelves'] for chem in shelves['store'] if chem != {}]
         chems_binned_groups = [chem['chemical']['reactive_groups'] for shelves in parsed['storage']['shelves'] for chem in shelves['store'] if chem != {}]
-        chems_binned_num = len(chems_binned_ids)
-        bin_volumes = [(shelves['volume']['max'] - shelves['volume']['current']) for shelves in parsed['storage']['shelves']]
-        
 
         #which chemicals can be safely stored together.    
         chems_to_store_shelf_num   = [z3.Int('chem_store_%s' %x) for x in range(chems_store_num)]
@@ -114,11 +111,13 @@ class Z3Solver:#(BaseSolver):
                 if not safe_funct(chems_store_ids[i], chems_binned_ids[j]):
                     solver.add(chems_to_store_shelf_num[i] != chems_binned_shelf_num[j])
         '''
-        #bin constraint:
-        bin_constraint = [z3.PbLe(tuple((shelf == bin_num, vol) for shelf, vol in zip(chems_to_store_shelf_num, chems_store_volume)), volume) \
+        #bin constraint if we have a storage problem:
+        if parsed['problem'] == 'storage':
+            bin_volumes = [(shelves['volume']['max'] - shelves['volume']['current']) for shelves in parsed['storage']['shelves']]
+            bin_constraint = [z3.PbLe(tuple((shelf == bin_num, vol) for shelf, vol in zip(chems_to_store_shelf_num, chems_store_volume)), volume) \
                       for bin_num, volume in enumerate(bin_volumes)]
+            solver.add(bin_constraint)
 
-        solver.add(bin_constraint)
         solver.add(chems_to_store_shelf_num_c)
         solver.minimize(z3.Sum(chems_to_store_shelf_num))
         
