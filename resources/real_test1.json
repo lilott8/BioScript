@@ -1,0 +1,48 @@
+{
+    "problem": "storage",
+    "comment": "based on a real life example involving purifying benzene using reflux/distillation apparatus from www.ehs.ucsb.edu/files/docs/ls/UCI_fire.pdf",
+    "storage": {
+        "shelves": [
+            {
+                "store": [
+                    {
+                        "chemical": {
+                            "name": "benzene",
+                            "volume": 50,
+                            "pubchem_id":-1,
+                            "reactive_groups": [16]
+                        }
+                    },
+                    {}
+                ],
+                "quantity": {
+                    "max": 20,
+                    "current": 12
+                },
+                "volume": {
+                    "current": 50,
+                    "max": 150
+                }
+            }
+        ],
+        "quantity": 1
+    },
+    "manifest": [
+        {
+            "chemical": {
+                "name": "nitric_acid",
+                "volume": 50,
+                "pubchem_id": -1,
+                "reactive_groups": [2]
+            }
+        },
+        {}
+    ]
+
+}
+
+
+
+
+
+
