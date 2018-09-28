@@ -2,6 +2,7 @@ from chemicals.identification.identifier import Identifier
 from shared.enums.chemtypes import ChemTypes
 from shared.enums.config_flags import IdentifyLevel
 from shared.variable import Variable
+from shared.bs_exceptions import IdentificationException
 
 
 class DBIdentifier(Identifier):
@@ -10,7 +11,7 @@ class DBIdentifier(Identifier):
         super().__init__(level)
         self.db = db
 
-    def identify(self, search_for: str) -> Variable:
+    def identify(self, search_for: str, types: set = frozenset(), scope: str = "") -> Variable:
         self.log.fatal("DB Identifier isn't functioning correctly.")
         var = Variable(search_for, {ChemTypes.UNKNOWN})
         return var
@@ -21,7 +22,7 @@ class DBIdentifier(Identifier):
             cursor = self.db.sql_query('SELECT name FROM chemicals WHERE name = {0};'.format(string))
             cursor.close()
             return True
-        except:
+        except IdentificationException:
             return False
 
     def is_pub_chem_id(self, string):
@@ -29,7 +30,7 @@ class DBIdentifier(Identifier):
             cursor = self.db.sql_query('SELECT * FROM chemicals WHERE pubchem_id = {0}'.format(string))
             cursor.close()
             return True
-        except:
+        except IdentificationException:
             return False
 
     def search_by_cas_number(self, string):
