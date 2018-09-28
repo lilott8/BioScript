@@ -29,10 +29,38 @@ class Z3Solver:#(BaseSolver):
             self.log.error(str(e))
             return False
 
+    @staticmethod
+    def solve_recursive_bin_packing(shelves, chem_volumes, edges):
+        solver = z3.Solver()
+        chems  = [z3.Int('c_%s' % x) for x in range(len(chem_volumes))]
+        edges  = [chems[v0] != chems[v1] for v0, v1 in edges]
+        
+        #shelf_vol  = [z3.Int('vol_%s_%s' % (x, y)) for x, shelf in enumerate(shelves) for y in range(len(shelf))]
+        #shelf_vol  = [0 <= z3.Int('vol_%s') <= vol_full for shelf in shelves for vol_full in shelf]
+        #shelf_chem = [z3.Int('shelf_%s_%s' % (x, y)) for x, shelf in enumerate(shelves) for y in range(len(shelf))]
+        
+        for x, shelf in enumerate(shelves):
+            for y, vol_full in enumerate(shelf):
+                shelf_vol             = z3.Int('vol_%s_%s' % (x, y))
+                shelf_chem            = z3.Int('shelf_%s_%s' % (x, y))
+                shelf_vol_constraint  = z3.And(shelf_vol >= 0, shelf_vol <= vol_full)
+                shelf_chem_constraint = z3.And(shelf_chem >= 0, shelf_chem <= len(chem_volumes))
+                print(shelf_vol_constraint)
+                print(shelf_chem_constraint)
+                break
+
+            break
+
+
+        #print(shelf_vol)
+        #print(shelf_chem)
+        #chem_volumes[i] == shelves[][] * (chems)... shelves[][]
+
+
 
 
     @staticmethod
-    def solve_graph(self, ver_weights, uses, edges):
+    def solve_graph(ver_weights, uses, edges):
         """
         Parameters:
         ver_weights: length of weights == number of vertices in graph, the elements correspond to the weights of the nodes.
@@ -130,6 +158,18 @@ class Z3Solver:#(BaseSolver):
             return [(num, model.evaluate(num)) for num in chems_to_store_shelf_num]
         else:
             return None
+
+
+ret = Z3Solver.solve_recursive_bin_packing([[50, 30, 20],
+                                            [100],
+                                            [20, 20, 20, 20, 20]],
+                                            [100, 100, 100], 
+                                            [(0, 1), (1, 2), (0, 2)])
+
+
+
+
+
 
 
 
