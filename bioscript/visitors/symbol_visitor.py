@@ -242,6 +242,7 @@ class SymbolTableVisitor(BSBaseVisitor):
         if ctx.arrayInitializer():
             variable.is_array = True
 
+
         self.symbol_table.add_local(variable)
         return variable
 

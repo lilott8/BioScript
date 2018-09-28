@@ -1,3 +1,6 @@
+from abc import ABC
+
+
 class Variable(object):
 
     def __init__(self, name: str, types: set() = None, scope: str = "unknown", is_array: bool = False):
@@ -18,3 +21,10 @@ class Variable(object):
             output += "[]"
         output += "\t({})".format(self.scope)
         return output
+
+
+class Array(Variable):
+
+    def __init__(self, name: str, types: frozenset = None, scope: str = "unknown", size: int = 2):
+        super().__init__(name, types, scope, True)
+        self.size = size
