@@ -1,23 +1,16 @@
+from bioscript.visitors.targets.target_visitor import TargetVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import UndefinedException
 from shared.enums.chemtypes import ChemTypes
-from .bs_base_visitor import BSBaseVisitor
 
 
-class ClangVisitor(BSBaseVisitor):
+class ClangVisitor(TargetVisitor):
 
     def __init__(self, symbol_table):
-        super().__init__(symbol_table)
-        self.program = "// BSProgram!" + self.nl
-        self.program += "#include <unistd.h>" + self.nl + "#include <random>" + self.nl
-        self.program += "{}{}{}".format(self.build_structs(), self.nl, self.build_functions())
-
-    def add(self, input):
-        self.program += input + self.nl
-
-    def print_program(self):
-        self.log.warning(self.program)
-        pass
+        super().__init__(symbol_table, "ClangVisitor")
+        self.compiled = "// BSProgram!" + self.nl
+        self.compiled += "#include <unistd.h>" + self.nl + "#include <random>" + self.nl
+        self.compiled += "{}{}{}".format(self.build_structs(), self.nl, self.build_functions())
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
@@ -255,15 +248,6 @@ class ClangVisitor(BSBaseVisitor):
 
     def visitTypesList(self, ctx: BSParser.TypesListContext):
         return super().visitTypesList(ctx)
-
-    def visitVariableDeclaratorId(self, ctx: BSParser.VariableDeclaratorIdContext):
-        return ctx.IDENTIFIER().__str__()
-
-    def visitVariableDeclarator(self, ctx: BSParser.VariableDeclaratorContext):
-        return self.visitChildren(ctx)
-
-    def visitVariableInitializer(self, ctx: BSParser.VariableInitializerContext):
-        return self.visitChildren(ctx)
 
     def visitArrayInitializer(self, ctx: BSParser.ArrayInitializerContext):
         return super().visitArrayInitializer(ctx)

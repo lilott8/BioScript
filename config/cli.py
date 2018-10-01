@@ -37,8 +37,8 @@ class Cli(object):
                                    default=True)
 
         parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', default=False)
-        parser.add_argument('-t', '--target', help='What platform to target.', default=None,
-                            choices={'mfsim', 'puddle', 'inkwell', 'm', 'p', 'i'})
+        parser.add_argument('-t', '--target', help='Platforms to target.', type=str,
+                            default='llvm', choices={'llvm', 'mfsim', 'puddle', 'inkwell', 'l', 'm', 'p', 'i'})
 
         chemistry = parser.add_argument_group('chemistry', 'Chemistry specific arguments')
         chemistry.add_argument('-sim', '--simulate', help='Simulate chemistry.', default=False,
@@ -51,7 +51,7 @@ class Cli(object):
         typing_group = parser.add_argument_group('typing', 'Typing specific arguments')
         typing_group.add_argument('-l', '--level', help='What level to report errors.', default="error",
                                   choices={'error', 'warn', 'none'})
-        typing_group.add_argument('-sol', '--solver', help='How to solve this typing problem.', default='n',
+        typing_group.add_argument('-tc', '--typecheck', help='What level to type check this problem.', default='n',
                                   choices={'n', 'naive', 'u', 'union', 'd', 'disable'})
 
         db_group = parser.add_argument_group('db', 'Database specific arguments:')

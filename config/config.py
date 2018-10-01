@@ -41,7 +41,7 @@ class Config(object):
         # What level to report things.
         self.error_level = ReportingLevel.ERROR
         # What is the target?
-        self.target = None
+        self.target = Target.LLVM_IR
         # Use LLVM for optimizations
         self.llvm = False
         # What is the problem that is being solved.
@@ -78,19 +78,20 @@ class Config(object):
             else:
                 self.error_level = ReportingLevel.ERROR
 
-            if args.solver.lower() == "d" or args.solver.lower() == "disable":
+            if args.typecheck.lower() == "d" or args.typecheck.lower() == "disable":
                 self.typecheck = TypeChecker.DISABLED
-            elif args.solver.lower() == "union" or args.solver.lower() == 'u':
+            elif args.typecheck.lower() == "union" or args.typecheck.lower() == 'u':
                 self.typecheck = TypeChecker.UNION
             else:
                 self.typecheck = TypeChecker.NAIVE
 
-            if args.target.lower() == "m" or args.target.lower() == "mfsim":
-                self.target = Target.MFSIM
-            elif args.target.lower() == "i" or args.target.lower() == "inkwell":
-                self.target = Target.INKWELL
-            elif args.target.lower() == "p" or args.target.lower() == "puddle":
-                self.target = Target.PUDDLE
+            if args.target is not None:
+                if args.target.lower() == "m" or args.target.lower() == "mfsim":
+                    self.target = self.target + Target.MFSIM
+                elif args.target.lower() == "i" or args.target.lower() == "inkwell":
+                    self.target = self.target + Target.INKWELL
+                elif args.target.lower() == "p" or args.target.lower() == "puddle":
+                    self.target = self.target + Target.PUDDLE
 
             if self.db['name'] and self.db['user'] and self.db['pass']:
                 self.db_enabled = True

@@ -312,15 +312,6 @@ class TypeCheckVisitor(BSBaseVisitor):
     def visitTypesList(self, ctx: BSParser.TypesListContext):
         return super().visitTypesList(ctx)
 
-    def visitVariableDeclaratorId(self, ctx: BSParser.VariableDeclaratorIdContext):
-        return super().visitVariableDeclaratorId(ctx)
-
-    def visitVariableDeclarator(self, ctx: BSParser.VariableDeclaratorContext):
-        return super().visitVariableDeclarator(ctx)
-
-    def visitVariableInitializer(self, ctx: BSParser.VariableInitializerContext):
-        return super().visitVariableInitializer(ctx)
-
     def visitArrayInitializer(self, ctx: BSParser.ArrayInitializerContext):
         return super().visitArrayInitializer(ctx)
 

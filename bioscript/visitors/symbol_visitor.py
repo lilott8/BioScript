@@ -34,6 +34,7 @@ class SymbolTableVisitor(BSBaseVisitor):
             self.symbol_table.add_global(variable)
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
+        types = {ChemTypes.MAT}
         for name in ctx.IDENTIFIER():
             variable = self.identifier.identify(name.__str__(), types=types, scope=self.global_scope)
             self.symbol_table.add_global(variable)
@@ -83,7 +84,7 @@ class SymbolTableVisitor(BSBaseVisitor):
         else:
             types.add(ChemTypes.UNKNOWN)
 
-        name = self.visitVariableDeclaratorId(ctx.variableDeclaratorId())
+        name = ctx.IDENTIFIER().__str__()
         variable = Variable(name, types, self.symbol_table.current_scope.name)
         self.symbol_table.add_local(variable)
         return variable
@@ -205,17 +206,8 @@ class SymbolTableVisitor(BSBaseVisitor):
             types.add(self.visitTypeType(t))
         return types
 
-    def visitVariableDeclaratorId(self, ctx: BSParser.VariableDeclaratorIdContext):
-        return ctx.IDENTIFIER().__str__()
-
-    def visitVariableDeclarator(self, ctx: BSParser.VariableDeclaratorContext):
-        return self.visitChildren(ctx)
-
-    def visitVariableInitializer(self, ctx: BSParser.VariableInitializerContext):
-        return self.visitChildren(ctx)
-
     def visitArrayInitializer(self, ctx: BSParser.ArrayInitializerContext):
-        return super().visitArrayInitializer(ctx)
+        return int(ctx.INTEGER_LITERAL())
 
     def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
         """
@@ -285,3 +277,4 @@ class SymbolTableVisitor(BSBaseVisitor):
 
     def visitTemperatureIdentifier(self, ctx: BSParser.TemperatureIdentifierContext):
         return super().visitTemperatureIdentifier(ctx)
+

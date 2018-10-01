@@ -37,6 +37,7 @@ class ClassifyLevel(IntFlag):
 
 
 class Target(IntFlag):
-    MFSIM = 0
-    PUDDLE = 1
-    INKWELL = 2
+    LLVM_IR = 1
+    MFSIM = 2
+    PUDDLE = 4
+    INKWELL = 8
