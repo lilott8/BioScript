@@ -240,6 +240,7 @@ class ClangVisitor(TargetVisitor):
         output = output[:-2]
         return output
 
+
     def visitTypeType(self, ctx: BSParser.TypeTypeContext):
         return super().visitTypeType(ctx)
 
@@ -250,7 +251,7 @@ class ClangVisitor(TargetVisitor):
         return super().visitTypesList(ctx)
 
     def visitArrayInitializer(self, ctx: BSParser.ArrayInitializerContext):
-        return super().visitArrayInitializer(ctx)
+        return ctx.INTEGER_LITERAL()
 
     def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
         name = ctx.IDENTIFIER().__str__()
