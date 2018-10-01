@@ -240,7 +240,6 @@ class ClangVisitor(TargetVisitor):
         output = output[:-2]
         return output
 
-
     def visitTypeType(self, ctx: BSParser.TypeTypeContext):
         return super().visitTypeType(ctx)
 
