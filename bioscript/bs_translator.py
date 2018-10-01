@@ -2,8 +2,8 @@ import colorlog
 from antlr4 import *
 
 from bioscript.symbol_table.symbol_table import SymbolTable
-from bioscript.visitors.clang_visitor import ClangVisitor
 from bioscript.visitors.symbol_visitor import SymbolTableVisitor
+from bioscript.visitors.targets.clang_visitor import ClangVisitor
 from bioscript.visitors.targets.target_factory import TargetFactory
 from bioscript.visitors.type_visitor import TypeCheckVisitor
 from config.config import Config
@@ -43,16 +43,17 @@ class BSTranslator(object):
             raise TypeError("The BioScript program could not be safely type checked.")
             return
 
-        if self.config.llvm:
-            self.visit_clang(tree)
-            self.log.info("Run LLVM here")
-        else:
-            self.log.info("You're not running LLVM")
+        # if self.config.llvm:
+        #     self.visit_clang(tree)
+        #     self.log.info("Run LLVM here")
+        # else:
+        #     self.log.info("You're not running LLVM")
 
-        if self.config.target is not None:
-            self.log.info(self.config.target)
-            target = TargetFactory.get_target(self.config.target, self.symbol_visitor.symbol_table)
-            target.visit(tree)
+        self.log.info(self.config.target)
+        target = TargetFactory.get_target(self.config.target, self.symbol_visitor.symbol_table)
+        self.log.info("Visiting: {}".format(target.name))
+        target.visit(tree)
+        target.print_program()
 
     def visit_type_check(self, tree):
         type_checker = TypeCheckVisitor(self.symbol_visitor.symbol_table)

@@ -5,7 +5,7 @@ from grammar.parsers.python.BSParser import BSParser
 class MFSimVisitor(TargetVisitor):
 
     def __init__(self, symbol_table):
-        super().__init__(symbol_table)
+        super().__init__(symbol_table, "MFSimVisitor")
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         return super().visitProgram(ctx)
@@ -93,15 +93,6 @@ class MFSimVisitor(TargetVisitor):
 
     def visitTypesList(self, ctx: BSParser.TypesListContext):
         return super().visitTypesList(ctx)
-
-    def visitVariableDeclaratorId(self, ctx: BSParser.VariableDeclaratorIdContext):
-        return super().visitVariableDeclaratorId(ctx)
-
-    def visitVariableDeclarator(self, ctx: BSParser.VariableDeclaratorContext):
-        return super().visitVariableDeclarator(ctx)
-
-    def visitVariableInitializer(self, ctx: BSParser.VariableInitializerContext):
-        return super().visitVariableInitializer(ctx)
 
     def visitArrayInitializer(self, ctx: BSParser.ArrayInitializerContext):
         return super().visitArrayInitializer(ctx)
