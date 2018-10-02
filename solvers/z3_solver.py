@@ -34,6 +34,7 @@ class Z3Solver:#(BaseSolver):
     def solve_recursive_bin_packing(shelves, chem_volumes, edges):
         solver = z3.Optimize()
         chems  = [z3.Int('c%s' % x) for x in range(len(chem_volumes))]
+        chems_constraint = [z3.And(c >= 0, c <= len(chem_volumes)) for c in chems]
         edges  = [chems[v0] != chems[v1] for v0, v1 in edges]
         shelf_vol  = [z3.Int('vol%s_%s' % (x, y)) for x, shelf in enumerate(shelves) for y in range(len(shelf))]
         shelf_vol_constraint = [z3.And(vol >= 0, vol <= vol_full) for vol, vol_full in zip(shelf_vol, reduce(lambda x, y: x + y, shelves))]
@@ -45,17 +46,13 @@ class Z3Solver:#(BaseSolver):
         for bin_colors in bin_color_array:
             for bin_col in bin_colors:
                 solver.add(bin_col==bin_colors[0])
-            #for bin_col0 in bin_colors:
-            #    for bin_col1 in bin_colors:
-            #        solver.add(z3.Or(bin_col0==bin_col1, bin_col0==-1))
-
 
         bin_color = reduce(lambda x, y: x+y, bin_color_array)
         bin_constraint = [z3.Sum([z3.If(z3.And(b==i, col==chems[i]), vol, 0) for vol, b, col in zip(shelf_vol, bin_chem, bin_color)]) == chem_vol for i, (chem_vol, c) in enumerate(zip(chem_volumes, chems))]
-        solver.add(edges + shelf_vol_constraint + bin_constraint)
-        #print(solver)
+        solver.add(chems_constraint + edges + shelf_vol_constraint + bin_constraint)
         if solver.check() == z3.sat:
             model = solver.model()
+            print(model)
             return [(str(chem), 'chem: %s' % model.evaluate(chem), 'volume: %s' % model.evaluate(vol)) for chem, vol in zip(bin_chem, shelf_vol)]
         return None
 
@@ -161,11 +158,9 @@ class Z3Solver:#(BaseSolver):
             return None
 
 
-ret = Z3Solver.solve_recursive_bin_packing([[600],
-                                            [50, 50, 25, 25],
-                                            [100]],
-                                            [100, 100, 600, 50], 
-                                            [(0, 1), (1, 2), (0, 2), (2, 3)])
+ret = Z3Solver.solve_recursive_bin_packing([[600, 100], [10, 70, 20]],
+                                            [100, 100], 
+                                            [(0, 1)])
 
 if ret != None:
     for r in ret:
