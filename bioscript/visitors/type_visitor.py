@@ -312,9 +312,6 @@ class TypeCheckVisitor(BSBaseVisitor):
     def visitTypesList(self, ctx: BSParser.TypesListContext):
         return super().visitTypesList(ctx)
 
-    def visitArrayInitializer(self, ctx: BSParser.ArrayInitializerContext):
-        return super().visitArrayInitializer(ctx)
-
     def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
         self.output = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
         return self.visit(ctx.assignmentOperations())

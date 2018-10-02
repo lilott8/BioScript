@@ -1,7 +1,8 @@
 from grammar.parsers.python.BSParser import BSParser
 from shared.enums.chemtypes import ChemTypes
 from shared.function import Function
-from shared.variable import Variable
+from shared.variable import Array
+from shared.variable import Scalar
 from .bs_base_visitor import BSBaseVisitor
 
 
@@ -85,7 +86,7 @@ class SymbolTableVisitor(BSBaseVisitor):
             types.add(ChemTypes.UNKNOWN)
 
         name = ctx.IDENTIFIER().__str__()
-        variable = Variable(name, types, self.symbol_table.current_scope.name)
+        variable = Scalar(name, types, self.symbol_table.current_scope.name)
         self.symbol_table.add_local(variable)
         return variable
 
@@ -155,8 +156,7 @@ class SymbolTableVisitor(BSBaseVisitor):
         return types
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
-        self.log.fatal("Dispense is not correct.  It is missing an IDENTIFIER().")
-        name = ""
+        name = ctx.IDENTIFIER().__str__()
         types = {ChemTypes.MAT}
         self.symbol_table.update_symbol(name, types)
         return types
@@ -206,9 +206,6 @@ class SymbolTableVisitor(BSBaseVisitor):
             types.add(self.visitTypeType(t))
         return types
 
-    def visitArrayInitializer(self, ctx: BSParser.ArrayInitializerContext):
-        return int(ctx.INTEGER_LITERAL())
-
     def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
         """
         x = some assignment statement
@@ -229,11 +226,14 @@ class SymbolTableVisitor(BSBaseVisitor):
         final_types = final_types.union(declared_types)
         final_types = final_types.union(inferred_types)
 
-        variable = Variable(name, final_types, self.symbol_table.current_scope.name)
-
-        if ctx.arrayInitializer():
-            variable.is_array = True
-
+        if not ctx.LBRACKET():
+            variable = Scalar(name, final_types, self.symbol_table.current_scope.name)
+        else:
+            if ctx.INTEGER_LITERAL():
+                size = int(ctx.INTEGER_LITERAL().__str__())
+            else:
+                size = -1
+            variable = Array(name, final_types, self.symbol_table.current_scope.name, size)
 
         self.symbol_table.add_local(variable)
         return variable

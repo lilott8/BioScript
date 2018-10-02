@@ -94,9 +94,6 @@ class InkwellVisitor(TargetVisitor):
     def visitTypesList(self, ctx: BSParser.TypesListContext):
         return super().visitTypesList(ctx)
 
-    def visitArrayInitializer(self, ctx: BSParser.ArrayInitializerContext):
-        return super().visitArrayInitializer(ctx)
-
     def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
         return super().visitLocalVariableDeclaration(ctx)
 

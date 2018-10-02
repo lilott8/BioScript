@@ -100,8 +100,10 @@ class ClangVisitor(TargetVisitor):
             return self.visitSplit(ctx.split())
         elif ctx.methodCall():
             return self.visitMethodCall(ctx.methodCall())
+        elif ctx.dispense():
+            return self.visitDispense(ctx.dispense())
         else:
-            self.log.fatal("No operation: {}".format(ctx.getText()))
+            self.log.fatal("No assignment operation: {}".format(ctx.getText()))
             return ""
 
     def visitStatements(self, ctx: BSParser.StatementsContext):
@@ -118,7 +120,7 @@ class ClangVisitor(TargetVisitor):
         elif ctx.repeat():
             return self.visitRepeat(ctx.repeat())
         else:
-            self.log.fatal("No operation: {}".format(ctx.getText()))
+            self.log.fatal("No statement operation: {}".format(ctx.getText()))
             return ""
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
@@ -177,7 +179,7 @@ class ClangVisitor(TargetVisitor):
                                       ctx.INTEGER_LITERAL().__str__())
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
-        return "dispense({})".format("INSERT_NAME")
+        return "dispense({})".format(ctx.IDENTIFIER().__str__())
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
         name = self.check_identifier(ctx.IDENTIFIER().__str__())
@@ -249,11 +251,9 @@ class ClangVisitor(TargetVisitor):
     def visitTypesList(self, ctx: BSParser.TypesListContext):
         return super().visitTypesList(ctx)
 
-    def visitArrayInitializer(self, ctx: BSParser.ArrayInitializerContext):
-        return ctx.INTEGER_LITERAL()
-
     def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
         name = ctx.IDENTIFIER().__str__()
+        self.log.info(name)
         variable = self.symbol_table.get_variable(name, self.scope_stack[-1])
         type_def = ""
         if not variable.is_declared:

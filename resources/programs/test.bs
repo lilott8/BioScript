@@ -31,6 +31,8 @@ x = (5*x+(4+x))
 
 new = do_mix(aaa, bbb, 6)
 drain new
+zzz[3] = dispense bbb
+// zzzz[] = split zzz into 5
 
 new = do_split(aaa, 3)
 drain new

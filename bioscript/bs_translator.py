@@ -53,7 +53,8 @@ class BSTranslator(object):
         target = TargetFactory.get_target(self.config.target, self.symbol_visitor.symbol_table)
         self.log.info("Visiting: {}".format(target.name))
         target.visit(tree)
-        target.print_program()
+        self.log.debug(self.symbol_visitor.symbol_table)
+        # target.print_program()
 
     def visit_type_check(self, tree):
         type_checker = TypeCheckVisitor(self.symbol_visitor.symbol_table)
