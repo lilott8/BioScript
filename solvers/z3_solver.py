@@ -2,6 +2,7 @@
 # z3-solver can be installed through: pip3 install z3-solver
 import z3
 import json
+from functools import reduce
 
 class Z3Solver:#(BaseSolver):
 
@@ -31,32 +32,32 @@ class Z3Solver:#(BaseSolver):
 
     @staticmethod
     def solve_recursive_bin_packing(shelves, chem_volumes, edges):
-        solver = z3.Solver()
-        chems  = [z3.Int('c_%s' % x) for x in range(len(chem_volumes))]
+        solver = z3.Optimize()
+        chems  = [z3.Int('c%s' % x) for x in range(len(chem_volumes))]
         edges  = [chems[v0] != chems[v1] for v0, v1 in edges]
+        shelf_vol  = [z3.Int('vol%s_%s' % (x, y)) for x, shelf in enumerate(shelves) for y in range(len(shelf))]
+        shelf_vol_constraint = [z3.And(vol >= 0, vol <= vol_full) for vol, vol_full in zip(shelf_vol, reduce(lambda x, y: x + y, shelves))]
+
+        bin_color_array = [[z3.Int('bin_col%s_%s' % (x, y)) for y in range(len(shelves[x]))] for x, shelf in enumerate(shelves)]
         
-        #shelf_vol  = [z3.Int('vol_%s_%s' % (x, y)) for x, shelf in enumerate(shelves) for y in range(len(shelf))]
-        #shelf_vol  = [0 <= z3.Int('vol_%s') <= vol_full for shelf in shelves for vol_full in shelf]
-        #shelf_chem = [z3.Int('shelf_%s_%s' % (x, y)) for x, shelf in enumerate(shelves) for y in range(len(shelf))]
-        
-        for x, shelf in enumerate(shelves):
-            for y, vol_full in enumerate(shelf):
-                shelf_vol             = z3.Int('vol_%s_%s' % (x, y))
-                shelf_chem            = z3.Int('shelf_%s_%s' % (x, y))
-                shelf_vol_constraint  = z3.And(shelf_vol >= 0, shelf_vol <= vol_full)
-                shelf_chem_constraint = z3.And(shelf_chem >= 0, shelf_chem <= len(chem_volumes))
-                print(shelf_vol_constraint)
-                print(shelf_chem_constraint)
-                break
+        bin_chem  = [z3.Int('bin_chem%s_%s' % (x, y)) for x, s in enumerate(shelves) for y in range(len(s))]
 
-            break
+        for bin_colors in bin_color_array:
+            for bin_col in bin_colors:
+                solver.add(bin_col==bin_colors[0])
+            #for bin_col0 in bin_colors:
+            #    for bin_col1 in bin_colors:
+            #        solver.add(z3.Or(bin_col0==bin_col1, bin_col0==-1))
 
 
-        #print(shelf_vol)
-        #print(shelf_chem)
-        #chem_volumes[i] == shelves[][] * (chems)... shelves[][]
-
-
+        bin_color = reduce(lambda x, y: x+y, bin_color_array)
+        bin_constraint = [z3.Sum([z3.If(z3.And(b==i, col==chems[i]), vol, 0) for vol, b, col in zip(shelf_vol, bin_chem, bin_color)]) == chem_vol for i, (chem_vol, c) in enumerate(zip(chem_volumes, chems))]
+        solver.add(edges + shelf_vol_constraint + bin_constraint)
+        #print(solver)
+        if solver.check() == z3.sat:
+            model = solver.model()
+            return [(str(chem), 'chem: %s' % model.evaluate(chem), 'volume: %s' % model.evaluate(vol)) for chem, vol in zip(bin_chem, shelf_vol)]
+        return None
 
 
     @staticmethod
@@ -160,14 +161,17 @@ class Z3Solver:#(BaseSolver):
             return None
 
 
-ret = Z3Solver.solve_recursive_bin_packing([[50, 30, 20],
-                                            [100],
-                                            [20, 20, 20, 20, 20]],
-                                            [100, 100, 100], 
-                                            [(0, 1), (1, 2), (0, 2)])
+ret = Z3Solver.solve_recursive_bin_packing([[600],
+                                            [50, 50, 25, 25],
+                                            [100]],
+                                            [100, 100, 600, 50], 
+                                            [(0, 1), (1, 2), (0, 2), (2, 3)])
 
-
-
+if ret != None:
+    for r in ret:
+        print(r)
+else:
+    print('unsat')
 
 
 
