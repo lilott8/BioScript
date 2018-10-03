@@ -34,26 +34,24 @@ class Z3Solver:#(BaseSolver):
     def solve_recursive_bin_packing(shelves, chem_volumes, edges):
         solver = z3.Optimize()
         chems  = [z3.Int('c%s' % x) for x in range(len(chem_volumes))]
-        chems_constraint = [z3.And(c >= 0, c <= len(chem_volumes)) for c in chems]
+        chems_constraint = [z3.And(c >= 0, c < len(chem_volumes)) for c in chems]
         edges  = [chems[v0] != chems[v1] for v0, v1 in edges]
         shelf_vol  = [z3.Int('vol%s_%s' % (x, y)) for x, shelf in enumerate(shelves) for y in range(len(shelf))]
         shelf_vol_constraint = [z3.And(vol >= 0, vol <= vol_full) for vol, vol_full in zip(shelf_vol, reduce(lambda x, y: x + y, shelves))]
 
         bin_color_array = [[z3.Int('bin_col%s_%s' % (x, y)) for y in range(len(shelves[x]))] for x, shelf in enumerate(shelves)]
-        
-        bin_chem  = [z3.Int('bin_chem%s_%s' % (x, y)) for x, s in enumerate(shelves) for y in range(len(s))]
+        bin_chems  = [z3.Int('bin_chem%s_%s' % (x, y)) for x, s in enumerate(shelves) for y in range(len(s))]
 
         for bin_colors in bin_color_array:
             for bin_col in bin_colors:
                 solver.add(bin_col==bin_colors[0])
-
-        bin_color = reduce(lambda x, y: x+y, bin_color_array)
-        bin_constraint = [z3.Sum([z3.If(z3.And(b==i, col==chems[i]), vol, 0) for vol, b, col in zip(shelf_vol, bin_chem, bin_color)]) == chem_vol for i, (chem_vol, c) in enumerate(zip(chem_volumes, chems))]
+        bin_colors = reduce(lambda x, y: x+y, bin_color_array)
+        bin_constraint = [z3.Sum([z3.If(z3.And(vol != 0, bin_color==chems[i], bin_chem==i), vol, 0) for bin_color, bin_chem, vol in zip(bin_colors, bin_chems, shelf_vol)]) == chem_vol for i, chem_vol in enumerate(chem_volumes)]
         solver.add(chems_constraint + edges + shelf_vol_constraint + bin_constraint)
+        #solver.minimize(z3.Sum([z3.If(s >= 0, 1, 0) for s in shelf_vol]))
         if solver.check() == z3.sat:
             model = solver.model()
-            print(model)
-            return [(str(chem), 'chem: %s' % model.evaluate(chem), 'volume: %s' % model.evaluate(vol)) for chem, vol in zip(bin_chem, shelf_vol)]
+            return [(str(chem), 'chem: %s' % model.evaluate(chem), 'volume: %s' % model.evaluate(vol), 'color: %s' % model.evaluate(col)) for chem, vol, col in zip(bin_chems, shelf_vol, bin_colors)]
         return None
 
 
@@ -157,19 +155,23 @@ class Z3Solver:#(BaseSolver):
         else:
             return None
 
-
-ret = Z3Solver.solve_recursive_bin_packing([[600, 100], [10, 70, 20]],
-                                            [100, 100], 
-                                            [(0, 1)])
-
+print('problem 1: ')
+ret = Z3Solver.solve_recursive_bin_packing([[400, 400, 400, 4000], [400, 400, 400, 400]],
+                                            [100, 100, 100, 100], 
+                                            [(0, 1), (1, 2), (2, 3)])
 if ret != None:
     for r in ret:
         print(r)
 else:
     print('unsat')
 
-
-
+print('problem 2: ')
+ret2 = Z3Solver.solve_recursive_bin_packing([[100, 100], [100], [50]], [1, 2, 3], [(0, 1), (1, 2)])
+if ret2 != None:
+    for r in ret2:
+        print(r)
+else:
+    print('unsat')
 
 
 
