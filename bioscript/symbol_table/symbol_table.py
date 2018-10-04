@@ -1,3 +1,5 @@
+import colorlog
+
 from bioscript.symbol_table.scope import Scope
 from shared.enums.chemtypes import ChemTypes
 
@@ -5,7 +7,7 @@ from shared.enums.chemtypes import ChemTypes
 class SymbolTable(object):
 
     def __init__(self, name="main"):
-        # self.log = colorlog.getLogger(self.__class__.__name__)
+        self.log = colorlog.getLogger(self.__class__.__name__)
         self.current_scope = Scope(name)
         self.scope_stack = list()
         self.scope_map = dict()
@@ -84,7 +86,7 @@ class SymbolTable(object):
         elif variable in scope.get_locals():
             return scope.get_locals()[variable]
         else:
-            #self.log.fatal("No variable found: {} in {}".format(variable, scope.name))
+            self.log.fatal("No variable found: {} in {}".format(variable, scope.name))
             return False
 
     def __repr__(self):

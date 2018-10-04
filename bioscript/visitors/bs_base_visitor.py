@@ -1,5 +1,6 @@
 import colorlog
 
+from bioscript.symbol_table.scope import Scope
 from grammar.parsers.python.BSParser import BSParser
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
 from shared.enums.bs_properties import BSTemperature
@@ -82,3 +83,11 @@ class BSBaseVisitor(BSParserVisitor):
             else:
                 temp_unit += x
         return {'quantity': float(temp_float), 'units': temp_unit}
+
+    def get_scope(self, name) -> Scope:
+        if name not in self.symbol_table.scope_map:
+            scope = Scope(name)
+            self.symbol_table.scope_map[name] = scope
+            return scope
+        else:
+            return self.symbol_table.scope_map[name]

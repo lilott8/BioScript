@@ -5,16 +5,19 @@ manifest bbb
 functions:
 
 function do_mix([mat] func_arg_a, [mat] func_arg_b, [nat] func_arg_c) : [mat] {
+    zzzz[] = split zzz into 5
     func_do_mix_temp = mix 10.0mL of func_arg_a with func_arg_b
     return func_do_mix_temp
 }
 
 function do_split(func_arg_a, [nat; real] func_arg_b) {
+    aaaa[] = split zzz into 5
     func_do_split_temp = split func_arg_a into 3
-    return func_do_split_temp
+    return test_empty()
 }
 
 function test_empty() {
+    bbbb[] = split zzz into 5
     x = 5
     func_test_empty_temp = mix aaa with bbb
     return x

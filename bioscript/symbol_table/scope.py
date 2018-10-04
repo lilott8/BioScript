@@ -11,7 +11,6 @@ class Scope(object):
             self.locals[local.name] = local
         else:
             self.locals[local.name].types.update(local.types)
-            self.locals[local.name].is_array = local.is_array
 
     def get_name(self):
         return self.name

@@ -173,35 +173,35 @@ class TypeCheckVisitor(BSBaseVisitor):
     def visitBlockStatement(self, ctx: BSParser.BlockStatementContext):
         return super().visitBlockStatement(ctx)
 
-    def visitAssignmentOperations(self, ctx: BSParser.AssignmentOperationsContext):
-        smt = ""
-        if ctx.mix():
-            smt = self.visitMix(ctx.mix())
-        elif ctx.detect():
-            smt = self.visitDetect(ctx.detect())
-        elif ctx.expression():
-            self.expressions = list()
-            smt = self.visitExpression(ctx.expression())
-        elif ctx.split():
-            smt = self.visitSplit(ctx.split())
-        elif ctx.methodCall():
-            smt = self.visitMethodCall(ctx.methodCall())
-        else:
-            self.log.fatal("No operation: {}".format(ctx.getText()))
-            return ""
-        return smt
+    # def visitAssignmentOperations(self, ctx: BSParser.AssignmentOperationsContext):
+    #     smt = ""
+    #     if ctx.mix():
+    #         smt = self.visitMix(ctx.mix())
+    #     elif ctx.detect():
+    #         smt = self.visitDetect(ctx.detect())
+    #     elif ctx.expression():
+    #         self.expressions = list()
+    #         smt = self.visitExpression(ctx.expression())
+    #     elif ctx.split():
+    #         smt = self.visitSplit(ctx.split())
+    #     elif ctx.methodCall():
+    #         smt = self.visitMethodCall(ctx.methodCall())
+    #     else:
+    #         self.log.fatal("No operation: {}".format(ctx.getText()))
+    #         return ""
+    #     return smt
 
     def visitStatements(self, ctx: BSParser.StatementsContext):
         return self.visitChildren(ctx)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
-        return ""
+        return self.visitChildren(ctx)
 
     def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
-        return ""
+        return self.visitChildren(ctx)
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
-        return ""
+        return self.visitChildren(ctx)
 
     def visitMix(self, ctx: BSParser.MixContext) -> str:
         smt = ""
@@ -312,9 +312,9 @@ class TypeCheckVisitor(BSBaseVisitor):
     def visitTypesList(self, ctx: BSParser.TypesListContext):
         return super().visitTypesList(ctx)
 
-    def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
-        self.output = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
-        return self.visit(ctx.assignmentOperations())
+    # def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
+    #     self.output = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+    #     return self.visit(ctx.assignmentOperations())
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext) -> str:
         ret = ""

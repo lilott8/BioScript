@@ -46,6 +46,7 @@ class ClangVisitor(TargetVisitor):
         func = self.symbol_table.functions[name]
 
         self.scope_stack.append(name)
+
         if ChemTypes.MAT in func.types:
             output = "mat "
         else:
@@ -89,39 +90,40 @@ class ClangVisitor(TargetVisitor):
             output += "{}{}".format(self.visitStatements(statement), self.nl)
         return output
 
-    def visitAssignmentOperations(self, ctx: BSParser.AssignmentOperationsContext):
-        if ctx.mix():
-            return self.visitMix(ctx.mix())
-        elif ctx.detect():
-            return self.visitDetect(ctx.detect())
-        elif ctx.expression():
-            return self.visitExpression(ctx.expression())
-        elif ctx.split():
-            return self.visitSplit(ctx.split())
-        elif ctx.methodCall():
-            return self.visitMethodCall(ctx.methodCall())
-        elif ctx.dispense():
-            return self.visitDispense(ctx.dispense())
-        else:
-            self.log.fatal("No assignment operation: {}".format(ctx.getText()))
-            return ""
+    # def visitAssignmentOperations(self, ctx: BSParser.AssignmentOperationsContext):
+    #     if ctx.mix():
+    #         return self.visitMix(ctx.mix())
+    #     elif ctx.detect():
+    #         return self.visitDetect(ctx.detect())
+    #     elif ctx.expression():
+    #         return self.visitExpression(ctx.expression())
+    #     elif ctx.split():
+    #         return self.visitSplit(ctx.split())
+    #     elif ctx.methodCall():
+    #         return self.visitMethodCall(ctx.methodCall())
+    #     elif ctx.dispense():
+    #         return self.visitDispense(ctx.dispense())
+    #     else:
+    #         self.log.fatal("No assignment operation: {}".format(ctx.getText()))
+    #         return ""
 
     def visitStatements(self, ctx: BSParser.StatementsContext):
-        if ctx.dispose():
-            return self.visitDispose(ctx.dispose())
-        elif ctx.heat():
-            return self.visitHeat(ctx.heat())
-        elif ctx.ifStatement():
-            return self.visitIfStatement(ctx.ifStatement())
-        elif ctx.localVariableDeclaration():
-            return self.visitLocalVariableDeclaration(ctx.localVariableDeclaration())
-        elif ctx.whileStatement():
-            return self.visitWhileStatement(ctx.whileStatement())
-        elif ctx.repeat():
-            return self.visitRepeat(ctx.repeat())
-        else:
-            self.log.fatal("No statement operation: {}".format(ctx.getText()))
-            return ""
+        return self.visitChildren(ctx)
+        # if ctx.dispose():
+        #     return self.visitDispose(ctx.dispose())
+        # elif ctx.heat():
+        #     return self.visitHeat(ctx.heat())
+        # elif ctx.ifStatement():
+        #     return self.visitIfStatement(ctx.ifStatement())
+        # elif ctx.localVariableDeclaration():
+        #     return self.visitLocalVariableDeclaration(ctx.localVariableDeclaration())
+        # elif ctx.whileStatement():
+        #     return self.visitWhileStatement(ctx.whileStatement())
+        # elif ctx.repeat():
+        #     return self.visitRepeat(ctx.repeat())
+        # else:
+        #     self.log.fatal("No statement operation: {}".format(ctx.getText()))
+        #     return ""
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
         output = "if {} {{{}{}".format(self.visitParExpression(ctx.parExpression()), self.nl,
@@ -251,6 +253,19 @@ class ClangVisitor(TargetVisitor):
     def visitTypesList(self, ctx: BSParser.TypesListContext):
         return super().visitTypesList(ctx)
 
+    def visitMaterialAssignmentOperations(self, ctx: BSParser.MaterialAssignmentOperationsContext):
+        return super().visitMaterialAssignmentOperations(ctx)
+
+    def visitNumericAssignmentOperations(self, ctx: BSParser.NumericAssignmentOperationsContext):
+        return super().visitNumericAssignmentOperations(ctx)
+
+    def visitNumericDeclaration(self, ctx: BSParser.NumericDeclarationContext):
+        return super().visitNumericDeclaration(ctx)
+
+    def visitMaterialDeclaration(self, ctx: BSParser.MaterialDeclarationContext):
+        return super().visitMaterialDeclaration(ctx)
+
+    """
     def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
         name = ctx.IDENTIFIER().__str__()
         self.log.info(name)
@@ -260,6 +275,7 @@ class ClangVisitor(TargetVisitor):
             type_def = self.get_types(variable.types)
             variable.is_declared = True
         return "{} {} = {};".format(type_def, self.check_identifier(name), self.visit(ctx.assignmentOperations()))
+    """
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         if ctx.IDENTIFIER():
@@ -285,6 +301,7 @@ class ClangVisitor(TargetVisitor):
         return super().visitPrimitiveType(ctx)
 
     def get_types(self, types):
+
         if ChemTypes.MAT in types:
             return "mat"
         else:

@@ -2,6 +2,7 @@ import colorlog
 from antlr4 import *
 
 from bioscript.symbol_table.symbol_table import SymbolTable
+from bioscript.visitors.method_visitor import MethodVisitor
 from bioscript.visitors.symbol_visitor import SymbolTableVisitor
 from bioscript.visitors.targets.clang_visitor import ClangVisitor
 from bioscript.visitors.targets.target_factory import TargetFactory
@@ -20,8 +21,10 @@ class BSTranslator(object):
         self.log.warning(self.config.input)
         self.type_check = ""
         self.typeable = False
+        # This gets run first, gathering all the functions it can.
+        self.method_visitor = MethodVisitor(SymbolTable())
         # This must be globally declared.
-        self.symbol_visitor = SymbolTableVisitor(SymbolTable())
+        self.symbol_visitor = None
 
     def translate(self):
         file_stream = FileStream(self.config.input)
@@ -30,8 +33,10 @@ class BSTranslator(object):
         parser = BSParser(stream)
         tree = parser.program()
 
+        self.method_visitor.visit(tree)
         # No matter what options are set,
         # We must visit the symbol table.
+        self.symbol_visitor = SymbolTableVisitor(self.method_visitor.symbol_table)
         self.symbol_visitor.visit(tree)
 
         if self.config.typecheck != TypeChecker.DISABLED:
@@ -43,17 +48,9 @@ class BSTranslator(object):
             raise TypeError("The BioScript program could not be safely type checked.")
             return
 
-        # if self.config.llvm:
-        #     self.visit_clang(tree)
-        #     self.log.info("Run LLVM here")
-        # else:
-        #     self.log.info("You're not running LLVM")
-
-        self.log.info(self.config.target)
         target = TargetFactory.get_target(self.config.target, self.symbol_visitor.symbol_table)
         self.log.info("Visiting: {}".format(target.name))
         target.visit(tree)
-        self.log.debug(self.symbol_visitor.symbol_table)
         # target.print_program()
 
     def visit_type_check(self, tree):
