@@ -6,6 +6,7 @@ from bioscript.visitors.method_visitor import MethodVisitor
 from bioscript.visitors.symbol_visitor import SymbolTableVisitor
 from bioscript.visitors.targets.clang_visitor import ClangVisitor
 from bioscript.visitors.targets.target_factory import TargetFactory
+from bioscript.visitors.targets.target_visitor import TargetVisitor
 from bioscript.visitors.type_visitor import TypeCheckVisitor
 from config.config import Config
 from grammar.parsers.python.BSLexer import BSLexer
@@ -51,7 +52,8 @@ class BSTranslator(object):
         target = TargetFactory.get_target(self.config.target, self.symbol_visitor.symbol_table)
         self.log.info("Visiting: {}".format(target.name))
         target.visit(tree)
-        # target.print_program()
+        if self.config.llvm:
+            self.compile_file(target)
 
     def visit_type_check(self, tree):
         type_checker = TypeCheckVisitor(self.symbol_visitor.symbol_table)
@@ -65,3 +67,12 @@ class BSTranslator(object):
         clang = ClangVisitor(self.symbol_visitor.symbol_table)
         clang.visit(tree)
         # self.log.info(clang.program)
+
+    def compile_file(self, target: TargetVisitor):
+        self.log.fatal("Start here.")
+        pass
+        # file_name = self.config.path + 'compiled/{}.c'.format(self.config.input)
+        # f = open(file_name, 'w+')
+        # f.write(target.print_program())
+        # f.close()
+        # subprocess.call(['gcc', 'S', 'emit-llvm', file_name])

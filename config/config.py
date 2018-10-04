@@ -46,6 +46,7 @@ class Config(object):
         self.llvm = False
         # What is the problem that is being solved.
         self.problem = None
+        self.path = "./"
 
         if Config.__instance is not None:
             raise Exception('This is a singleton.')
@@ -53,6 +54,7 @@ class Config(object):
             self.log.warning(args)
             self.debug = args.debug
             self.llvm = args.llvm
+            self.path = args.path
             if args.epa_defs:
                 self.epa_defs = args.epa_defs
             if args.abs_int:
