@@ -13,6 +13,7 @@ class SymbolTable(object):
         self.scope_map = dict()
         self.functions = dict()
         self.globals = dict()
+        self.scope_map[self.current_scope.name] = self.current_scope
 
     def add_new_scope(self, name):
         self.scope_stack.append(self.current_scope)

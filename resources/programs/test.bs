@@ -5,14 +5,14 @@ manifest bbb
 functions:
 
 function do_mix([mat] func_arg_a, [mat] func_arg_b, [nat] func_arg_c) : [mat] {
-    zzzz[] = split zzz into 5
+    zzzz[] = split zzz into 4
     func_do_mix_temp = mix 10.0mL of func_arg_a with func_arg_b
     return func_do_mix_temp
 }
 
 function do_split(func_arg_a, [nat; real] func_arg_b) {
     aaaa[] = split zzz into 5
-    func_do_split_temp = split func_arg_a into 3
+    func_do_split_temp = split func_arg_a into 4
     return test_empty()
 }
 
@@ -24,6 +24,9 @@ function test_empty() {
 }
 
 instructions:
+
+split_a,split_b,split_c = split x into 3
+ccccc = split x into 4
 
 [mat; nat] iii = mix aaa with bbb
 heatTemp = detect mod on aaa

@@ -1,7 +1,10 @@
+import subprocess
+
 import colorlog
 from antlr4 import *
 
 from bioscript.symbol_table.symbol_table import SymbolTable
+from bioscript.visitors.global_visitor import GlobalVariableVisitor
 from bioscript.visitors.method_visitor import MethodVisitor
 from bioscript.visitors.symbol_visitor import SymbolTableVisitor
 from bioscript.visitors.targets.clang_visitor import ClangVisitor
@@ -22,8 +25,8 @@ class BSTranslator(object):
         self.log.warning(self.config.input)
         self.type_check = ""
         self.typeable = False
-        # This gets run first, gathering all the functions it can.
-        self.method_visitor = MethodVisitor(SymbolTable())
+        # This gets run first, gathering all the globals.
+        self.global_visitor = GlobalVariableVisitor(SymbolTable())
         # This must be globally declared.
         self.symbol_visitor = None
 
@@ -34,11 +37,15 @@ class BSTranslator(object):
         parser = BSParser(stream)
         tree = parser.program()
 
-        self.method_visitor.visit(tree)
+        self.global_visitor.visit(tree)
+        method_visitor = MethodVisitor(self.global_visitor.symbol_table)
+        method_visitor.visit(tree)
         # No matter what options are set,
         # We must visit the symbol table.
-        self.symbol_visitor = SymbolTableVisitor(self.method_visitor.symbol_table)
+        self.symbol_visitor = SymbolTableVisitor(method_visitor.symbol_table)
         self.symbol_visitor.visit(tree)
+
+        self.log.info(self.symbol_visitor.symbol_table)
 
         if self.config.typecheck != TypeChecker.DISABLED:
             self.visit_type_check(tree)
@@ -47,11 +54,13 @@ class BSTranslator(object):
 
         if not self.typeable:
             raise TypeError("The BioScript program could not be safely type checked.")
-            return
 
         target = TargetFactory.get_target(self.config.target, self.symbol_visitor.symbol_table)
         self.log.info("Visiting: {}".format(target.name))
         target.visit(tree)
+        if self.config.debug:
+            # target.print_program()
+            pass
         if self.config.llvm:
             self.compile_file(target)
 
@@ -69,10 +78,8 @@ class BSTranslator(object):
         # self.log.info(clang.program)
 
     def compile_file(self, target: TargetVisitor):
-        self.log.fatal("Start here.")
-        pass
-        # file_name = self.config.path + 'compiled/{}.c'.format(self.config.input)
-        # f = open(file_name, 'w+')
-        # f.write(target.print_program())
-        # f.close()
-        # subprocess.call(['gcc', 'S', 'emit-llvm', file_name])
+        file_name = self.config.path + 'compiled/{}.cpp'.format(self.config.input_file)
+        f = open(file_name, 'w+')
+        f.write(target.compiled)
+        f.close()
+        subprocess.call(['g++', '-S', '-emit-llvm', file_name])

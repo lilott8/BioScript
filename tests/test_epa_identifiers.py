@@ -7,7 +7,7 @@ from shared.enums.chemtypes import Consequence
 from shared.io.database import Database
 
 
-class Test_Identifiers(unittest.TestCase):
+class TestEPAIdentifiers(unittest.TestCase):
 
     def test_cas_number_validation(self):
         self.assertTrue(Identifier.is_cas_number('12005-69-5'))

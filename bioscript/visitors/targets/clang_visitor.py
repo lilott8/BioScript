@@ -9,8 +9,10 @@ class ClangVisitor(TargetVisitor):
     def __init__(self, symbol_table):
         super().__init__(symbol_table, "ClangVisitor")
         self.compiled = "// BSProgram!" + self.nl
-        self.compiled += "#include <unistd.h>" + self.nl + "#include <random>" + self.nl
+        self.compiled += "#include <unistd.h>" + self.nl
+        self.compiled += "#include <vector>" + self.nl
         self.compiled += "{}{}{}".format(self.build_structs(), self.nl, self.build_functions())
+        self.repeat_counter = 0
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
@@ -90,23 +92,6 @@ class ClangVisitor(TargetVisitor):
             output += "{}{}".format(self.visitStatements(statement), self.nl)
         return output
 
-    # def visitAssignmentOperations(self, ctx: BSParser.AssignmentOperationsContext):
-    #     if ctx.mix():
-    #         return self.visitMix(ctx.mix())
-    #     elif ctx.detect():
-    #         return self.visitDetect(ctx.detect())
-    #     elif ctx.expression():
-    #         return self.visitExpression(ctx.expression())
-    #     elif ctx.split():
-    #         return self.visitSplit(ctx.split())
-    #     elif ctx.methodCall():
-    #         return self.visitMethodCall(ctx.methodCall())
-    #     elif ctx.dispense():
-    #         return self.visitDispense(ctx.dispense())
-    #     else:
-    #         self.log.fatal("No assignment operation: {}".format(ctx.getText()))
-    #         return ""
-
     def visitStatements(self, ctx: BSParser.StatementsContext):
         return self.visitChildren(ctx)
         # if ctx.dispose():
@@ -138,10 +123,20 @@ class ClangVisitor(TargetVisitor):
         return output
 
     def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
-        return super().visitWhileStatement(ctx)
+        output = "while"
+        output += self.visitParExpression(ctx.parExpression())
+        output += "{{ {}".format(self.nl)
+        output += "{} {}".format(self.visitBlockStatement(ctx.blockStatement()), self.nl)
+        output += "}}{}".format(self.nl)
+        return output
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
-        return super().visitRepeat(ctx)
+        output = "while({}_{} >= 0) {{ {}".format("bs_repeat_counter", self.increment_repeat_counter(), self.nl)
+        output += self.visitBlockStatement(ctx.blockStatement())
+        output += "{}_{}--;{}".format("bs_repeat_counter", self.repeat_counter, self.nl)
+        output += "}}{}".format(self.nl)
+        self.decrement_repeat_counter()
+        return output
 
     def visitMix(self, ctx: BSParser.MixContext):
         output = "mix("
@@ -153,7 +148,7 @@ class ClangVisitor(TargetVisitor):
             output += time['quantity']
         else:
             output += "10.0"
-        output += ")"
+        output += ");"
         return output
 
     def visitDetect(self, ctx: BSParser.DetectContext):
@@ -167,7 +162,7 @@ class ClangVisitor(TargetVisitor):
         else:
             output += "10.0"
 
-        output += ")"
+        output += ");"
         return output
 
     def visitHeat(self, ctx: BSParser.HeatContext):
@@ -177,11 +172,11 @@ class ClangVisitor(TargetVisitor):
         return "{} = heat({}, {}, {});".format(name, name, temp['quantity'], time['quantity'])
 
     def visitSplit(self, ctx: BSParser.SplitContext):
-        return "split({}, {})".format(self.check_identifier(ctx.IDENTIFIER().__str__()),
-                                      ctx.INTEGER_LITERAL().__str__())
+        return {"instruction": "split({}, {});".format(self.check_identifier(ctx.IDENTIFIER().__str__()),
+                                                       ctx.INTEGER_LITERAL().__str__()), "size": 1}
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
-        return "dispense({})".format(ctx.IDENTIFIER().__str__())
+        return "dispense({});".format(ctx.IDENTIFIER().__str__())
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
         name = self.check_identifier(ctx.IDENTIFIER().__str__())
@@ -234,7 +229,7 @@ class ClangVisitor(TargetVisitor):
         output = "{}(".format(ctx.IDENTIFIER().__str__())
         if ctx.expressionList():
             output += "{}".format(self.visitExpressionList(ctx.expressionList()))
-        output += ")"
+        output += ");"
         return output
 
     def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
@@ -263,19 +258,37 @@ class ClangVisitor(TargetVisitor):
         return super().visitNumericDeclaration(ctx)
 
     def visitMaterialDeclaration(self, ctx: BSParser.MaterialDeclarationContext):
-        return super().visitMaterialDeclaration(ctx)
+        id_len = len(ctx.IDENTIFIER())
+        output = "// In split" + self.nl
 
-    """
-    def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
-        name = ctx.IDENTIFIER().__str__()
-        self.log.info(name)
-        variable = self.symbol_table.get_variable(name, self.scope_stack[-1])
-        type_def = ""
-        if not variable.is_declared:
-            type_def = self.get_types(variable.types)
-            variable.is_declared = True
-        return "{} {} = {};".format(type_def, self.check_identifier(name), self.visit(ctx.assignmentOperations()))
-    """
+        # if not ctx.split() and not ctx.LBRACKET():
+        #     """
+        #     This is a regular assignment.
+        #     """
+        #     name = ctx.IDENTIFIER(0).__str__()
+        #     variable = self.symbol_table.get_variable(name)
+        #     output += "{} = {}".format(variable.name, self.visit(ctx))
+        # else:
+        #     """
+        #     This is an array assignment.
+        #     """
+        #     if id_len == 1:
+        #         """
+        #         We have:
+        #             x = split y into n
+        #             x[] = split y into n
+        #             x[n] = split y into n
+        #         """
+        #
+        #         pass
+        #     else:
+        #         """
+        #         We have the case: x,y,z = split ...
+        #         """
+        #     for ids in range(0, id_len):
+        #         name = ctx.IDENTIFIER(ids).__str__()
+        #         variable = self.symbol_table.get_variable(name)
+        return output
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         if ctx.IDENTIFIER():
@@ -325,13 +338,13 @@ class ClangVisitor(TargetVisitor):
         output += "return output;" + self.nl
         output += "}}{}{}".format(self.nl, self.nl)
 
-        output += "mat split(mat input, int quantity) {" + self.nl
-        output += "splitMat output;" + self.nl
+        output += "std::vector<mat> split(mat input, int quantity) {" + self.nl
+        output += "std::vector<mat> output;" + self.nl
         output += "for (int x =0; x < quantity; x++) {" + self.nl
-        output += "output.values[x] = input;" + self.nl
-        output += "output.values[x].quantity = input.quantity/(float)quantity;" + self.nl
+        output += "output.at(x) = input;" + self.nl
+        output += "output.at(x).quantity = input.quantity/(float)quantity;" + self.nl
         output += "}" + self.nl
-        output += "return output.values[0];" + self.nl
+        output += "return output;" + self.nl
         output += "}}{}{}".format(self.nl, self.nl)
 
         output += "mat heat(mat input, double temp, double time) {" + self.nl
@@ -354,3 +367,11 @@ class ClangVisitor(TargetVisitor):
         output += "}}{}{}".format(self.nl, self.nl)
 
         return output
+
+    def increment_repeat_counter(self):
+        temp = self.repeat_counter
+        self.repeat_counter += 1
+        return temp
+
+    def decrement_repeat_counter(self):
+        self.repeat_counter -= 1

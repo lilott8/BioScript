@@ -1,0 +1,29 @@
+module mod
+manifest aaa
+manifest bbb
+
+functions:
+
+function test() {
+    x = split aaa into 4
+    return x
+}
+
+instructions:
+
+pass1, pass2, pass3, pass4 = split aaa into 4
+pass5 = split aaa into 4
+pass6[] = split aaa into 8
+pass7[8] = split aaa into 8
+pass8 = split aaa into 8
+pass9[2] = split aaa into 2
+
+method_call = test()
+method_call2[4] = test()
+
+
+disp[4] = dispense aaa
+
+//fail1, fail2, fail3 = split aaa into 3
+//fail4 = split aaa into 9
+//fail5 = split aaa into 3

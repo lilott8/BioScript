@@ -20,6 +20,7 @@ class MethodVisitor(BSBaseVisitor):
     def visitProgram(self, ctx: BSParser.ProgramContext):
         for func in ctx.functionDeclaration():
             self.visitFunctionDeclaration(func)
+        pass
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
         """

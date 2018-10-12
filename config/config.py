@@ -29,6 +29,7 @@ class Config(object):
         self.epa_defs = './resources/epa_defs.json'
         self.abstract_interaction = './resources/abstract-interaction.txt'
         self.input = None
+        self.input_file = None
         self.typecheck = TypeChecker.NAIVE
         # Database stuff.
         self.db = {'name': None, 'pass': None, 'addr': None, 'user': None, 'driver': None}
@@ -60,6 +61,9 @@ class Config(object):
             if args.abs_int:
                 self.abstract_interaction = args.abs_int
             self.input = args.input
+            # Converts: /path/to/bioscript.bs => bioscript
+            self.input_file = args.input.split("/")[-1].split(".")[0]
+            self.log.info(self.input_file)
             self.db['name'] = args.dbname
             self.db['user'] = args.dbuser
             self.db['pass'] = args.dbpass
