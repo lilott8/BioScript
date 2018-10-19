@@ -59,7 +59,7 @@ class BSTranslator(object):
         self.log.info("Visiting: {}".format(target.name))
         target.visit(tree)
         if self.config.debug:
-            # target.print_program()
+            target.print_program()
             pass
         if self.config.llvm:
             self.compile_file(target)

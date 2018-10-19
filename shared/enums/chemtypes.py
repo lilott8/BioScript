@@ -166,12 +166,20 @@ class ChemTypeResolver(object):
     naive_types = {ChemTypes.REAL, ChemTypes.MAT, ChemTypes.NAT, ChemTypes.MODULE}
 
     @staticmethod
-    def is_mat(value):
+    def is_mat(value: ChemTypes):
         return value in ChemTypeResolver.materials
 
     @staticmethod
-    def is_number(value):
+    def is_number(value: ChemTypes):
         return value in ChemTypeResolver.numbers
+
+    @staticmethod
+    def is_mat_in_set(value: set):
+        raise Exception("start here")
+
+    @staticmethod
+    def is_number_in_set(value: set):
+        pass
 
     @staticmethod
     def string_to_type(chemtype: str) -> ChemTypes:

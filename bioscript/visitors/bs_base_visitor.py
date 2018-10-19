@@ -37,7 +37,7 @@ class BSBaseVisitor(BSParserVisitor):
                          "typedef", "typeid", "typename", "union", "unsigned", "using", "virtual", "void", "volatile",
                          "wchar_t", "while", "xor", "xor_eq")
 
-    def visitVolumeIdentifier(self, ctx: BSParser.VolumeIdentifierContext):
+    def visitVolumeIdentifier(self, ctx: BSParser.VolumeIdentifierContext) -> dict:
         quantity = 10.0
         units = BSVolume.MICROLITRE
         name = ctx.IDENTIFIER().__str__()
@@ -48,13 +48,16 @@ class BSBaseVisitor(BSParserVisitor):
         return {'quantity': quantity, 'units': units,
                 'variable': self.symbol_table.get_variable(name, self.scope_stack[-1])}
 
-    def visitTimeIdentifier(self, ctx: BSParser.TimeIdentifierContext):
-        x = self.split_number_from_unit(ctx.TIME_NUMBER().__str__())
-        units = BSTime.get_from_string(x['units'])
-        quantity = units.normalize(x['quantity'])
+    def visitTimeIdentifier(self, ctx: BSParser.TimeIdentifierContext) -> dict:
+        quantity = 10.0
+        units = BSTime.SECOND
+        if ctx:
+            x = self.split_number_from_unit(ctx.TIME_NUMBER().__str__())
+            units = BSTime.get_from_string(x['units'])
+            quantity = units.normalize(x['quantity'])
         return {'quantity': quantity, 'units': units}
 
-    def visitTemperatureIdentifier(self, ctx: BSParser.TemperatureIdentifierContext):
+    def visitTemperatureIdentifier(self, ctx: BSParser.TemperatureIdentifierContext) -> dict:
         x = self.split_number_from_unit(ctx.TEMP_NUMBER().__str__())
         units = BSTemperature.get_from_string(x['units'])
         quantity = units.normalize(x['quantity'])
@@ -70,7 +73,7 @@ class BSBaseVisitor(BSParserVisitor):
     def get_safe_name(name: str) -> str:
         return name.replace(" ", "_").replace("-", "_")
 
-    def split_number_from_unit(self, text):
+    def split_number_from_unit(self, text) -> dict:
         temp_float = ""
         temp_unit = ""
         for x in text[0:]:

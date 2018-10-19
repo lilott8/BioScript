@@ -173,24 +173,6 @@ class TypeCheckVisitor(BSBaseVisitor):
     def visitBlockStatement(self, ctx: BSParser.BlockStatementContext):
         return super().visitBlockStatement(ctx)
 
-    # def visitAssignmentOperations(self, ctx: BSParser.AssignmentOperationsContext):
-    #     smt = ""
-    #     if ctx.mix():
-    #         smt = self.visitMix(ctx.mix())
-    #     elif ctx.detect():
-    #         smt = self.visitDetect(ctx.detect())
-    #     elif ctx.expression():
-    #         self.expressions = list()
-    #         smt = self.visitExpression(ctx.expression())
-    #     elif ctx.split():
-    #         smt = self.visitSplit(ctx.split())
-    #     elif ctx.methodCall():
-    #         smt = self.visitMethodCall(ctx.methodCall())
-    #     else:
-    #         self.log.fatal("No operation: {}".format(ctx.getText()))
-    #         return ""
-    #     return smt
-
     def visitStatements(self, ctx: BSParser.StatementsContext):
         return self.visitChildren(ctx)
 

@@ -143,7 +143,8 @@ class SymbolTableVisitor(BSBaseVisitor):
         name = ctx.IDENTIFIER().__str__()
         types = {ChemTypes.MAT}
         self.symbol_table.update_symbol(name, types)
-        return {'types': types, 'size': 1, 'instruction': Instruction.DISPENSE, "name": Instruction.DISPENSE.name}
+        return {'types': types, 'size': 1,
+                'instruction': Instruction.DISPENSE, "name": Instruction.DISPENSE.name}
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
         name = ctx.IDENTIFIER().__str__()
@@ -192,135 +193,44 @@ class SymbolTableVisitor(BSBaseVisitor):
             types.add(self.visitTypeType(t))
         return types
 
-    def visitMaterialAssignmentOperations(self, ctx: BSParser.MaterialAssignmentOperationsContext):
+    def visitVariableDeclaration(self, ctx: BSParser.VariableDeclarationContext):
         return self.visitChildren(ctx)
 
-    def visitNumericAssignmentOperations(self, ctx: BSParser.NumericAssignmentOperationsContext):
-        return self.visitChildren(ctx)
-
-    def visitNumericDeclaration(self, ctx: BSParser.NumericDeclarationContext):
-        types = set()
-
+    def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
         name = ctx.IDENTIFIER().__str__()
 
-        if ctx.unionType():
-            types = self.visitUnionType(ctx.unionType())
-
-        pair = self.visitNumericAssignmentOperations(ctx.numericAssignmentOperations())
-        types = types.union(pair['types'])
-
-        variable = Variable(name, types, self.symbol_table.current_scope.name, pair['size'])
-        self.symbol_table.add_local(variable)
-
-        return variable
-
-    def visitMaterialDeclaration(self, ctx: BSParser.MaterialDeclarationContext):
-        """
-        This function could be written in a fashion that is much more efficient.
-        I intentionally wrote this for readability.  This is complicated and intricate.
-        Choosing to optimize for efficiency would have obfuscated the intricate
-        And subtle differences in each case; leading to hard to track bugs.
-        :param ctx:
-        :return:
-        """
         declared_types = set()
         final_types = set()
 
         if ctx.unionType():
             declared_types = self.visitUnionType(ctx.unionType())
 
-        # Obtain the instruction object
-        pair = self.visitChildren(ctx)
-
+        operation = self.visitChildren(ctx)
+        
         final_types = final_types.union(declared_types)
-        final_types = final_types.union(pair['types'])
-
-        variable = None
-        id_len = len(ctx.IDENTIFIER())
+        final_types = final_types.union(operation['types'])
 
         """
         Some necessary preconditions.  This is written
         this way because of the reasons stated above.
         """
-        # If the id1, id2,..idn is not a power of 2, kill it.
-        if not SymbolTableVisitor.isPower(2, id_len):
-            raise InvalidOperation("Split 2^x-ways is supported; split {}-ways is not supported".format(pair['size']))
         # If we have x[n] = ... and it's not a power of 2, kill it.
         if ctx.INTEGER_LITERAL() and not SymbolTableVisitor.isPower(2, int(ctx.INTEGER_LITERAL().__str__())):
             raise InvalidOperation("All arrays must be 2^x.")
-        if pair['instruction'] == Instruction.METHOD:
-            pair['size'] = self.symbol_table.functions[pair['name']].return_size
-            if ctx.INTEGER_LITERAL() and int(ctx.INTEGER_LITERAL().__str__()) != pair['size']:
+        if ctx.INTEGER_LITERAL():
+            size = int(ctx.INTEGER_LITERAL().__str__())
+            if size != operation['size']:
+                operation['size'] = size
+        if operation['instruction'] == Instruction.METHOD:
+            operation['size'] = self.symbol_table.functions[operation['name']].return_size
+            if ctx.INTEGER_LITERAL() and int(ctx.INTEGER_LITERAL().__str__()) != operation['size']:
                 raise InvalidOperation("Array size doesn't match method return size.")
 
-        """
-        If it's a method and there is an integer literal and literal != return
-        """
+        self.log.warning("{} - size: {}".format(name, operation['size']))
+        variable = Variable(name, final_types, self.symbol_table.current_scope.name, operation['size'])
+        self.symbol_table.add_local(variable)
 
-        """
-        There are 5 Cases:
-        1) id1, id2,... idn = split x into n
-        2) id[] = split x into n
-        3) id[n] = split | dispense | methodCall by n
-        4) id = split
-        5) id = !split
-        """
-        if id_len > 1:
-            self.log.warning("We have an id bigger than 1")
-            """"
-            Case 1: id1, id2,.. idn = split x into n
-            Things to check for:
-                - We need to iterate ctx.IDENTIFIERS to create all ids
-                - We need to check and see if id_len = n
-            """
-            for count in range(0, len(ctx.IDENTIFIER())):
-                name = ctx.IDENTIFIER(count).__str__()
-                variable = Variable(name, pair['types'], self.symbol_table.current_scope.name, 1)
-                self.symbol_table.add_local(variable)
-        elif pair['instruction'] == Instruction.SPLIT and ctx.LBRACKET():
-            """
-            Case 2: id[] = split x into n
-            Case 3: id[n] = split x into n
-            Things to check for:
-                - n = n
-            """
-            if ctx.INTEGER_LITERAL():
-                count = int(ctx.INTEGER_LITERAL().__str__())
-            else:
-                count = pair['size']
-            variable = Variable(ctx.IDENTIFIER(0).__str__(), pair['types'], self.symbol_table.current_scope.name, count)
-            self.symbol_table.add_local(variable)
-        elif pair['instruction'] != Instruction.SPLIT and ctx.LBRACKET():
-            """
-            Case 3: id[n] = mix | dispense | methodCall(), etc.
-            Things to check for:
-                - Does the method call return an array?
-                - Assume id[n] = dispense is a n-ary dispense
-            """
-            if pair['instruction'] == Instruction.MIX:
-                raise InvalidOperation("Individual array index access is not permitted.")
-            name = ctx.IDENTIFIER(0).__str__()
-            variable = Variable(name, pair['types'],
-                                self.symbol_table.current_scope.name, int(ctx.INTEGER_LITERAL().__str__()))
-            self.symbol_table.add_local(variable)
-        elif pair['instruction'] == Instruction.SPLIT and not ctx.LBRACKET():
-            """
-            Case 4: id = split x into n
-            Things to check for:
-                - nothing to note.
-            """
-            name = ctx.IDENTIFIER(0).__str__()
-            variable = Variable(name, pair['types'], self.symbol_table.current_scope.name, pair['size'])
-            self.symbol_table.add_local(variable)
-        else:
-            """
-            Case 5: id = !split
-            """
-            name = ctx.IDENTIFIER(0).__str__()
-            variable = Variable(name, pair['types'], self.symbol_table.current_scope.name, pair['size'])
-            self.symbol_table.add_local(variable)
-
-        return variable
+        return super().visitVariableDefinition(ctx)
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         return super().visitPrimary(ctx)

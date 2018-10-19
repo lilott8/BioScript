@@ -10,3 +10,8 @@ class Instruction(IntEnum):
     HEAT = 16
     METHOD = 32
     EXPRESSION = 64
+
+
+class InstructionSet(object):
+    instructions = {Instruction.MIX, Instruction.SPLIT, Instruction.DETECT, Instruction.DISPENSE,
+                    Instruction.DISPOSE, Instruction.HEAT, Instruction.METHOD, Instruction.EXPRESSION}
