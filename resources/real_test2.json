@@ -1,0 +1,56 @@
+{
+    "problem": "storage",
+    "comment": "based on modeling a Lithium Aluminum Hydride Fire involving trying to distill tetrahydrofuran using lithium aluminum hyride",
+    "storage": {
+        "shelves": [
+            {
+                "store": [
+                    {
+                        "chemical": {
+                            "name": "tetrahydrofuran",
+                            "volume": 100,
+                            "pubchem_id":-1,
+                            "reactive_groups": [14]
+                        }
+                    },
+                    {}
+                ],
+                "quantity": {
+                    "max": 20,
+                    "current": 12
+                },
+                "volume": {
+                    "current": 100,
+                    "max": 500
+                }
+            }
+        ],
+        "quantity": 1
+    },
+    "manifest": [
+        {
+            "chemical": {
+                "name": "lithium_aluminum_hyride",
+                "volume": 100,
+                "pubchem_id": -1,
+                "reactive_groups": [35]
+            }
+        },
+        {
+            "chemical": {
+                "name": "carbon_dioxide",
+                "volume": 100,
+                "pubchem_id": -1,
+                "reactive_groups": [60]
+            }
+        },
+        {}
+    ]
+
+}
+
+
+
+
+
+

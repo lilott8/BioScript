@@ -1,0 +1,49 @@
+{
+    "problem": "storage",
+    "storage": {
+        "shelves": [
+            {
+                "store": [
+                    {}
+                ],
+                "quantity": {
+                    "max": 5,
+                    "current": 2
+                },
+                "volume": {
+                    "current": 0,
+                    "max": 400
+                }
+            }
+        ],
+        "quantity": 1
+    },
+    "manifest": [
+        {
+            "chemical": {
+                "name": "benzene",
+                "volume": 50,
+                "pubchem_id": -1,
+                "reactive_groups": [16]
+            }
+        },
+        {
+            "chemical": {
+                "name": "urea",
+                "volume": 50,
+                "pubchem_id": -1,
+                "reactive_groups": [6]
+            }
+        },
+        {
+            "chemical": {
+                "name": "benzotrichloride",
+                "volume": 50,
+                "pubchem_id": -1,
+                "reactive_groups": [66]
+            }
+        },
+        {}
+    ]
+
+}

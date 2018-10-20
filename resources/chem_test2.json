@@ -1,0 +1,41 @@
+{
+    "problem": "storage",
+    "storage": {
+        "shelves": [
+            {
+                "store": [
+                    {
+                        "chemical": {
+                            "name": "methanol",
+                            "volume": 50,
+                            "pubchem_id":-1,
+                            "reactive_groups": [4]
+                        }
+                    },
+                    {}
+                ],
+                "quantity": {
+                    "max": 5,
+                    "current": 2
+                },
+                "volume": {
+                    "current": 50,
+                    "max": 200
+                }
+            }
+        ],
+        "quantity": 1
+    },
+    "manifest": [
+        {
+            "chemical": {
+                "name": "nitric_acid",
+                "volume": 50,
+                "pubchem_id": -1,
+                "reactive_groups": [2]
+            }
+        },
+        {}
+    ]
+
+}
