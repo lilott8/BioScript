@@ -1,6 +1,6 @@
 import re
 
-import colorlog
+#import colorlog
 
 from shared.enums.config_flags import IdentifyLevel
 from shared.variable import Variable
