@@ -100,25 +100,8 @@ class Test_Identifiers(unittest.TestCase):
 
     def test_z3solver(self):
         epa = EpaManager('resources/epa.json', 'resources/abstract-interaction.txt')
-        a = Z3Solver.solve_file('resources/test0.json', epa.validate, sol=True)
-        for i in a:
-            print(i)
-        '''self.assertFalse(Z3Solver.solve_problem('resources/storage.json', epa.validate, sol=False))
-        self.assertFalse(Z3Solver.solve_problem('resources/chem_test1.json', epa.validate, sol=False))
-        self.assertFalse(Z3Solver.solve_problem('resources/chem_test2.json', epa.validate, sol=False))        
-        self.assertFalse(Z3Solver.solve_problem('resources/chem_test3.json', epa.validate, sol=False))
-        self.assertFalse(Z3Solver.solve_problem('resources/chem_test4.json', epa.validate, sol=False))
-        self.assertFalse(Z3Solver.solve_problem('resources/chem_test7.json', epa.validate, sol=False))
-        self.assertFalse(Z3Solver.solve_problem('resources/chem_test8.json', epa.validate, sol=False))
-        self.assertFalse(Z3Solver.solve_problem('resources/chem_test9.json', epa.validate, sol=False))
-        self.assertFalse(Z3Solver.solve_problem('resources/real_test0.json', epa.validate, sol=False))
-        self.assertFalse(Z3Solver.solve_problem('resources/real_test1.json', epa.validate, sol=False))
-        self.assertFalse(Z3Solver.solve_problem('resources/real_test2.json', epa.validate, sol=False))
-
-        self.assertTrue(Z3Solver.solve_problem('resources/chem_test5.json', epa.validate, sol=False))        
-        self.assertTrue(Z3Solver.solve_problem('resources/chem_test6.json', epa.validate, sol=False))
-        self.assertTrue(Z3Solver.solve_problem('resources/chem_test0.json', epa.validate, sol=False))
-        '''
+        self.assertTrue(Z3Solver.solve_file('resources/test0.json', epa.validate, sol=False))
+        self.assertFalse(Z3Solver.solve_file('resources/test1.json', epa.validate, sol=False))
 
 
 

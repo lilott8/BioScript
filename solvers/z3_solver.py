@@ -33,9 +33,11 @@ class Z3Solver:#(BaseSolver):
     
     @staticmethod
     def not_safe(grpA, grpB, safe_function = lambda x, y: False):
+        print('SAFE_FUNCTION', safe_function)
         for g1 in grpA:
             for g2 in grpB:
                 if not safe_function(grpA, grpB):
+                    print('asldkfjalsdkfjasdlkfj asldkfjalsdkfj  **********hello')
                     return True
         return False
 
@@ -102,6 +104,7 @@ class Z3Solver:#(BaseSolver):
             solver.add(eq)
 
         for x, y in edges_chems:
+            print(x, y)
             solver.add(chems[x] != bin_color_array[y][0])
 
 
