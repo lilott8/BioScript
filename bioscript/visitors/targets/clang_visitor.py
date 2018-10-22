@@ -243,12 +243,12 @@ class ClangVisitor(TargetVisitor):
             """
             This is not a SIMD operation
             """
-            output += "dispose({});".format(variable.name)
+            output += "dispose({});{}".format(variable.name, self.nl)
+            output += "{} = nullptr;".format(variable.name)
         return output
-        is_simd = True if self.symbol_table.get_variable(name).size != 1 else False
-        return {'operation': "dispense({});".format(name),
-                "instruction": Instruction.DISPOSE, 'size': self.symbol_table.get_variable(name).size,
-                'args': {'input': name}, 'variable': self.symbol_table.get_variable(name), 'is_simd': is_simd}
+        # return {'operation': "dispense({});".format(name),
+        #         "instruction": Instruction.DISPOSE, 'size': self.symbol_table.get_variable(name).size,
+        #         'args': {'input': name}, 'variable': self.symbol_table.get_variable(name), 'is_simd': is_simd}
 
     def visitExpression(self, ctx: BSParser.ExpressionContext):
         if ctx.primary():
@@ -284,7 +284,17 @@ class ClangVisitor(TargetVisitor):
                 op = "=="
 
             if ctx.LBRACKET():
+                """
+                In this context, exp1 will *always* hold the variable name.
+                So we can check to make sure that exp1 is the appropriate size,
+                Given exp2 as the index. 
+                """
+                variable = self.symbol_table.get_variable(exp1)
+                if int(exp2) > variable.size - 1 and int(exp2) >= 0:
+                    raise InvalidOperation("Out of bounds index: {}[{}], where {} is of size: {}".format(
+                        exp1, exp2, exp1, variable.size))
                 output = "{}[{}]".format(exp1, exp2)
+                self.log.info(output)
             else:
                 output = "{}{}{}".format(exp1, op, exp2)
 
@@ -377,7 +387,6 @@ class ClangVisitor(TargetVisitor):
         return super().visitPrimitiveType(ctx)
 
     def get_types(self, types):
-
         if ChemTypes.MAT in types:
             return "mat"
         else:
@@ -484,14 +493,17 @@ class ClangVisitor(TargetVisitor):
             output += "mat {} = mix({} {});".format(
                 lhs, mixes, args['args']['time']['quantity'])
         elif op == Instruction.HEAT:
-            output += "heat({}, {}, {});".format(args['args']['input'], args['args']['temp'], args['args']['quantity'])
+            # Heat is an independent statement.  Meaning it is resolved in the visitHeatStatement()
+            pass
         elif op == Instruction.DETECT:
             output += "float {} = detect({}, {}, {});".format(
                 lhs, args['args']['module'], args['args']['input'], args['args']['time']['quantity'])
         elif op == Instruction.METHOD:
-            output += "{} {} = {}({});".format(args['size'], lhs, args['args']['function'].name, args['args']['args'])
+            output += "{} {} = {}({});".format(self.get_types(args['function'].types), lhs, args['function'].name,
+                                               args['args']['args'])
         elif op == Instruction.DISPOSE:
-            output += "dispose({}, {});{}".format(lhs, args['args'][''], args['args'][''])
+            # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
+            pass
         elif op == Instruction.DISPENSE:
             output += "mat {} = dispense({}, {});".format(lhs, args['args']['input'], args['args']['quantity'])
         return output

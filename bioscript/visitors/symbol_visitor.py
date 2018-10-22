@@ -226,7 +226,7 @@ class SymbolTableVisitor(BSBaseVisitor):
             if ctx.INTEGER_LITERAL() and int(ctx.INTEGER_LITERAL().__str__()) != operation['size']:
                 raise InvalidOperation("Array size doesn't match method return size.")
 
-        self.log.warning("{} - size: {}".format(name, operation['size']))
+        # self.log.warning("{} - size: {}".format(name, operation['size']))
         variable = Variable(name, final_types, self.symbol_table.current_scope.name, operation['size'])
         self.symbol_table.add_local(variable)
 
