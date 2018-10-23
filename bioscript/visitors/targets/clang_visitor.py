@@ -1,7 +1,10 @@
 from bioscript.visitors.targets.target_visitor import TargetVisitor
 from grammar.parsers.python.BSParser import BSParser
+from shared.bs_exceptions import InvalidOperation
 from shared.bs_exceptions import UndefinedException
 from shared.enums.chemtypes import ChemTypes
+from shared.enums.instructions import Instruction
+from shared.enums.instructions import InstructionSet
 
 
 class ClangVisitor(TargetVisitor):
@@ -9,8 +12,10 @@ class ClangVisitor(TargetVisitor):
     def __init__(self, symbol_table):
         super().__init__(symbol_table, "ClangVisitor")
         self.compiled = "// BSProgram!" + self.nl
-        self.compiled += "#include <unistd.h>" + self.nl + "#include <random>" + self.nl
+        self.compiled += "#include <unistd.h>" + self.nl
+        self.compiled += "#include <vector>" + self.nl
         self.compiled += "{}{}{}".format(self.build_structs(), self.nl, self.build_functions())
+        self.repeat_counter = 0
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
@@ -46,6 +51,7 @@ class ClangVisitor(TargetVisitor):
         func = self.symbol_table.functions[name]
 
         self.scope_stack.append(name)
+
         if ChemTypes.MAT in func.types:
             output = "mat "
         else:
@@ -89,37 +95,23 @@ class ClangVisitor(TargetVisitor):
             output += "{}{}".format(self.visitStatements(statement), self.nl)
         return output
 
-    def visitAssignmentOperations(self, ctx: BSParser.AssignmentOperationsContext):
-        if ctx.mix():
-            return self.visitMix(ctx.mix())
-        elif ctx.detect():
-            return self.visitDetect(ctx.detect())
-        elif ctx.expression():
-            return self.visitExpression(ctx.expression())
-        elif ctx.split():
-            return self.visitSplit(ctx.split())
-        elif ctx.methodCall():
-            return self.visitMethodCall(ctx.methodCall())
-        else:
-            self.log.fatal("No operation: {}".format(ctx.getText()))
-            return ""
-
     def visitStatements(self, ctx: BSParser.StatementsContext):
-        if ctx.dispose():
-            return self.visitDispose(ctx.dispose())
-        elif ctx.heat():
-            return self.visitHeat(ctx.heat())
-        elif ctx.ifStatement():
-            return self.visitIfStatement(ctx.ifStatement())
-        elif ctx.localVariableDeclaration():
-            return self.visitLocalVariableDeclaration(ctx.localVariableDeclaration())
-        elif ctx.whileStatement():
-            return self.visitWhileStatement(ctx.whileStatement())
-        elif ctx.repeat():
-            return self.visitRepeat(ctx.repeat())
-        else:
-            self.log.fatal("No operation: {}".format(ctx.getText()))
-            return ""
+        return self.visitChildren(ctx)
+        # if ctx.dispose():
+        #     return self.visitDispose(ctx.dispose())
+        # elif ctx.heat():
+        #     return self.visitHeat(ctx.heat())
+        # elif ctx.ifStatement():
+        #     return self.visitIfStatement(ctx.ifStatement())
+        # elif ctx.localVariableDeclaration():
+        #     return self.visitLocalVariableDeclaration(ctx.localVariableDeclaration())
+        # elif ctx.whileStatement():
+        #     return self.visitWhileStatement(ctx.whileStatement())
+        # elif ctx.repeat():
+        #     return self.visitRepeat(ctx.repeat())
+        # else:
+        #     self.log.fatal("No statement operation: {}".format(ctx.getText()))
+        #     return ""
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
         output = "if {} {{{}{}".format(self.visitParExpression(ctx.parExpression()), self.nl,
@@ -134,54 +126,129 @@ class ClangVisitor(TargetVisitor):
         return output
 
     def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
-        return super().visitWhileStatement(ctx)
+        output = "while"
+        output += self.visitParExpression(ctx.parExpression())
+        output += "{{ {}".format(self.nl)
+        output += "{} {}".format(self.visitBlockStatement(ctx.blockStatement()), self.nl)
+        output += "}}{}".format(self.nl)
+        return output
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
-        return super().visitRepeat(ctx)
+        output = "while({}_{} >= 0) {{ {}".format("bs_repeat_counter", self.increment_repeat_counter(), self.nl)
+        output += self.visitBlockStatement(ctx.blockStatement())
+        output += "{}_{}--;{}".format("bs_repeat_counter", self.repeat_counter, self.nl)
+        output += "}}{}".format(self.nl)
+        self.decrement_repeat_counter()
+        return output
 
     def visitMix(self, ctx: BSParser.MixContext):
         output = "mix("
+        inputs = []
+        time = {}
+        test = set()
         for v in ctx.volumeIdentifier():
             var = self.visit(v)
+            inputs.append(var)
             output += "{}, {}, ".format(self.check_identifier(var['variable'].name), var['quantity'])
+            test.add(var['variable'].size)
+        if len(test) != 1:
+            raise InvalidOperation("Trying to run SIMD on unequal array sizes")
         if ctx.timeIdentifier():
             time = self.visitTimeIdentifier(ctx.timeIdentifier())
             output += time['quantity']
         else:
             output += "10.0"
-        output += ")"
-        return output
+            time['quantity'] = 10.0
+            time['unit'] = 's'
+        output += ");"
+        is_simd = True if next(iter(test)) > 1 else False
+        # This will get the first element of the set "test"
+        return {'operation': output, 'instruction': Instruction.MIX,
+                'args': {'input': inputs, 'time': time}, 'size': next(iter(test)), 'is_simd': is_simd}
 
     def visitDetect(self, ctx: BSParser.DetectContext):
         output = "detect("
         module = self.check_identifier(ctx.IDENTIFIER(0).__str__())
         material = self.check_identifier(ctx.IDENTIFIER(1).__str__())
         output += "{}, {}, ".format(module, material)
+        time = {}
         if ctx.timeIdentifier():
             time = self.visitTimeIdentifier(ctx.timeIdentifier())
             output += "{}".format(time['quantity'])
         else:
+            time['quantity'] = 10.0
+            time['unit'] = 's'
             output += "10.0"
 
-        output += ")"
-        return output
+        output += ");"
+
+        is_simd = True if self.symbol_table.get_variable(material).size > 1 else False
+        return {'operation': output, 'instruction': Instruction.DETECT,
+                'args': {'input': material, 'module': module, 'time': time},
+                'variable': self.symbol_table.get_variable(material),
+                'size': self.symbol_table.get_variable(material).size, 'is_simd': is_simd}
 
     def visitHeat(self, ctx: BSParser.HeatContext):
-        name = ctx.IDENTIFIER()
+        variable = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__())
         temp = self.visitTemperatureIdentifier(ctx.temperatureIdentifier())
         time = self.visitTimeIdentifier(ctx.timeIdentifier())
-        return "{} = heat({}, {}, {});".format(name, name, temp['quantity'], time['quantity'])
+        output = ""
+        if variable.size > 1:
+            """
+            This is a SIMD operation
+            """
+            for x in range(0, variable.size):
+                output += "heat({}.at({}), {}, {});{}".format(
+                    variable.name, x, temp['quantity'], time['quantity'], self.nl)
+        else:
+            """
+            This is not a SIMD operation
+            """
+            output += "heat({}, {}, {});".format(variable.name, temp['quantity'], time['quantity'])
+        return output
 
     def visitSplit(self, ctx: BSParser.SplitContext):
-        return "split({}, {})".format(self.check_identifier(ctx.IDENTIFIER().__str__()),
-                                      ctx.INTEGER_LITERAL().__str__())
+        name = self.check_identifier(ctx.IDENTIFIER().__str__())
+        # Split can never be a SIMD operation.
+        return {"operation": "split({}, {});".format(name, ctx.INTEGER_LITERAL().__str__()),
+                "instruction": Instruction.SPLIT, "size": int(ctx.INTEGER_LITERAL().__str__()),
+                'args': {'input': name, "quantity": int(ctx.INTEGER_LITERAL().__str__())},
+                'variable': self.symbol_table.get_variable(name), 'is_simd': False}
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
-        return "dispense({})".format("INSERT_NAME")
+        """
+        Read the comment in visitVariableDeclaration() for further understanding of why
+        is_simd = False and size = 1.  In short, the name of the variable in here
+        is going to be a global variable and will always be of size = 1
+        :param ctx:
+        :return:
+        """
+        name = ctx.IDENTIFIER().__str__()
+        return {'operation': "dispense({});".format(name),
+                "instruction": Instruction.DISPENSE, 'size': 1,
+                'args': {'input': name, 'quantity': 10.0}, 'variable': self.symbol_table.get_variable(name),
+                'is_simd': False}
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
-        name = self.check_identifier(ctx.IDENTIFIER().__str__())
-        return "drain({});".format(name)
+        variable = self.symbol_table.get_variable(self.check_identifier(ctx.IDENTIFIER().__str__()))
+        output = ""
+        if variable.size > 1:
+            """
+            This is a SIMD operation
+            """
+            for x in range(0, variable.size):
+                output += "dispose({}.at({});{}".format(variable.name, x, self.nl)
+            output += "{} = nullptr;".format(variable.name)
+        else:
+            """
+            This is not a SIMD operation
+            """
+            output += "dispose({});{}".format(variable.name, self.nl)
+            output += "{} = nullptr;".format(variable.name)
+        return output
+        # return {'operation': "dispense({});".format(name),
+        #         "instruction": Instruction.DISPOSE, 'size': self.symbol_table.get_variable(name).size,
+        #         'args': {'input': name}, 'variable': self.symbol_table.get_variable(name), 'is_simd': is_simd}
 
     def visitExpression(self, ctx: BSParser.ExpressionContext):
         if ctx.primary():
@@ -217,7 +284,17 @@ class ClangVisitor(TargetVisitor):
                 op = "=="
 
             if ctx.LBRACKET():
+                """
+                In this context, exp1 will *always* hold the variable name.
+                So we can check to make sure that exp1 is the appropriate size,
+                Given exp2 as the index. 
+                """
+                variable = self.symbol_table.get_variable(exp1)
+                if int(exp2) > variable.size - 1 and int(exp2) >= 0:
+                    raise InvalidOperation("Out of bounds index: {}[{}], where {} is of size: {}".format(
+                        exp1, exp2, exp1, variable.size))
                 output = "{}[{}]".format(exp1, exp2)
+                self.log.info(output)
             else:
                 output = "{}{}{}".format(exp1, op, exp2)
 
@@ -227,11 +304,16 @@ class ClangVisitor(TargetVisitor):
         return "({})".format(self.visitExpression(ctx.expression()))
 
     def visitMethodCall(self, ctx: BSParser.MethodCallContext):
-        output = "{}(".format(ctx.IDENTIFIER().__str__())
+        operation = "{}(".format(ctx.IDENTIFIER().__str__())
+        arguments = ""
+        method = self.symbol_table.functions[ctx.IDENTIFIER().__str__()]
         if ctx.expressionList():
-            output += "{}".format(self.visitExpressionList(ctx.expressionList()))
-        output += ")"
-        return output
+            operation += "{}".format(self.visitExpressionList(ctx.expressionList()))
+            arguments = "{}".format(self.visitExpressionList(ctx.expressionList()))
+        operation += ");"
+        is_simd = True if method.return_size > 1 else False
+        return {'operation': operation, 'instruction': Instruction.METHOD,
+                'args': {'args': arguments}, 'size': method.return_size, 'function': method, 'is_simd': is_simd}
 
     def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
         output = ""
@@ -239,7 +321,6 @@ class ClangVisitor(TargetVisitor):
             output += "{}, ".format(self.visitExpression(expr))
         output = output[:-2]
         return output
-
 
     def visitTypeType(self, ctx: BSParser.TypeTypeContext):
         return super().visitTypeType(ctx)
@@ -250,17 +331,37 @@ class ClangVisitor(TargetVisitor):
     def visitTypesList(self, ctx: BSParser.TypesListContext):
         return super().visitTypesList(ctx)
 
-    def visitArrayInitializer(self, ctx: BSParser.ArrayInitializerContext):
-        return ctx.INTEGER_LITERAL()
+    def visitVariableDeclaration(self, ctx: BSParser.VariableDeclarationContext):
+        return super().visitVariableDeclaration(ctx)
 
-    def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
+    def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
         name = ctx.IDENTIFIER().__str__()
-        variable = self.symbol_table.get_variable(name, self.scope_stack[-1])
-        type_def = ""
-        if not variable.is_declared:
-            type_def = self.get_types(variable.types)
-            variable.is_declared = True
-        return "{} {} = {};".format(type_def, self.check_identifier(name), self.visit(ctx.assignmentOperations()))
+
+        operation = self.visitChildren(ctx)
+
+        output = ""
+
+        if 'instruction' in operation:
+            if operation['instruction'] not in InstructionSet.instructions:
+                raise InvalidOperation("Unknown instruction: {}".format(operation['instruction'].name))
+            if operation['instruction'] == Instruction.DISPENSE:
+                """
+                This has to happen here; a = dispense bbb will always give us a size = 1 and is_simd = False.
+                This is because in the visitDispenseStatement() parsing, the variable that will determing
+                is_simd will be 'bbb', a global variable of size = 1.  Thus is_simd will always be False.
+                In order for Dispense to know if it's a SIMD operation, we must know to what variable
+                the dispense is occurring -- as that will tell us if it's a SIMD operation or not.
+                """
+                operation['is_simd'] = True if self.symbol_table.get_variable(name).size > 1 else False
+                operation['size'] = self.symbol_table.get_variable(name).size
+            if operation['is_simd']:
+                output += self.process_simd(name, operation['instruction'], operation)
+            else:
+                output += self.process_sisd(name, operation['instruction'], operation)
+        else:
+            output += "// Removing math operations{}".format(self.nl)
+            output += "// {} = {}; {}".format(name, operation, self.nl)
+        return output
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         if ctx.IDENTIFIER():
@@ -309,13 +410,13 @@ class ClangVisitor(TargetVisitor):
         output += "return output;" + self.nl
         output += "}}{}{}".format(self.nl, self.nl)
 
-        output += "mat split(mat input, int quantity) {" + self.nl
-        output += "splitMat output;" + self.nl
+        output += "std::vector<mat> split(mat input, int quantity) {" + self.nl
+        output += "std::vector<mat> output;" + self.nl
         output += "for (int x =0; x < quantity; x++) {" + self.nl
-        output += "output.values[x] = input;" + self.nl
-        output += "output.values[x].quantity = input.quantity/(float)quantity;" + self.nl
+        output += "output.at(x) = input;" + self.nl
+        output += "output.at(x).quantity = input.quantity/(float)quantity;" + self.nl
         output += "}" + self.nl
-        output += "return output.values[0];" + self.nl
+        output += "return output;" + self.nl
         output += "}}{}{}".format(self.nl, self.nl)
 
         output += "mat heat(mat input, double temp, double time) {" + self.nl
@@ -337,4 +438,72 @@ class ClangVisitor(TargetVisitor):
         output += "void drain(mat input) {" + self.nl
         output += "}}{}{}".format(self.nl, self.nl)
 
+        return output
+
+    def increment_repeat_counter(self):
+        temp = self.repeat_counter
+        self.repeat_counter += 1
+        return temp
+
+    def decrement_repeat_counter(self):
+        self.repeat_counter -= 1
+
+    def process_simd(self, lhs: str, op: Instruction, args: dict) -> str:
+        output = ""
+        if op == Instruction.SPLIT:
+            output += "std::vector<mat> {} = split({}, {});{}".format(
+                lhs, op['variable'].name, op['size'], self.nl)
+        elif op == Instruction.MIX:
+            mixes = ""
+            for x in args['args']['input']:
+                mixes += "{}, {}, ".format(
+                    x['variable'].name, x['quantity'])
+            # Note the comma between ({} {}) is appended to the first {}!
+            output += "std::vector<mat> {} = mix({} {});{}".format(
+                lhs, mixes, args['args']['time']['quantity'], self.nl)
+        elif op == Instruction.HEAT:
+            # Heat is an independent statement.  Meaning it is resolved in the visitHeatStatement()
+            pass
+        elif op == Instruction.DETECT:
+            pass
+        elif op == Instruction.METHOD:
+            output += "std::vector<mat> {} = {}({});".format(lhs, args['function'].name, args['args']['args'])
+        elif op == Instruction.DISPOSE:
+            # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
+            pass
+        elif op == Instruction.DISPENSE:
+            output += "std::vector<mat> {};{}".format(lhs, self.nl)
+            for x in range(0, args['size']):
+                output += "{}.at({}) = dispense({},{});{}".format(
+                    lhs, x, args['args']['input'], args['args']['quantity'], self.nl)
+
+        return output
+
+    def process_sisd(self, lhs: str, op: Instruction, args: dict) -> str:
+        output = ""
+        if op == Instruction.SPLIT:
+            output += "std::vector<mat> {} = split({}, {});".format(
+                lhs, args['args']['input'], args['args']['quantity'])
+        elif op == Instruction.MIX:
+            mixes = ""
+            for x in args['args']['input']:
+                mixes += "{}, {}, ".format(
+                    x['variable'].name, x['quantity'])
+            # Note the comma between ({} {}) is appended to the first {}!
+            output += "mat {} = mix({} {});".format(
+                lhs, mixes, args['args']['time']['quantity'])
+        elif op == Instruction.HEAT:
+            # Heat is an independent statement.  Meaning it is resolved in the visitHeatStatement()
+            pass
+        elif op == Instruction.DETECT:
+            output += "float {} = detect({}, {}, {});".format(
+                lhs, args['args']['module'], args['args']['input'], args['args']['time']['quantity'])
+        elif op == Instruction.METHOD:
+            output += "{} {} = {}({});".format(self.get_types(args['function'].types), lhs, args['function'].name,
+                                               args['args']['args'])
+        elif op == Instruction.DISPOSE:
+            # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
+            pass
+        elif op == Instruction.DISPENSE:
+            output += "mat {} = dispense({}, {});".format(lhs, args['args']['input'], args['args']['quantity'])
         return output

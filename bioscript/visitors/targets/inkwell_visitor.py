@@ -40,9 +40,6 @@ class InkwellVisitor(TargetVisitor):
     def visitBlockStatement(self, ctx: BSParser.BlockStatementContext):
         return super().visitBlockStatement(ctx)
 
-    def visitAssignmentOperations(self, ctx: BSParser.AssignmentOperationsContext):
-        return super().visitAssignmentOperations(ctx)
-
     def visitStatements(self, ctx: BSParser.StatementsContext):
         return super().visitStatements(ctx)
 
@@ -93,12 +90,6 @@ class InkwellVisitor(TargetVisitor):
 
     def visitTypesList(self, ctx: BSParser.TypesListContext):
         return super().visitTypesList(ctx)
-
-    def visitArrayInitializer(self, ctx: BSParser.ArrayInitializerContext):
-        return super().visitArrayInitializer(ctx)
-
-    def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
-        return super().visitLocalVariableDeclaration(ctx)
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         return super().visitPrimary(ctx)

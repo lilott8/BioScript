@@ -1,9 +1,10 @@
 class Function(object):
 
-    def __init__(self, name, return_types, args):
+    def __init__(self, name: str, return_types, args, return_size: int = 1):
         self.name = name
         self.types = return_types
         self.args = args
+        self.return_size = return_size
 
     def __str__(self):
         output = "\t["

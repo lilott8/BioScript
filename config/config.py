@@ -29,6 +29,7 @@ class Config(object):
         self.epa_defs = './resources/epa_defs.json'
         self.abstract_interaction = './resources/abstract-interaction.txt'
         self.input = None
+        self.input_file = None
         self.typecheck = TypeChecker.NAIVE
         # Database stuff.
         self.db = {'name': None, 'pass': None, 'addr': None, 'user': None, 'driver': None}
@@ -46,6 +47,9 @@ class Config(object):
         self.llvm = False
         # What is the problem that is being solved.
         self.problem = None
+        self.path = "./"
+        self.supports_functions = True
+        self.supports_recursion = False
 
         if Config.__instance is not None:
             raise Exception('This is a singleton.')
@@ -53,11 +57,15 @@ class Config(object):
             self.log.warning(args)
             self.debug = args.debug
             self.llvm = args.llvm
+            self.path = args.path
             if args.epa_defs:
                 self.epa_defs = args.epa_defs
             if args.abs_int:
                 self.abstract_interaction = args.abs_int
             self.input = args.input
+            # Converts: /path/to/bioscript.bs => bioscript
+            self.input_file = args.input.split("/")[-1].split(".")[0]
+            self.log.info(self.input_file)
             self.db['name'] = args.dbname
             self.db['user'] = args.dbuser
             self.db['pass'] = args.dbpass
@@ -87,11 +95,17 @@ class Config(object):
 
             if args.target is not None:
                 if args.target.lower() == "m" or args.target.lower() == "mfsim":
-                    self.target = self.target + Target.MFSIM
+                    self.target = Target.MFSIM
+                    self.supports_functions = True
+                    self.supports_recursion = False
                 elif args.target.lower() == "i" or args.target.lower() == "inkwell":
-                    self.target = self.target + Target.INKWELL
+                    self.target = Target.INKWELL
+                    self.supports_functions = False
+                    self.supports_recursion = False
                 elif args.target.lower() == "p" or args.target.lower() == "puddle":
-                    self.target = self.target + Target.PUDDLE
+                    self.target = Target.PUDDLE
+                    self.supports_functions = True
+                    self.supports_recursion = True
 
             if self.db['name'] and self.db['user'] and self.db['pass']:
                 self.db_enabled = True

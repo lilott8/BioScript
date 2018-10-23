@@ -1,14 +1,17 @@
-from abc import ABC
+from shared.enums.chemtypes import ChemTypes
 
 
 class Variable(object):
 
-    def __init__(self, name: str, types: set() = None, scope: str = "unknown", is_array: bool = False):
+    def __init__(self, name: str, types: frozenset = None, scope: str = "unknown", size=1):
         self.name = name
         self.types = types
         self.scope = scope
-        self.is_array = is_array
+        self.size = size
         self.is_declared = False
+        if self.types is None:
+            self.types = set()
+            self.types.add(ChemTypes.UNKNOWN)
 
     def __repr__(self):
         output = "\t["
@@ -17,14 +20,6 @@ class Variable(object):
                 output += "{}, ".format(t)
             output = output[:-2]
         output += "]\t{}".format(self.name)
-        if self.is_array:
-            output += "[]"
+        output += "\tsize: {}".format(self.size)
         output += "\t({})".format(self.scope)
         return output
-
-
-class Array(Variable):
-
-    def __init__(self, name: str, types: frozenset = None, scope: str = "unknown", size: int = 2):
-        super().__init__(name, types, scope, True)
-        self.size = size

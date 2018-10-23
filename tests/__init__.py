@@ -1,0 +1,3 @@
+import tests.main_tests
+from tests.test_epa_identifiers import TestEPAIdentifiers
+from tests.test_instructions import TestInstructions

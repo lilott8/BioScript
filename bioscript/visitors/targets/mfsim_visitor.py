@@ -6,18 +6,53 @@ class MFSimVisitor(TargetVisitor):
 
     def __init__(self, symbol_table):
         super().__init__(symbol_table, "MFSimVisitor")
+        self.open = "{"
+        self.close = "}"
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
+        self.scope_stack.append("main")
+
+        self.add("")
+        self.add("{")
+        self.add('"EXPERIMENT": {')
+        self.add('{}"NAME": "{}",'.format(self.tab, self.config.input_file))
+        self.add('"INPUTS": [')
+
+        self.add(self.visitManifestDeclaration(ctx.manifestDeclaration()))
+        self.add(self.visitStationaryDeclaration(ctx.stationaryDeclaration()))
+        self.add(self.visitModuleDeclaration(ctx.moduleDeclaration()))
+
+        self.add('],{}'.format(self.nl))
+
+        self.add('"INSTRUCTIONS": [')
+        for statement in ctx.statements():
+            # self.add(self.visitStatements(statement))
+            pass
+        self.add('],')
+
+        self.add("}")
         return super().visitProgram(ctx)
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
-        return super().visitModuleDeclaration(ctx)
+        output = ""
+
+        return output
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
-        return super().visitManifestDeclaration(ctx)
+        output = "{{{}".format(self.nl)
+        for manifest in ctx.IDENTIFIER():
+            output += '"VARIABLE_DECLARATION": {{{}'.format(self.nl)
+            output += '"ID": "{}",{}'.format(manifest.__str__(), self.nl)
+            output += '"NAME": "{}",{}'.format(manifest.__str__(), self.nl)
+            output += '"TYPE": "CHEMICAL"{}'.format(self.nl)
+            output += "}}{}}},".format(self.nl)
+
+        return output[:-1]
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
-        return super().visitStationaryDeclaration(ctx)
+        output = '{ "VARIABLE_DECLARATION": {'
+
+        return output + "}}{}}},".format(self.nl)
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
         return super().visitFunctionDeclaration(ctx)
@@ -40,11 +75,8 @@ class MFSimVisitor(TargetVisitor):
     def visitBlockStatement(self, ctx: BSParser.BlockStatementContext):
         return super().visitBlockStatement(ctx)
 
-    def visitAssignmentOperations(self, ctx: BSParser.AssignmentOperationsContext):
-        return super().visitAssignmentOperations(ctx)
-
     def visitStatements(self, ctx: BSParser.StatementsContext):
-        return super().visitStatements(ctx)
+        return self.visitChildren(ctx)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
         return super().visitIfStatement(ctx)
@@ -93,12 +125,6 @@ class MFSimVisitor(TargetVisitor):
 
     def visitTypesList(self, ctx: BSParser.TypesListContext):
         return super().visitTypesList(ctx)
-
-    def visitArrayInitializer(self, ctx: BSParser.ArrayInitializerContext):
-        return super().visitArrayInitializer(ctx)
-
-    def visitLocalVariableDeclaration(self, ctx: BSParser.LocalVariableDeclarationContext):
-        return super().visitLocalVariableDeclaration(ctx)
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         return super().visitPrimary(ctx)
