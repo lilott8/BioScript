@@ -9,6 +9,9 @@ class MFSimVisitor(TargetVisitor):
         self.open = "{"
         self.close = "}"
 
+    def get_tab(self):
+        pass
+
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
 
@@ -18,9 +21,11 @@ class MFSimVisitor(TargetVisitor):
         self.add('{}"NAME": "{}",'.format(self.tab, self.config.input_file))
         self.add('"INPUTS": [')
 
-        self.add(self.visitManifestDeclaration(ctx.manifestDeclaration()))
-        self.add(self.visitStationaryDeclaration(ctx.stationaryDeclaration()))
-        self.add(self.visitModuleDeclaration(ctx.moduleDeclaration()))
+        output = self.visitManifestDeclaration(ctx.manifestDeclaration())
+        output += self.visitStationaryDeclaration(ctx.stationaryDeclaration())
+        output += self.visitModuleDeclaration(ctx.moduleDeclaration())
+
+        self.add(output[:-1])
 
         self.add('],{}'.format(self.nl))
 
@@ -28,31 +33,44 @@ class MFSimVisitor(TargetVisitor):
         for statement in ctx.statements():
             # self.add(self.visitStatements(statement))
             pass
-        self.add('],')
+        self.add(']')
 
-        self.add("}")
+        self.add("}}{}}}".format(self.nl))
         return super().visitProgram(ctx)
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         output = ""
-
+        for module in ctx.IDENTIFIER():
+            output += "{{{}".format(self.nl)
+            output += '"SENSOR_DECLARATION": {{{}'.format(self.nl)
+            output += '"ID": "{}",{}'.format(module.__str__(), self.nl)
+            output += '"NAME": "{}",{}'.format(module.__str__(), self.nl)
+            output += '"TYPE": "SENSOR"{}'.format(self.nl)
+            output += "}}{}}},".format(self.nl)
         return output
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
-        output = "{{{}".format(self.nl)
+        output = ""
         for manifest in ctx.IDENTIFIER():
+            output += "{{{}".format(self.nl)
             output += '"VARIABLE_DECLARATION": {{{}'.format(self.nl)
             output += '"ID": "{}",{}'.format(manifest.__str__(), self.nl)
             output += '"NAME": "{}",{}'.format(manifest.__str__(), self.nl)
             output += '"TYPE": "CHEMICAL"{}'.format(self.nl)
             output += "}}{}}},".format(self.nl)
 
-        return output[:-1]
+        return output
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
-        output = '{ "VARIABLE_DECLARATION": {'
-
-        return output + "}}{}}},".format(self.nl)
+        output = ""
+        for stationary in ctx.IDENTIFIER():
+            output += '{{{}'.format(self.nl)
+            output += '"VARIABLE_DECLARATION": {{{}'.format(self.nl)
+            output += '"ID": "{}",{}'.format(stationary.__str__(), self.nl)
+            output += '"NAME": "{}",{}'.format(stationary.__str__(), self.nl)
+            output += '"TYPE": "STATIONARY"{}'.format(self.nl)
+            output += "}}{}}},".format(self.nl)
+        return output
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
         return super().visitFunctionDeclaration(ctx)
