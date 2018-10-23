@@ -73,6 +73,8 @@ class SymbolTableVisitor(BSBaseVisitor):
 
     def visitReturnStatement(self, ctx: BSParser.ReturnStatementContext):
         if ctx.methodCall():
+            if not self.config.supports_functions:
+                raise InvalidOperation("Target: {} doesn't support function returns.".format(self.config.target.name))
             return self.visitMethodCall(ctx.methodCall())
         elif ctx.literal():
             return self.visitLiteral(ctx.literal())

@@ -48,6 +48,8 @@ class Config(object):
         # What is the problem that is being solved.
         self.problem = None
         self.path = "./"
+        self.supports_functions = True
+        self.supports_recursion = False
 
         if Config.__instance is not None:
             raise Exception('This is a singleton.')
@@ -93,11 +95,17 @@ class Config(object):
 
             if args.target is not None:
                 if args.target.lower() == "m" or args.target.lower() == "mfsim":
-                    self.target = self.target + Target.MFSIM
+                    self.target = Target.MFSIM
+                    self.supports_functions = True
+                    self.supports_recursion = False
                 elif args.target.lower() == "i" or args.target.lower() == "inkwell":
-                    self.target = self.target + Target.INKWELL
+                    self.target = Target.INKWELL
+                    self.supports_functions = False
+                    self.supports_recursion = False
                 elif args.target.lower() == "p" or args.target.lower() == "puddle":
-                    self.target = self.target + Target.PUDDLE
+                    self.target = Target.PUDDLE
+                    self.supports_functions = True
+                    self.supports_recursion = True
 
             if self.db['name'] and self.db['user'] and self.db['pass']:
                 self.db_enabled = True

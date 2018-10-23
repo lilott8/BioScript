@@ -45,8 +45,6 @@ class BSTranslator(object):
         self.symbol_visitor = SymbolTableVisitor(method_visitor.symbol_table)
         self.symbol_visitor.visit(tree)
 
-        # self.log.info(self.symbol_visitor.symbol_table)
-
         if self.config.typecheck != TypeChecker.DISABLED:
             self.visit_type_check(tree)
         else:
@@ -57,7 +55,9 @@ class BSTranslator(object):
 
         target = TargetFactory.get_target(self.config.target, self.symbol_visitor.symbol_table)
         self.log.info("Visiting: {}".format(target.name))
+
         target.visit(tree)
+
         if self.config.debug:
             target.print_program()
             pass
