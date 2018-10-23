@@ -36,7 +36,7 @@ class Z3Solver:#(BaseSolver):
         for g1 in grpA:
             for g2 in grpB:
                 if not safe(g1, g2):
-                    print('compare: ', g1, g2)
+                    #print('compare: ', g1, g2)
                     return True
         return False
 
@@ -75,17 +75,10 @@ class Z3Solver:#(BaseSolver):
                         edges_shelves.append((i, j))
             return Z3Solver.solve_recursive_bin_packing(stored_chem_volumes, chem_volumes, edges_chems, edges_shelves=edges_shelves, sol=sol)
         elif parsed['problem'] == 'drain':
-            for shelf in parsed['storage']:
-                for chem in shelf:
-                    print(chem)
-            for chem in parsed['manifest']:
-                print(chem) #chem_volumes.append(chem['volume'])
-
+            pass
 
     @staticmethod
     def solve_recursive_bin_packing(shelves, chem_volumes, edges_chems, edges_shelves=None, sol=True):
-        #TODO: edges_shelves has not been implemented yet!!!
-
         solver = z3.Optimize()
         chems  = [z3.Int('c%s' % x) for x in range(len(chem_volumes))]
         chems_constraint = [z3.And(c >= 0, c < len(chem_volumes)) for c in chems]
@@ -100,22 +93,20 @@ class Z3Solver:#(BaseSolver):
             solver.add(eq)
 
         for x, y in edges_shelves:
-            print(x, y, chems[x] != bin_color_array[y][0])
             solver.add([chems[x] != color for color in bin_color_array[y]])
 
         bin_colors = reduce(lambda x, y: x+y, bin_color_array)
         bin_constraint = [z3.Sum([z3.If(z3.And(bin_color==chems[i], bin_chem==i), vol, 0) for bin_color, bin_chem, vol in zip(bin_colors, bin_chems, shelf_vol)]) == chem_vol for i, chem_vol in enumerate(chem_volumes)]
         
         solver.add(chems_constraint + edges + shelf_vol_constraint + bin_constraint)
-        solver.maximize(z3.Sum([z3.If(z3.Or(s==0, s==vol_full), 1, 0) for s, vol_full in zip(shelf_vol, reduce(lambda x, y: x + y, shelves))]))
+        sum_max = ([z3.If(z3.Or(s==0, s==vol_full), 1, 0) for s, vol_full in zip(shelf_vol, reduce(lambda x, y: x + y, shelves))])
+        if sum_max:
+            solver.maximize(z3.Sum(sum_max))
         solver.minimize(z3.Sum(chems))
-        #print(solver)
         if sol==False:
             return solver.check() == z3.sat
 
         if solver.check() == z3.sat:
-            #return whatever variables would be most appropriately needed....
-
             model = solver.model()
             return [('%s=%s' % (col, model.evaluate(col)), \
                      '%s=%s' % (chem, model.evaluate(chem)), \
