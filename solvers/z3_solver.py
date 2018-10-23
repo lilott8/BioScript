@@ -32,12 +32,11 @@ class Z3Solver:#(BaseSolver):
 
     
     @staticmethod
-    def not_safe(grpA, grpB, safe_function = lambda x, y: False):
-        print('SAFE_FUNCTION', safe_function)
+    def not_safe(grpA, grpB, safe = lambda x, y: False):
         for g1 in grpA:
             for g2 in grpB:
-                if not safe_function(grpA, grpB):
-                    print('asldkfjalsdkfjasdlkfj asldkfjalsdkfj  **********hello')
+                if not safe(g1, g2):
+                    print('compare: ', g1, g2)
                     return True
         return False
 
@@ -48,12 +47,10 @@ class Z3Solver:#(BaseSolver):
         with open(file_name) as file:
             parsed = json.loads(file.read())
         if parsed['problem'] == 'storage':
-            print()
             stored_chem_volumes = []
             stored_reactive_groups = []
             chem_volumes = []
             reactive_groups = []
-            print('stored: ')
             for n, shelf in enumerate(parsed['storage']):
                 stored_reactive_groups.append([])
                 stored_chem_volumes.append([])
@@ -62,23 +59,21 @@ class Z3Solver:#(BaseSolver):
                     x = chem['total_volume'] - chem['current_volume']
                     if x > 0:
                         stored_chem_volumes[n].append(x)
-                    print(chem)
-            print('chemicals needed to stored: ')
             for chem in parsed['manifest']:
                 chem_volumes.append(chem['volume'])
                 reactive_groups.append(chem['reactive_groups'])
-                print(chem)
 
-            print('stored: ', stored_chem_volumes)
-            print('reactive shelves: ', stored_reactive_groups)
-            print('volumes: ', chem_volumes)
-            print('reactive: ', reactive_groups)
-
-            edges_chems = [(i, j) for i, grpA in enumerate(reactive_groups) for j, grpB in enumerate(reactive_groups) if i != j and not_safe(grpA, grpB, safe_function)]
-            edges_shelves = [(i, j) for i, grpA in enumerate(reactive_groups) for j, grpB in enumerate(stored_reactive_groups) if i != j and not_safe(grpA, grpB, safe_function)]
-            print('chem_edge:', edges_chems, 'chem_shelves:',edges_shelves)
+            edges_chems = []
+            for i, grpA in enumerate(reactive_groups):
+                for j, grpB in enumerate(reactive_groups):
+                    if i != j and Z3Solver.not_safe(grpA, grpB, safe=safe_function):
+                        edges_chems.append((i, j))
+            edges_shelves = []
+            for i, grpA in enumerate(reactive_groups):
+                for j, grpB in enumerate(stored_reactive_groups):
+                    if Z3Solver.not_safe(grpA, grpB, safe=safe_function):
+                        edges_shelves.append((i, j))
             return Z3Solver.solve_recursive_bin_packing(stored_chem_volumes, chem_volumes, edges_chems, edges_shelves=edges_shelves, sol=sol)
-
         elif parsed['problem'] == 'drain':
             for shelf in parsed['storage']:
                 for chem in shelf:
@@ -89,6 +84,8 @@ class Z3Solver:#(BaseSolver):
 
     @staticmethod
     def solve_recursive_bin_packing(shelves, chem_volumes, edges_chems, edges_shelves=None, sol=True):
+        #TODO: edges_shelves has not been implemented yet!!!
+
         solver = z3.Optimize()
         chems  = [z3.Int('c%s' % x) for x in range(len(chem_volumes))]
         chems_constraint = [z3.And(c >= 0, c < len(chem_volumes)) for c in chems]
@@ -98,15 +95,13 @@ class Z3Solver:#(BaseSolver):
 
         bin_color_array = [[z3.Int('bin_color%s_%s' % (x, y)) for y in range(len(shelves[x]))] for x, shelf in enumerate(shelves)]
         bin_chems  = [z3.Int('bin_chem%s_%s' % (x, y)) for x, s in enumerate(shelves) for y in range(len(s))]
-
         for bins in bin_color_array:
             eq = [n1==bins[0] for n1 in bins]
             solver.add(eq)
 
-        for x, y in edges_chems:
-            print(x, y)
-            solver.add(chems[x] != bin_color_array[y][0])
-
+        for x, y in edges_shelves:
+            print(x, y, chems[x] != bin_color_array[y][0])
+            solver.add([chems[x] != color for color in bin_color_array[y]])
 
         bin_colors = reduce(lambda x, y: x+y, bin_color_array)
         bin_constraint = [z3.Sum([z3.If(z3.And(bin_color==chems[i], bin_chem==i), vol, 0) for bin_color, bin_chem, vol in zip(bin_colors, bin_chems, shelf_vol)]) == chem_vol for i, chem_vol in enumerate(chem_volumes)]
@@ -114,7 +109,7 @@ class Z3Solver:#(BaseSolver):
         solver.add(chems_constraint + edges + shelf_vol_constraint + bin_constraint)
         solver.maximize(z3.Sum([z3.If(z3.Or(s==0, s==vol_full), 1, 0) for s, vol_full in zip(shelf_vol, reduce(lambda x, y: x + y, shelves))]))
         solver.minimize(z3.Sum(chems))
-
+        #print(solver)
         if sol==False:
             return solver.check() == z3.sat
 

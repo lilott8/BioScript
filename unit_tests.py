@@ -100,7 +100,7 @@ class Test_Identifiers(unittest.TestCase):
 
     def test_z3solver(self):
         epa = EpaManager('resources/epa.json', 'resources/abstract-interaction.txt')
-        self.assertTrue(Z3Solver.solve_file('resources/test0.json', epa.validate, sol=False))
+        self.assertFalse(Z3Solver.solve_file('resources/test0.json', epa.validate, sol=False))
         self.assertFalse(Z3Solver.solve_file('resources/test1.json', epa.validate, sol=False))
 
 
