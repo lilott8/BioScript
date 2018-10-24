@@ -4,9 +4,10 @@ import pyperclip
 
 from bioscript.visitors.targets.target_visitor import TargetVisitor
 from grammar.parsers.python.BSParser import BSParser
-from shared.bs_exceptions import InvalidOperation
+from shared.bs_exceptions import *
 from shared.enums.instructions import Instruction
 from shared.enums.instructions import InstructionSet
+from shared.variable import Variable
 
 
 class MFSimVisitor(TargetVisitor):
@@ -85,38 +86,46 @@ class MFSimVisitor(TargetVisitor):
         return super().visitReturnStatement(ctx)
 
     def visitBlockStatement(self, ctx: BSParser.BlockStatementContext):
-        return self.visitChildren(ctx)
+        output = []
+        for x in ctx.statements():
+            output.append(self.visitStatements(x))
+        return output
 
     def visitStatements(self, ctx: BSParser.StatementsContext):
         return self.visitChildren(ctx)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
         output = dict()
-        output["NAME"] = "IF"
-        output["ID"] = "getInstructionID()"
-        output["CLASSIFICATION"] = "CFG_BRANCH"
-        output["CONDITION"] = self.visitParExpression(ctx.parExpression())
-        output["TRUE_BRANCH"] = self.visitBlockStatement(ctx.blockStatement(0))
+        output['OPERATION'] = {'NAME': 'IF', 'ID': 'getInstructionID()',
+                               'CLASSIFICATION': 'CFG_BRANCH', 'CONDITION': "", 'TRUE_BRANCH': []}
+        output['OPERATION']["CONDITION"] = self.visitParExpression(ctx.parExpression())
+        output['OPERATION']["TRUE_BRANCH"] = self.visitBlockStatement(ctx.blockStatement(0))
 
         if ctx.ELSE():
-            output['FALSE_BRANCH'] = self.visitBlockStatement(ctx.blockStatement(1))
+            output['OPERATION']['FALSE_BRANCH'] = []
+            output['OPERATION']['FALSE_BRANCH'] = self.visitBlockStatement(ctx.blockStatement(1))
 
         return output
 
     def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
-        return super().visitWhileStatement(ctx)
+        raise UnsupportedOperation("MFSim doesn't support WHILE loops.")
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
-        return super().visitRepeat(ctx)
+        output = dict()
+        output['OPERATION'] = {'NAME': 'REPEAT', 'ID': 'getInstructionID()',
+                               'CLASSIFICATION': 'CFG_LOOP',
+                               'LOOP_NUM': int(ctx.INTEGER_LITERAL().__str__()),
+                               'OPERATIONS': []}
+        output['OPERATION']['OPERATIONS'] = self.visitBlockStatement(ctx.blockStatement())
+        return output
 
     def visitHeat(self, ctx: BSParser.HeatContext):
         variable = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__())
         temp = self.visitTemperatureIdentifier(ctx.temperatureIdentifier())
         time = self.visitTimeIdentifier(ctx.timeIdentifier())
-        self.log.info(time)
         output = dict()
         output['OPERATION'] = {'NAME': 'HEAT',
-                               'ID': 'getNextInstructionID()',
+                               'ID': 'getInstructionID()',
                                'CLASSIFICATION': "HEAT",
                                'INPUTS': [], 'OUTPUTS': []}
 
@@ -149,8 +158,21 @@ class MFSimVisitor(TargetVisitor):
 
         return output
 
+    def visitDispose(self, ctx: BSParser.DisposeContext):
+        output = dict()
+        output['OPERATION'] = {'NAME': 'dispose',
+                               'ID': 'getInstructionID()',
+                               'CLASSIFICATION': 'OUTPUT',
+                               'INPUTS': [], 'OUTPUTS': []}
+        variable = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__())
+        if variable.size == 1:
+            output['OPERATION']['INPUTS'].append({'INPUT_TYPE': 'VARIABLE', 'VARIABLE': {'NAME': variable.name}})
+        else:
+            self.log.warning("Dispose simd semantics not built.")
+        return output
+
     def visitParExpression(self, ctx: BSParser.ParExpressionContext):
-        return self.visitChildren(ctx)
+        return "({})".format(self.visitExpression(ctx.expression()))
 
     def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
         return super().visitExpressionList(ctx)
@@ -162,7 +184,6 @@ class MFSimVisitor(TargetVisitor):
         name = ctx.IDENTIFIER().__str__()
         # Get the inputs...
         op = self.visitChildren(ctx)
-        self.log.info(op)
 
         output = ""
         if 'instruction' in op:
@@ -202,9 +223,21 @@ class MFSimVisitor(TargetVisitor):
         output['OPERATION']['OUTPUTS'] = []
         output['OPERATION']['ID'] = "getInstructionID()"
 
+        if 'time' in args['args']:
+            output['OPERATION']['INPUTS'].append(self.build_property('TIME', args['args']['time']))
+
         if op == Instruction.SPLIT:
             output['OPERATION']['NAME'] = 'SPLIT'
             output['OPERATION']['CLASSIFICATION'] = 'SPLIT'
+
+            if args['variable'].is_stationary:
+                output['OPERATION']['INPUTS'].append(self.stationary_variable(args['variable']))
+            else:
+                output['OPERATION']['INPUTS'].append(self.mobile_variable(args['variable'], {}))
+
+            for x in range(0, args['size']):
+                name = "{}{}".format(lhs, x)
+                output['OPERATION']['OUTPUTS'].append(self.mobile_variable(Variable(name), {}))
             pass
         elif op == Instruction.MIX:
             output['OPERATION']['NAME'] = 'MIX'
@@ -212,33 +245,59 @@ class MFSimVisitor(TargetVisitor):
 
             for x in args['args']['input']:
                 mixes = dict()
-                mixes['INPUT_TYPE'] = 'VARIABLE'
-                mixes['CHEMICAL'] = dict()
-                mixes['CHEMICAL']['VARIABLE'] = dict()
-                mixes['CHEMICAL']['VARIABLE']['NAME'] = x['variable'].name
-                mixes['VOLUME'] = dict()
-                mixes['VOLUME']['VALUE'] = x['quantity']
-                mixes['VOLUME']['UNITS'] = x['units'].name
+                if x['variable'].is_stationary:
+                    mixes = self.stationary_variable(x['variable'])
+                else:
+                    mixes = self.mobile_variable(x['variable'], x)
                 output['OPERATION']['INPUTS'].append(mixes)
-            if 'time' in args['args']['time']:
-                prop = dict()
-                prop['INPUT_TYPE'] = "PROPERTY"
-                prop['TIME'] = dict()
-                prop['TIME']['VALUE'] = args['time']['quantity']
-                prop['TIME']['UNITS'] = args['time']['units'].name
+
+            output['OPERATION']['OUTPUTS'].append(
+                {'VARIABLE_DECLARATION': {'ID': lhs, 'TYPE': 'VARIABLE', 'NAME': lhs}})
         elif op == Instruction.HEAT:
+            # Heat is an independent statement.  Meaning it is resolved in the visitHeatStatement()
             pass
         elif op == Instruction.DETECT:
             output['OPERATION']['NAME'] = 'DETECT'
             output['OPERATION']['CLASSIFICATION'] = 'DETECT'
-            pass
+            if args['variable'].is_stationary:
+                output['OPERATION']['INPUTS'] += self.stationary_variable(args['variable'])
+            else:
+                output['OPERATION']['INPUTS'].append(self.mobile_variable(args['variable'], {}))
+
+            declaration = dict()
+            declaration['SENSOR_DECLARATION'] = {'ID': lhs, 'NAME': lhs, 'TYPE': 'SENSOR'}
+            output['OPERATION']['OUTPUTS'].append(declaration)
         elif op == Instruction.METHOD:
+            self.log.critical("Alpha-convert this trash!")
             pass
         elif op == Instruction.DISPOSE:
+            # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
             pass
         elif op == Instruction.DISPENSE:
             output['OPERATION']['NAME'] = 'DISPENSE'
             output['OPERATION']['CLASSIFICATION'] = 'DISPENSE'
-            pass
+            output['OPERATION']['INPUTS'].append(self.mobile_variable(args['variable'], args))
+            output['OPERATION']['OUTPUTS'].append(
+                {'VARIABLE_DECLARATION': {'ID': lhs, 'NAME': lhs, 'TYPE': 'VARIABLE'}})
 
         return output
+
+    def stationary_variable(self, variable: Variable) -> dict:
+        output = dict()
+        output['INPUT_TYPE'] = 'VARIABLE'
+        output['STATIONARY'] = {'NAME': variable.name}
+        return output
+
+    def mobile_variable(self, variable: Variable, volume: dict) -> dict:
+        output = dict()
+        output['INPUT_TYPE'] = 'VARIABLE'
+        output['CHEMICAL'] = {'VARIABLE': {'NAME': variable.name}}
+        if 'quantity' in volume:
+            output['VOLUME'] = {'VALUE': volume['quantity'], 'UNITS': volume['units'].name}
+        return output
+
+    def build_property(self, property_type: str, values: dict) -> dict:
+        prop = dict()
+        prop['INPUT_TYPE'] = 'PROPERTY'
+        prop[property_type.upper()] = {'VALUE': values['quantity'], 'UNITS': values['units'].name}
+        return prop

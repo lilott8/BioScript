@@ -1,5 +1,4 @@
 module mod
-stationary ccc
 manifest aaa
 manifest bbb
 
@@ -7,4 +6,4 @@ functions:
 
 instructions:
 
-a = mix aaa with ccc
+x = detect mod on aaa for 13d

@@ -4,45 +4,6 @@ manifest bbb
 
 functions:
 
-function test() {
-    x = split aaa into 4
-    return x
-}
-
-function test2() {
-    b = mix aaa with bbb
-    return b
-}
-
 instructions:
 
 pass1 = split aaa into 4
-pass5 = split aaa into 4
-pass6[] = split aaa into 8
-pass7[8] = split aaa into 8
-pass8 = split aaa into 8
-pass9[2] = split aaa into 2
-
-// heat pass8 at 10c
-
-method_call = test()
-method_call2[4] = test()
-non_simd = test2()
-
-zzz = dispense aaa
-dispose zzz
-
-y = 2+2
-y = mix pass1 with pass5
-z = detect mod on aaa
-a = mix pass1 with pass5
-
-if (pass9[1] < 10) {
-    heat y at 10f
-}
-
-disp[4] = dispense aaa
-dispose disp
-
-//fail4 = split aaa into 9
-//fail5 = split aaa into 3

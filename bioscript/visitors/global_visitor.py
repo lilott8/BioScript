@@ -29,4 +29,5 @@ class GlobalVariableVisitor(BSBaseVisitor):
         types = {ChemTypes.MAT}
         for name in ctx.IDENTIFIER():
             variable = self.identifier.identify(name.__str__(), types=types, scope=self.global_scope)
+            variable.is_stationary = True
             self.symbol_table.add_global(variable)

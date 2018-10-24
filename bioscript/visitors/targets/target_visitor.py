@@ -2,6 +2,8 @@ from bioscript.symbol_table.symbol_table import SymbolTable
 from bioscript.visitors.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import InvalidOperation
+from shared.bs_exceptions import UndefinedException
+from shared.enums.bs_properties import *
 from shared.enums.instructions import Instruction
 
 
@@ -29,7 +31,7 @@ class TargetVisitor(BSBaseVisitor):
             output += "{}".format(time['quantity'])
         else:
             time['quantity'] = 10.0
-            time['unit'] = 's'
+            time['units'] = BSTime.SECOND
             output += "10.0"
 
         output += ");"
@@ -62,27 +64,6 @@ class TargetVisitor(BSBaseVisitor):
                 'args': {'input': name, 'quantity': 10.0}, 'variable': self.symbol_table.get_variable(name),
                 'is_simd': False}
 
-    def visitDispose(self, ctx: BSParser.DisposeContext):
-        variable = self.symbol_table.get_variable(self.check_identifier(ctx.IDENTIFIER().__str__()))
-        output = ""
-        if variable.size > 1:
-            """
-            This is a SIMD operation
-            """
-            for x in range(0, variable.size):
-                output += "dispose({}.at({});{}".format(variable.name, x, self.nl)
-            output += "{} = nullptr;".format(variable.name)
-        else:
-            """
-            This is not a SIMD operation
-            """
-            output += "dispose({});{}".format(variable.name, self.nl)
-            output += "{} = nullptr;".format(variable.name)
-        return output
-        # return {'operation': "dispense({});".format(name),
-        #         "instruction": Instruction.DISPOSE, 'size': self.symbol_table.get_variable(name).size,
-        #         'args': {'input': name}, 'variable': self.symbol_table.get_variable(name), 'is_simd': is_simd}
-
     def visitMethodCall(self, ctx: BSParser.MethodCallContext):
         operation = "{}(".format(ctx.IDENTIFIER().__str__())
         arguments = ""
@@ -113,7 +94,7 @@ class TargetVisitor(BSBaseVisitor):
         else:
             output += "10.0"
             time['quantity'] = 10.0
-            time['unit'] = 's'
+            time['units'] = BSTime.SECOND
         output += ");"
         is_simd = True if next(iter(test)) > 1 else False
         # This will get the first element of the set "test"
@@ -164,8 +145,27 @@ class TargetVisitor(BSBaseVisitor):
                     raise InvalidOperation("Out of bounds index: {}[{}], where {} is of size: {}".format(
                         exp1, exp2, exp1, variable.size))
                 output = "{}[{}]".format(exp1, exp2)
-                self.log.info(output)
             else:
                 output = "{}{}{}".format(exp1, op, exp2)
 
             return output
+
+    def visitPrimary(self, ctx: BSParser.PrimaryContext):
+        if ctx.IDENTIFIER():
+            if not self.symbol_table.get_variable(ctx.IDENTIFIER().__str__()):
+                raise UndefinedException("Undeclared variable: {}".format(ctx.IDENTIFIER().__str__()))
+            return ctx.IDENTIFIER().__str__()
+        elif ctx.literal():
+            return self.visitLiteral(ctx.literal())
+        else:
+            return self.visitExpression(ctx.expression())
+
+    def visitLiteral(self, ctx: BSParser.LiteralContext):
+        if ctx.INTEGER_LITERAL():
+            return ctx.INTEGER_LITERAL().__str__()
+        elif ctx.BOOL_LITERAL():
+            return ctx.BOOL_LITERAL().__str__()
+        elif ctx.FLOAT_LITERAL():
+            return ctx.FLOAT_LITERAL().__str__()
+        else:
+            return ctx.STRING_LITERAL().__str__()
