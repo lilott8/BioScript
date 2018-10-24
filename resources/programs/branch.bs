@@ -1,0 +1,20 @@
+module mod
+manifest aaa
+manifest bbb
+
+functions:
+
+instructions:
+
+a = dispense aaa
+
+x = detect mod on a
+
+repeat 10 times {
+    if (x < 10) {
+        b = mix a with aaa
+    } else {
+        b = mix a with bbb
+        c = split b into 4
+    }
+}

@@ -1,5 +1,4 @@
 module mod
-stationary ccc
 manifest aaa
 manifest bbb
 
@@ -7,4 +6,8 @@ functions:
 
 instructions:
 
-a = mix aaa with ccc
+a = dispense aaa
+
+b = split a into 4
+
+c = mix b with bbb

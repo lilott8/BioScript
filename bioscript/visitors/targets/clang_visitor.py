@@ -1,7 +1,6 @@
 from bioscript.visitors.targets.target_visitor import TargetVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import InvalidOperation
-from shared.bs_exceptions import UndefinedException
 from shared.enums.chemtypes import ChemTypes
 from shared.enums.instructions import Instruction
 from shared.enums.instructions import InstructionSet
@@ -145,6 +144,24 @@ class ClangVisitor(TargetVisitor):
             output += "heat({}, {}, {});".format(variable.name, temp['quantity'], time['quantity'])
         return output
 
+    def visitDispose(self, ctx: BSParser.DisposeContext):
+        variable = self.symbol_table.get_variable(self.check_identifier(ctx.IDENTIFIER().__str__()))
+        output = ""
+        if variable.size > 1:
+            """
+            This is a SIMD operation
+            """
+            for x in range(0, variable.size):
+                output += "dispose({}.at({});{}".format(variable.name, x, self.nl)
+            output += "{} = nullptr;".format(variable.name)
+        else:
+            """
+            This is not a SIMD operation
+            """
+            output += "dispose({});{}".format(variable.name, self.nl)
+            output += "{} = nullptr;".format(variable.name)
+        return output
+
     def visitParExpression(self, ctx: BSParser.ParExpressionContext):
         return "({})".format(self.visitExpression(ctx.expression()))
 
@@ -195,26 +212,6 @@ class ClangVisitor(TargetVisitor):
             output += "// Removing math operations{}".format(self.nl)
             output += "// {} = {}; {}".format(name, operation, self.nl)
         return output
-
-    def visitPrimary(self, ctx: BSParser.PrimaryContext):
-        if ctx.IDENTIFIER():
-            if not self.symbol_table.get_variable(ctx.IDENTIFIER().__str__()):
-                raise UndefinedException("Undeclared variable: {}".format(ctx.IDENTIFIER().__str__()))
-            return ctx.IDENTIFIER().__str__()
-        elif ctx.literal():
-            return self.visitLiteral(ctx.literal())
-        else:
-            return self.visitExpression(ctx.expression())
-
-    def visitLiteral(self, ctx: BSParser.LiteralContext):
-        if ctx.INTEGER_LITERAL():
-            return ctx.INTEGER_LITERAL().__str__()
-        elif ctx.BOOL_LITERAL():
-            return ctx.BOOL_LITERAL().__str__()
-        elif ctx.FLOAT_LITERAL():
-            return ctx.FLOAT_LITERAL().__str__()
-        else:
-            return ctx.STRING_LITERAL().__str__()
 
     def visitPrimitiveType(self, ctx: BSParser.PrimitiveTypeContext):
         return super().visitPrimitiveType(ctx)
