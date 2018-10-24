@@ -1,0 +1,9 @@
+module mod
+manifest aaa
+manifest bbb
+
+functions:
+
+instructions:
+
+a = mix aaa with bbb

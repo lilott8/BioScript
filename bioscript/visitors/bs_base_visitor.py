@@ -55,13 +55,13 @@ class BSBaseVisitor(BSParserVisitor):
             x = self.split_number_from_unit(ctx.TIME_NUMBER().__str__())
             units = BSTime.get_from_string(x['units'])
             quantity = units.normalize(x['quantity'])
-        return {'quantity': quantity, 'units': units}
+        return {'quantity': quantity, 'units': BSTime.SECOND, 'preserved_units': units}
 
     def visitTemperatureIdentifier(self, ctx: BSParser.TemperatureIdentifierContext) -> dict:
         x = self.split_number_from_unit(ctx.TEMP_NUMBER().__str__())
         units = BSTemperature.get_from_string(x['units'])
         quantity = units.normalize(x['quantity'])
-        return {'quantity': quantity, 'units': units}
+        return {'quantity': quantity, 'units': BSTemperature.CELSIUS, 'preserved_units': units}
 
     def check_identifier(self, name):
         if name in self.keywords:
