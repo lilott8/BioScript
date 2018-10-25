@@ -1,7 +1,7 @@
 module mod
+stationary ccc
 manifest aaa
 manifest bbb
-stationary ccc
 
 functions:
 
@@ -11,4 +11,4 @@ a = dispense aaa
 
 b = split a into 4
 
-c = mix b with bbb
+heat b at 45c

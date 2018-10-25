@@ -30,8 +30,6 @@ def main(args):
         logging.info("Running a storage problem")
         problem = Storage()
 
-    raise Exception("Revisit line 89 in TargetVisitor.  You need to reconcile mixing an array with a global variable.")
-
     problem.run()
 
 
