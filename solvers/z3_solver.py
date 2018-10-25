@@ -88,7 +88,8 @@ class Z3Solver:#(BaseSolver):
         bin_chems  = [z3.Int('bin_chem%s_%s' % (x, y)) for x, s in enumerate(shelves) for y in range(len(s))]
         for bins in bin_color_array:
             eq = [n1==bins[0] for n1 in bins]
-            solver.add(eq)
+            constraint = [z3.And(n1 >= 0, n1 < len(bin_color_array)) for n1 in bins]
+            solver.add(eq + constraint)
 
         for x, y in edges_shelves:
             solver.add([chems[x] != color for color in bin_color_array[y]])
