@@ -61,7 +61,8 @@ class TargetVisitor(BSBaseVisitor):
         name = ctx.IDENTIFIER().__str__()
         return {'operation': "dispense({});".format(name),
                 "instruction": Instruction.DISPENSE, 'size': 1,
-                'args': {'input': name, 'quantity': 10.0}, 'variable': self.symbol_table.get_variable(name),
+                'args': {'input': name, 'quantity': 10.0, 'units': BSVolume.MICROLITRE},
+                'variable': self.symbol_table.get_variable(name),
                 'is_simd': False}
 
     def visitMethodCall(self, ctx: BSParser.MethodCallContext):
@@ -85,9 +86,21 @@ class TargetVisitor(BSBaseVisitor):
             var = self.visit(v)
             inputs.append(var)
             output += "{}, {}, ".format(self.check_identifier(var['variable'].name), var['quantity'])
-            test.add(var['variable'].size)
-        if len(test) != 1:
+            if not self.symbol_table.is_global(var['variable']):
+                """
+                If the variable is global,
+                then we can safely assume
+                we have an infinite amount.
+                """
+                test.add(var['variable'].size)
+        if len(test) > 1:
+            """
+            If we are mixing 2 globals, this will be 0.
+            Otherwise, if it's > 1, throw an error.
+            """
             raise InvalidOperation("Trying to run SIMD on unequal array sizes")
+        if len(test) == 0:
+            test.add(1)
         if ctx.timeIdentifier():
             time = self.visitTimeIdentifier(ctx.timeIdentifier())
             output += time['quantity']
