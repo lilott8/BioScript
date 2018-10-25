@@ -101,11 +101,8 @@ class Test_Identifiers(unittest.TestCase):
 
     def test_z3solver(self):
         epa = EpaManager('resources/epa.json', 'resources/abstract-interaction.txt')
-        #nums = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-        self.assertTrue(Z3Solver.solve_file('resources/test9.json', epa.validate, sol=False))
-        m = Z3Solver.solve_file('resources/test9.json', epa.validate)
-        print(m)
-        '''#calculate average runtime
+        nums = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        #calculate average runtime
         for i in range(100):
             x = time.time()
             self.assertFalse(Z3Solver.solve_file('resources/test0.json', epa.validate, sol=False))
@@ -160,9 +157,15 @@ class Test_Identifiers(unittest.TestCase):
             x = time.time() - x
             nums[8] += x
  
+        for i in range(100):
+            x = time.time()
+            self.assertTrue(Z3Solver.solve_file('resources/test9.json', epa.validate, sol=False))
+            x = time.time() - x
+            nums[9] += x
+
         for i in range(len(nums)):
             nums[i] /= 100
-        print(nums)'''
+            nums[i] *= 1000 #convert secs to ms
 
-
-
+        for i, avg in enumerate(nums):
+            print('test %d: %f ms' % (i, avg))
