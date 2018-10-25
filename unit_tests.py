@@ -1,4 +1,5 @@
 import unittest
+import time
 from chemicals.epa_manager import EpaManager
 from chemicals.identification.identifier import Identifier
 from shared.enums.chemtypes import ChemTypes
@@ -100,15 +101,41 @@ class Test_Identifiers(unittest.TestCase):
 
     def test_z3solver(self):
         epa = EpaManager('resources/epa.json', 'resources/abstract-interaction.txt')
-        self.assertFalse(Z3Solver.solve_file('resources/test0.json', epa.validate, sol=False))
-        self.assertFalse(Z3Solver.solve_file('resources/test1.json', epa.validate, sol=False))
-        self.assertFalse(Z3Solver.solve_file('resources/test2.json', epa.validate, sol=False))
-        self.assertTrue(Z3Solver.solve_file('resources/test3.json', epa.validate, sol=False))
-        self.assertFalse(Z3Solver.solve_file('resources/test4.json', epa.validate, sol=False))
+        nums = [0, 0, 0, 0, 0]
+        #calculate average runtime
+        for i in range(100):
+            x = time.time()
+            self.assertFalse(Z3Solver.solve_file('resources/test0.json', epa.validate, sol=False))
+            x = time.time() - x
+            nums[0] += x
 
+        for i in range(100):
+            x = time.time()
+            self.assertFalse(Z3Solver.solve_file('resources/test1.json', epa.validate, sol=False))
+            x = time.time() - x
+            nums[1] += x
 
+        for i in range(100):
+            x = time.time()
+            self.assertFalse(Z3Solver.solve_file('resources/test2.json', epa.validate, sol=False))
+            x = time.time() - x
+            nums[2] += x
 
+        for i in range(100):
+            x = time.time()
+            self.assertTrue(Z3Solver.solve_file('resources/test3.json', epa.validate, sol=False))
+            x = time.time() - x
+            nums[3] += x
 
+        for i in range(100):
+            x = time.time()
+            self.assertFalse(Z3Solver.solve_file('resources/test4.json', epa.validate, sol=False))
+            x = time.time() - x
+            nums[4] += x
+        
+        for i in range(len(nums)):
+            nums[i] /= 100
+        print(nums)
 
 
 
