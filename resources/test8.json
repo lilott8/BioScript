@@ -1,0 +1,59 @@
+{
+    "problem": "storage",
+    "storage": [
+        [
+            {
+                "chemical": "Sodium_Hydroxide",
+                "reactive_groups": [10, 100],
+                "current_volume": 50,
+                "total_volume": 50
+            },
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 50,
+                "total_volume": 50
+            },
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 50,
+                "total_volume": 50
+            },
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 50,
+                "total_volume": 50
+            }
+        ],
+        [
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 50,
+                "total_volume": 50
+            }
+        ],
+        [
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 0,
+                "total_volume": 1000
+            }
+        ]
+    ],
+    "manifest": [
+       {
+            "chemical": "Chlorotrifluoromethane",
+            "reactive_groups": [47],
+            "volume" : 50
+       },
+       {
+            "chemical": "Isopropyl_Alcohol",
+            "reactive_groups": [4],
+            "volume": 50
+       }
+    ]
+}

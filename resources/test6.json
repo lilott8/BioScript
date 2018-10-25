@@ -1,0 +1,43 @@
+{
+    "problem": "storage",
+    "storage": [
+        [
+            {
+                "chemical": "Hydrogen_Peroxide",
+                "reactive_groups": [100, 44],
+                "current_volume": 50,
+                "total_volume": 50
+            },
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 0,
+                "total_volume": 50
+            },
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 0,
+                "total_volume": 100
+            },
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 0,
+                "total_volume": 100
+            }
+        ]
+    ],
+    "manifest": [
+        {
+            "chemical": "Sulfuric_Acid",
+            "reactive_groups": [2],
+            "volume": 100
+        },
+        {
+            "chemical": "Acetone",
+            "reactive_groups": [19],
+            "volume": 50
+        }
+    ]
+}

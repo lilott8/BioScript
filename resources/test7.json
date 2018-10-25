@@ -1,0 +1,43 @@
+{
+    "problem": "storage",
+    "storage": [
+        [
+            {
+                "chemical": "Benzene",
+                "reactive_groups": [16],
+                "current_volume": 50,
+                "total_volume": 50
+            },
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 0,
+                "total_volume": 50
+            },
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 0,
+                "total_volume": 50
+            },
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 0,
+                "total_volume": 50
+            }
+        ]
+    ],
+    "manifest": [
+        {
+            "chemical": "Formaldehyde",
+            "reactive_groups": [5, 76],
+            "volume": 100
+        },
+        {
+            "chemical": "Formaldehyde",
+            "reactive_groups": [5, 76],
+            "volume" : 50
+        }
+    ]
+}

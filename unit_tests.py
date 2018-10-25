@@ -101,7 +101,9 @@ class Test_Identifiers(unittest.TestCase):
 
     def test_z3solver(self):
         epa = EpaManager('resources/epa.json', 'resources/abstract-interaction.txt')
-        nums = [0, 0, 0, 0, 0]
+        self.assertTrue(Z3Solver.solve_file('resources/test8.json', epa.validate, sol=False))
+        '''
+        nums = [0, 0, 0, 0, 0, 0, 0, 0, 0]
         #calculate average runtime
         for i in range(100):
             x = time.time()
@@ -132,11 +134,35 @@ class Test_Identifiers(unittest.TestCase):
             self.assertFalse(Z3Solver.solve_file('resources/test4.json', epa.validate, sol=False))
             x = time.time() - x
             nums[4] += x
-        
+       
+        for i in range(100):
+            x = time.time()
+            self.assertFalse(Z3Solver.solve_file('resources/test5.json', epa.validate, sol=False))
+            x = time.time() - x
+            nums[5] += x
+
+        for i in range(100):
+            x = time.time()
+            self.assertFalse(Z3Solver.solve_file('resources/test6.json', epa.validate, sol=False))
+            x = time.time() - x
+            nums[6] += x
+
+        for i in range(100):
+            x = time.time()
+            self.assertFalse(Z3Solver.solve_file('resources/test7.json', epa.validate, sol=False))
+            x = time.time() - x
+            nums[7] += x
+
+        for i in range(100):
+            x = time.time()
+            self.assertTrue(Z3Solver.solve_file('resources/test8.json', epa.validate, sol=False))
+            x = time.time() - x
+            nums[8] += x
+ 
         for i in range(len(nums)):
             nums[i] /= 100
         print(nums)
-
+        '''
 
 
 

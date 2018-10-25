@@ -36,7 +36,7 @@ class Z3Solver:#(BaseSolver):
         for g1 in grpA:
             for g2 in grpB:
                 if not safe(g1, g2):
-                    #print('compare: ', g1, g2)
+                    print('compare: ', g1, g2)
                     return True
         return False
 
