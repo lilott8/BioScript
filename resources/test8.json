@@ -11,31 +11,49 @@
             {
                 "chemical": "N/A",
                 "reactive_groups": [],
+                "current_volume": 0,
+                "total_volume": 50
+            },
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 0,
+                "total_volume": 50
+            },
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 0,
+                "total_volume": 50
+            }
+        ],
+        [
+            {
+                "chemical": "Allyl_Ethyl_Ether",
+                "reactive_groups": [14, 28],
                 "current_volume": 50,
                 "total_volume": 50
             },
             {
                 "chemical": "N/A",
                 "reactive_groups": [],
-                "current_volume": 50,
+                "current_volume": 0,
                 "total_volume": 50
             },
             {
                 "chemical": "N/A",
                 "reactive_groups": [],
-                "current_volume": 50,
+                "current_volume": 0,
                 "total_volume": 50
             }
         ],
         [
             {
-                "chemical": "N/A",
-                "reactive_groups": [],
+                "chemical": "Cycloheptatriene",
+                "reactive_groups": [28, 65, 76],
                 "current_volume": 50,
                 "total_volume": 50
-            }
-        ],
-        [
+            },
             {
                 "chemical": "N/A",
                 "reactive_groups": [],

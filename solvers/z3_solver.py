@@ -36,7 +36,6 @@ class Z3Solver:#(BaseSolver):
         for g1 in grpA:
             for g2 in grpB:
                 if not safe(g1, g2):
-                    print('compare: ', g1, g2)
                     return True
         return False
 
@@ -85,7 +84,6 @@ class Z3Solver:#(BaseSolver):
         edges  = [chems[v0] != chems[v1] for v0, v1 in edges_chems]
         shelf_vol  = [z3.Int('vol%s_%s' % (x, y)) for x, shelf in enumerate(shelves) for y in range(len(shelf))]
         shelf_vol_constraint = [z3.And(vol >= 0, vol <= vol_full) for vol, vol_full in zip(shelf_vol, reduce(lambda x, y: x + y, shelves))]
-
         bin_color_array = [[z3.Int('bin_color%s_%s' % (x, y)) for y in range(len(shelves[x]))] for x, shelf in enumerate(shelves)]
         bin_chems  = [z3.Int('bin_chem%s_%s' % (x, y)) for x, s in enumerate(shelves) for y in range(len(s))]
         for bins in bin_color_array:
