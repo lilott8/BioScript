@@ -7,4 +7,3 @@ functions:
 instructions:
 
 a = dispense aaa
-b = dispense a

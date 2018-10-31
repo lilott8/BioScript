@@ -1,5 +1,6 @@
 from bioscript.visitors.targets.target_visitor import TargetVisitor
 from grammar.parsers.python.BSParser import BSParser
+from shared.enums.instructions import Instruction
 
 
 class InkwellVisitor(TargetVisitor):
@@ -99,3 +100,9 @@ class InkwellVisitor(TargetVisitor):
 
     def visitPrimitiveType(self, ctx: BSParser.PrimitiveTypeContext):
         return super().visitPrimitiveType(ctx)
+
+    def process_simd(self, lhs: str, op: Instruction, args: dict) -> dict:
+        pass
+
+    def process_sisd(self, lhs: str, op: Instruction, args: dict) -> dict:
+        pass

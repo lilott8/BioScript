@@ -182,3 +182,9 @@ class TargetVisitor(BSBaseVisitor):
             return ctx.FLOAT_LITERAL().__str__()
         else:
             return ctx.STRING_LITERAL().__str__()
+
+    def process_simd(self, lhs: str, op: Instruction, args: dict) -> dict:
+        raise NotImplementedError
+
+    def process_sisd(self, lhs: str, op: Instruction, args: dict) -> dict:
+        raise NotImplementedError
