@@ -1,0 +1,10 @@
+module mod
+manifest aaa
+manifest bbb
+
+functions:
+
+instructions:
+
+a = dispense aaa
+b = dispense a

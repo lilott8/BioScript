@@ -90,13 +90,29 @@ class MFSimVarBuilder(object):
         return output
 
     @staticmethod
-    def build_detect_output(vid: str, name: str, vtype: str = "SENSOR"):
+    def build_detect_output(vid: str, name: str, vtype: str = "SENSOR") -> dict:
         output = dict()
         output['SENSOR_DECLARATION'] = {'ID': vid, 'NAME': name, 'TYPE': vtype}
         return output
 
     @staticmethod
-    def build_output(vid: str, name: str, vtype: str = "CHEMICAL"):
+    def build_output(vid: str, name: str, vtype: str = "CHEMICAL") -> dict:
         output = dict()
         output['VARIABLE'] = {'ID': vid, 'NAME': name, 'TYPE': vtype}
+        return output
+
+    @staticmethod
+    def build_if_operation(name: str, id: str, condition: str, true_branch: list,
+                           false_branch: list = list, classification: str = 'CFG_BRANCH') -> dict:
+        output = dict()
+        output['OPERATION'] = {'NAME': name, 'ID': id, 'CLASSIFICATION': classification, 'CONDITION': condition,
+                               'TRUE_BRANCH': true_branch, 'FALSE_BRANCH': false_branch}
+        return output
+
+    @staticmethod
+    def build_repeat_statement(name: str, id: str, loop_times: int,
+                               operations: list, classification: str = "CFG_LOOP") -> dict:
+        output = dict()
+        output['OPERATION'] = {'NAME': name, 'ID': id, 'CLASSIFICATION': classification,
+                               'LOOP_NUM': loop_times, 'OPERATIONS': operations}
         return output

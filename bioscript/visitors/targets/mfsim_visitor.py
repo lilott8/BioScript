@@ -96,29 +96,23 @@ class MFSimVisitor(TargetVisitor):
         return self.visitChildren(ctx)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
-        output = dict()
-        output['OPERATION'] = {'NAME': 'IF', 'ID': 'getInstructionID()',
-                               'CLASSIFICATION': 'CFG_BRANCH', 'CONDITION': "", 'TRUE_BRANCH': []}
-        output['OPERATION']["CONDITION"] = self.visitParExpression(ctx.parExpression())
-        output['OPERATION']["TRUE_BRANCH"] = self.visitBlockStatement(ctx.blockStatement(0))
+        true_branch = self.visitBlockStatement(ctx.blockStatement(0))
 
+        false_branch = list()
         if ctx.ELSE():
-            output['OPERATION']['FALSE_BRANCH'] = []
-            output['OPERATION']['FALSE_BRANCH'] = self.visitBlockStatement(ctx.blockStatement(1))
+            false_branch = self.visitBlockStatement(ctx.blockStatement(1))
 
-        return output
+        return MFSimVarBuilder.build_if_operation('IF', 'getInstructionID()',
+                                                  self.visitParExpression(ctx.parExpression()),
+                                                  true_branch, false_branch)
 
     def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
         raise UnsupportedOperation("MFSim doesn't support WHILE loops.")
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
-        output = dict()
-        output['OPERATION'] = {'NAME': 'REPEAT', 'ID': 'getInstructionID()',
-                               'CLASSIFICATION': 'CFG_LOOP',
-                               'LOOP_NUM': int(ctx.INTEGER_LITERAL().__str__()),
-                               'OPERATIONS': []}
-        output['OPERATION']['OPERATIONS'] = self.visitBlockStatement(ctx.blockStatement())
-        return output
+        return MFSimVarBuilder.build_repeat_statement('REPEAT', 'getInstructionId()',
+                                                      int(ctx.INTEGER_LITERAL().__str__()),
+                                                      self.visitBlockStatement(ctx.blockStatement()))
 
     def visitHeat(self, ctx: BSParser.HeatContext):
         variable = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__())
