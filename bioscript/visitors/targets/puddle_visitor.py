@@ -1,14 +1,35 @@
 from bioscript.visitors.targets.target_visitor import TargetVisitor
 from grammar.parsers.python.BSParser import BSParser
+from shared.enums.instructions import Instruction
 
 
 class PuddleVisitor(TargetVisitor):
 
     def __init__(self, symbol_table):
         super().__init__(symbol_table, "PuddleVisitor")
+        self.tab_count = 0
+
+    def increment_tab(self):
+        self.tab += "\t"
+        self.tab_count += 1
+
+    def decrement_tab(self):
+        self.tab = ""
+        self.tab_count -= 1
+
+        if self.tab_count < 0:
+            self.tab_count = 0
+
+        for x in range(0, self.tab_count):
+            self.tab += "\t"
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
-        return super().visitProgram(ctx)
+        output = "from puddle import mk_session, project_path"
+
+        output += 'arch_path = project_path("{}"){}'.format('PUT SOMETHING HERE', self.nl)
+        output += 'with mk_session(arh_path) as session:{}'.format(self.nl)
+
+        self.compiled = output
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         return super().visitModuleDeclaration(ctx)
@@ -44,6 +65,9 @@ class PuddleVisitor(TargetVisitor):
         return super().visitStatements(ctx)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
+        output = ""
+
+
         return super().visitIfStatement(ctx)
 
     def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
@@ -99,3 +123,9 @@ class PuddleVisitor(TargetVisitor):
 
     def visitPrimitiveType(self, ctx: BSParser.PrimitiveTypeContext):
         return super().visitPrimitiveType(ctx)
+
+    def process_simd(self, lhs: str, op: Instruction, args: dict) -> dict:
+        pass
+
+    def process_sisd(self, lhs: str, op: Instruction, args: dict) -> dict:
+        pass
