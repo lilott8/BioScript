@@ -143,6 +143,8 @@ class SymbolTableVisitor(BSBaseVisitor):
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
         name = ctx.IDENTIFIER().__str__()
+        if not self.symbol_table.get_variable(name).is_global:
+            raise InvalidOperation('Trying to dispense: "{}" which is not declared in the manifest.'.format(name))
         types = {ChemTypes.MAT}
         self.symbol_table.update_symbol(name, types)
         return {'types': types, 'size': 1,
