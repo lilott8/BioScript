@@ -7,8 +7,4 @@ functions:
 
 instructions:
 
-a = dispense aaa
-
-b = split a into 4
-
-c = mix b with bbb
+a[4] = dispense aaa

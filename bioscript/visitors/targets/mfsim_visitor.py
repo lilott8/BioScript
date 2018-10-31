@@ -1,3 +1,4 @@
+import copy
 import json
 
 import pyperclip
@@ -36,7 +37,15 @@ class MFSimVisitor(TargetVisitor):
         self.compiled['EXPERIMENT']['INPUTS'] += self.visitModuleDeclaration(ctx.moduleDeclaration())
 
         for statement in ctx.statements():
-            self.compiled['EXPERIMENT']['INSTRUCTIONS'].extend(self.visitStatements(statement))
+            instructions = self.visitStatements(statement)
+            if len(instructions) > 1:
+                """
+                SIMD's need to be extended because 
+                they are an array of instructions.
+                """
+                self.compiled['EXPERIMENT']['INSTRUCTIONS'].extend(instructions)
+            else:
+                self.compiled['EXPERIMENT']['INSTRUCTIONS'].append(instructions)
 
         self.log.warning("You are copying things to the clipboard")
         pyperclip.copy(json.dumps(self.compiled))
@@ -115,11 +124,7 @@ class MFSimVisitor(TargetVisitor):
         variable = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__())
         temp = self.visitTemperatureIdentifier(ctx.temperatureIdentifier())
         time = self.visitTimeIdentifier(ctx.timeIdentifier())
-        header = dict()
-        header['OPERATION'] = {'NAME': 'HEAT',
-                               'ID': 'getInstructionID()',
-                               'CLASSIFICATION': "HEAT",
-                               'INPUTS': [], 'OUTPUTS': []}
+
         output = []
         inputs = []
         outputs = []
@@ -194,7 +199,7 @@ class MFSimVisitor(TargetVisitor):
                 op['is_simd'] = True if self.symbol_table.get_variable(name).size > 1 else False
                 op['size'] = self.symbol_table.get_variable(name).size
             if op['is_simd']:
-                output += self.process_simd(name, op['instruction'], op)
+                output = self.process_simd(name, op['instruction'], op)
             else:
                 output = self.process_sisd(name, op['instruction'], op)
         return output
@@ -205,9 +210,78 @@ class MFSimVisitor(TargetVisitor):
     def visitLiteral(self, ctx: BSParser.LiteralContext):
         return super().visitLiteral(ctx)
 
-    def process_simd(self, lhs: str, op: Instruction, args: dict) -> dict:
-        output = ""
+    def process_simd(self, lhs: str, op: Instruction, args: dict) -> list:
+        output = []
+        inputs = []
+        outputs = []
 
+        if op == Instruction.SPLIT:
+            self.log.error("Not doing anything with split, right now.")
+            pass
+        elif op == Instruction.MIX:
+            """
+            If either of the inputs are globals, 
+            then we must build the dispense for it.
+            """
+            var = None
+            if args['args']['input'][0]['variable'].is_global:
+                var = args['args']['input'][0]['variable']
+            if args['args']['input'][1]['variable'].is_global:
+                var = args['args']['input'][1]['variable']
+
+            if var is not None:
+                for x in range(0, args['size']):
+                    id_outputs = list()
+                    # id_inputs.append(MFSimVarBuilder.build_input_with_volume(args['args']['inputs'][index])
+                    id_outputs.append(MFSimVarBuilder.build_variable_declaration("{}{}".format(var.name, x),
+                                                                                 "{}{}".format(var.name, x)))
+                    id_inputs = [MFSimVarBuilder.build_variable_declaration("{}{}".format(var.name, x),
+                                                                            "{}{}".format(var.name, x))]
+                    output.append(MFSimVarBuilder.build_operation("DISPENSE", 'getInstructionID()', 'DISPENSE',
+                                                                  id_inputs, []))
+            for x in range(0, args['size']):
+                output_name = "{}{}".format(lhs, x)
+                inputs = []
+                mix_output = MFSimVarBuilder.build_variable_declaration(output_name, output_name)
+                for v in args['args']['input']:
+                    # This is deepcopy, because we don't want to affect
+                    # the symbol table's representation of the variable.
+                    simd_var = copy.deepcopy(v['variable'])
+                    simd_var.name = "{}{}".format(simd_var.name, x)
+                    if simd_var.is_stationary:
+                        inputs.append(MFSimVarBuilder.build_stationary_input(simd_var))
+                    else:
+                        inputs.append(MFSimVarBuilder.build_input_with_volume(simd_var, v))
+                output.append(MFSimVarBuilder.build_operation('MIX', 'getInstructionID()', 'MIX', inputs, mix_output))
+        elif op == Instruction.HEAT:
+            # Heat is an independent statement.  Meaning it is resolved in the visitHeatStatement()
+            pass
+        elif op == Instruction.DETECT:
+            for x in range(0, args['size']):
+                inputs = list()
+                outputs = list()
+                simd_var = copy.deepcopy(args['variable'])
+                simd_var.name = "{}{}".format(simd_var.name, x)
+                if simd_var.is_stationary:
+                    inputs.append(MFSimVarBuilder.build_stationary_input(simd_var))
+                else:
+                    inputs.append(MFSimVarBuilder.build_general_input(simd_var))
+                outputs.append(MFSimVarBuilder.build_detect_output(lhs, lhs))
+                output.append(
+                    MFSimVarBuilder.build_operation("DETECT", 'getInstructionID()', 'DETECT', inputs, outputs))
+            pass
+        elif op == Instruction.METHOD:
+            self.log.critical("Alpha-convert this trash!")
+            pass
+        elif op == Instruction.DISPOSE:
+            # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
+            pass
+        elif op == Instruction.DISPENSE:
+            for x in range(0, args['size']):
+                name = '{}{}'.format(args['args']['input'], x)
+                dispense_input = MFSimVarBuilder.build_variable_declaration(name, name)
+                output.append(MFSimVarBuilder.build_operation("DISPENSE", 'getInstructionID()', "DISPENSE",
+                                                              [dispense_input], []))
         return output
 
     def process_sisd(self, lhs: str, op: Instruction, args: dict) -> dict:
@@ -258,23 +332,3 @@ class MFSimVisitor(TargetVisitor):
             output = MFSimVarBuilder.build_operation('DISPENSE', 'getInstructionID()', 'DISPENSE', inputs, outputs)
 
         return output
-
-    def stationary_variable(self, variable: Variable) -> dict:
-        output = dict()
-        output['INPUT_TYPE'] = 'VARIABLE'
-        output['STATIONARY'] = {'NAME': variable.name}
-        return output
-
-    def mobile_variable(self, variable: Variable, volume: dict) -> dict:
-        output = dict()
-        output['INPUT_TYPE'] = 'VARIABLE'
-        output['CHEMICAL'] = {'VARIABLE': {'NAME': variable.name}}
-        if 'quantity' in volume:
-            output['VOLUME'] = {'VALUE': volume['quantity'], 'UNITS': volume['units'].name}
-        return output
-
-    def build_property(self, property_type: str, values: dict) -> dict:
-        prop = dict()
-        prop['INPUT_TYPE'] = 'PROPERTY'
-        prop[property_type.upper()] = {'VALUE': values['quantity'], 'UNITS': values['units'].name}
-        return prop

@@ -295,7 +295,11 @@ class ClangVisitor(TargetVisitor):
             # Heat is an independent statement.  Meaning it is resolved in the visitHeatStatement()
             pass
         elif op == Instruction.DETECT:
-            pass
+            output += "std::vector<double> {};{}".format(lhs, self.nl)
+            for x in range(0, args['size']):
+                output += "{}.at({}) = detect({}, {}.at({}), {});{}".format(lhs, x, args['args']['module'].name,
+                                                                            args['args']['input'].name, x,
+                                                                            args['args']['time'].quantity, self.nl)
         elif op == Instruction.METHOD:
             output += "std::vector<mat> {} = {}({});".format(lhs, args['function'].name, args['args']['args'])
         elif op == Instruction.DISPOSE:
