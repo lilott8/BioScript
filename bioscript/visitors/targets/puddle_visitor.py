@@ -8,6 +8,7 @@ class PuddleVisitor(TargetVisitor):
     def __init__(self, symbol_table):
         super().__init__(symbol_table, "PuddleVisitor")
         self.tab_count = 0
+        self.tab = "\t"
 
     def increment_tab(self):
         self.tab += "\t"
@@ -29,13 +30,25 @@ class PuddleVisitor(TargetVisitor):
         output += 'arch_path = project_path("{}"){}'.format('PUT SOMETHING HERE', self.nl)
         output += 'with mk_session(arh_path) as session:{}'.format(self.nl)
 
-        self.compiled = output
+        output += "{}{}".format(self.tab, self.visitManifestDeclaration(ctx.manifestDeclaration()))
+
+        for i in ctx.statements():
+            output += self.visitStatements(i)
+
+        self.compiled = self.nl + output
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         return super().visitModuleDeclaration(ctx)
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
-        return super().visitManifestDeclaration(ctx)
+        output = ""
+        self.log.fatal(
+            "Start by adding https://github.com/uwmisl/puddle/blob/master/src/python/examples/thermocycle.py")
+        raise Exception
+        # for manifest in ctx.MANIFEST():
+        #     name = manifest.__str__()
+        #     output += '{} = session.input("{}", volume=1000000.0, dimensions=('.format(1,2,)
+        # return output
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
         return super().visitStationaryDeclaration(ctx)
@@ -59,22 +72,54 @@ class PuddleVisitor(TargetVisitor):
         return super().visitReturnStatement(ctx)
 
     def visitBlockStatement(self, ctx: BSParser.BlockStatementContext):
-        return super().visitBlockStatement(ctx)
+        output = ""
+        for x in ctx.statements():
+            output += "{}{}{}".format(self.tab, self.visitStatements(x), self.nl)
+        return output
 
     def visitStatements(self, ctx: BSParser.StatementsContext):
-        return super().visitStatements(ctx)
+        return self.visitChildren(ctx)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
         output = ""
+        # Build the if condition....
+        condition = self.visitParExpression(ctx.parExpression())
+        output += "{}if {}:{}".format(self.tab, condition, self.nl)
+        # Increment the tab
+        self.increment_tab()
+        # Visit the statements
+        output += self.visitBlockStatement(ctx.blockStatement(0))
+        self.decrement_tab()
 
+        if ctx.ELSE():
+            output += "{}else:{}".format(self.tab, self.nl)
+            self.increment_tab()
+            output += self.visitBlockStatement(ctx.blockStatement(1))
+            self.decrement_tab()
 
-        return super().visitIfStatement(ctx)
+        return output
 
     def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
-        return super().visitWhileStatement(ctx)
+        output = ""
+
+        condition = self.visitParExpression(ctx.parExpression())
+        output += "{}while {}:{}".format(self.tab, condition, self.nl)
+        self.increment_tab()
+        output += self.visitBlockStatement(ctx.blockStatement())
+        self.decrement_tab()
+
+        return output
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
-        return super().visitRepeat(ctx)
+        output = ""
+
+        value = int(ctx.INTEGER_LITERAL().__str__())
+        output += "{}while {}>0:{}".format(self.tab, value, self.nl)
+        self.increment_tab()
+        output += self.visitBlockStatement(ctx.blockStatement())
+        self.decrement_tab()
+
+        return output
 
     def visitMix(self, ctx: BSParser.MixContext):
         return super().visitMix(ctx)
@@ -94,35 +139,14 @@ class PuddleVisitor(TargetVisitor):
     def visitDispose(self, ctx: BSParser.DisposeContext):
         return super().visitDispose(ctx)
 
-    def visitExpression(self, ctx: BSParser.ExpressionContext):
-        return super().visitExpression(ctx)
-
     def visitParExpression(self, ctx: BSParser.ParExpressionContext):
-        return super().visitParExpression(ctx)
+        return "({})".format(self.visitExpression(ctx.expression()))
 
     def visitMethodCall(self, ctx: BSParser.MethodCallContext):
         return super().visitMethodCall(ctx)
 
     def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
         return super().visitExpressionList(ctx)
-
-    def visitTypeType(self, ctx: BSParser.TypeTypeContext):
-        return super().visitTypeType(ctx)
-
-    def visitUnionType(self, ctx: BSParser.UnionTypeContext):
-        return super().visitUnionType(ctx)
-
-    def visitTypesList(self, ctx: BSParser.TypesListContext):
-        return super().visitTypesList(ctx)
-
-    def visitPrimary(self, ctx: BSParser.PrimaryContext):
-        return super().visitPrimary(ctx)
-
-    def visitLiteral(self, ctx: BSParser.LiteralContext):
-        return super().visitLiteral(ctx)
-
-    def visitPrimitiveType(self, ctx: BSParser.PrimitiveTypeContext):
-        return super().visitPrimitiveType(ctx)
 
     def process_simd(self, lhs: str, op: Instruction, args: dict) -> dict:
         pass

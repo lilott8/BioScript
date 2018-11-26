@@ -1,0 +1,11 @@
+module mod
+manifest aaa
+manifest bbb
+
+functions:
+
+instructions:
+
+repeat 7 times {
+    a = dispense aaa
+}
