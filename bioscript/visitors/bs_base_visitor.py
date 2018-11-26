@@ -22,7 +22,6 @@ class BSBaseVisitor(BSParserVisitor):
         self.global_scope = "global"
         self.symbol_table = symbol_table
         self.nl = "\n"
-        self.tab = "\t"
         self.scope_stack = list()
         self.keywords = ("alignas", "alignof", "and", "and_eq", "asm", "atomic_cancel", "atomic_commit",
                          "atomic_noexcept", "auto", "bitand", "bitor", "bool", "break", "case", "catch", "char",

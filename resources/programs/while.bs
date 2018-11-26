@@ -1,0 +1,13 @@
+module mod
+manifest aaa
+manifest bbb
+
+functions:
+
+instructions:
+
+x = 7
+while (x > 0) {
+    a = dispense aaa
+    x = x - 1
+}
