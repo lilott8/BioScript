@@ -1,6 +1,8 @@
 from bioscript.visitors.targets.target_visitor import TargetVisitor
 from grammar.parsers.python.BSParser import BSParser
+from shared.bs_exceptions import *
 from shared.enums.instructions import Instruction
+from shared.enums.instructions import InstructionSet
 
 
 class PuddleVisitor(TargetVisitor):
@@ -9,6 +11,7 @@ class PuddleVisitor(TargetVisitor):
         super().__init__(symbol_table, "PuddleVisitor")
         self.tab_count = 0
         self.tab = "\t"
+        detectors = {'heat', 'volume'}
 
     def increment_tab(self):
         self.tab += "\t"
@@ -25,12 +28,14 @@ class PuddleVisitor(TargetVisitor):
             self.tab += "\t"
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
-        output = "from puddle import mk_session, project_path"
+        self.scope_stack.append("main")
+
+        output = "from puddle import mk_session, project_path {}".format(self.nl)
 
         output += 'arch_path = project_path("{}"){}'.format('PUT SOMETHING HERE', self.nl)
-        output += 'with mk_session(arh_path) as session:{}'.format(self.nl)
+        output += 'with mk_session(arch_path) as session:{}'.format(self.nl)
 
-        output += "{}{}".format(self.tab, self.visitManifestDeclaration(ctx.manifestDeclaration()))
+        # output += "{}".format(self.visitManifestDeclaration(ctx.manifestDeclaration()))
 
         for i in ctx.statements():
             output += self.visitStatements(i)
@@ -42,13 +47,11 @@ class PuddleVisitor(TargetVisitor):
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
         output = ""
-        self.log.fatal(
-            "Start by adding https://github.com/uwmisl/puddle/blob/master/src/python/examples/thermocycle.py")
-        raise Exception
-        # for manifest in ctx.MANIFEST():
-        #     name = manifest.__str__()
-        #     output += '{} = session.input("{}", volume=1000000.0, dimensions=('.format(1,2,)
-        # return output
+        for manifest in ctx.IDENTIFIER():
+            name = manifest.__str__()
+            output += '{}{} = session.input(location=(), volume=1000000.0, dimensions=(1,1)){}'.format(self.tab, name,
+                                                                                                       self.nl)
+        return output
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
         return super().visitStationaryDeclaration(ctx)
@@ -74,7 +77,7 @@ class PuddleVisitor(TargetVisitor):
     def visitBlockStatement(self, ctx: BSParser.BlockStatementContext):
         output = ""
         for x in ctx.statements():
-            output += "{}{}{}".format(self.tab, self.visitStatements(x), self.nl)
+            output += "{}{}".format(self.visitStatements(x), self.nl)
         return output
 
     def visitStatements(self, ctx: BSParser.StatementsContext):
@@ -121,23 +124,50 @@ class PuddleVisitor(TargetVisitor):
 
         return output
 
-    def visitMix(self, ctx: BSParser.MixContext):
-        return super().visitMix(ctx)
-
-    def visitDetect(self, ctx: BSParser.DetectContext):
-        return super().visitDetect(ctx)
-
     def visitHeat(self, ctx: BSParser.HeatContext):
-        return super().visitHeat(ctx)
+        variable = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__())
+        temp = self.visitTemperatureIdentifier(ctx.temperatureIdentifier())
+        time = self.visitTimeIdentifier(ctx.timeIdentifier())
 
-    def visitSplit(self, ctx: BSParser.SplitContext):
-        return super().visitSplit(ctx)
-
-    def visitDispense(self, ctx: BSParser.DispenseContext):
-        return super().visitDispense(ctx)
+        output = ""
+        if variable.size > 1:
+            """
+            This is a SIMD operation.
+            """
+            for x in range(0, variable.size):
+                inputs = []
+                outputs = []
+                # name = "{}{}".format(variable.name, x)
+                # inputs.append(MFSimVarBuilder.build_general_input(Variable(name, set())))
+                # inputs.append(MFSimVarBuilder.build_temperature_property(temp['quantity'], temp['units']))
+                # # Add time property.
+                # if ctx.timeIdentifier():
+                #     inputs.append(MFSimVarBuilder.build_time_property(time['quantity'], time['units']))
+                # output.append(MFSimVarBuilder.build_operation('HEAT', 'getInstructionId()', 'HEAT', inputs, outputs))
+        else:
+            """
+            This is not a SIMD operation.
+            """
+            output += "{}{} = session.heat({},temp={},seconds={})".format(
+                self.tab, variable.name, variable.name, temp['quantity'], time['quantity'])
+            self.log.info(output)
+        return output
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
-        return super().visitDispose(ctx)
+        variable = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__())
+        output = ""
+        if variable.size > 1:
+            """
+            This is a SIMD operation.
+            """
+            for x in range(0, variable.size):
+                output += "{}output({}{})".format(self.tab, variable.name, x)
+        else:
+            """
+            This is not a SIMD operation.
+            """
+            output += "{}output({})".format(self.tab, variable.name)
+        return output
 
     def visitParExpression(self, ctx: BSParser.ParExpressionContext):
         return "({})".format(self.visitExpression(ctx.expression()))
@@ -148,8 +178,85 @@ class PuddleVisitor(TargetVisitor):
     def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
         return super().visitExpressionList(ctx)
 
+    def visitVariableDeclaration(self, ctx: BSParser.VariableDeclarationContext):
+        return self.visitChildren(ctx)
+
+    def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
+        name = ctx.IDENTIFIER().__str__()
+        # Get the inputs...
+        op = self.visitChildren(ctx)
+
+        output = ""
+        if 'instruction' in op:
+            if op['instruction'] not in InstructionSet.instructions:
+                raise InvalidOperation("Unknown instruction: {}".format(op['op'].name))
+            if op['instruction'] == Instruction.DISPENSE:
+                """
+                This has to happen here; a = dispense bbb will always give us a size = 1 and is_simd = False.
+                This is because in the visitDispenseStatement() parsing, the variable that will determine
+                is_simd will be 'bbb', a global variable of size = 1.  Thus is_simd will always be False.
+                In order for Dispense to know if it's a SIMD operation, we must know to what variable
+                the dispense is occurring -- as that will tell us if it's a SIMD operation or not.
+                """
+                op['is_simd'] = True if self.symbol_table.get_variable(name).size > 1 else False
+                op['size'] = self.symbol_table.get_variable(name).size
+            if op['is_simd']:
+                output = self.process_simd(name, op['instruction'], op)
+            else:
+                output = self.process_sisd(name, op['instruction'], op)
+        else:
+            output += "{}{} = {}".format(self.tab, name, op)
+        return output + self.nl
+
     def process_simd(self, lhs: str, op: Instruction, args: dict) -> dict:
-        pass
+        output = ""
+        self.log.info(args)
+
+        if op == Instruction.SPLIT:
+            pass
+        elif op == Instruction.MIX:
+            pass
+        elif op == Instruction.HEAT:
+            pass
+        elif op == Instruction.DETECT:
+            pass
+        elif op == Instruction.METHOD:
+            pass
+        elif op == Instruction.DISPOSE:
+            pass
+        elif op == Instruction.DISPENSE:
+            for x in range(0, args['size']):
+                name = '{}_{}'.format(lhs, x)
+                output += '{}{} = session.input({}, location=(), volume=1000000.0, dimensions=(1,1)){}'.format(
+                    self.tab, name, args['args']['input'], self.nl)
+        return output
 
     def process_sisd(self, lhs: str, op: Instruction, args: dict) -> dict:
-        pass
+        output = ""
+        if op == Instruction.SPLIT:
+            output += "std::vector<mat> {} = split({}, {});".format(
+                lhs, args['args']['input'], args['args']['quantity'])
+        elif op == Instruction.MIX:
+            mixes = ""
+            for x in args['args']['input']:
+                mixes += "{}, ".format(x['variable'].name)
+            # Note the comma between ({} {}) is appended to the first {}!
+            output += "{}{} = mix({})".format(self.tab, lhs, mixes[:-1])
+        elif op == Instruction.HEAT:
+            # Heat is an independent statement.  Meaning it is resolved in the visitHeatStatement()
+            pass
+        elif op == Instruction.DETECT:
+            # args['args']['time']['quantity'] is the time component.
+            output += "{}{} = detect({}, {})".format(
+                self.tab, lhs, args['args']['module'], args['args']['input'])
+        elif op == Instruction.METHOD:
+            output += "{}{} = {}({});".format(self.tab, lhs, args['function'].name,
+                                              args['args']['args'])
+            raise InvalidOperation("Not implemented yet")
+        elif op == Instruction.DISPOSE:
+            # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
+            pass
+        elif op == Instruction.DISPENSE:
+            output += "{}{} = sessions.input({}, volume={})".format(
+                self.tab, lhs, args['args']['input'], args['args']['quantity'])
+        return output

@@ -206,8 +206,6 @@ class MFSimVisitor(TargetVisitor):
 
     def process_simd(self, lhs: str, op: Instruction, args: dict) -> list:
         output = []
-        inputs = []
-        outputs = []
 
         if op == Instruction.SPLIT:
             self.log.error("Not doing anything with split, right now.")
@@ -280,6 +278,7 @@ class MFSimVisitor(TargetVisitor):
 
     def process_sisd(self, lhs: str, op: Instruction, args: dict) -> dict:
         inputs = []
+        # A variable that is marked for deletion.
         outputs = []
         output = dict()
 
