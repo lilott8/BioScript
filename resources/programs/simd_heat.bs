@@ -9,6 +9,6 @@ instructions:
 
 a = dispense aaa
 
-b = split a into 4
+b = split a into 8
 
 heat b at 45c
