@@ -135,6 +135,8 @@ class PuddleVisitor(TargetVisitor):
             This is a SIMD operation.
             """
             for x in range(0, variable.size):
+                output += "{}{}{} = heat({}{}, {})".format(
+                    self.tab, variable.name, x, variable.name, x, temp['quantity'])
                 inputs = []
                 outputs = []
                 # name = "{}{}".format(variable.name, x)
@@ -234,8 +236,9 @@ class PuddleVisitor(TargetVisitor):
     def process_sisd(self, lhs: str, op: Instruction, args: dict) -> dict:
         output = ""
         if op == Instruction.SPLIT:
-            output += "std::vector<mat> {} = split({}, {});".format(
-                lhs, args['args']['input'], args['args']['quantity'])
+            output += self.build_split(lhs, args['args']['input'], args['args']['quantity'])
+            #output += "std::vector<mat> {} = split({}, {});".format(
+            #    lhs, args['args']['input'], args['args']['quantity'])
         elif op == Instruction.MIX:
             mixes = ""
             for x in args['args']['input']:
@@ -260,3 +263,16 @@ class PuddleVisitor(TargetVisitor):
             output += "{}{} = sessions.input({}, volume={})".format(
                 self.tab, lhs, args['args']['input'], args['args']['quantity'])
         return output
+
+    def build_split(self, lhs: str, operand: str, size: int)-> str:
+        if size == 2:
+            pass
+        else:
+            return self.build_split_recursive(lhs, 1, size)
+
+    def build_split_recursive(self, lhs, count, max):
+        output = "{}{}{}, {} = split({})".format(self.tab, lhs, count, count*2, lhs)
+        if count < max:
+            self.build_split_recursive(lhs, count*2, max)
+        return output
+
