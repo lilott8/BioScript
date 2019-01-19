@@ -3,6 +3,7 @@ from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import *
 from shared.enums.instructions import Instruction
 from shared.enums.instructions import InstructionSet
+from shared.tree_node import TreeNode
 
 
 class PuddleVisitor(TargetVisitor):
@@ -264,15 +265,54 @@ class PuddleVisitor(TargetVisitor):
                 self.tab, lhs, args['args']['input'], args['args']['quantity'])
         return output
 
-    def build_split(self, lhs: str, operand: str, size: int)-> str:
-        if size == 2:
-            pass
-        else:
-            return self.build_split_recursive(lhs, 1, size)
+    def build_split(self, output, input_var, size):
+        quantity = PuddleVisitor.get_exponent(size)
+        node = TreeNode(-1)
+        for x in PuddleVisitor.build_tree(node, quantity):
+            self.log.fatal("Start here.")
+            self.log.warn(x)
 
-    def build_split_recursive(self, lhs, count, max):
-        output = "{}{}{}, {} = split({})".format(self.tab, lhs, count, count*2, lhs)
-        if count < max:
-            self.build_split_recursive(lhs, count*2, max)
-        return output
+        return ""
 
+    @staticmethod
+    def build_tree(root: TreeNode, quantity: int):
+        x = 1
+        queue = [root]
+        while x <= quantity:
+            if queue[0].left is not None and queue[0].right is not None:
+                queue.pop(0)
+            node = TreeNode(x)
+            if x % 2 == 0:
+                queue[0].right = node
+            else:
+                queue[0].left = node
+            queue.append(node)
+            x += 1
+        return PuddleVisitor.build_splits(root)
+
+    @staticmethod
+    def build_splits(root: TreeNode) -> list:
+        queue = [root]
+        splits = list()
+        while queue:
+            current = queue.pop(0)
+            if current.left and current.right:
+                splits.append({'input': current.value, 'output': [current.left.value, current.right.value]})
+
+            if current.left:
+                queue.append(current.left)
+            if current.right:
+                queue.append(current.right)
+
+        return splits
+
+    @staticmethod
+    def get_exponent(a: int) -> int:
+        x = 1
+        count = 0
+        total = 0
+        while x < a:
+            x *= 2
+            count += 1
+            total += x
+        return total
