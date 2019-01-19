@@ -6,4 +6,4 @@ functions:
 
 instructions:
 
-pass1 = split aaa into 4
+pass1 = split aaa into 8
