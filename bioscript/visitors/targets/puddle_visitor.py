@@ -11,8 +11,7 @@ class PuddleVisitor(TargetVisitor):
     def __init__(self, symbol_table):
         super().__init__(symbol_table, "PuddleVisitor")
         self.tab_count = 0
-        self.tab = "\t"
-        detectors = {'heat', 'volume'}
+        self.tab = ""
 
     def increment_tab(self):
         self.tab += "\t"
@@ -32,6 +31,11 @@ class PuddleVisitor(TargetVisitor):
         self.scope_stack.append("main")
 
         output = "from puddle import mk_session, project_path {}".format(self.nl)
+
+        if ctx.functionDeclaration():
+            output += self.nl
+        for func in ctx.functionDeclaration():
+            output += "{}{}".format(self.visitFunctionDeclaration(func), self.nl)
 
         output += 'arch_path = project_path("{}"){}'.format('PUT SOMETHING HERE', self.nl)
         output += 'with mk_session(arch_path) as session:{}'.format(self.nl)
@@ -58,7 +62,29 @@ class PuddleVisitor(TargetVisitor):
         return super().visitStationaryDeclaration(ctx)
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
-        return super().visitFunctionDeclaration(ctx)
+        name = ctx.IDENTIFIER().__str__()
+        func = self.symbol_table.functions[name]
+        output = ""
+
+        self.scope_stack.append(name)
+
+        output += "{}def {} (".format(self.tab, name)
+        if func.args:
+            for arg in func.args:
+                output += "{}, ".format(arg.name)
+            output = output[:-2]
+        output += "):{}".format(self.nl)
+
+        self.increment_tab()
+        for statement in ctx.statements():
+            output += "{}{} {}".format(self.tab, self.visitStatements(statement), self.nl)
+
+        output += "{}return {}{}".format(self.tab, self.visitReturnStatement(ctx.returnStatement()), self.nl)
+        self.decrement_tab()
+
+        self.add(output)
+        self.scope_stack.pop()
+        return output
 
     def visitFormalParameters(self, ctx: BSParser.FormalParametersContext):
         return super().visitFormalParameters(ctx)
@@ -254,15 +280,16 @@ class PuddleVisitor(TargetVisitor):
             output += "{}{} = detect({}, {})".format(
                 self.tab, lhs, args['args']['module'], args['args']['input'])
         elif op == Instruction.METHOD:
-            output += "{}{} = {}({});".format(self.tab, lhs, args['function'].name,
-                                              args['args']['args'])
-            raise InvalidOperation("Not implemented yet")
+            output += "{}{} = {}({}){}".format(self.tab, lhs, args['function'].name,
+                                               args['args']['args'], self.nl)
+            # raise InvalidOperation("Not implemented yet")
         elif op == Instruction.DISPOSE:
             # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
             pass
         elif op == Instruction.DISPENSE:
             output += "{}{} = sessions.input({}, volume={})".format(
                 self.tab, lhs, args['args']['input'], args['args']['quantity'])
+        output += "{}session._flush(){}".format(self.tab, self.nl)
         return output
 
     def build_split(self, output_var, input_var, size):
@@ -280,7 +307,8 @@ class PuddleVisitor(TargetVisitor):
                 output_a = "{}_{}".format(output_var, nodes[x]['output'][0])
                 output_b = "{}_{}".format(output_var, nodes[x]['output'][1])
             output += "{}({},{}) = sessions.split({}){}".format(self.tab, output_a, output_b, previous_input, self.nl)
-            output += "{}session._flush(){}".format(self.tab, self.nl)
+            if x < len(nodes) - 1:
+                output += "{}session._flush(){}".format(self.tab, self.nl)
         return output
 
     @staticmethod
