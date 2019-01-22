@@ -1,7 +1,4 @@
 import copy
-import json
-
-import pyperclip
 
 from bioscript.builders.mfsim_builder import MFSimVarBuilder
 from bioscript.visitors.targets.target_visitor import TargetVisitor
@@ -48,7 +45,7 @@ class MFSimVisitor(TargetVisitor):
                 self.compiled['EXPERIMENT']['INSTRUCTIONS'].append(instructions)
 
         self.log.warning("You are copying things to the clipboard")
-        pyperclip.copy(json.dumps(self.compiled))
+        # pyperclip.copy(json.dumps(self.compiled))
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         output = []
