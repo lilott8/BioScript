@@ -234,7 +234,7 @@ class PuddleVisitor(TargetVisitor):
                     self.tab, name, args['args']['input'], self.nl)
         return output
 
-    def process_sisd(self, lhs: str, op: Instruction, args: dict) -> dict:
+    def process_sisd(self, lhs: str, op: Instruction, args: dict) -> str:
         output = ""
         if op == Instruction.SPLIT:
             output += self.build_split(lhs, args['args']['input'], args['args']['quantity'])
@@ -265,14 +265,23 @@ class PuddleVisitor(TargetVisitor):
                 self.tab, lhs, args['args']['input'], args['args']['quantity'])
         return output
 
-    def build_split(self, output, input_var, size):
+    def build_split(self, output_var, input_var, size):
+        output = ""
         quantity = PuddleVisitor.get_exponent(size)
         node = TreeNode(-1)
-        for x in PuddleVisitor.build_tree(node, quantity):
-            self.log.fatal("Start here.")
-            self.log.warn(x)
-
-        return ""
+        nodes = PuddleVisitor.build_tree(node, quantity)
+        for x in range(0, len(nodes)):
+            previous_input = input_var
+            if x == 0:
+                output_a = "{}_{}".format(output_var, 1)
+                output_b = "{}_{}".format(output_var, 2)
+            else:
+                previous_input = "{}_{}".format(output_var, nodes[x]['input'])
+                output_a = "{}_{}".format(output_var, nodes[x]['output'][0])
+                output_b = "{}_{}".format(output_var, nodes[x]['output'][1])
+            output += "{}({},{}) = sessions.split({}){}".format(self.tab, output_a, output_b, previous_input, self.nl)
+            output += "{}session._flush(){}".format(self.tab, self.nl)
+        return output
 
     @staticmethod
     def build_tree(root: TreeNode, quantity: int):
