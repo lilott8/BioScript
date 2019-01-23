@@ -54,7 +54,7 @@ class Config(object):
         if Config.__instance is not None:
             raise Exception('This is a singleton.')
         else:
-            self.log.warning(args)
+            # self.log.warning(args)
             self.debug = args.debug
             self.llvm = args.llvm
             self.path = args.path
@@ -65,7 +65,7 @@ class Config(object):
             self.input = args.input
             # Converts: /path/to/bioscript.bs => bioscript
             self.input_file = args.input.split("/")[-1].split(".")[0]
-            self.log.info(self.input_file)
+            # self.log.info(self.input_file)
             self.db['name'] = args.dbname
             self.db['user'] = args.dbuser
             self.db['pass'] = args.dbpass

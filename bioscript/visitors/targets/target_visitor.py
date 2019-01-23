@@ -134,7 +134,7 @@ class TargetVisitor(BSBaseVisitor):
                 op = "=="
             elif ctx.GT():
                 op = ">"
-            elif ctx.GTE:
+            elif ctx.GTE():
                 op = ">="
             elif ctx.LT():
                 op = "<"
@@ -165,7 +165,7 @@ class TargetVisitor(BSBaseVisitor):
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         if ctx.IDENTIFIER():
-            if not self.symbol_table.get_variable(ctx.IDENTIFIER().__str__()):
+            if not self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1]):
                 raise UndefinedException("Undeclared variable: {}".format(ctx.IDENTIFIER().__str__()))
             return ctx.IDENTIFIER().__str__()
         elif ctx.literal():
