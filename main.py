@@ -14,7 +14,7 @@ from shared.enums.config_flags import Problem
 
 def main(args):
     cli = Cli(args)
-    logging.warning("Hello, world")
+    # logging.warning("Hello, world")
     config = Config.getInstance(None)
 
     if config.problem == Problem.BIOSCRIPT:

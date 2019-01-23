@@ -34,8 +34,8 @@ class PuddleVisitor(TargetVisitor):
 
         if ctx.functionDeclaration():
             output += self.nl
-        for func in ctx.functionDeclaration():
-            output += "{}{}".format(self.visitFunctionDeclaration(func), self.nl)
+            for func in ctx.functionDeclaration():
+                output += "{}{}{}".format(self.visitFunctionDeclaration(func), self.nl, self.nl)
 
         output += 'arch_path = project_path("{}"){}'.format('PUT SOMETHING HERE', self.nl)
         output += 'with mk_session(arch_path) as session:{}'.format(self.nl)
@@ -77,7 +77,7 @@ class PuddleVisitor(TargetVisitor):
 
         self.increment_tab()
         for statement in ctx.statements():
-            output += "{}{} {}".format(self.tab, self.visitStatements(statement), self.nl)
+            output += self.visitStatements(statement)
 
         output += "{}return {}{}".format(self.tab, self.visitReturnStatement(ctx.returnStatement()), self.nl)
         self.decrement_tab()
@@ -104,17 +104,18 @@ class PuddleVisitor(TargetVisitor):
     def visitBlockStatement(self, ctx: BSParser.BlockStatementContext):
         output = ""
         for x in ctx.statements():
-            output += "{}{}".format(self.visitStatements(x), self.nl)
+            output += self.visitStatements(x)
+            output += "{}session._flush(){}".format(self.tab, self.nl)
         return output
 
     def visitStatements(self, ctx: BSParser.StatementsContext):
-        return self.visitChildren(ctx)
+        return "{}{}{}".format(self.tab, self.visitChildren(ctx), self.nl)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
         output = ""
         # Build the if condition....
         condition = self.visitParExpression(ctx.parExpression())
-        output += "{}if {}:{}".format(self.tab, condition, self.nl)
+        output += "if {}:{}".format(condition, self.nl)
         # Increment the tab
         self.increment_tab()
         # Visit the statements
@@ -162,8 +163,8 @@ class PuddleVisitor(TargetVisitor):
             This is a SIMD operation.
             """
             for x in range(0, variable.size):
-                output += "{}{}{} = heat({}{}, {})".format(
-                    self.tab, variable.name, x, variable.name, x, temp['quantity'])
+                output += "{}{} = session.heat({}{}, {})".format(
+                    variable.name, x, variable.name, x, temp['quantity'])
                 inputs = []
                 outputs = []
                 # name = "{}{}".format(variable.name, x)
@@ -177,8 +178,8 @@ class PuddleVisitor(TargetVisitor):
             """
             This is not a SIMD operation.
             """
-            output += "{}{} = session.heat({},temp={},seconds={})".format(
-                self.tab, variable.name, variable.name, temp['quantity'], time['quantity'])
+            output += "{} = session.heat({},temp={},seconds={})".format(
+                variable.name, variable.name, temp['quantity'], time['quantity'])
             self.log.info(output)
         return output
 
@@ -190,12 +191,12 @@ class PuddleVisitor(TargetVisitor):
             This is a SIMD operation.
             """
             for x in range(0, variable.size):
-                output += "{}output({}{})".format(self.tab, variable.name, x)
+                output += "output({}{})".format(variable.name, x)
         else:
             """
             This is not a SIMD operation.
             """
-            output += "{}output({})".format(self.tab, variable.name)
+            output += "output({})".format(variable.name)
         return output
 
     def visitParExpression(self, ctx: BSParser.ParExpressionContext):
@@ -235,7 +236,7 @@ class PuddleVisitor(TargetVisitor):
                 output = self.process_sisd(name, op['instruction'], op)
         else:
             output += "{}{} = {}".format(self.tab, name, op)
-        return output + self.nl
+        return output
 
     def process_simd(self, lhs: str, op: Instruction, args: dict) -> dict:
         output = ""
@@ -256,8 +257,8 @@ class PuddleVisitor(TargetVisitor):
         elif op == Instruction.DISPENSE:
             for x in range(0, args['size']):
                 name = '{}_{}'.format(lhs, x)
-                output += '{}{} = session.input({}, location=(), volume=1000000.0, dimensions=(1,1)){}'.format(
-                    self.tab, name, args['args']['input'], self.nl)
+                output += '{} = session.input({}, location=(), volume=1000000.0, dimensions=(1,1))'.format(
+                    name, args['args']['input'])
         return output
 
     def process_sisd(self, lhs: str, op: Instruction, args: dict) -> str:
@@ -271,25 +272,24 @@ class PuddleVisitor(TargetVisitor):
             for x in args['args']['input']:
                 mixes += "{}, ".format(x['variable'].name)
             # Note the comma between ({} {}) is appended to the first {}!
-            output += "{}{} = mix({})".format(self.tab, lhs, mixes[:-1])
+            output += "{} = mix({})".format(lhs, mixes[:-2])
         elif op == Instruction.HEAT:
             # Heat is an independent statement.  Meaning it is resolved in the visitHeatStatement()
             pass
         elif op == Instruction.DETECT:
             # args['args']['time']['quantity'] is the time component.
-            output += "{}{} = detect({}, {})".format(
-                self.tab, lhs, args['args']['module'], args['args']['input'])
+            output += "{} = detect({}, {})".format(
+                lhs, args['args']['module'], args['args']['input'])
         elif op == Instruction.METHOD:
-            output += "{}{} = {}({}){}".format(self.tab, lhs, args['function'].name,
-                                               args['args']['args'], self.nl)
+            output += "{} = {}({})".format(lhs, args['function'].name, args['args']['args'])
             # raise InvalidOperation("Not implemented yet")
         elif op == Instruction.DISPOSE:
             # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
             pass
         elif op == Instruction.DISPENSE:
-            output += "{}{} = sessions.input({}, volume={})".format(
-                self.tab, lhs, args['args']['input'], args['args']['quantity'])
-        output += "{}session._flush(){}".format(self.tab, self.nl)
+            output += "{} = sessions.input({}, volume={})".format(
+                lhs, args['args']['input'], args['args']['quantity'])
+        # output += "session._flush(){}".format(self.nl)
         return output
 
     def build_split(self, output_var, input_var, size):
@@ -306,9 +306,9 @@ class PuddleVisitor(TargetVisitor):
                 previous_input = "{}_{}".format(output_var, nodes[x]['input'])
                 output_a = "{}_{}".format(output_var, nodes[x]['output'][0])
                 output_b = "{}_{}".format(output_var, nodes[x]['output'][1])
-            output += "{}({},{}) = sessions.split({}){}".format(self.tab, output_a, output_b, previous_input, self.nl)
-            if x < len(nodes) - 1:
-                output += "{}session._flush(){}".format(self.tab, self.nl)
+            output += "({},{}) = sessions.split({})".format(output_a, output_b, previous_input)
+            # if x < len(nodes) - 1:
+            #     output += "{}session._flush(){}".format(self.nl)
         return output
 
     @staticmethod
