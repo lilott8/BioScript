@@ -245,7 +245,31 @@ class PuddleVisitor(TargetVisitor):
         if op == Instruction.SPLIT:
             pass
         elif op == Instruction.MIX:
-            pass
+            mixes = "{} = list(){}".format(lhs, self.nl)
+            dispenses = ""
+            input_1 = args['args']['input'][0]['variable']
+            input_2 = args['args']['input'][1]['variable']
+            """
+            Only one of the variables will be a global.  
+            If no variables are global, then both must be arrays.
+            If they aren't then it would be a sisd-instruction.
+            """
+            if input_1.is_global:
+                for x in range(0, args['size']):
+                    dispenses += self.get_input("{}_{}".format(input_1.name, x), input_1.name, 10.0)
+                    mixes += "{}.append(session.mix({}[{}], {}_{})){}".format(lhs, input_2.name, x, input_1.name, x,
+                                                                              self.nl)
+            elif input_2.is_global:
+                for x in range(0, args['size']):
+                    dispenses += self.get_input("{}_{}".format(input_2.name, x), input_2.name, 10.0)
+                    mixes += "{}.append(session.mix({}[{}], {}_{})){}".format(lhs, input_1.name, x, input_2.name, x,
+                                                                              self.nl)
+            else:
+                for x in range(0, args['size']):
+                    mixes += "{}.append(session.mix({}[{}], {}[{}])){}".format(lhs, input_1.name, x, input_2.name, x,
+                                                                               self.nl)
+            output += dispenses
+            output += mixes
         elif op == Instruction.HEAT:
             pass
         elif op == Instruction.DETECT:
@@ -287,28 +311,40 @@ class PuddleVisitor(TargetVisitor):
             # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
             pass
         elif op == Instruction.DISPENSE:
-            output += "{} = sessions.input({}, volume={})".format(
-                lhs, args['args']['input'], args['args']['quantity'])
+            output += self.get_input(lhs, args['args']['input'], args['args']['quantity'])
         # output += "session._flush(){}".format(self.nl)
         return output
 
     def build_split(self, output_var, input_var, size):
-        output = ""
+        output = "{} = list(){}".format(output_var, self.nl)
         quantity = PuddleVisitor.get_exponent(size)
         node = TreeNode(-1)
-        nodes = PuddleVisitor.build_tree(node, quantity)
+        nodes = PuddleVisitor.build_tree(node, quantity['quantity'])
         for x in range(0, len(nodes)):
             previous_input = input_var
             if x == 0:
+                """
+                This handles the initial split.
+                """
                 output_a = "{}_{}".format(output_var, 1)
                 output_b = "{}_{}".format(output_var, 2)
+                output += "({},{}) = sessions.split({}){}".format(output_a, output_b, previous_input, self.nl)
             else:
+                """
+                These are the intermediary levels of the tree (1-(n-1)).
+                """
                 previous_input = "{}_{}".format(output_var, nodes[x]['input'])
                 output_a = "{}_{}".format(output_var, nodes[x]['output'][0])
                 output_b = "{}_{}".format(output_var, nodes[x]['output'][1])
-            output += "({},{}) = sessions.split({})".format(output_a, output_b, previous_input)
-            # if x < len(nodes) - 1:
-            #     output += "{}session._flush(){}".format(self.nl)
+                output += "({},{}) = sessions.split({}){}".format(output_a, output_b, previous_input, self.nl)
+
+            if (x == (len(nodes) - quantity['exponent']) - 1 and len(nodes) > 3) or x >= len(nodes) - quantity[
+                'exponent']:
+                """
+                Only append the last level of the tree to the list.
+                """
+                output += "{}.append({}){}".format(output_var, output_a, self.nl)
+                output += "{}.append({}){}".format(output_var, output_b, self.nl)
         return output
 
     @staticmethod
@@ -344,7 +380,7 @@ class PuddleVisitor(TargetVisitor):
         return splits
 
     @staticmethod
-    def get_exponent(a: int) -> int:
+    def get_exponent(a: int) -> dict:
         x = 1
         count = 0
         total = 0
@@ -352,4 +388,7 @@ class PuddleVisitor(TargetVisitor):
             x *= 2
             count += 1
             total += x
-        return total
+        return {"exponent": count, "quantity": total}
+
+    def get_input(self, out_var: str, in_var: str, volume: float = 10.0) -> str:
+        return "{} = session.input({}, volume={}){}".format(out_var, in_var, volume, self.nl)
