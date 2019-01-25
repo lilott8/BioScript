@@ -8,9 +8,5 @@ functions:
 instructions:
 
 a = dispense aaa
-b = dispense bbb
-
-c = split a into 8
-d = split b into 8
-
-e = mix c with d
+b = split a into 8
+c = mix aaa with b
