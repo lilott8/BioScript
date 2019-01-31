@@ -40,4 +40,5 @@ class Target(IntFlag):
     LLVM_IR = 1
     MFSIM = 2
     PUDDLE = 4
-    INKWELL = 8
+    CONTINUOUS = 8
+    CONTROL = 16
