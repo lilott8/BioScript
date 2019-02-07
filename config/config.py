@@ -104,10 +104,8 @@ class Config(object):
                     self.target = Target.MFSIM
                     self.supports_functions = True
                     self.supports_nesting = True
-                elif args.target.lower() == "cc" or args.target.lower() == "continuous":
-                    self.target = Target.CONTINUOUS
-                elif args.target.lower() == "cf" or args.target.lower() == "control":
-                    self.target = Target.CONTROL
+                elif args.target.lower() == 'i' or args.target.lower() == 'inkwell':
+                    self.target = Target.INKWELL
                     self.supports_functions = True
                 elif args.target.lower() == "p" or args.target.lower() == "puddle":
                     self.target = Target.PUDDLE

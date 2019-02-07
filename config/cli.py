@@ -35,15 +35,14 @@ class Cli(object):
         problem_group.add_argument('-m', '--mix', help='Is this a mixing problem?', action='store_true', default=False)
         problem_group.add_argument('-b', '--bioscript', help='Compile a BioScript program.', action='store_true',
                                    default=True)
-        problem_group.add_argument('-ink', '--inkwell', help='Run inkwell required optimizations', action='store_true')
 
         """
         Generic Parser Arguments
         """
         parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', default=False)
         parser.add_argument('-t', '--target', help='Platforms to target.', type=str,
-                            default='mfsim', choices={'llvm', 'mfsim', 'puddle', 'continuous', 'control',
-                                                      'l', 'm', 'p', 'cf', 'cc'})
+                            default='mfsim', choices={'llvm', 'mfsim', 'puddle', 'inkwell',
+                                                      'l', 'm', 'p', 'i'})
         parser.add_argument('-p', '--path', help="Working path.", default="./", type=str)
 
         chemistry = parser.add_argument_group('chemistry', 'Chemistry specific arguments')
