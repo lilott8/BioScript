@@ -8,7 +8,7 @@ from .bs_base_visitor import BSBaseVisitor
 class SymbolTableVisitor(BSBaseVisitor):
 
     def __init__(self, symbol_table):
-        super().__init__(symbol_table)
+        super().__init__(symbol_table, "Symbol Visitor")
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         # Visiting globals is done in global_visitor.
