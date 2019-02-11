@@ -1,0 +1,18 @@
+module mod
+manifest aaa
+manifest bbb
+
+functions:
+
+function foo() {
+    a = bar()
+    return 1
+}
+
+function bar() {
+    return 2
+}
+
+instructions:
+
+c = foo()

@@ -6,7 +6,7 @@ from shared.variable import *
 class GlobalVariableVisitor(BSBaseVisitor):
 
     def __init__(self, symbol_table):
-        super().__init__(symbol_table)
+        super().__init__(symbol_table, "Global Visitor")
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.visitModuleDeclaration(ctx.moduleDeclaration())

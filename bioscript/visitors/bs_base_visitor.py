@@ -11,10 +11,11 @@ from shared.helpers import *
 
 class BSBaseVisitor(BSParserVisitor):
 
-    def __init__(self, symbol_table):
+    def __init__(self, symbol_table, name="BaseVisitor"):
         super().__init__()
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.config = Config.getInstance(None)
+        self.visitor_name = name
         # The identifier to use.
         self.identifier = get_identifier(self.config.identify)
         # The combiner to use.

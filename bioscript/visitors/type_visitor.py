@@ -14,7 +14,7 @@ class TypeCheckVisitor(BSBaseVisitor):
     def __init__(self, symbol_table):
         # We deep copy symbol table because we don't
         # want to affect change on the created one.
-        super().__init__(copy.deepcopy(symbol_table))
+        super().__init__(copy.deepcopy(symbol_table), "Type Visitor")
         self.check = self.config.typecheck
         self.smt_string = ""
         self.build_declares()

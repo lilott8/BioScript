@@ -11,8 +11,8 @@ from shared.variable import Variable
 
 class MFSimVisitor(TargetVisitor):
 
-    def __init__(self, symbol_table):
-        super().__init__(symbol_table, "MFSimVisitor")
+    def __init__(self, symbol_table, name="MFSimVisitor"):
+        super().__init__(symbol_table, name)
         self.open = "{"
         self.close = "}"
         self.compiled = {}

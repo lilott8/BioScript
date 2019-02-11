@@ -41,7 +41,8 @@ class Cli(object):
         """
         parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', default=False)
         parser.add_argument('-t', '--target', help='Platforms to target.', type=str,
-                            default='llvm', choices={'llvm', 'mfsim', 'puddle', 'inkwell', 'l', 'm', 'p', 'i'})
+                            default='mfsim', choices={'llvm', 'mfsim', 'puddle', 'inkwell',
+                                                      'l', 'm', 'p', 'i'})
         parser.add_argument('-p', '--path', help="Working path.", default="./", type=str)
 
         chemistry = parser.add_argument_group('chemistry', 'Chemistry specific arguments')

@@ -48,8 +48,9 @@ class Config(object):
         # What is the problem that is being solved.
         self.problem = None
         self.path = "./"
-        self.supports_functions = True
+        self.supports_functions = False
         self.supports_recursion = False
+        self.supports_nesting = False
 
         if Config.__instance is not None:
             raise Exception('This is a singleton.')
@@ -94,18 +95,23 @@ class Config(object):
                 self.typecheck = TypeChecker.NAIVE
 
             if args.target is not None:
+                """
+                The support_* flags are defaulted above,
+                so we just toggle the necessary flags when
+                necessary.
+                """
                 if args.target.lower() == "m" or args.target.lower() == "mfsim":
                     self.target = Target.MFSIM
                     self.supports_functions = True
-                    self.supports_recursion = False
-                elif args.target.lower() == "i" or args.target.lower() == "inkwell":
+                    self.supports_nesting = True
+                elif args.target.lower() == 'i' or args.target.lower() == 'inkwell':
                     self.target = Target.INKWELL
-                    self.supports_functions = False
-                    self.supports_recursion = False
+                    self.supports_functions = True
                 elif args.target.lower() == "p" or args.target.lower() == "puddle":
                     self.target = Target.PUDDLE
                     self.supports_functions = True
                     self.supports_recursion = True
+                    self.supports_nesting = True
 
             if self.db['name'] and self.db['user'] and self.db['pass']:
                 self.db_enabled = True
