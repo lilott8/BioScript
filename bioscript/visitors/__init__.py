@@ -1,3 +1,1 @@
-from bioscript.visitors.symbol_visitor import SymbolTableVisitor
-from bioscript.visitors.targets.clang_visitor import ClangVisitor
-from bioscript.visitors.type_visitor import TypeCheckVisitor
+

@@ -10,6 +10,9 @@ class Instruction(IntEnum):
     HEAT = 16
     METHOD = 32
     EXPRESSION = 64
+    BRANCH = 128
+    LOOP = 256
+
 
 
 class InstructionSet(object):

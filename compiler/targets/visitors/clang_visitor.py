@@ -1,4 +1,4 @@
-from bioscript.visitors.targets.target_visitor import TargetVisitor
+from bioscript.visitors import TargetVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import InvalidOperation
 from shared.enums.chemtypes import ChemTypes

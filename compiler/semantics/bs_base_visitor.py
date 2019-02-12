@@ -1,6 +1,6 @@
 import colorlog
 
-from bioscript.symbol_table.scope import Scope
+from compiler.symbol_table.scope import Scope
 from grammar.parsers.python.BSParser import BSParser
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
 from shared.enums.bs_properties import BSTemperature
@@ -62,6 +62,55 @@ class BSBaseVisitor(BSParserVisitor):
         units = BSTemperature.get_from_string(x['units'])
         quantity = units.normalize(x['quantity'])
         return {'quantity': quantity, 'units': BSTemperature.CELSIUS, 'preserved_units': units}
+
+    def visitExpression(self, ctx: BSParser.ExpressionContext):
+        if ctx.primary():
+            return self.visitPrimary(ctx.primary())
+        else:
+            exp1 = self.visitExpression(ctx.expression(0))
+            exp2 = self.visitExpression(ctx.expression(1))
+            if ctx.MULTIPLY():
+                op = "*"
+            elif ctx.DIVIDE():
+                op = "/"
+            elif ctx.ADDITION():
+                op = "+"
+            elif ctx.SUBTRACT():
+                op = "-"
+            elif ctx.AND():
+                op = "&&"
+            elif ctx.EQUALITY():
+                op = "=="
+            elif ctx.GT():
+                op = ">"
+            elif ctx.GTE():
+                op = ">="
+            elif ctx.LT():
+                op = "<"
+            elif ctx.LTE():
+                op = "<="
+            elif ctx.NOTEQUAL():
+                op = "!="
+            elif ctx.OR():
+                op = "||"
+            else:
+                op = "=="
+
+            if ctx.LBRACKET():
+                """
+                In this context, exp1 will *always* hold the variable name.
+                So we can check to make sure that exp1 is the appropriate size,
+                Given exp2 as the index. 
+                """
+                variable = self.symbol_table.get_variable(exp1)
+                if int(exp2) > variable.size - 1 and int(exp2) >= 0:
+                    raise InvalidOperation("Out of bounds index: {}[{}], where {} is of size: {}".format(
+                        exp1, exp2, exp1, variable.size))
+                output = "{}[{}]".format(exp1, exp2)
+            else:
+                output = "{}{}{}".format(exp1, op, exp2)
+
+            return output
 
     def check_identifier(self, name):
         if name in self.keywords:

@@ -12,6 +12,8 @@ class Variable(object):
         self.is_declared = False
         self.is_stationary = stationary
         self.is_global = is_global
+        # Used for timing annotations.
+        self.use_by = -1
         if self.types is None:
             self.types = set()
             self.types.add(ChemTypes.UNKNOWN)

@@ -1,6 +1,6 @@
 import copy
 
-from bioscript.visitors.bs_base_visitor import BSBaseVisitor
+from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import UndefinedException
 from shared.enums.chemtypes import ChemTypeResolver

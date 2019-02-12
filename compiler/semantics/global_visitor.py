@@ -1,4 +1,4 @@
-from bioscript.visitors.bs_base_visitor import BSBaseVisitor
+from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.variable import *
 

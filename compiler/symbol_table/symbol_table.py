@@ -1,6 +1,6 @@
 import colorlog
 
-from bioscript.symbol_table.scope import Scope
+from compiler.symbol_table.scope import Scope
 from shared.enums.chemtypes import ChemTypes
 from shared.function import Function
 from shared.variable import Variable

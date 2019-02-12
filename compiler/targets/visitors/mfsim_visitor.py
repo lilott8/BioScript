@@ -1,7 +1,7 @@
 import copy
 
-from bioscript.builders.mfsim_builder import MFSimVarBuilder
-from bioscript.visitors.targets.target_visitor import TargetVisitor
+from bioscript.visitors import TargetVisitor
+from compiler.targets.builders.mfsim_builder import MFSimVarBuilder
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import *
 from shared.enums.instructions import Instruction

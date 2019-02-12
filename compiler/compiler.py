@@ -3,21 +3,21 @@ import subprocess
 import colorlog
 from antlr4 import *
 
-from bioscript.visitors import ClangVisitor
-from bioscript.visitors import GlobalVariableVisitor
-from bioscript.visitors import MethodVisitor
-from bioscript.visitors import SymbolTableVisitor
-from bioscript.visitors import TargetFactory
-from bioscript.visitors import TargetVisitor
+from compiler.semantics.global_visitor import GlobalVariableVisitor
+from compiler.semantics.method_visitor import MethodVisitor
+from compiler.semantics.symbol_visitor import SymbolTableVisitor
 from compiler.semantics.type_visitor import TypeCheckVisitor
 from compiler.symbol_table import SymbolTable
+from compiler.targets.target_factory import TargetFactory
+from compiler.targets.visitors.clang_visitor import ClangVisitor
+from compiler.targets.visitors.target_visitor import TargetVisitor
 from config.config import Config
 from grammar.parsers.python.BSLexer import BSLexer
 from grammar.parsers.python.BSParser import BSParser
 from shared.enums.config_flags import TypeChecker
 
 
-class BSTranslator(object):
+class BSCompiler(object):
 
     def __init__(self):
         self.config = Config.getInstance(None)
