@@ -1,5 +1,6 @@
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import *
+from shared.enums.chemtypes import *
 from shared.enums.instructions import Instruction
 from shared.variable import *
 from .bs_base_visitor import BSBaseVisitor
@@ -235,10 +236,13 @@ class SymbolTableVisitor(BSBaseVisitor):
                 raise InvalidOperation("Array size doesn't match method return size.")
 
         # self.log.warning("{} - size: {}".format(name, operation['size']))
-        variable = Variable(name, final_types, self.symbol_table.current_scope.name, operation['size'])
+        if ChemTypeResolver.numbers.issubset(final_types):
+            variable = Number(name, final_types, self.symbol_table.current_scope.name)
+        else:
+            variable = Chemical(name, final_types, self.symbol_table.current_scope.name, operation['size'])
         self.symbol_table.add_local(variable)
 
-        return super().visitVariableDefinition(ctx)
+        return None
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         return super().visitPrimary(ctx)
@@ -272,7 +276,17 @@ class SymbolTableVisitor(BSBaseVisitor):
         """
         name = ctx.IDENTIFIER().__str__()
         types = {ChemTypes.MAT}
-        return self.identifier.identify(name, types, self.symbol_table.current_scope.name)
+        quantity = 10.0
+        units = BSVolume.MICROLITRE
+        if ctx.VOLUME_NUMBER():
+            x = self.split_number_from_unit(ctx.VOLUME_NUMBER().__str__())
+            units = BSVolume.get_from_string(x['units'])
+            quantity = units.normalize(x['quantity'])
+
+        variable = self.identifier.identify(name, types, self.symbol_table.current_scope.name)
+        variable.volume = quantity
+        variable.unit = units
+        return variable
 
     def visitTimeIdentifier(self, ctx: BSParser.TimeIdentifierContext):
         return super().visitTimeIdentifier(ctx)

@@ -1,14 +1,12 @@
-import subprocess
-
 import colorlog
 from antlr4 import *
 
-from bioscript.visitors import ClangVisitor
-from bioscript.visitors import GlobalVariableVisitor
-from bioscript.visitors import MethodVisitor
-from bioscript.visitors import SymbolTableVisitor
-from bioscript.visitors import TargetFactory
-from bioscript.visitors import TargetVisitor
+from compiler.semantics.basic_block_visitor import BasicBlockVisitor
+# from compiler.visitors import ClangVisitor
+from compiler.semantics.global_visitor import GlobalVariableVisitor
+from compiler.semantics.method_visitor import MethodVisitor
+from compiler.semantics.symbol_visitor import SymbolTableVisitor
+# from bioscript.visitors import TargetVisitor
 from compiler.semantics.type_visitor import TypeCheckVisitor
 from compiler.symbol_table import SymbolTable
 from config.config import Config
@@ -53,16 +51,21 @@ class BSTranslator(object):
         if not self.typeable:
             raise TypeError("The BioScript program could not be safely type checked.")
 
-        target = TargetFactory.get_target(self.config.target, self.symbol_visitor.symbol_table)
-        self.log.info("Visiting: {}".format(target.name))
+        # target = TargetFactory.get_target(self.config.target, self.symbol_visitor.symbol_table)
+        # self.log.info("Visiting: {}".format(target.name))
 
-        target.visit(tree)
+        basic_block_visitor = BasicBlockVisitor(self.symbol_visitor.symbol_table)
+        basic_block_visitor.visit(tree)
+        self.log.info(basic_block_visitor.basic_blocks)
+
+        # target.visit(tree)
 
         if self.config.debug:
-            target.print_program()
+            # target.print_program()
             pass
         if self.config.llvm:
-            self.compile_file(target)
+            # self.compile_file(target)
+            pass
 
     def visit_type_check(self, tree):
         type_checker = TypeCheckVisitor(self.symbol_visitor.symbol_table)
@@ -73,13 +76,14 @@ class BSTranslator(object):
         #     self.typeable = True
 
     def visit_clang(self, tree):
-        clang = ClangVisitor(self.symbol_visitor.symbol_table)
-        clang.visit(tree)
+        # clang = ClangVisitor(self.symbol_visitor.symbol_table)
+        # clang.visit(tree)
         # self.log.info(clang.program)
+        pass
 
-    def compile_file(self, target: TargetVisitor):
-        file_name = self.config.path + 'compiled/{}.cpp'.format(self.config.input_file)
-        f = open(file_name, 'w+')
-        f.write(target.compiled)
-        f.close()
-        subprocess.call(['g++', '-S', '-emit-llvm', file_name])
+    # def compile_file(self, target: TargetVisitor):
+    #     file_name = self.config.path + 'compiled/{}.cpp'.format(self.config.input_file)
+    #     f = open(file_name, 'w+')
+    #     f.write(target.compiled)
+    #     f.close()
+    #     subprocess.call(['g++', '-S', '-emit-llvm', file_name])

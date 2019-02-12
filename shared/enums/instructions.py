@@ -12,7 +12,7 @@ class Instruction(IntEnum):
     EXPRESSION = 64
     BRANCH = 128
     LOOP = 256
-
+    RETURN = 512
 
 
 class InstructionSet(object):

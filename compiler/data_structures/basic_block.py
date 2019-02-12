@@ -1,7 +1,13 @@
-class BasicBlock(object):
+import copy
 
-    def __init__(self, nid: int = -1, name: str = ""):
-        self.nid = nid
+from compiler.bs_ir import *
+
+
+class BasicBlock(object):
+    id_counter = 1
+
+    def __init__(self, name: str = ""):
+        self.nid = BasicBlock.id_counter
         self.name = name
         # The list of BB ids this block can reach
         self.jumps = set()
@@ -13,3 +19,24 @@ class BasicBlock(object):
 
     def get_jump(self):
         return self.instructions[-1]
+
+    def add(self, instruction: IR):
+        self.instructions.append(instruction)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        output = "ID: {}\n".format(self.nid)
+
+        for i in self.instructions:
+            output += "{}\n".format(i)
+
+        output += "=============\n"
+        return output
+
+    @staticmethod
+    def get_next_id():
+        tid = copy.deepcopy(BasicBlock.id_counter)
+        BasicBlock.id_counter += BasicBlock.id_counter
+        return tid

@@ -1,0 +1,35 @@
+module mod
+stationary stat
+manifest aaa
+manifest bbb
+manifest ccc
+manifest ddd
+
+functions:
+
+function foo(a, b) {
+    c = mix a with b
+    return c
+}
+
+instructions:
+
+a = dispense aaa
+b = dispense bbb
+c = foo(a, b)
+
+num = detect mod on c for 10s
+
+if (num < 10) {
+    z = dispense aaa
+    x = dispense bbb
+    y = dispense ccc
+    t = mix z with x
+    u = mix y with t
+} else {
+    j = dispense ccc
+    i = dispense bbb
+    h = dispense aaa
+    k = mix j with i
+    l = mix h with k
+}
