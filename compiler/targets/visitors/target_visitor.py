@@ -2,7 +2,6 @@ from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from compiler.symbol_table import SymbolTable
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import InvalidOperation
-from shared.bs_exceptions import UndefinedException
 from shared.enums.bs_properties import *
 from shared.enums.instructions import Instruction
 
@@ -113,26 +112,6 @@ class TargetVisitor(BSBaseVisitor):
         # This will get the first element of the set "test"
         return {'operation': output, 'instruction': Instruction.MIX,
                 'args': {'input': inputs, 'time': time}, 'size': next(iter(test)), 'is_simd': is_simd}
-
-    def visitPrimary(self, ctx: BSParser.PrimaryContext):
-        if ctx.IDENTIFIER():
-            if not self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1]):
-                raise UndefinedException("Undeclared variable: {}".format(ctx.IDENTIFIER().__str__()))
-            return ctx.IDENTIFIER().__str__()
-        elif ctx.literal():
-            return self.visitLiteral(ctx.literal())
-        else:
-            return self.visitExpression(ctx.expression())
-
-    def visitLiteral(self, ctx: BSParser.LiteralContext):
-        if ctx.INTEGER_LITERAL():
-            return ctx.INTEGER_LITERAL().__str__()
-        elif ctx.BOOL_LITERAL():
-            return ctx.BOOL_LITERAL().__str__()
-        elif ctx.FLOAT_LITERAL():
-            return ctx.FLOAT_LITERAL().__str__()
-        else:
-            return ctx.STRING_LITERAL().__str__()
 
     def process_simd(self, lhs: str, op: Instruction, args: dict) -> dict:
         raise NotImplementedError

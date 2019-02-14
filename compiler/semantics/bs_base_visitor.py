@@ -3,6 +3,7 @@ import colorlog
 from compiler.symbol_table.scope import Scope
 from grammar.parsers.python.BSParser import BSParser
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
+from shared.bs_exceptions import *
 from shared.enums.bs_properties import BSTemperature
 from shared.enums.bs_properties import BSTime
 from shared.enums.bs_properties import BSVolume
@@ -62,6 +63,27 @@ class BSBaseVisitor(BSParserVisitor):
         units = BSTemperature.get_from_string(x['units'])
         quantity = units.normalize(x['quantity'])
         return {'quantity': quantity, 'units': BSTemperature.CELSIUS, 'preserved_units': units}
+
+    def visitPrimary(self, ctx: BSParser.PrimaryContext):
+        if ctx.IDENTIFIER():
+            if not self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1]):
+                raise UndefinedException("Undeclared variable: {}".format(ctx.IDENTIFIER().__str__()))
+            return ctx.IDENTIFIER().__str__()
+        elif ctx.literal():
+            return self.visitLiteral(ctx.literal())
+        else:
+            return self.visitExpression(ctx.expression())
+
+    def visitLiteral(self, ctx: BSParser.LiteralContext):
+        if ctx.INTEGER_LITERAL():
+            return ctx.INTEGER_LITERAL().__str__()
+        elif ctx.BOOL_LITERAL():
+            return ctx.BOOL_LITERAL().__str__()
+        elif ctx.FLOAT_LITERAL():
+            return ctx.FLOAT_LITERAL().__str__()
+        else:
+            return ctx.STRING_LITERAL().__str__()
+
 
     def visitExpression(self, ctx: BSParser.ExpressionContext):
         if ctx.primary():

@@ -7,7 +7,7 @@ class BasicBlock(object):
     id_counter = 1
 
     def __init__(self, name: str = ""):
-        self.nid = BasicBlock.id_counter
+        self.nid = BasicBlock.get_next_id()
         self.name = name
         # The list of BB ids this block can reach
         self.jumps = set()
