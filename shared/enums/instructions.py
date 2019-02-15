@@ -34,14 +34,16 @@ class IRInstruction(IntEnum):
     HEAT = 8
     DISPENSE = 9
     DISPOSE = 10
+    STORE = 11
     # Control
-    JUMP = 11
-    CONDITIONAL = 12
-    LABEL = 13
-    RETURN = 14
+    JUMP = 12
+    CONDITIONAL = 13
+    LABEL = 14
+    RETURN = 15
     # Meta
-    USEBY = 15
-    EXECUTEFOR = 16
+    USEBY = 16
+    EXECUTEFOR = 17
+    NOP = 18
 
 
 class BinaryOps(IntEnum):

@@ -1,12 +1,10 @@
 import colorlog
 
+from compiler.bs_ir import *
 from compiler.symbol_table.scope import Scope
 from grammar.parsers.python.BSParser import BSParser
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
 from shared.bs_exceptions import *
-from shared.enums.bs_properties import BSTemperature
-from shared.enums.bs_properties import BSTime
-from shared.enums.bs_properties import BSVolume
 from shared.helpers import *
 
 
@@ -84,7 +82,6 @@ class BSBaseVisitor(BSParserVisitor):
         else:
             return ctx.STRING_LITERAL().__str__()
 
-
     def visitExpression(self, ctx: BSParser.ExpressionContext):
         if ctx.primary():
             return self.visitPrimary(ctx.primary())
@@ -92,31 +89,31 @@ class BSBaseVisitor(BSParserVisitor):
             exp1 = self.visitExpression(ctx.expression(0))
             exp2 = self.visitExpression(ctx.expression(1))
             if ctx.MULTIPLY():
-                op = "*"
+                op = BinaryOps.MULTIPLE
             elif ctx.DIVIDE():
-                op = "/"
+                op = BinaryOps.DIVIDE
             elif ctx.ADDITION():
-                op = "+"
+                op = BinaryOps.ADD
             elif ctx.SUBTRACT():
-                op = "-"
+                op = BinaryOps.SUBTRACT
             elif ctx.AND():
-                op = "&&"
+                op = BinaryOps.AND
             elif ctx.EQUALITY():
-                op = "=="
+                op = RelationalOps.EQUAL
             elif ctx.GT():
-                op = ">"
+                op = RelationalOps.GT
             elif ctx.GTE():
-                op = ">="
+                op = RelationalOps.GTE
             elif ctx.LT():
-                op = "<"
+                op = RelationalOps.LT
             elif ctx.LTE():
-                op = "<="
+                op = RelationalOps.LTE
             elif ctx.NOTEQUAL():
-                op = "!="
+                op = RelationalOps.NE
             elif ctx.OR():
-                op = "||"
+                op = BinaryOps.OR
             else:
-                op = "=="
+                op = RelationalOps.EQUAL
 
             if ctx.LBRACKET():
                 """
@@ -130,7 +127,7 @@ class BSBaseVisitor(BSParserVisitor):
                         exp1, exp2, exp1, variable.size))
                 output = "{}[{}]".format(exp1, exp2)
             else:
-                output = "{}{}{}".format(exp1, op, exp2)
+                output = {"exp1": exp1, "exp2": exp2, "op": op}
 
             return output
 
@@ -165,3 +162,11 @@ class BSBaseVisitor(BSParserVisitor):
             return scope
         else:
             return self.symbol_table.scope_map[name]
+
+    @staticmethod
+    def is_number(num):
+        try:
+            float(num)
+            return True
+        except ValueError:
+            return False

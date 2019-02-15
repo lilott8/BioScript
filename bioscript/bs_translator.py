@@ -1,9 +1,9 @@
 import colorlog
 from antlr4 import *
 
-from compiler.semantics.basic_block_visitor import BasicBlockVisitor
 # from compiler.visitors import ClangVisitor
 from compiler.semantics.global_visitor import GlobalVariableVisitor
+from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
 # from bioscript.visitors import TargetVisitor
@@ -54,9 +54,10 @@ class BSTranslator(object):
         # target = TargetFactory.get_target(self.config.target, self.symbol_visitor.symbol_table)
         # self.log.info("Visiting: {}".format(target.name))
 
-        basic_block_visitor = BasicBlockVisitor(self.symbol_visitor.symbol_table)
-        basic_block_visitor.visit(tree)
-        self.log.info(basic_block_visitor.basic_blocks)
+        ir_visitor = IRVisitor(self.symbol_visitor.symbol_table)
+        ir_visitor.visit(tree)
+        # self.log.info(ir_visitor.globals)
+        self.log.info(ir_visitor.basic_blocks)
 
         # target.visit(tree)
 

@@ -33,3 +33,15 @@ if (num < 10) {
     k = mix j with i
     l = mix h with k
 }
+
+ttt = dispense aaa
+dispose ttt
+
+x = 7
+while (x > 0) {
+    dispose ttt
+}
+
+repeat 7 times {
+dispose ttt
+}

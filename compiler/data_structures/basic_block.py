@@ -1,5 +1,3 @@
-import copy
-
 from compiler.bs_ir import *
 
 
@@ -37,6 +35,6 @@ class BasicBlock(object):
 
     @staticmethod
     def get_next_id():
-        tid = copy.deepcopy(BasicBlock.id_counter)
+        tid = BasicBlock.id_counter
         BasicBlock.id_counter += BasicBlock.id_counter
         return tid

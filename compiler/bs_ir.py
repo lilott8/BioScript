@@ -1,6 +1,6 @@
+from compiler.registers import *
 from shared.enums.instructions import *
 from shared.function import Function
-from shared.variable import *
 
 
 class IR(object):
@@ -14,6 +14,11 @@ class IR(object):
 
     def __str__(self):
         return self.name
+
+
+class NOP(IR):
+    def __init__(self):
+        super().__init__(IRInstruction.NOP)
 
 
 """
@@ -49,6 +54,9 @@ class BinaryOp(Expression):
         self.right = right
         self.op = op
 
+    def __str__(self):
+        return "BINARYOP {} {} {}".format(self.op, self.left, self.right)
+
 
 class Call(Expression):
     def __init__(self, func: Function):
@@ -75,7 +83,7 @@ Statement IR:
 
 
 class Statement(IR):
-    def __init__(self, op: IRInstruction, out, execute_for, use_by=None):
+    def __init__(self, op: IRInstruction, out, execute_for=(-1, BSTime.SECOND), use_by=None):
         super().__init__(op)
         self.reagents = []
         self.register = out
@@ -84,18 +92,23 @@ class Statement(IR):
         if use_by:
             self.use_by = UseBy(use_by[0], use_by[1])
 
+    def __str__(self):
+        return "{}: out-register: {}".format(super().__str__(), self.register)
+
 
 class Mix(Statement):
     def __init__(self, out: Temp, one: Temp, two: Temp,
-                 execute_for: (float, BSTime) = 10, use_by: (float, BSTime) = None):
+                 execute_for: (float, BSTime) = (10, BSTime.SECOND), use_by: (float, BSTime) = None):
         super().__init__(IRInstruction.MIX, out, execute_for, use_by)
         self.reagents.extend([one, two])
 
 
 class Split(Statement):
-    def __init__(self, out: Temp, one: Temp, execute_for: (float, BSTime), use_by: (float, BSTime) = None):
+    def __init__(self, out: Temp, one: Temp, size: int, execute_for: (float, BSTime) = (-1, BSTime.SECOND),
+                 use_by: (float, BSTime) = None):
         super().__init__(IRInstruction.SPLIT, out, execute_for, use_by=use_by)
         self.reagents.append(one)
+        self.size = size
 
 
 class Detect(Statement):
@@ -119,9 +132,15 @@ class Dispense(Statement):
 
 
 class Dispose(Statement):
-    def __init__(self, out: Temp, reagent: Temp):
+    def __init__(self, out: Output, reagent: Temp):
         super().__init__(IRInstruction.DISPOSE, out)
         self.reagents.append(reagent)
+
+
+class Store(Statement):
+    def __init__(self, out: Temp, value: Expression):
+        super().__init__(IRInstruction.STORE, out)
+        self.reagents.append(value)
 
 
 """
@@ -144,6 +163,12 @@ class Label(Control):
         super().__init__(IRInstruction.LABEL)
         self.label = name
 
+    def __str__(self):
+        return "LABEL: " + self.label
+
+    def __repr__(self):
+        return self.__str__()
+
 
 class Jump(Control):
 
@@ -152,10 +177,14 @@ class Jump(Control):
         # first is true, last is else
         self.jumps = jump_to
 
+    def __str__(self):
+        return "JUMP {}".format(self.jumps)
+
 
 class Conditional(Control):
 
-    def __init__(self, relop: RelationalOps, left: Expression, right: Expression, t_branch: Label, f_branch: Label):
+    def __init__(self, relop: RelationalOps, left: Expression, right: Expression,
+                 t_branch: Label = None, f_branch: Label = None):
         super().__init__(IRInstruction.CONDITIONAL)
         # first is true, last is else
         self.true_branch = t_branch
@@ -163,6 +192,12 @@ class Conditional(Control):
         self.relop = relop
         self.left = left
         self.right = right
+
+    def __str__(self):
+        return "({}{}{}) T: {}\tF:{}".format(self.left, self.relop, self.right, self.true_branch, self.false_branch)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class Return(Control):
@@ -209,7 +244,7 @@ class UseBy(Meta):
 class ExecuteFor(Meta):
 
     def __init__(self, execute_for: float = 10, unit: BSTime = BSTime.SECOND):
-        super().__init__(IRInstruction.EXECUTEFOR)
+        super().__init__(IRInstruction.EXECUTEFOR, execute_for, unit)
 
     def __repr__(self):
         return "EXECUTEFOR {}".format(super.__repr__())
