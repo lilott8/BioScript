@@ -173,12 +173,6 @@ class Z3Solver:#(BaseSolver):
                         for chem2 in chem_group2:
                             if not safe_funct(chem1, chem2):
                                 solver.add(chems_to_store_shelf_num[i] != chems_to_store_shelf_num[j])
-        '''pubchem_id's
-        for i in range(chems_store_num):
-            for j in range(i, chems_store_num):
-                if i != j and not safe_funct(chems_store_ids[i], chems_store_ids[j]):
-                    solver.add(chems_to_store_shelf_num[i] != chems_to_store_shelf_num[j])
-        '''
         #edges between chemicals that need to be stored and chemicals already stored:
         for i, chem_group1 in enumerate(chems_store_groups):
             for j, chem_group2 in enumerate(chems_binned_groups):
@@ -186,13 +180,7 @@ class Z3Solver:#(BaseSolver):
                     for chem2 in chem_group2:
                         if not safe_funct(chem1, chem2):
                             solver.add(chems_to_store_shelf_num[i] != chems_binned_shelf_num[j])
-
-        '''pubchem_id's
-        for i in range(chems_store_num):
-            for j in range(chems_binned_num):
-                if not safe_funct(chems_store_ids[i], chems_binned_ids[j]):
-                    solver.add(chems_to_store_shelf_num[i] != chems_binned_shelf_num[j])
-        '''
+        
         #bin constraint if we have a storage problem:
         if parsed['problem'] == 'storage':
             bin_volumes = [(shelves['volume']['max'] - shelves['volume']['current']) for shelves in parsed['storage']['shelves']]
@@ -214,25 +202,4 @@ class Z3Solver:#(BaseSolver):
         else:
             return None
 
-'''
-#print('problem 1: ')
-ret = Z3Solver.solve_recursive_bin_packing([[400, 400, 400, 4000], [200, 200]],
-                                            [200, 400, 200, 4000, 400, 400], 
-                                            [(0, 1), (1, 2), (2, 3)])
-if ret != None:
-    for r in ret:
-        print(r)
-else:
-    print('unsat')
-
-#print('problem 2: ')
-#ret2 = Z3Solver.solve_recursive_bin_packing([[100, 100], [100], [50]], 
-#                                            [100, 200, 50], 
-#                                            [(0, 1)])
-#if ret2 != None:
-#    print('sat')#for r in ret2:
-    #    print(r)
-#else:
-#    print('unsat')
-'''
 
