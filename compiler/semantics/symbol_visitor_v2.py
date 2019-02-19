@@ -4,6 +4,7 @@ from compiler.data_structures.basic_block import BasicBlock
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from compiler.symbol_table.symbol_table import SymbolTable
 from grammar.parsers.python.BSParser import BSParser
+from shared.bs_exceptions import *
 
 
 class SymbolVisitorV2(BSBaseVisitor):
@@ -15,6 +16,7 @@ class SymbolVisitorV2(BSBaseVisitor):
         self.current_block = None
         self.previous_block = None
         self.control_stack = list()
+        self.in_control = {"if": False, "while": False, "repeat": False}
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
@@ -83,6 +85,10 @@ class SymbolVisitorV2(BSBaseVisitor):
         6) Pop true block
         7) repeat 2-6 for false
         """
+        if self.in_control["if"]:
+            raise UnsupportedOperation("We do not currently support nested conditionals.")
+
+        self.in_control["if"] = True
         true_block = BasicBlock()
         self.graph.add_node(true_block.nid)
         self.graph.add_edge(self.current_block.nid, true_block.nid)
@@ -127,10 +133,14 @@ class SymbolVisitorV2(BSBaseVisitor):
         else:
             self.current_block.add("bsbbi_{}_f".format(false_block.nid))
 
+        self.in_control["if"] = False
         return ""
 
     def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
         # Condition is added to self.current_block.
+        if self.in_control["while"]:
+            raise UnsupportedOperation("We do not currently support nested conditionals.")
+        self.in_control["while"] = True
 
         true_block = BasicBlock()
         self.graph.add_node(true_block.nid)
@@ -156,38 +166,23 @@ class SymbolVisitorV2(BSBaseVisitor):
         self.current_block = BasicBlock()
         self.graph.add_edge(false_block.nid, self.current_block.nid)
 
+        self.in_control["while"] = False
         return super().visitWhileStatement(ctx)
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
-
-        # condition gets added to self.current_block
-
         true_block = BasicBlock()
-        # Add node.
         self.graph.add_node(true_block.nid)
-        # Add edges.
-        self.graph.add_cycle([self.current_block.nid, true_block.nid])
-        true_label = "bsbbr_{}_t".format(self.current_block.nid)
+        self.graph.add_edge(self.current_block.nid, true_block.nid)
+        self.basic_blocks[self.current_block.nid] = self.current_block
 
         false_block = BasicBlock()
-        false_label = "bsbbr_{}_f".format(false_block.nid)
-        # Add the node.
         self.graph.add_node(false_block.nid)
-        # Add edge.
-        self.graph.add_edge(self.current_block.nid, false_block.nid)
-
-        self.basic_blocks[self.current_block.nid] = self.current_block
-        self.graph.add_edge(self.current_block.nid, true_block.nid)
-        self.previous_block = self.current_block
-        self.current_block = true_block
+        self.control_stack.append(false_block)
 
         self.visitBlockStatement(ctx.blockStatement())
 
-        self.basic_blocks[self.current_block.nid] = self.current_block
-        self.previous_block = self.current_block
-        self.current_block = BasicBlock()
-        # Add nodes and eg
-        self.graph.add_node(self.current_block.nid)
+        return ""
+
 
     def visitMix(self, ctx: BSParser.MixContext):
         x = self.visitVolumeIdentifier(ctx.volumeIdentifier(0))['variable'].name

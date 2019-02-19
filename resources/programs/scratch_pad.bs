@@ -14,17 +14,8 @@ function foo(a, b) {
 
 instructions:
 
-ttt = dispense aaa
+repeat 3 times {
 
-x = 7
-if (x > 0) {
-    if (5 > 5) {
-        y = 7
-    } else {
-        y = 8
-    }
-} else {
-    y = 7
+    x = 3
+
 }
-
-dispose ttt

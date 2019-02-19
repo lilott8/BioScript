@@ -48,9 +48,9 @@ class BSTranslator(object):
         self.symbol_visitor = SymbolTableVisitor(method_visitor.symbol_table)
         self.symbol_visitor.visit(tree)
 
-        v2 = SymbolVisitorV2(method_visitor.symbol_table)
-        v2.visit(tree)
-        self.log.info(v2.basic_blocks)
+        # v2 = SymbolVisitorV2(method_visitor.symbol_table)
+        # v2.visit(tree)
+        # self.log.info(v2.basic_blocks)
 
         if self.config.typecheck != TypeChecker.DISABLED:
             self.visit_type_check(tree)
@@ -67,9 +67,9 @@ class BSTranslator(object):
         ir_visitor.visit(tree)
         # self.log.info(ir_visitor.globals)
         # self.log.info(ir_visitor.basic_blocks)
-        pos = nx.nx_agraph.graphviz_layout(v2.graph)
-        nx.draw(v2.graph, pos=pos)
-        write_dot(v2.graph, 'file.dot')
+        pos = nx.nx_agraph.graphviz_layout(ir_visitor.graph)
+        nx.draw(ir_visitor.graph, pos=pos)
+        write_dot(ir_visitor.graph, 'file.dot')
 
         # target.visit(tree)
 
