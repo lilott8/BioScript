@@ -4,7 +4,7 @@ from chemicals.epa_manager import EpaManager
 from chemicals.identification.identifier import Identifier
 from shared.enums.chemtypes import ChemTypes
 from shared.enums.chemtypes import Consequence
-from shared.io.database import Database
+#from shared.io.database import Database
 from solvers.z3_solver import Z3Solver
 
 class TestEPAIdentifiers(unittest.TestCase):
@@ -99,73 +99,4 @@ class TestEPAIdentifiers(unittest.TestCase):
         self.assertTrue(not epa.validate(ChemTypes(76), ChemTypes(62)) and epa.reactive_table[76][62] == Consequence.CAUTION)
         self.assertTrue(not epa.validate(ChemTypes(31),  ChemTypes(5)) and epa.reactive_table[31][5] == Consequence.INCOMPATIBLE)
 
-    def test_z3solver(self):
-        epa = EpaManager('resources/epa.json', 'resources/abstract-interaction.txt')
-        nums = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        #calculate average runtime
-        for i in range(100):
-            x = time.time()
-            self.assertFalse(Z3Solver.solve_file('resources/test0.json', epa.validate, sol=False))
-            x = time.time() - x
-            nums[0] += x
 
-        for i in range(100):
-            x = time.time()
-            self.assertFalse(Z3Solver.solve_file('resources/test1.json', epa.validate, sol=False))
-            x = time.time() - x
-            nums[1] += x
-
-        for i in range(100):
-            x = time.time()
-            self.assertFalse(Z3Solver.solve_file('resources/test2.json', epa.validate, sol=False))
-            x = time.time() - x
-            nums[2] += x
-
-        for i in range(100):
-            x = time.time()
-            self.assertTrue(Z3Solver.solve_file('resources/test3.json', epa.validate, sol=False))
-            x = time.time() - x
-            nums[3] += x
-
-        for i in range(100):
-            x = time.time()
-            self.assertFalse(Z3Solver.solve_file('resources/test4.json', epa.validate, sol=False))
-            x = time.time() - x
-            nums[4] += x
-       
-        for i in range(100):
-            x = time.time()
-            self.assertFalse(Z3Solver.solve_file('resources/test5.json', epa.validate, sol=False))
-            x = time.time() - x
-            nums[5] += x
-
-        for i in range(100):
-            x = time.time()
-            self.assertFalse(Z3Solver.solve_file('resources/test6.json', epa.validate, sol=False))
-            x = time.time() - x
-            nums[6] += x
-
-        for i in range(100):
-            x = time.time()
-            self.assertFalse(Z3Solver.solve_file('resources/test7.json', epa.validate, sol=False))
-            x = time.time() - x
-            nums[7] += x
-
-        for i in range(100):
-            x = time.time()
-            self.assertTrue(Z3Solver.solve_file('resources/test8.json', epa.validate, sol=False))
-            x = time.time() - x
-            nums[8] += x
- 
-        for i in range(100):
-            x = time.time()
-            self.assertTrue(Z3Solver.solve_file('resources/test9.json', epa.validate, sol=False))
-            x = time.time() - x
-            nums[9] += x
-
-        for i in range(len(nums)):
-            nums[i] /= 100
-            nums[i] *= 1000 #convert secs to ms
-
-        for i, avg in enumerate(nums):
-            print('test %d: %f ms' % (i, avg))
