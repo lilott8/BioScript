@@ -52,8 +52,10 @@ class Z3Tests(unittest.TestCase):
 
     def test_z3solver(self):
         table = Z3Tests.build_interaction_table('resources/abstract-interaction.txt')
-        a = Z3Solver.solve_constraints('resources/test1.json', functools.partial(Z3Tests.validate, table))
+        a = Z3Solver.solve_constraints('resources/tetracholorethylene_and_nitric_acid.json', functools.partial(Z3Tests.validate, table))
+        b = Z3Solver.solve_constraints('resources/hexane_explosion.json', functools.partial(Z3Tests.validate, table))
         print(a)
+        print(b)
 
 
 
