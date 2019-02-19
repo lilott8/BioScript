@@ -45,21 +45,26 @@ class Z3Tests(unittest.TestCase):
                 return False
         # Check the inverse.
         if t2 in table:
-            if t1 in self.reactive_table[t2]:
+            if t1 in table[t2]:
                 return False
         return True
 
 
     def test_z3solver(self):
         table = Z3Tests.build_interaction_table('resources/abstract-interaction.txt')
-        a = Z3Solver.solve_constraints('resources/tetracholorethylene_and_nitric_acid.json', functools.partial(Z3Tests.validate, table))
-        b = Z3Solver.solve_constraints('resources/hexane_explosion.json', functools.partial(Z3Tests.validate, table))
-        print(a)
-        print(b)
-
-
-
-
+        safe = functools.partial(Z3Tests.validate, table)
+        a = Z3Solver.solve_constraints('resources/tetracholorethylene_and_nitric_acid.json', safe)
+        b = Z3Solver.solve_constraints('resources/hexane_explosion.json', safe)
+        c = Z3Solver.solve_constraints('resources/methanol_and_nitric_acid.json', safe)
+        d = Z3Solver.solve_constraints('resources/full_cabinet.json', safe)
+        e = Z3Solver.solve_constraints('resources/benzene_urea_benzotricholoride.json', safe_funct=lambda x,y:True, sol=False)
+        f = Z3Solver.solve_constraints('resources/combine_two_tests.json', safe_funct=lambda x,y:True)
+        self.assertFalse(a)
+        self.assertFalse(b)
+        self.assertFalse(c)
+        self.assertFalse(d)
+        self.assertTrue(e)
+        self.assertTrue(f)
 
 
 

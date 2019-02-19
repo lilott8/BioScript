@@ -1,0 +1,81 @@
+{
+    "problem": "storage",
+    "comment": "combined 2 tests to make one big test",
+    "storage": [
+
+        {
+            "name": "Cabinet1",
+            "chemicals": [
+                {
+                    "chemical": "Sodium_Hydroxide",
+                    "reactive_groups": [10, 100],
+                    "current_volume": 50,
+                    "total_volume": 50
+                }
+            ],
+            "volume_left":150
+        },
+
+        {
+            "name": "Cabinet2",
+            "chemicals": [
+                {
+                    "chemical": "Allyl_Ethyl_Ether",
+                    "reactive_groups": [14, 28],
+                    "current_volume": 50,
+                    "total_volume": 50
+                }
+            ],
+            "volume_left":100
+        },
+
+        {
+            "name": "Cabinet3",
+            "chemicals": [
+                {
+                    "chemical": "Cycloheptatriene",
+                    "reactive_groups": [28, 65, 76],
+                    "current_volume": 50,
+                    "total_volume": 50
+                }
+            ],
+            "volume_left":1000
+        },
+
+        {
+            "name": "Cabinet4",
+            "chemicals": [
+                {
+                    "chemical": "Benzene",
+                    "reactive_groups": [16],
+                    "current_volume": 100,
+                    "total_volume": 100
+                },
+                {
+                    "chemical": "Urea",
+                    "reactive_groups": [6],
+                    "current_volume": 50,
+                    "total_volume": 50
+                }
+            ],
+            "volume_left": 100
+        }
+    ],
+    "manifest": [
+       {
+            "chemical": "Chlorotrifluoromethane",
+            "reactive_groups": [47],
+            "volume" : 50
+       },
+       {
+            "chemical": "Isopropyl_Alcohol",
+            "reactive_groups": [4],
+            "volume": 50
+       },
+       {
+            "chemical": "Benzotrichloride",
+            "reactive_groups": [66],
+            "volume": 100
+       } 
+    ]
+}

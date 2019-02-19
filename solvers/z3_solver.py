@@ -8,11 +8,8 @@ class Z3Solver:#(BaseSolver):
 
     def __init__(self):
         pass
-        #BaseSolver.__init__(self)
 
     def solve(self, problem) -> bool:
-        # if self.config.debug:
-        # self.log.info("z3 version: {}".format(z3.get_full_version()))
         try:
             solver = z3.Solver()
             bool_expr = z3.parse_smt2_string(problem)
@@ -53,15 +50,16 @@ class Z3Solver:#(BaseSolver):
         #edges between different chemicals
         for i, m1 in enumerate(manifest):
             for j, m2 in enumerate(manifest):
-                if i != j and Z3Solver.not_safe(m1['reactive_groups'], m2['reactive_grouops']):
+                if i != j and Z3Solver.not_safe(m1['reactive_groups'], m2['reactive_groups'], safe=safe_funct):
                     edges.append( color[i] != color[j] )
 
         #edges between chemicals & cabinets
         for i, m in enumerate(manifest):
             for j, s in enumerate(storage):
                 for c in s['chemicals']:
-                    if Z3Solver.not_safe(m1['reactive_groups'], c['reactive_groups']):
+                    if Z3Solver.not_safe(m['reactive_groups'], c['reactive_groups'], safe=safe_funct):
                         edges.append( color[i] != j )
+                        break
 
         return limits + edges, z3.Sum(color)
 
@@ -98,7 +96,6 @@ class Z3Solver:#(BaseSolver):
         return constraint, heuristic
 
 
-
     @staticmethod
     def solve_constraints(file_name, safe_funct = lambda x, y: False, sol=True):
         """
@@ -116,8 +113,8 @@ class Z3Solver:#(BaseSolver):
         storage   = json_data['storage']
 
         opt = z3.Optimize()
-        color  = [z3.Int('color_of_%s_%s' % (m,i))  for i,m in enumerate(manifest)]
-        volume = [z3.Int('volume_of_%s_%s' % (m,i)) for i,m in enumerate(manifest)]
+        color  = [z3.Int('color_of_%s_%s' % (m['chemical'],i))  for i,m in enumerate(manifest)]
+        volume = [z3.Int('volume_of_%s_%s' % (m['chemical'],i)) for i,m in enumerate(manifest)]
 
         coloring_constraints,    coloring_heuristic    = Z3Solver._graph_coloring_constraints(manifest, storage, color, safe_funct=safe_funct) 
         bin_packing_constraints, bin_packing_heuristic = Z3Solver._bin_packing_constraints(manifest, storage, color, volume)
@@ -127,13 +124,12 @@ class Z3Solver:#(BaseSolver):
         opt.minimize(coloring_heuristic)
         opt.maximize(bin_packing_heuristic)
         opt.maximize(coalesing_heuristic)
- 
         if not sol:
             return opt.check() == z3.sat
 
         if opt.check() == z3.sat:
             model = opt.model()
-            return [(c, v) for col, vol in zip(color, volume)]
+            return [(col, vol) for col, vol in zip(color, volume)]
         else:
             return None
 
