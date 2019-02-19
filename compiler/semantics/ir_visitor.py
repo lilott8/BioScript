@@ -1,6 +1,8 @@
 import random
 import string
 
+import networkx as nx
+
 from compiler.bs_ir import *
 from compiler.data_structures.basic_block import BasicBlock
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
@@ -13,10 +15,12 @@ class IRVisitor(BSBaseVisitor):
     def __init__(self, symbol_table):
         super().__init__(symbol_table, "Basic Block Visitor")
         self.basic_blocks = list()
-        self.current_block = BasicBlock(1)
+        self.current_block = BasicBlock()
         self.allocation_map = dict()
         self.globals = dict()
         self.branch_stack = list()
+        self.graph = nx.DiGraph()
+        self.graph.add_node(self.current_block.nid)
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
@@ -36,6 +40,7 @@ class IRVisitor(BSBaseVisitor):
         # Add all the subsequent instructions to the B.B.
         for i in ctx.statements():
             self.visitStatements(i)
+
         self.basic_blocks.append(self.current_block)
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
@@ -84,17 +89,22 @@ class IRVisitor(BSBaseVisitor):
 
         condition = Conditional(par_expression['op'], exp1, exp2)
         true_block = BasicBlock()
-        true_label = Label("bsbbc_{}_t".format(self.current_block.nid))
+        self.graph.add_node(true_block.nid)
+        self.graph.add_edge(self.current_block.nid, true_block.nid)
+        true_label = Label("bsbbi_{}_t".format(self.current_block.nid))
         true_block.add(true_label)
         condition.true_branch = true_label
 
         false_block = BasicBlock()
-        false_label = Label("bsbbc_{}_f".format(false_block.nid))
+        self.graph.add_node(false_block.nid)
+        self.graph.add_edge(self.current_block.nid, false_block.nid)
+        false_label = Label("bsbbi_{}_f".format(false_block.nid))
         false_block.add(false_label)
         condition.false_branch = false_label
 
         self.current_block.add(condition)
         self.basic_blocks.append(self.current_block)
+        self.graph.add_edge(self.current_block.nid, true_block.nid)
         # Set the current block to the true branch.
         self.current_block = true_block
         # Visit the conditional's statements.
@@ -104,7 +114,6 @@ class IRVisitor(BSBaseVisitor):
         if ctx.ELSE():
             self.basic_blocks.append(self.current_block)
             self.current_block = false_block
-            self.current_block.add(false_label)
             self.visitBlockStatement(ctx.blockStatement(1))
             from_else = True
 
@@ -112,8 +121,11 @@ class IRVisitor(BSBaseVisitor):
             self.basic_blocks.append(self.current_block)
             # add the join.
             join_block = BasicBlock()
-            join_label = Label("bsbb_{}_j".format(join_block.nid))
+            join_label = Label("bsbbi_{}_j".format(join_block.nid))
             join_block.add(join_label)
+            self.graph.add_node(join_block)
+            self.graph.add_edge(false_block.nid, join_block.nid)
+            self.graph.add_edge(true_block.nid, join_block.nid)
             self.current_block = join_block
             true_block.add(Jump(join_label))
         else:
@@ -139,11 +151,13 @@ class IRVisitor(BSBaseVisitor):
 
         condition = Conditional(par_expression['op'], exp1, exp2)
         true_block = BasicBlock()
+        self.graph.add_node(true_block.nid)
         true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
         true_block.add(true_label)
         condition.true_branch = true_label
 
         false_block = BasicBlock()
+        self.graph.add_node(false_block.nid)
         false_label = Label("bsbbw_{}_f".format(false_block.nid))
         false_block.add(false_label)
         condition.false_branch = false_label
@@ -172,17 +186,26 @@ class IRVisitor(BSBaseVisitor):
         condition = Conditional(RelationalOps.GT, Temp(new_var), Constant(0))
 
         true_block = BasicBlock()
+        # Add node.
+        self.graph.add_node(true_block.nid)
+        # Add edges.
+        self.graph.add_edge(self.current_block.nid, true_block.nid)
         true_label = Label("bsbbr_{}_t".format(self.current_block.nid))
         true_block.add(true_label)
         condition.true_branch = true_label
 
         false_block = BasicBlock()
         false_label = Label("bsbbr_{}_f".format(false_block.nid))
+        # Add the node.
+        self.graph.add_node(false_block.nid)
+        # Add edge.
+        self.graph.add_edge(self.current_block.nid, false_block.nid)
         false_block.add(false_label)
         condition.false_branch = false_label
 
         self.current_block.add(condition)
         self.basic_blocks.append(self.current_block)
+        self.graph.add_edge(self.current_block.nid, true_block.nid)
         self.current_block = true_block
 
         self.visitBlockStatement(ctx.blockStatement())
@@ -191,6 +214,9 @@ class IRVisitor(BSBaseVisitor):
 
         self.basic_blocks.append(self.current_block)
         self.current_block = BasicBlock()
+        # Add nodes and eg
+        self.graph.add_node(self.current_block.nid)
+        self.graph.add_edge(self.basic_blocks[-1].nid, self.current_block.nid)
         self.current_block.add(false_label)
 
         return NOP()

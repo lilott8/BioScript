@@ -14,34 +14,17 @@ function foo(a, b) {
 
 instructions:
 
-a = dispense aaa
-b = dispense bbb
-c = foo(a, b)
-
-num = detect mod on c for 10s
-
-if (num < 10) {
-    z = dispense aaa
-    x = dispense bbb
-    y = dispense ccc
-    t = mix z with x
-    u = mix y with t
-} else {
-    j = dispense ccc
-    i = dispense bbb
-    h = dispense aaa
-    k = mix j with i
-    l = mix h with k
-}
-
 ttt = dispense aaa
-dispose ttt
 
 x = 7
-while (x > 0) {
-    dispose ttt
+if (x > 0) {
+    if (5 > 5) {
+        y = 7
+    } else {
+        y = 8
+    }
+} else {
+    y = 7
 }
 
-repeat 7 times {
 dispose ttt
-}

@@ -1,11 +1,14 @@
 import colorlog
+import networkx as nx
 from antlr4 import *
+from networkx.drawing.nx_pydot import write_dot
 
 # from compiler.visitors import ClangVisitor
 from compiler.semantics.global_visitor import GlobalVariableVisitor
 from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
+from compiler.semantics.symbol_visitor_v2 import SymbolVisitorV2
 # from bioscript.visitors import TargetVisitor
 from compiler.semantics.type_visitor import TypeCheckVisitor
 from compiler.symbol_table import SymbolTable
@@ -38,10 +41,16 @@ class BSTranslator(object):
         self.global_visitor.visit(tree)
         method_visitor = MethodVisitor(self.global_visitor.symbol_table)
         method_visitor.visit(tree)
+
+        # rename_visitor = RenameVisitor(self.global_visitor.symbol_table)
         # No matter what options are set,
         # We must visit the symbol table.
         self.symbol_visitor = SymbolTableVisitor(method_visitor.symbol_table)
         self.symbol_visitor.visit(tree)
+
+        v2 = SymbolVisitorV2(method_visitor.symbol_table)
+        v2.visit(tree)
+        self.log.info(v2.basic_blocks)
 
         if self.config.typecheck != TypeChecker.DISABLED:
             self.visit_type_check(tree)
@@ -57,7 +66,10 @@ class BSTranslator(object):
         ir_visitor = IRVisitor(self.symbol_visitor.symbol_table)
         ir_visitor.visit(tree)
         # self.log.info(ir_visitor.globals)
-        self.log.info(ir_visitor.basic_blocks)
+        # self.log.info(ir_visitor.basic_blocks)
+        pos = nx.nx_agraph.graphviz_layout(v2.graph)
+        nx.draw(v2.graph, pos=pos)
+        write_dot(v2.graph, 'file.dot')
 
         # target.visit(tree)
 

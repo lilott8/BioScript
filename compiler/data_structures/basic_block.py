@@ -36,5 +36,5 @@ class BasicBlock(object):
     @staticmethod
     def get_next_id():
         tid = BasicBlock.id_counter
-        BasicBlock.id_counter += BasicBlock.id_counter
+        BasicBlock.id_counter = BasicBlock.id_counter + 1
         return tid
