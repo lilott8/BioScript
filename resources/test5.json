@@ -1,0 +1,44 @@
+{
+    "problem": "storage",
+    "comment": "www.aiha.org/get-involed/VolunteerGroups/LabHSCommittee/Incident Pages/Lab-Safety-Fire-Incidents---Chemical-based.aspx based on modeling a Lithium Aluminum Hydride Fire involving trying to distill tetrahydrofuran using lithium aluminum hyride",
+    "storage": [
+        [
+            {
+                "chemical": "tetrahydrofuran",
+                "reactive_groups": [14],
+                "current_volume": 100,
+                "total_volume": 150
+            },
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 0,
+                "total_volume": 1000
+            },
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 0,
+                "total_volume": 1000
+            }
+        ]
+    ],
+    "manifest": [
+        {
+            "chemical": "lithium_aluminum_hyride",
+            "reactive_groups": [35],
+            "volume": 100
+        },
+        {
+            "chemical": "carbon_dioxide",
+            "reactive_groups": [60],
+            "volume": 100
+        }
+    ]
+}
+
+
+
+
+
+

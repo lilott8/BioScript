@@ -1,0 +1,57 @@
+{
+    "problem": "storage",
+    "comment": "www.aiha.org/get-involved/VolunteerGroups/LabHSCommittee/Incident Pages/Lab-Safety-Fire-Incidents---Chemical-based.aspx Shelf Collapse leads to a spill and a spill/explosion involving Hexane.",
+    "storage": [
+        [
+            {
+                "chemical": "Hexane",
+                "reactive_groups": [29],
+                "current_volume": 1000,
+                "total_volume": 1000
+            },
+            {
+                "chemical": "Hexane",
+                "reactive_groups": [29],
+                "current_volume": 1000,
+                "total_volume": 1000
+            },
+            {
+                "chemical": "Hexane",
+                "reactive_groups": [29],
+                "current_volume": 1000,
+                "total_volume": 1000
+            },
+            {
+                "chemical": "Hexane",
+                "reactive_groups": [29],
+                "current_volume": 1000,
+                "total_volume": 1000
+            },
+            {
+                "chemical": "Hexane",
+                "reactive_groups": [29],
+                "current_volume": 1000,
+                "total_volume": 1000
+            },
+            {
+                "chemical": "Hexane",
+                "reactive_groups": [29],
+                "current_volume": 1000,
+                "total_volume": 1000
+            },
+            {
+                "chemical": "N/A",
+                "reactive_groups": [],
+                "current_volume": 0,
+                "total_volume": 1000
+            }
+        ]
+    ],
+    "manifest": [
+       {
+            "chemical": "Oxygen",
+            "reactive_groups": [44],
+            "volume" : 100
+       } 
+    ]
+}

@@ -1,0 +1,40 @@
+{
+    "problem": "storage",
+    
+    "comment": "robustness testing...",
+    "storage": [
+        [
+            {
+                "chemical": "Benzene",
+                "reactive_groups": [16],
+                "current_volume": 100,
+                "total_volume": 100
+            },
+            {
+                "chemical": "Urea",
+                "reactive_groups": [6],
+                "current_volume": 50,
+                "total_volume": 50
+            },
+            {
+                "chemical": "Benzotrichloride",
+                "reactive_groups": [66],
+                "current_volume": 50,
+                "total_volume": 50
+            },
+            {
+                "chemical": "Benzene",
+                "reactive_groups": [16],
+                "current_volume": 100,
+                "total_volume": 100
+            }
+        ]
+    ],
+    "manifest": [
+        {
+            "chemical": "Benzene",
+            "reactive_groups": [16],
+            "volume": 100
+        }
+    ]
+}
