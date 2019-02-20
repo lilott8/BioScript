@@ -61,6 +61,8 @@ class Z3Tests(unittest.TestCase):
         f = Z3Solver.solve_constraints('resources/combine_two_tests.json', safe_funct=lambda x,y:True)
         g = Z3Solver.solve_constraints('resources/lithium_aluminum_hydride_fire.json')
         h = Z3Solver.solve_constraints('resources/lithium_aluminum_hydride_fire.json', safe_funct=lambda x,y:True)
+        i = Z3Solver.solve_constraints('resources/hydrogen_peroxide_sulfuric_acid_acetone.json', safe_funct=lambda x,y:True)
+        j = Z3Solver.solve_constraints('resources/hydrogen_peroxide_sulfuric_acid_acetone.json', safe_funct=lambda x,y:False)
         self.assertFalse(a)
         self.assertFalse(b)
         self.assertFalse(c)
@@ -69,6 +71,8 @@ class Z3Tests(unittest.TestCase):
         self.assertTrue(f)
         self.assertFalse(g)
         self.assertTrue(h)
+        self.assertTrue(i)
+        self.assertFalse(j)
 
 
 
