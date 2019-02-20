@@ -61,26 +61,26 @@ class Z3Solver:#(BaseSolver):
                         edges.append( color[i] != j )
                         break
 
-        return limits + edges, z3.Sum(color)
+        return limits + edges   #, z3.Sum(color)
 
 
     @staticmethod
     def _bin_packing_constraints(manifest, storage, color, volume):
         constraint = []
-        heuristic = []
+        #heuristic = []
         limits = [z3.And(0 <= v, v <= s['volume_left']) for v,s in zip(volume,storage) ]
         
         for i, stor in enumerate(storage):
             summation  = z3.Sum([z3.If(col==i, vol, 0) for col, vol in zip(color, volume)])
             constraint.append( summation <= stor['volume_left'] )
-            heuristic.append(  z3.Sum([z3.If(z3.Or(summation==0, summation==stor['volume_left']), 1, 0)]) )
-        return limits + constraint, z3.Sum(heuristic)
+            #heuristic.append(  z3.Sum([z3.If(z3.Or(summation==0, summation==stor['volume_left']), 1, 0)]) )
+        return limits + constraint     #, z3.Sum(heuristic)
 
 
     @staticmethod
     def _coalesing_constraints(manifest, storage, color, volume):
         constraint = []
-        heuristic  = z3.Int('coalesing_heuristic')
+        #heuristic  = z3.Int('coalesing_heuristic')
 
         chemical_dict = {}
         for s in storage:
@@ -93,9 +93,9 @@ class Z3Solver:#(BaseSolver):
         for key, value in chemical_dict.items():
             summation = z3.Sum([m['volume']-v for m,v in zip(manifest,volume) if m['chemical'] == key])
             constraint.append(summation <= value)
-            heuristic = heuristic + summation
+            #heuristic = heuristic + summation
         
-        return constraint, heuristic
+        return constraint    #, heuristic
 
 
     @staticmethod
@@ -114,24 +114,27 @@ class Z3Solver:#(BaseSolver):
         manifest  = json_data['manifest']
         storage   = json_data['storage']
 
-        opt = z3.Optimize()
+        #???? z3.Optimize performs better than z3.Solver?????
+        solver = z3.Optimize()
         color  = [z3.Int('color_of_%s_%s' % (m['chemical'],i))  for i,m in enumerate(manifest)]
         volume = [z3.Int('volume_of_%s_%s' % (m['chemical'],i)) for i,m in enumerate(manifest)]
 
-        coloring_constraints,    coloring_heuristic    = Z3Solver._graph_coloring_constraints(manifest, storage, color, safe_funct=safe_funct) 
-        bin_packing_constraints, bin_packing_heuristic = Z3Solver._bin_packing_constraints(manifest, storage, color, volume)
-        coalesing_constraints,   coalesing_heuristic   = Z3Solver._coalesing_constraints(manifest, storage, color, volume)
+        coloring_constraints    = Z3Solver._graph_coloring_constraints(manifest, storage, color, safe_funct=safe_funct) 
+        bin_packing_constraints = Z3Solver._bin_packing_constraints(manifest, storage, color, volume)
+        coalesing_constraints   = Z3Solver._coalesing_constraints(manifest, storage, color, volume)
 
-        opt.add(coloring_constraints + bin_packing_constraints + coalesing_constraints)
-        opt.minimize(coloring_heuristic)
-        opt.maximize(bin_packing_heuristic)
-        opt.maximize(coalesing_heuristic)
+        solver.add(coloring_constraints + bin_packing_constraints + coalesing_constraints)
+        
+        #I measured, heuristics do not help the problem at all, they actually hurt the performance
+        #opt.minimize(coloring_heuristic)
+        #opt.maximize(bin_packing_heuristic)
+        #opt.maximize(coalesing_heuristic)
         if not sol:
-            return opt.check() == z3.sat
+            return solver.check() == z3.sat
 
-        if opt.check() == z3.sat:
-            model = opt.model()
-            return [(col, vol) for col, vol in zip(color, volume)]
+        if solver.check() == z3.sat:
+            model = solver.model()
+            return [(model.evaluate(col), model.evaluate(vol)) for col, vol in zip(color, volume)]
         else:
             return None
 
