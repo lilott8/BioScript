@@ -59,13 +59,16 @@ class Z3Tests(unittest.TestCase):
         d = Z3Solver.solve_constraints('resources/full_cabinet.json', safe)
         e = Z3Solver.solve_constraints('resources/benzene_urea_benzotricholoride.json', safe_funct=lambda x,y:True, sol=False)
         f = Z3Solver.solve_constraints('resources/combine_two_tests.json', safe_funct=lambda x,y:True)
+        g = Z3Solver.solve_constraints('resources/lithium_aluminum_hydride_fire.json')
+        h = Z3Solver.solve_constraints('resources/lithium_aluminum_hydride_fire.json', safe_funct=lambda x,y:True)
         self.assertFalse(a)
         self.assertFalse(b)
         self.assertFalse(c)
         self.assertFalse(d)
         self.assertTrue(e)
         self.assertTrue(f)
-
+        self.assertFalse(g)
+        self.assertTrue(h)
 
 
 
