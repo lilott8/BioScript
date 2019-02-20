@@ -91,9 +91,11 @@ class Z3Solver:#(BaseSolver):
                 chemical_dict[name] += c['total_volume'] - c['current_volume']
 
         for key, value in chemical_dict.items():
-            summation = z3.Sum([m['volume']-v for m,v in zip(manifest,volume) if m['chemical'] == key])
-            constraint.append(summation <= value)
-            #heuristic = heuristic + summation
+            #value=0 means no coalesing, therefore no need to have a constraint.
+            if value != 0:
+                summation = z3.Sum([m['volume']-v for m,v in zip(manifest,volume) if m['chemical'] == key])
+                constraint.append(summation <= value)
+                #heuristic = heuristic + summation
         
         return constraint    #, heuristic
 
