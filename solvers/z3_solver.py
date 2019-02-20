@@ -68,11 +68,13 @@ class Z3Solver:#(BaseSolver):
     def _bin_packing_constraints(manifest, storage, color, volume):
         constraint = []
         heuristic = []
+        limits = [z3.And(0 <= v, v <= s['volume_left']) for v,s in zip(volume,storage) ]
+        
         for i, stor in enumerate(storage):
             summation  = z3.Sum([z3.If(col==i, vol, 0) for col, vol in zip(color, volume)])
             constraint.append( summation <= stor['volume_left'] )
             heuristic.append(  z3.Sum([z3.If(z3.Or(summation==0, summation==stor['volume_left']), 1, 0)]) )
-        return constraint, z3.Sum(heuristic)
+        return limits + constraint, z3.Sum(heuristic)
 
 
     @staticmethod

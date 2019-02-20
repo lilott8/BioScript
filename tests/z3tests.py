@@ -53,6 +53,7 @@ class Z3Tests(unittest.TestCase):
     def test_z3solver(self):
         table = Z3Tests.build_interaction_table('resources/abstract-interaction.txt')
         safe = functools.partial(Z3Tests.validate, table)
+
         a = Z3Solver.solve_constraints('resources/tetracholorethylene_and_nitric_acid.json', safe)
         b = Z3Solver.solve_constraints('resources/hexane_explosion.json', safe)
         c = Z3Solver.solve_constraints('resources/methanol_and_nitric_acid.json', safe)
@@ -63,6 +64,11 @@ class Z3Tests(unittest.TestCase):
         h = Z3Solver.solve_constraints('resources/lithium_aluminum_hydride_fire.json', safe_funct=lambda x,y:True)
         i = Z3Solver.solve_constraints('resources/hydrogen_peroxide_sulfuric_acid_acetone.json', safe_funct=lambda x,y:True)
         j = Z3Solver.solve_constraints('resources/hydrogen_peroxide_sulfuric_acid_acetone.json', safe_funct=lambda x,y:False)
+        k = Z3Solver.solve_constraints('resources/benzene_formaldehyde.json', safe_funct=lambda x,y:True)
+        l = Z3Solver.solve_constraints('resources/benzene_formaldehyde.json', safe_funct=lambda x,y:False)
+        m = Z3Solver.solve_constraints('resources/sodium_hydroxide_allyl_ethyl_ether_cycloheptatriene_chlorotrifluormethane_isopropyl_alcohol.json', safe_funct=lambda x,y:True)
+        n = Z3Solver.solve_constraints('resources/sodium_hydroxide_allyl_ethyl_ether_cycloheptatriene_chlorotrifluormethane_isopropyl_alcohol.json', safe_funct=lambda x,y:False)
+
         self.assertFalse(a)
         self.assertFalse(b)
         self.assertFalse(c)
@@ -73,8 +79,10 @@ class Z3Tests(unittest.TestCase):
         self.assertTrue(h)
         self.assertTrue(i)
         self.assertFalse(j)
-
-
+        self.assertTrue(k)
+        self.assertFalse(l)
+        self.assertTrue(m)
+        self.assertFalse(n)
 
 
 

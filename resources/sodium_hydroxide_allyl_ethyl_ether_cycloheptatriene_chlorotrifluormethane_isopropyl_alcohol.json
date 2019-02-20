@@ -1,0 +1,56 @@
+{
+    "problem": "storage",
+    "comment": "based on that one paper...",
+    "storage": [
+        {
+            "name": "Cabinet1",
+            "chemicals": [
+                {
+                    "chemical": "Sodium_Hydroxide",
+                    "reactive_groups": [10, 100],
+                    "current_volume": 50,
+                    "total_volume": 50
+                }
+            ],
+            "volume_left":150
+        },
+
+        {
+            "name": "Cabinet2",
+            "chemicals": [
+                {
+                    "chemical": "Allyl_Ethyl_Ether",
+                    "reactive_groups": [14, 28],
+                    "current_volume": 50,
+                    "total_volume": 50
+                }
+            ],
+            "volume_left":100
+        },
+
+        {
+            "name": "Cabinet3",
+            "chemicals": [
+                {
+                    "chemical": "Cycloheptatriene",
+                    "reactive_groups": [28, 65, 76],
+                    "current_volume": 50,
+                    "total_volume": 50
+                }
+            ],
+            "volume_left":1000
+        }
+    ],
+    "manifest": [
+       {
+            "chemical": "Chlorotrifluoromethane",
+            "reactive_groups": [47],
+            "volume" : 50
+       },
+       {
+            "chemical": "Isopropyl_Alcohol",
+            "reactive_groups": [4],
+            "volume": 50
+       }
+    ]
+}
