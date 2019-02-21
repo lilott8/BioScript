@@ -7,7 +7,6 @@ from compiler.bs_ir import *
 from compiler.data_structures.basic_block import BasicBlock
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
-from shared.bs_exceptions import *
 from shared.enums.instructions import *
 
 
@@ -22,7 +21,6 @@ class IRVisitor(BSBaseVisitor):
         self.branch_stack = list()
         self.graph = nx.DiGraph()
         self.graph.add_node(self.current_block.nid)
-        self.in_control = {"if": False, "while": False, "repeat": False}
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
@@ -136,9 +134,6 @@ class IRVisitor(BSBaseVisitor):
         return NOP()
 
     def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
-        if self.in_control["while"]:
-            raise UnsupportedOperation("We do not currently support nested conditionals.")
-        self.in_control["while"] = True
         par_expression = self.visitParExpression(ctx.parExpression())
 
         if BSBaseVisitor.is_number(par_expression['exp1']):
@@ -177,13 +172,9 @@ class IRVisitor(BSBaseVisitor):
         self.basic_blocks.append(self.current_block)
         self.current_block = BasicBlock()
 
-        self.in_control["while"] = False
         return NOP()
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
-        if self.in_control["repeat"]:
-            raise UnsupportedOperation("We do not currently support nested conditionals.")
-        self.in_control["repeat"] = True
         # # ir = LoopIR()
         new_var = Number(''.join(random.choices(string.ascii_uppercase + string.digits, k=8)),
                          {ChemTypes.REAL}, self.scope_stack[-1], value=float(ctx.INTEGER_LITERAL().__str__()))
@@ -227,7 +218,6 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_edge(self.basic_blocks[-1].nid, self.current_block.nid)
         self.current_block.add(false_label)
 
-        self.in_control["repeat"] = False
         return NOP()
 
     def visitParExpression(self, ctx: BSParser.ParExpressionContext):
