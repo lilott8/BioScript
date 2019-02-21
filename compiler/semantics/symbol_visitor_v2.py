@@ -15,8 +15,9 @@ class SymbolVisitorV2(BSBaseVisitor):
         self.basic_blocks = dict()
         self.current_block = None
         self.previous_block = None
-        self.control_stack = list()
+        self.join_stack = list()
         self.in_control = {"if": False, "while": False, "repeat": False}
+        self.depth = 0
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
@@ -85,55 +86,65 @@ class SymbolVisitorV2(BSBaseVisitor):
         6) Pop true block
         7) repeat 2-6 for false
         """
-        if self.in_control["if"]:
-            raise UnsupportedOperation("We do not currently support nested conditionals.")
-
-        self.in_control["if"] = True
+        self.depth += 1
         true_block = BasicBlock()
+        true_block.add("bsbbi_{}_t".format(self.current_block.nid))
         self.graph.add_node(true_block.nid)
         self.graph.add_edge(self.current_block.nid, true_block.nid)
-        true_block.add("bsbbi_{}_t".format(self.current_block.nid))
 
         false_block = BasicBlock()
+        false_block.add("bsbbi_{}_f".format(false_block.nid))
         self.graph.add_node(false_block.nid)
         self.graph.add_edge(self.current_block.nid, false_block.nid)
-        false_block.add("bsbbi_{}_f".format(false_block.nid))
+
+        if not ctx.ELSE():
+            join_block = false_block
+        else:
+            join_block = BasicBlock()
+            self.graph.add_node(join_block.nid)
 
         self.current_block.add("Condition")
         self.basic_blocks[self.current_block.nid] = self.current_block
         self.current_block = true_block
-        # Save the parent control node
-        self.control_stack.append(self.current_block)
-        # Save the previous block
-        # self.previous_block = self.current_block
-        # Set the current block to the true branch.
-        # self.current_block = true_block
+        # Save the parent join
+        self.join_stack.append(join_block)
         # Visit the conditional's statements.
         self.visitBlockStatement(ctx.blockStatement(0))
-        true_block = self.control_stack.pop()
 
-        from_else = False
+        if true_block.nid == 8 or true_block.nid == 11 or true_block.nid == 5:
+            x = 1
+
+        join_block = self.join_stack.pop()
+
+        # This is adding an extra edge from a true_block to a
+        # join block that is one deeper than necessary
+        # In other words, this case should only add an edge
+        # if the true block has no children
+        if self.join_stack and len(self.graph.edges(true_block.nid)) == 0:
+            self.graph.add_edge(true_block.nid, join_block.nid)
+            self.log.critical("Adding true-to-join edge: {}->{}".format(true_block.nid, join_block.nid))
+
         if ctx.ELSE():
             self.basic_blocks[self.current_block.nid] = self.current_block
+            self.join_stack.append(join_block)
             self.current_block = false_block
-            self.control_stack.append(self.current_block)
+
             self.visitBlockStatement(ctx.blockStatement(1))
-            false_block = self.control_stack.pop()
-            from_else = True
 
-        if from_else:
-            self.basic_blocks[self.current_block.nid] = self.current_block
-            # add the join.
-            join_block = BasicBlock()
-            join_block.add("bsbbi_{}_j".format(join_block.nid))
-            self.graph.add_node(join_block.nid)
-            self.graph.add_edge(false_block.nid, join_block.nid)
-            self.graph.add_edge(true_block.nid, join_block.nid)
-            self.current_block = join_block
-        else:
-            self.current_block.add("bsbbi_{}_f".format(false_block.nid))
+            join_block = self.join_stack.pop()
+            if self.join_stack and len(self.graph.edges(false_block.nid)) == 0:
+                self.graph.add_edge(false_block.nid, join_block.nid)
+            self.log.critical("Adding false edge: {}->{}".format(false_block.nid, join_block.nid))
 
-        self.in_control["if"] = False
+        # Add the current join to the parent join.
+        if self.join_stack:
+            self.graph.add_edge(join_block.nid, self.join_stack[-1].nid)
+            pass
+
+        self.basic_blocks[self.current_block.nid] = self.current_block
+        self.current_block = join_block
+        self.depth -= 1
+
         return ""
 
     def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
@@ -171,13 +182,14 @@ class SymbolVisitorV2(BSBaseVisitor):
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
         true_block = BasicBlock()
+        join_block = BasicBlock()
+        self.graph.add_node(join_block.nid)
         self.graph.add_node(true_block.nid)
         self.graph.add_edge(self.current_block.nid, true_block.nid)
         self.basic_blocks[self.current_block.nid] = self.current_block
+        self.join_stack.append(join_block)
 
-        false_block = BasicBlock()
-        self.graph.add_node(false_block.nid)
-        self.control_stack.append(false_block)
+        self.current_block = true_block
 
         self.visitBlockStatement(ctx.blockStatement())
 

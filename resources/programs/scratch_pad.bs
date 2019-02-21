@@ -14,8 +14,24 @@ function foo(a, b) {
 
 instructions:
 
-repeat 3 times {
+if (3 < 3) {
+    if (5 < 2) {
+        if (3 == 2) {
+            if (3 == 3) {
 
-    x = 3
+            } else {
+                if (3 < 3) {
 
+                }
+            }
+        }
+    } else {
+
+    }
+} else {
+    if (3 > 3) {
+
+    } else {
+
+    }
 }

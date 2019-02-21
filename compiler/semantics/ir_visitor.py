@@ -79,10 +79,6 @@ class IRVisitor(BSBaseVisitor):
         return Return(self.allocation_map[ctx.IDENTIFIER().__str__()], None)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
-        if self.in_control["if"]:
-            raise UnsupportedOperation("We do not currently support nested conditionals.")
-
-        self.in_control["if"] = True
         par_expression = self.visitParExpression(ctx.parExpression())
         if BSBaseVisitor.is_number(par_expression['exp1']):
             exp1 = Constant(float(par_expression['exp1']))
@@ -137,7 +133,6 @@ class IRVisitor(BSBaseVisitor):
         else:
             self.current_block.add(Jump(false_label))
 
-        self.in_control["if"] = False
         return NOP()
 
     def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
