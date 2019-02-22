@@ -14,18 +14,9 @@ function foo(a, b) {
 
 instructions:
 
-while (3 > 5) {
-    while (3 > 5) {
-        while (3 == 3) {
-            if (4 == 4) {
-
-            } else {
-
-            }
-        }
-    }
-}
-
-if (3 == 3) {
-
-}
+x = 7
+y = x + 4
+x = 3
+y = x + 4
+x = 4
+y = x + 2

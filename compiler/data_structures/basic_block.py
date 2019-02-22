@@ -1,4 +1,5 @@
 from compiler.bs_ir import *
+from compiler.symbol_table.symbol_table import SymbolTable
 
 
 class BasicBlock(object):
@@ -11,6 +12,7 @@ class BasicBlock(object):
         self.jumps = set()
         # This list of instructions in this basic block
         self.instructions = list()
+        self.symbol_table = SymbolTable()
 
     def get_leader(self) -> str:
         return self.instructions[0]
@@ -20,6 +22,9 @@ class BasicBlock(object):
 
     def add(self, instruction: IR):
         self.instructions.append(instruction)
+
+    def add_symbol(self, var: Variable):
+        self.symbol_table.add_local(var)
 
     def __repr__(self):
         return self.__str__()

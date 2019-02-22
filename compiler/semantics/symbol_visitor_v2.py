@@ -68,19 +68,6 @@ class SymbolVisitorV2(BSBaseVisitor):
         return super().visitStatements(ctx)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
-        """
-        :param ctx:
-        :return:
-        """
-        """
-        1) Add current instruction to current block
-        2) Create true block
-        3) AddEdge(current, true)
-        4) Push true block onto stack
-        5) Visit true statements
-        6) Pop true block
-        7) repeat 2-6 for false
-        """
         true_block = BasicBlock()
         true_block.add("bsbbi_{}_t".format(self.current_block.nid))
         self.graph.add_node(true_block.nid)
@@ -248,5 +235,5 @@ class SymbolVisitorV2(BSBaseVisitor):
 
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
         details = self.visitChildren(ctx)
-        self.current_block.add(details + " " + self.visitChildren(ctx))
+        self.current_block.add("{}{}".format(details, self.visitChildren(ctx)))
         return None

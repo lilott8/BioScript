@@ -19,10 +19,16 @@ class BSBaseVisitor(BSParserVisitor):
         self.identifier = get_identifier(self.config.identify)
         # The combiner to use.
         self.combiner = get_combiner(self.config.combine)
+        # Name of global scope
         self.global_scope = "global"
+        # The current symbol table
         self.symbol_table = symbol_table
         self.nl = "\n"
+        # Manages the scopes that we are in.
         self.scope_stack = list()
+        # Manages the renamed variables
+        self.rename_counter = dict()
+        # This *should* be moved into the LLVM target...
         self.keywords = ("alignas", "alignof", "and", "and_eq", "asm", "atomic_cancel", "atomic_commit",
                          "atomic_noexcept", "auto", "bitand", "bitor", "bool", "break", "case", "catch", "char",
                          "char16_t", "char32_t", "class", "compl", "concept", "const", "constexpr", "const_cast",
@@ -35,6 +41,31 @@ class BSBaseVisitor(BSParserVisitor):
                          "switch", "synchronized", "template", "this", "thread_local", "throw", "true", "try",
                          "typedef", "typeid", "typename", "union", "unsigned", "using", "virtual", "void", "volatile",
                          "wchar_t", "while", "xor", "xor_eq")
+
+    def get_renamed_var(self, name: str):
+        """
+        Gets a variable from the counter table.
+        :param name: Variable to get rename for.
+        :return: Renamed variable.
+        """
+        if name not in self.rename_counter:
+            self.rename_counter[name] = 1
+            return name
+        else:
+            return "{}{}".format(name, self.rename_counter[name])
+
+    def increment_rename_var(self, name: str):
+        """
+        Increment the variable counter for the given name.
+        :param name: Name to increment counter.
+        :return: The name of the renamed variable.
+        """
+        if name not in self.rename_counter:
+            self.rename_counter[name] = 1
+            return name
+        else:
+            self.rename_counter[name] += 1
+            return "{}{}".format(name, self.rename_counter[name])
 
     def visitVolumeIdentifier(self, ctx: BSParser.VolumeIdentifierContext) -> dict:
         quantity = 10.0
@@ -139,9 +170,19 @@ class BSBaseVisitor(BSParserVisitor):
 
     @staticmethod
     def get_safe_name(name: str) -> str:
+        """
+        Unified manner to create program-safe names
+        :param name: Name of unsafe variable.
+        :return: Safe name.
+        """
         return name.replace(" ", "_").replace("-", "_")
 
     def split_number_from_unit(self, text) -> dict:
+        """
+        Splits the number and units: 10mL => (10, "mL").
+        :param text: Input text for splitting.
+        :return: Dictionary of necessary output.
+        """
         temp_float = ""
         temp_unit = ""
         for x in text[0:]:
@@ -156,6 +197,11 @@ class BSBaseVisitor(BSParserVisitor):
         return {'quantity': float(temp_float), 'units': temp_unit}
 
     def get_scope(self, name) -> Scope:
+        """
+        Get the scope.
+        :param name: name of scope.
+        :return: Scope object associated with the name.
+        """
         if name not in self.symbol_table.scope_map:
             scope = Scope(name)
             self.symbol_table.scope_map[name] = scope
@@ -165,6 +211,11 @@ class BSBaseVisitor(BSParserVisitor):
 
     @staticmethod
     def is_number(num):
+        """
+        Simple check to determine if input is a number.
+        :param num: Input string.
+        :return: Boolean determining if a string is a number.
+        """
         try:
             float(num)
             return True
