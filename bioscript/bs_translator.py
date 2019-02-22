@@ -47,6 +47,7 @@ class BSTranslator(object):
         # We must visit the symbol table.
         self.symbol_visitor = SymbolTableVisitor(method_visitor.symbol_table)
         self.symbol_visitor.visit(tree)
+        self.log.info(self.symbol_visitor.symbol_table)
 
         v2 = SymbolVisitorV2(method_visitor.symbol_table)
         v2.visit(tree)

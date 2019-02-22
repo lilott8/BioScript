@@ -222,7 +222,8 @@ class TypeCheckVisitor(BSBaseVisitor):
 
     def visitDetect(self, ctx: BSParser.DetectContext) -> str:
         module = self.symbol_table.get_variable(ctx.IDENTIFIER(0).__str__(), self.scope_stack[-1])
-        material = self.symbol_table.get_variable(ctx.IDENTIFIER(1).__str__(), self.scope_stack[-1])
+        material = self.symbol_table.get_variable(
+            self.get_renamed_var(ctx.IDENTIFIER(1).__str__()), self.scope_stack[-1])
 
         smt = "; building asserts for detect {} in {}{}".format(material.name.upper(),
                                                                 self.scope_stack[-1].upper(), self.nl)
@@ -235,13 +236,13 @@ class TypeCheckVisitor(BSBaseVisitor):
         return smt
 
     def visitHeat(self, ctx: BSParser.HeatContext) -> str:
-        var = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+        var = self.symbol_table.get_variable(self.get_renamed_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
         smt = "; building asserts for heat{} in {}{}".format(var.name.upper(), self.scope_stack[-1], self.nl)
         smt += self.assert_material(var)
         return smt
 
     def visitSplit(self, ctx: BSParser.SplitContext) -> str:
-        var = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+        var = self.symbol_table.get_variable(self.get_renamed_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
 
         smt = "; building asserts for split {} in {}{}".format(var.name.upper(),
                                                                self.scope_stack[-1].upper(), self.nl)

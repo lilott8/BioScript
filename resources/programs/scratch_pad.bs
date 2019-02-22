@@ -17,6 +17,7 @@ instructions:
 x = 7
 y = x + 4
 x = 3
+x = 3
 y = x + 4
 x = 4
 y = x + 2

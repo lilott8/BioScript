@@ -49,7 +49,6 @@ class BSBaseVisitor(BSParserVisitor):
         :return: Renamed variable.
         """
         if name not in self.rename_counter:
-            self.rename_counter[name] = 1
             return name
         else:
             return "{}{}".format(name, self.rename_counter[name])
@@ -70,7 +69,7 @@ class BSBaseVisitor(BSParserVisitor):
     def visitVolumeIdentifier(self, ctx: BSParser.VolumeIdentifierContext) -> dict:
         quantity = 10.0
         units = BSVolume.MICROLITRE
-        name = ctx.IDENTIFIER().__str__()
+        name = self.get_renamed_var(ctx.IDENTIFIER().__str__())
         if ctx.VOLUME_NUMBER():
             x = self.split_number_from_unit(ctx.VOLUME_NUMBER().__str__())
             units = BSVolume.get_from_string(x['units'])
@@ -95,9 +94,11 @@ class BSBaseVisitor(BSParserVisitor):
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         if ctx.IDENTIFIER():
-            if not self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1]):
-                raise UndefinedException("Undeclared variable: {}".format(ctx.IDENTIFIER().__str__()))
-            return ctx.IDENTIFIER().__str__()
+            name = self.get_renamed_var(ctx.IDENTIFIER().__str__())
+            renamed = self.symbol_table.get_variable(name, self.scope_stack[-1])
+            if not renamed:
+                raise UndefinedException("Undeclared variable: " + name)
+            return renamed.name
         elif ctx.literal():
             return self.visitLiteral(ctx.literal())
         else:
@@ -152,7 +153,7 @@ class BSBaseVisitor(BSParserVisitor):
                 So we can check to make sure that exp1 is the appropriate size,
                 Given exp2 as the index. 
                 """
-                variable = self.symbol_table.get_variable(exp1)
+                variable = self.symbol_table.get_variable(self.get_renamed_var(exp1))
                 if int(exp2) > variable.size - 1 and int(exp2) >= 0:
                     raise InvalidOperation("Out of bounds index: {}[{}], where {} is of size: {}".format(
                         exp1, exp2, exp1, variable.size))

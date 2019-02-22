@@ -206,7 +206,7 @@ class SymbolTableVisitor(BSBaseVisitor):
         return self.visitChildren(ctx)
 
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
-        name = ctx.IDENTIFIER().__str__()
+        name = self.increment_rename_var(ctx.IDENTIFIER().__str__())
 
         declared_types = set()
         final_types = set()
@@ -274,7 +274,7 @@ class SymbolTableVisitor(BSBaseVisitor):
         :param ctx:
         :return: Variable
         """
-        name = ctx.IDENTIFIER().__str__()
+        name = self.get_renamed_var(ctx.IDENTIFIER().__str__())
         types = {ChemTypes.MAT}
         quantity = 10.0
         units = BSVolume.MICROLITRE
