@@ -49,9 +49,8 @@ class BSBaseVisitor(BSParserVisitor):
         :return: Renamed variable.
         """
         if name not in self.rename_counter:
-            return name
-        else:
-            return "{}{}".format(name, self.rename_counter[name])
+            self.rename_counter[name] = 0
+        return "{}{}".format(name, self.rename_counter[name])
 
     def increment_rename_var(self, name: str):
         """
@@ -60,11 +59,10 @@ class BSBaseVisitor(BSParserVisitor):
         :return: The name of the renamed variable.
         """
         if name not in self.rename_counter:
-            self.rename_counter[name] = 1
-            return name
-        else:
-            self.rename_counter[name] += 1
-            return "{}{}".format(name, self.rename_counter[name])
+            self.rename_counter[name] = 0
+        output = "{}{}".format(name, self.rename_counter[name])
+        self.rename_counter[name] += 1
+        return output
 
     def visitVolumeIdentifier(self, ctx: BSParser.VolumeIdentifierContext) -> dict:
         quantity = 10.0
@@ -95,9 +93,12 @@ class BSBaseVisitor(BSParserVisitor):
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         if ctx.IDENTIFIER():
             name = self.get_renamed_var(ctx.IDENTIFIER().__str__())
+            self.log.info("Looking for: {}, renamed var: {}".format(ctx.IDENTIFIER().__str__(), name))
+            self.log.info(self.symbol_table)
             renamed = self.symbol_table.get_variable(name, self.scope_stack[-1])
             if not renamed:
-                raise UndefinedException("Undeclared variable: " + name)
+                self.log.critical("Undeclared variable: " + name)
+                # raise UndefinedException("Undeclared variable: " + name)
             return renamed.name
         elif ctx.literal():
             return self.visitLiteral(ctx.literal())

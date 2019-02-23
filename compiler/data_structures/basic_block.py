@@ -13,6 +13,7 @@ class BasicBlock(object):
         # This list of instructions in this basic block
         self.instructions = list()
         self.symbol_table = SymbolTable()
+        self.label = None
 
     def get_leader(self) -> str:
         return self.instructions[0]

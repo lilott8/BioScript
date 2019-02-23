@@ -15,11 +15,6 @@ class Instruction(IntEnum):
     LABEL = 512
 
 
-class InstructionSet(object):
-    instructions = {Instruction.MIX, Instruction.SPLIT, Instruction.DETECT, Instruction.DISPENSE,
-                    Instruction.DISPOSE, Instruction.HEAT, Instruction.METHOD, Instruction.EXPRESSION}
-
-
 class IRInstruction(IntEnum):
     # Expressions
     CONSTANT = 0
@@ -62,3 +57,10 @@ class RelationalOps(IntEnum):
     LTE = 3
     GT = 4
     GTE = 5
+
+
+class InstructionSet(object):
+    instructions = {Instruction.MIX, Instruction.SPLIT, Instruction.DETECT, Instruction.DISPENSE,
+                    Instruction.DISPOSE, Instruction.HEAT, Instruction.METHOD, Instruction.EXPRESSION}
+
+    BinaryOps = {BinaryOps.AND, BinaryOps.ADD, BinaryOps.DIVIDE, BinaryOps.MULTIPLE, BinaryOps.OR, BinaryOps.SUBTRACT}

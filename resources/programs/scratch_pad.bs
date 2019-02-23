@@ -7,17 +7,8 @@ manifest ddd
 
 functions:
 
-function foo(a, b) {
-    c = mix a with b
-    return c
-}
-
 instructions:
 
-x = 7
-y = x + 4
-x = 3
-x = 3
-y = x + 4
-x = 4
-y = x + 2
+x = 5
+y = x + 3
+z = dispense ccc
