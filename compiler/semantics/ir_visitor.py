@@ -18,10 +18,12 @@ class IRVisitor(BSBaseVisitor):
         self.current_block = BasicBlock()
         self.allocation_map = dict()
         self.globals = dict()
-        self.branch_stack = list()
         self.control_stack = list()
         self.graph = nx.DiGraph()
         self.graph.add_node(self.current_block.nid)
+
+    def get_ir(self):
+        return {"basic_blocks": self.basic_blocks, "globals": self.globals, "cfg": self.graph}
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")

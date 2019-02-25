@@ -214,7 +214,8 @@ class SymbolTableVisitor(BSBaseVisitor):
         if ctx.unionType():
             declared_types = self.visitUnionType(ctx.unionType())
 
-        operation = self.visitChildren(ctx)
+        operation = self.visitVariableDeclaration(ctx.variableDeclaration())
+        self.log.info(operation)
         
         final_types = final_types.union(declared_types)
         final_types = final_types.union(operation['types'])
@@ -235,8 +236,7 @@ class SymbolTableVisitor(BSBaseVisitor):
             if ctx.INTEGER_LITERAL() and int(ctx.INTEGER_LITERAL().__str__()) != operation['size']:
                 raise InvalidOperation("Array size doesn't match method return size.")
 
-        # self.log.warning("{} - size: {}".format(name, operation['size']))
-        if ChemTypeResolver.numbers.issubset(final_types):
+        if final_types.issubset(ChemTypeResolver.numbers):
             variable = Number(name, final_types, self.symbol_table.current_scope.name)
         else:
             variable = Chemical(name, final_types, self.symbol_table.current_scope.name, operation['size'])

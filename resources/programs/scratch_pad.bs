@@ -11,4 +11,4 @@ instructions:
 
 x = 5
 y = x + 3
-z = dispense ccc
+x = 4

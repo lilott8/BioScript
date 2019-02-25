@@ -1,6 +1,12 @@
 from enum import IntEnum
 from enum import IntFlag
 
+from compiler.symbol_table.symbol_table import SymbolTable
+from compiler.targets.clang_target import ClangTarget
+from compiler.targets.inkwell_target import InkwellTarget
+from compiler.targets.mfsim_target import MFSimTarget
+from compiler.targets.puddle_target import PuddleTarget
+
 
 class Problem(IntEnum):
     BIOSCRIPT = 1
@@ -41,3 +47,13 @@ class Target(IntFlag):
     MFSIM = 2
     PUDDLE = 4
     INKWELL = 8
+
+    def get_target(self, symbol_table: SymbolTable, ir: dict):
+        if self == Target.PUDDLE:
+            return PuddleTarget(symbol_table, ir)
+        elif self.value == Target.INKWELL:
+            return InkwellTarget(symbol_table, ir)
+        elif self.value == Target.MFSIM:
+            return MFSimTarget(symbol_table, ir)
+        else:
+            return ClangTarget(symbol_table, ir)

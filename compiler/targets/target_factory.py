@@ -1,2 +1,0 @@
-class TargetFactory(object):
-    pass

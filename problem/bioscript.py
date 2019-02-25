@@ -1,4 +1,4 @@
-from bioscript.bs_translator import BSTranslator
+from compiler.compiler import BSCompiler
 from problem.problem import Problem
 
 
@@ -6,7 +6,7 @@ class BioScript(Problem):
 
     def __init__(self):
         Problem.__init__(self)
-        self.translator = BSTranslator()
+        self.compiler = BSCompiler()
 
     def run(self):
-        self.translator.translate()
+        self.compiler.compile()

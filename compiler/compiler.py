@@ -1,20 +1,19 @@
-import subprocess
-
 import colorlog
 from antlr4 import *
 
+from compiler.passes.pass_manager import PassManager
 from compiler.semantics.global_visitor import GlobalVariableVisitor
+from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
 from compiler.semantics.type_visitor import TypeCheckVisitor
 from compiler.symbol_table import SymbolTable
-from compiler.targets.target_factory import TargetFactory
-from compiler.targets.visitors.clang_visitor import ClangVisitor
-from compiler.targets.visitors.target_visitor import TargetVisitor
+from compiler.targets.target_manager import TargetManager
 from config.config import Config
 from grammar.parsers.python.BSLexer import BSLexer
 from grammar.parsers.python.BSParser import BSParser
 from shared.enums.config_flags import TypeChecker
+from solvers.z3_solver import Z3Solver
 
 
 class BSCompiler(object):
@@ -23,63 +22,81 @@ class BSCompiler(object):
         self.config = Config.getInstance(None)
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.log.warning(self.config.input)
-        self.type_check = ""
-        self.typeable = False
-        # This gets run first, gathering all the globals.
-        self.global_visitor = GlobalVariableVisitor(SymbolTable())
-        # This must be globally declared.
-        self.symbol_visitor = None
+        # The symbol is built is phases, hence it's globalness.
+        self.symbol_table = None
 
-    def translate(self):
-        file_stream = FileStream(self.config.input)
+    def compile(self):
+        ir = self.translate(self.config.input)
+        ir = self.optimizations(ir)
+        target = self.target(ir)
+
+    def translate(self, filename: str) -> dict:
+        """
+        Translates the program from the AST into the corresponding IR.
+        :param filename: name of file to parse.
+        :return:
+        """
+        file_stream = FileStream(filename)
         lexer = BSLexer(file_stream)
         stream = CommonTokenStream(lexer)
         parser = BSParser(stream)
         tree = parser.program()
 
-        self.global_visitor.visit(tree)
-        method_visitor = MethodVisitor(self.global_visitor.symbol_table)
+        # This gets run first, gathering all the globals.
+        global_visitor = GlobalVariableVisitor(SymbolTable())
+        global_visitor.visit(tree)
+        # Always update the symbol table.
+        self.symbol_table = global_visitor.symbol_table
+
+        # Build the functions and their symbols next.
+        method_visitor = MethodVisitor(self.symbol_table)
         method_visitor.visit(tree)
-        # No matter what options are set,
-        # We must visit the symbol table.
-        self.symbol_visitor = SymbolTableVisitor(method_visitor.symbol_table)
-        self.symbol_visitor.visit(tree)
+        # Always update the symbol table.
+        self.symbol_table = method_visitor.symbol_table
 
-        if self.config.typecheck != TypeChecker.DISABLED:
-            self.visit_type_check(tree)
-        else:
-            self.typeable = True
+        # Finish building the symbol table.
+        symbol_visitor = SymbolTableVisitor(method_visitor.symbol_table)
+        symbol_visitor.visit(tree)
+        # Always update the symbol table.
+        self.symbol_table = symbol_visitor.symbol_table
 
-        if not self.typeable:
-            raise TypeError("The BioScript program could not be safely type checked.")
+        # Attempt to type check the program
+        self.visit_type_check(tree)
 
-        target = TargetFactory.get_target(self.config.target, self.symbol_visitor.symbol_table)
-        self.log.info("Visiting: {}".format(target.name))
+        # Convert the AST to the IR for further analysis.
+        ir_visitor = IRVisitor(self.symbol_table)
+        ir_visitor.visit(tree)
+        # Always update the symbol table.
+        self.symbol_table = ir_visitor.symbol_table
 
-        target.visit(tree)
+        return ir_visitor.get_ir()
 
-        if self.config.debug:
-            target.print_program()
-            pass
-        if self.config.llvm:
-            self.compile_file(target)
+    def optimizations(self, ir: dict):
+        """
+        Run the various optimizations that can be run.
+        :param ir:
+        :return:
+        """
+        passes = PassManager(self.symbol_table, ir)
+        passes.optimize()
+        return passes
+
+    def target(self, ir: dict):
+        target = TargetManager(self.symbol_table, ir)
+        target.transform()
+        return target
 
     def visit_type_check(self, tree):
-        type_checker = TypeCheckVisitor(self.symbol_visitor.symbol_table)
-        type_checker.visit(tree)
-        # self.log.info(type_checker.smt_string)
-        # z3 = Z3Solver()
-        # if z3.solve(type_checker.smt_string):
-        #     self.typeable = True
-
-    def visit_clang(self, tree):
-        clang = ClangVisitor(self.symbol_visitor.symbol_table)
-        clang.visit(tree)
-        # self.log.info(clang.program)
-
-    def compile_file(self, target: TargetVisitor):
-        file_name = self.config.path + 'compiled/{}.cpp'.format(self.config.input_file)
-        f = open(file_name, 'w+')
-        f.write(target.compiled)
-        f.close()
-        subprocess.call(['g++', '-S', '-emit-llvm', file_name])
+        """
+        Attempts to typecheck a program if enabled.
+        :param tree: the AST of a program.
+        :return: None
+        """
+        if self.config.typecheck != TypeChecker.DISABLED:
+            type_checker = TypeCheckVisitor(self.symbol_table)
+            type_checker.visit(tree)
+            z3 = Z3Solver()
+            if not z3.solve(type_checker.smt_string):
+                raise TypeError("The BioScript program could not be safely type checked.")
+        else:
+            self.log.debug("Type checking has been disabled.")

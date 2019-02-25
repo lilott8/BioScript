@@ -20,3 +20,4 @@ def get_combiner(combiner):
         return SimulateCombiner()
     else:
         return NaiveCombiner()
+

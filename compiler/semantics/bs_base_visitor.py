@@ -60,8 +60,9 @@ class BSBaseVisitor(BSParserVisitor):
         """
         if name not in self.rename_counter:
             self.rename_counter[name] = 0
+        else:
+            self.rename_counter[name] += 1
         output = "{}{}".format(name, self.rename_counter[name])
-        self.rename_counter[name] += 1
         return output
 
     def visitVolumeIdentifier(self, ctx: BSParser.VolumeIdentifierContext) -> dict:
@@ -93,12 +94,9 @@ class BSBaseVisitor(BSParserVisitor):
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         if ctx.IDENTIFIER():
             name = self.get_renamed_var(ctx.IDENTIFIER().__str__())
-            self.log.info("Looking for: {}, renamed var: {}".format(ctx.IDENTIFIER().__str__(), name))
-            self.log.info(self.symbol_table)
             renamed = self.symbol_table.get_variable(name, self.scope_stack[-1])
             if not renamed:
-                self.log.critical("Undeclared variable: " + name)
-                # raise UndefinedException("Undeclared variable: " + name)
+                raise UndefinedException("Undeclared variable: " + name)
             return renamed.name
         elif ctx.literal():
             return self.visitLiteral(ctx.literal())
