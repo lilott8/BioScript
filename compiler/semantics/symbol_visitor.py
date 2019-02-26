@@ -10,6 +10,7 @@ class SymbolTableVisitor(BSBaseVisitor):
 
     def __init__(self, symbol_table):
         super().__init__(symbol_table, "Symbol Visitor")
+        self.rename = False
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         # Visiting globals is done in global_visitor.
@@ -206,7 +207,7 @@ class SymbolTableVisitor(BSBaseVisitor):
         return self.visitChildren(ctx)
 
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
-        name = self.increment_rename_var(ctx.IDENTIFIER().__str__())
+        name = self.rename_var(ctx.IDENTIFIER().__str__(), True)
 
         declared_types = set()
         final_types = set()
@@ -273,7 +274,7 @@ class SymbolTableVisitor(BSBaseVisitor):
         :param ctx:
         :return: Variable
         """
-        name = self.get_renamed_var(ctx.IDENTIFIER().__str__())
+        name = self.rename_var(ctx.IDENTIFIER().__str__())
         types = {ChemTypes.MAT}
         quantity = 10.0
         units = BSVolume.MICROLITRE

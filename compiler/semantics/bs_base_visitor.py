@@ -28,19 +28,8 @@ class BSBaseVisitor(BSParserVisitor):
         self.scope_stack = list()
         # Manages the renamed variables
         self.rename_counter = dict()
-        # This *should* be moved into the LLVM target...
-        self.keywords = ("alignas", "alignof", "and", "and_eq", "asm", "atomic_cancel", "atomic_commit",
-                         "atomic_noexcept", "auto", "bitand", "bitor", "bool", "break", "case", "catch", "char",
-                         "char16_t", "char32_t", "class", "compl", "concept", "const", "constexpr", "const_cast",
-                         "continue", "co_await", "co_return", "co_yield", "decltype", "default", "delete", "do",
-                         "double", "dynamic_cast", "else", "enum", "explicit", "export", "extern", "false", "float",
-                         "for", "friend", "goto", "if", "import", "inline", "int", "long", "module", "mutable",
-                         "namespace", "new", "noexcept", "not", "not_eq", "nullptr", "operator", "or", "or_eq",
-                         "private", "protected", "public", "reflexpr", "register", "reinterpret_cast", "requires",
-                         "return", "short", "signed", "sizeof", "static", "static_assert", "static_cast", "struct",
-                         "switch", "synchronized", "template", "this", "thread_local", "throw", "true", "try",
-                         "typedef", "typeid", "typename", "union", "unsigned", "using", "virtual", "void", "volatile",
-                         "wchar_t", "while", "xor", "xor_eq")
+        # Determines if renaming should happen.
+        self.rename = False
 
     def get_renamed_var(self, name: str):
         """
@@ -65,10 +54,18 @@ class BSBaseVisitor(BSParserVisitor):
         output = "{}{}".format(name, self.rename_counter[name])
         return output
 
+    def rename_var(self, name: str, is_def: bool = True) -> str:
+        if not self.rename:
+            return name
+        if is_def:
+            return self.increment_rename_var(name)
+        else:
+            return self.get_renamed_var(name)
+
     def visitVolumeIdentifier(self, ctx: BSParser.VolumeIdentifierContext) -> dict:
         quantity = 10.0
         units = BSVolume.MICROLITRE
-        name = self.get_renamed_var(ctx.IDENTIFIER().__str__())
+        name = self.rename_var(ctx.IDENTIFIER().__str__())
         if ctx.VOLUME_NUMBER():
             x = self.split_number_from_unit(ctx.VOLUME_NUMBER().__str__())
             units = BSVolume.get_from_string(x['units'])
@@ -93,7 +90,7 @@ class BSBaseVisitor(BSParserVisitor):
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         if ctx.IDENTIFIER():
-            name = self.get_renamed_var(ctx.IDENTIFIER().__str__())
+            name = self.rename_var(ctx.IDENTIFIER().__str__())
             renamed = self.symbol_table.get_variable(name, self.scope_stack[-1])
             if not renamed:
                 raise UndefinedException("Undeclared variable: " + name)
@@ -152,7 +149,7 @@ class BSBaseVisitor(BSParserVisitor):
                 So we can check to make sure that exp1 is the appropriate size,
                 Given exp2 as the index. 
                 """
-                variable = self.symbol_table.get_variable(self.get_renamed_var(exp1))
+                variable = self.symbol_table.get_variable(self.rename_var(exp1))
                 if int(exp2) > variable.size - 1 and int(exp2) >= 0:
                     raise InvalidOperation("Out of bounds index: {}[{}], where {} is of size: {}".format(
                         exp1, exp2, exp1, variable.size))

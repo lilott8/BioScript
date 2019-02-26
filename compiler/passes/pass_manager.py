@@ -1,20 +1,19 @@
 import colorlog
 
-from compiler.data_structures.symbol_table import SymbolTable
+from compiler.data_structures.bs_program import BSProgram
 from config.config import Config
 
 
 class PassManager(object):
 
-    def __init__(self, symbol_table: SymbolTable, ir: dict):
+    def __init__(self, program: BSProgram):
         self.config = Config.getInstance(None)
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.log.debug("Initializing pass manager.")
-        self.ir = ir
-        self.symbol_table = symbol_table
+        self.program = program
 
     def transformations(self):
         pass
 
-    def optimize(self):
+    def analyses(self):
         pass

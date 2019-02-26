@@ -1,8 +1,8 @@
 import colorlog
 from antlr4 import *
 
+from compiler.data_structures.bs_program import BSProgram
 from compiler.data_structures.symbol_table import SymbolTable
-from compiler.passes.pass_manager import PassManager
 from compiler.semantics.global_visitor import GlobalVariableVisitor
 from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
@@ -25,11 +25,13 @@ class BSCompiler(object):
         self.log.warning(self.config.input)
         # The symbol is built is phases, hence it's globalness.
         self.symbol_table = None
+        self.program = BSProgram()
 
     def compile(self):
+        self.program.name = self.config.input
         ir = self.translate(self.config.input)
-        ir = self.optimizations(ir)
-        target = self.target(ir)
+        ir = self.optimizations(self.program)
+        target = self.target(self.program)
 
     def translate(self, filename: str) -> dict:
         """
@@ -47,46 +49,52 @@ class BSCompiler(object):
         global_visitor = GlobalVariableVisitor(SymbolTable())
         global_visitor.visit(tree)
         # Always update the symbol table.
-        self.symbol_table = global_visitor.symbol_table
+        self.program.symbol_table = global_visitor.symbol_table
 
         # Build the functions and their symbols next.
-        method_visitor = MethodVisitor(self.symbol_table)
+        method_visitor = MethodVisitor(self.program.symbol_table)
         method_visitor.visit(tree)
         # Always update the symbol table.
-        self.symbol_table = method_visitor.symbol_table
+        self.program.symbol_table = method_visitor.symbol_table
 
         # Finish building the symbol table.
         symbol_visitor = SymbolTableVisitor(method_visitor.symbol_table)
         symbol_visitor.visit(tree)
         # Always update the symbol table.
-        self.symbol_table = symbol_visitor.symbol_table
+        self.program.symbol_table = symbol_visitor.symbol_table
 
         # Attempt to type check the program
         self.visit_type_check(tree)
 
         # Convert the AST to the IR for further analysis.
-        ir_visitor = IRVisitor(self.symbol_table)
+        ir_visitor = IRVisitor(self.program.symbol_table)
         ir_visitor.visit(tree)
         # Always update the symbol table.
-        self.symbol_table = ir_visitor.symbol_table
+        self.program.symbol_table = ir_visitor.symbol_table
 
-        phi = PhiInserter(self.symbol_table, ir_visitor.get_ir())
+        phi = PhiInserter(self.program.symbol_table, ir_visitor.get_ir())
         phi.insert_phi_nodes()
 
         return ir_visitor.get_ir()
 
-    def optimizations(self, ir: dict):
+    def optimizations(self, program: BSProgram):
         """
         Run the various optimizations that can be run.
-        :param ir:
+        :param program:
         :return:
         """
-        passes = PassManager(self.symbol_table, ir)
-        passes.optimize()
-        return passes
+        # passes = PassManager(self.symbol_table, ir)
+        # passes.optimize()
+        # return passes
+        return program
 
-    def target(self, ir: dict):
-        target = TargetManager(self.symbol_table, ir)
+    def target(self, program: BSProgram):
+        """
+        Run the various transforms that can be run.
+        :param program:
+        :return:
+        """
+        target = TargetManager(program, self.config.target)
         target.transform()
         return target
 

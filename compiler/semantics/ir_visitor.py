@@ -22,6 +22,7 @@ class IRVisitor(BSBaseVisitor):
         self.functions = {}
         self.graph = nx.DiGraph()
         self.graph.add_node(self.current_block.nid)
+        self.rename = False
 
     def get_ir(self):
         return {"basic_blocks": self.basic_blocks, "globals": self.globals,
@@ -29,22 +30,25 @@ class IRVisitor(BSBaseVisitor):
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
+        self.symbol_table.current_scope = self.symbol_table.scope_map['main']
 
         self.visitModuleDeclaration(ctx.moduleDeclaration())
         self.visitManifestDeclaration(ctx.manifestDeclaration())
         self.visitStationaryDeclaration(ctx.stationaryDeclaration())
 
-        if ctx.functionDeclaration():
-            for func in ctx.functionDeclaration():
-                # Add the chain of basic blocks resulting from the functions.
-                # self.visitFunctionDeclaration(func)
-                pass
-
-        self.symbol_table.current_scope = self.symbol_table.scope_map['main']
-
         # Add all the subsequent instructions to the B.B.
         for i in ctx.statements():
             self.visitStatements(i)
+
+        self.basic_blocks[self.current_block.nid] = self.current_block
+        self.current_block = BasicBlock()
+        self.graph.add_node(self.current_block.nid)
+
+        if ctx.functionDeclaration():
+            for func in ctx.functionDeclaration():
+                # Add the chain of basic blocks resulting from the functions.
+                self.visitFunctionDeclaration(func)
+                pass
 
         self.basic_blocks[self.current_block.nid] = self.current_block
 
@@ -69,6 +73,8 @@ class IRVisitor(BSBaseVisitor):
 
         self.scope_stack.append(name)
         self.symbol_table.current_scope = self.symbol_table.scope_map[name]
+        self.basic_blocks[self.current_block.nid] = self.current_block
+
 
         for statement in ctx.statements():
             self.visitStatements(statement)
@@ -314,7 +320,7 @@ class IRVisitor(BSBaseVisitor):
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
         details = self.visitChildren(ctx)
         lhs = Temp(self.symbol_table.get_local(
-            self.increment_rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1]))
+            self.rename_var(ctx.IDENTIFIER().__str__(), True), self.scope_stack[-1]))
         self.allocation_map[lhs.value.name] = lhs
         self.current_block.add_defs(lhs.value)
 
@@ -386,7 +392,7 @@ class IRVisitor(BSBaseVisitor):
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
         output = Output(self.symbol_table.get_local(
-            self.get_renamed_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1]))
+            self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1]))
         ir = Dispose(output, self.allocation_map[output.value.name])
         self.current_block.add(ir)
         return ir

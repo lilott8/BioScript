@@ -1,7 +1,7 @@
 from enum import IntEnum
 from enum import IntFlag
 
-from compiler.data_structures.symbol_table import SymbolTable
+from compiler.data_structures.bs_program import BSProgram
 from compiler.targets.clang_target import ClangTarget
 from compiler.targets.inkwell_target import InkwellTarget
 from compiler.targets.mfsim_target import MFSimTarget
@@ -48,12 +48,12 @@ class Target(IntFlag):
     PUDDLE = 4
     INKWELL = 8
 
-    def get_target(self, symbol_table: SymbolTable, ir: dict):
+    def get_target(self, program: BSProgram):
         if self == Target.PUDDLE:
-            return PuddleTarget(symbol_table, ir)
+            return PuddleTarget(program)
         elif self.value == Target.INKWELL:
-            return InkwellTarget(symbol_table, ir)
+            return InkwellTarget(program)
         elif self.value == Target.MFSIM:
-            return MFSimTarget(symbol_table, ir)
+            return MFSimTarget(program)
         else:
-            return ClangTarget(symbol_table, ir)
+            return ClangTarget(program)

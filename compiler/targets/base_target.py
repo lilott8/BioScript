@@ -1,18 +1,16 @@
 import colorlog
 
 import config.config
-from compiler.data_structures.symbol_table import SymbolTable
+from compiler.data_structures.bs_program import BSProgram
 
 
 class BaseTarget(object):
 
-    def __init__(self, symbol_table: SymbolTable, ir: dict, name="BaseTarget"):
+    def __init__(self, program: BSProgram, name="BaseTarget"):
         self.config = config.Config.getInstance(None)
         self.log = colorlog.getLogger(self.__class__.__name__)
-        self.symbol_table = symbol_table
         self.name = name
-        self.program = ""
-        self.ir = ir
+        self.program = program
 
     def map_mix(self):
         raise NotImplemented
