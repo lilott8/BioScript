@@ -1,8 +1,8 @@
 import networkx as nx
 
 from compiler.data_structures.basic_block import BasicBlock
+from compiler.data_structures.symbol_table import SymbolTable
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
-from compiler.symbol_table.symbol_table import SymbolTable
 from grammar.parsers.python.BSParser import BSParser
 
 

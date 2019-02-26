@@ -1,4 +1,4 @@
-from compiler.registers import *
+from compiler.data_structures.registers import *
 from shared.enums.instructions import *
 from shared.function import Function
 

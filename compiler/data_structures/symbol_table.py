@@ -1,6 +1,6 @@
 import colorlog
 
-from compiler.symbol_table.scope import Scope
+from compiler.data_structures.scope import Scope
 from shared.enums.chemtypes import ChemTypes
 from shared.function import Function
 from shared.variable import Variable

@@ -1,4 +1,4 @@
-from compiler.symbol_table.symbol_table import SymbolTable
+from compiler.data_structures.symbol_table import SymbolTable
 from compiler.targets.base_target import BaseTarget
 
 

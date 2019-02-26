@@ -1,5 +1,5 @@
+from compiler.data_structures.symbol_table import SymbolTable
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
-from compiler.symbol_table import SymbolTable
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import InvalidOperation
 from shared.enums.bs_properties import *

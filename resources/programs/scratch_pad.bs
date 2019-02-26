@@ -9,6 +9,10 @@ functions:
 
 instructions:
 
-x = 5
-y = x + 3
-x = 4
+x = 0
+if ( 3 == 3) {
+    x = 3
+} else {
+    x = 5
+}
+y = x

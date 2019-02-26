@@ -1,7 +1,7 @@
 from enum import IntEnum
 from enum import IntFlag
 
-from compiler.symbol_table.symbol_table import SymbolTable
+from compiler.data_structures.symbol_table import SymbolTable
 from compiler.targets.clang_target import ClangTarget
 from compiler.targets.inkwell_target import InkwellTarget
 from compiler.targets.mfsim_target import MFSimTarget

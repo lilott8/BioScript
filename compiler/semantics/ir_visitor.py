@@ -3,8 +3,8 @@ import string
 
 import networkx as nx
 
-from compiler.bs_ir import *
 from compiler.data_structures.basic_block import BasicBlock
+from compiler.data_structures.bs_ir import *
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.enums.instructions import *
@@ -19,11 +19,13 @@ class IRVisitor(BSBaseVisitor):
         self.allocation_map = dict()
         self.globals = dict()
         self.control_stack = list()
+        self.functions = {}
         self.graph = nx.DiGraph()
         self.graph.add_node(self.current_block.nid)
 
     def get_ir(self):
-        return {"basic_blocks": self.basic_blocks, "globals": self.globals, "cfg": self.graph}
+        return {"basic_blocks": self.basic_blocks, "globals": self.globals,
+                "cfg": self.graph, 'functions': self.functions}
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
@@ -314,9 +316,13 @@ class IRVisitor(BSBaseVisitor):
         lhs = Temp(self.symbol_table.get_local(
             self.increment_rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1]))
         self.allocation_map[lhs.value.name] = lhs
+        self.current_block.add_defs(lhs.value)
 
         if 'op' not in details:
-            ir = Store(lhs, Constant(float(details)))
+            if self.is_number(details):
+                ir = Store(lhs, Constant(float(details)))
+            else:
+                ir = Store(lhs, details)
         elif details['op'] == IRInstruction.MIX:
             ir = Mix(lhs, details['reagents'][0], details['reagents'][1], details['execute_for'])
         elif details['op'] == IRInstruction.SPLIT:
@@ -327,7 +333,6 @@ class IRVisitor(BSBaseVisitor):
             ir = Store(lhs, Call(details['func']))
         elif details['op'] in InstructionSet.BinaryOps:
             ir = BinaryOp(details['exp1'], details['exp2'], details['op'])
-            pass
         else:
             ir = NOP()
 

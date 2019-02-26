@@ -1,6 +1,6 @@
 import colorlog
 
-from compiler.symbol_table.symbol_table import SymbolTable
+from compiler.data_structures.symbol_table import SymbolTable
 from config.config import Config
 
 
@@ -12,6 +12,9 @@ class PassManager(object):
         self.log.debug("Initializing pass manager.")
         self.ir = ir
         self.symbol_table = symbol_table
+
+    def transformations(self):
+        pass
 
     def optimize(self):
         pass

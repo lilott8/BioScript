@@ -1,7 +1,7 @@
 import colorlog
 
 import config.config
-from compiler.symbol_table import SymbolTable
+from compiler.data_structures.symbol_table import SymbolTable
 
 
 class BaseTarget(object):

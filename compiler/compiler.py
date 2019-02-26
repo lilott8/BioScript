@@ -1,13 +1,14 @@
 import colorlog
 from antlr4 import *
 
+from compiler.data_structures.symbol_table import SymbolTable
 from compiler.passes.pass_manager import PassManager
 from compiler.semantics.global_visitor import GlobalVariableVisitor
 from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
+from compiler.semantics.phi_inserter import PhiInserter
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
 from compiler.semantics.type_visitor import TypeCheckVisitor
-from compiler.symbol_table import SymbolTable
 from compiler.targets.target_manager import TargetManager
 from config.config import Config
 from grammar.parsers.python.BSLexer import BSLexer
@@ -68,6 +69,9 @@ class BSCompiler(object):
         ir_visitor.visit(tree)
         # Always update the symbol table.
         self.symbol_table = ir_visitor.symbol_table
+
+        phi = PhiInserter(self.symbol_table, ir_visitor.get_ir())
+        phi.insert_phi_nodes()
 
         return ir_visitor.get_ir()
 

@@ -215,7 +215,6 @@ class SymbolTableVisitor(BSBaseVisitor):
             declared_types = self.visitUnionType(ctx.unionType())
 
         operation = self.visitVariableDeclaration(ctx.variableDeclaration())
-        self.log.info(operation)
         
         final_types = final_types.union(declared_types)
         final_types = final_types.union(operation['types'])

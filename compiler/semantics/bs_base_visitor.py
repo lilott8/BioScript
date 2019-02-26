@@ -1,7 +1,7 @@
 import colorlog
 
-from compiler.bs_ir import *
-from compiler.symbol_table.scope import Scope
+from compiler.data_structures.bs_ir import *
+from compiler.data_structures.scope import Scope
 from grammar.parsers.python.BSParser import BSParser
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
 from shared.bs_exceptions import *
