@@ -1,17 +1,15 @@
-import colorlog
-
 from chemicals.epa_manager import EpaManager
-from config.config import Config
 from shared.enums.chemtypes import ChemTypes
-from shared.variable import Variable
+from shared.type_checker import TypeChecker
+from shared.variable import Chemical
 
 
 class Combiner(object):
 
-    def __init__(self):
-        self.log = colorlog.getLogger(__name__)
-        self.config = Config.getInstance()
-        self.epa_manager = EpaManager(self.config.epa_defs, self.config.abstract_interaction)
+    def __init__(self, config: 'Config'):
+        self.config = config
+        self.epa_manager = EpaManager(config.epa_defs, config.abstract_interaction)
+        self.checker = TypeChecker(self.config.typecheck, self.epa_manager)
 
     def combine(self, *args: list) -> set:
         """
@@ -21,7 +19,7 @@ class Combiner(object):
         """
         raise NotImplementedError
 
-    def combine_variables(self, var1: Variable, var2: Variable) -> set:
+    def combine_variables(self, var1: Chemical, var2: Chemical) -> set:
         raise NotImplementedError
 
     def combine_sets(self, set1: set, set2: set) -> set:

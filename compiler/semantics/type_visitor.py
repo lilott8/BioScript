@@ -5,7 +5,7 @@ from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import UndefinedException
 from shared.enums.chemtypes import ChemTypeResolver
 from shared.enums.chemtypes import ChemTypes
-from shared.enums.config_flags import TypeChecker
+from shared.enums.config_flags import TypeCheckLevel
 from shared.variable import Variable
 
 
@@ -17,6 +17,7 @@ class TypeCheckVisitor(BSBaseVisitor):
         super().__init__(copy.deepcopy(symbol_table), "Type Visitor")
         self.check = self.config.typecheck
         self.smt_string = ""
+        self.tab = "\t"
         self.build_declares()
         self.output = None
         self.expressions = list()
@@ -36,7 +37,7 @@ class TypeCheckVisitor(BSBaseVisitor):
         return kill
 
     def build_declares(self):
-        if self.check == TypeChecker.UNION:
+        if self.check == TypeCheckLevel.UNION:
             types = ChemTypeResolver.available_types
         else:
             types = ChemTypeResolver.naive_types
@@ -61,7 +62,7 @@ class TypeCheckVisitor(BSBaseVisitor):
                 """
                 defines += "(assert (= {} true)){}".format(self.get_smt_name(var, t), self.nl)
 
-            if self.config.typecheck == TypeChecker.NAIVE:
+            if self.config.typecheck == TypeCheckLevel.NAIVE:
                 """
                 If it's naive, then make sure that unknown is false.
                 In other words, we must have a nat/real/mat type.
@@ -86,7 +87,7 @@ class TypeCheckVisitor(BSBaseVisitor):
                 for t in var.types:
                     defines += "(assert (= {} true)){}".format(self.get_smt_name(var, t), self.nl)
 
-                if self.config.typecheck == TypeChecker.NAIVE:
+                if self.config.typecheck == TypeCheckLevel.NAIVE:
                     """
                     If it's naive, then make sure that unknown is false.
                     In other words, we must have a nat/real/mat type.
@@ -174,6 +175,7 @@ class TypeCheckVisitor(BSBaseVisitor):
         return super().visitBlockStatement(ctx)
 
     def visitStatements(self, ctx: BSParser.StatementsContext):
+        self.log.info("Visiting: " + ctx.getText())
         return self.visitChildren(ctx)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):

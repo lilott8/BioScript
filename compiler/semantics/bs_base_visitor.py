@@ -2,10 +2,10 @@ import colorlog
 
 from compiler.data_structures.bs_ir import *
 from compiler.data_structures.scope import Scope
+from config.config import Config
 from grammar.parsers.python.BSParser import BSParser
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
 from shared.bs_exceptions import *
-from shared.helpers import *
 
 
 class BSBaseVisitor(BSParserVisitor):
@@ -16,9 +16,9 @@ class BSBaseVisitor(BSParserVisitor):
         self.config = Config.getInstance(None)
         self.visitor_name = name
         # The identifier to use.
-        self.identifier = get_identifier(self.config.identify)
+        self.identifier = self.config.identify.get_identifier()
         # The combiner to use.
-        self.combiner = get_combiner(self.config.combine)
+        self.combiner = self.config.combine.get_combiner(self.config)
         # Name of global scope
         self.global_scope = "global"
         # The current symbol table

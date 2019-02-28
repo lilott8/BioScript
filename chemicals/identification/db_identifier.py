@@ -1,20 +1,19 @@
 from chemicals.identification.identifier import Identifier
 from shared.bs_exceptions import IdentificationException
-from shared.enums.bs_properties import *
-from shared.enums.config_flags import IdentifyLevel
-from shared.variable import *
+from shared.enums.bs_properties import BSVolume
+from shared.variable import Chemical, Variable
 
 
 class DBIdentifier(Identifier):
 
-    def __init__(self, level: IdentifyLevel, db):
-        super().__init__(level)
+    def __init__(self, db):
+        super().__init__()
         self.db = db
 
     def identify(self, search_for: str, types: set = frozenset(), scope: str = "", volume: float = 10.0,
                  units: BSVolume = BSVolume.MICROLITRE) -> Variable:
         self.log.fatal("DB Identifier isn't functioning correctly.")
-        var = Chemical(search_for, {ChemTypes.UNKNOWN})
+        var = Chemical(search_for)
         return var
 
     # fix(daniel): figure out if there is a way to prevent exceptions from firing...

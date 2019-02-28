@@ -16,17 +16,16 @@ class IRVisitor(BSBaseVisitor):
         super().__init__(symbol_table, "Basic Block Visitor")
         self.basic_blocks = dict()
         self.current_block = BasicBlock()
+        # The root nodes for all functions (this includes "main").
+        self.roots = {self.current_block.nid}
+        # The entry block to the program.
+        self.entry_block = self.current_block.nid
         self.allocation_map = dict()
         self.globals = dict()
         self.control_stack = list()
-        self.functions = {}
         self.graph = nx.DiGraph()
         self.graph.add_node(self.current_block.nid)
         self.rename = False
-
-    def get_ir(self):
-        return {"basic_blocks": self.basic_blocks, "globals": self.globals,
-                "cfg": self.graph, 'functions': self.functions}
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
@@ -74,7 +73,8 @@ class IRVisitor(BSBaseVisitor):
         self.scope_stack.append(name)
         self.symbol_table.current_scope = self.symbol_table.scope_map[name]
         self.basic_blocks[self.current_block.nid] = self.current_block
-
+        self.current_block = BasicBlock()
+        self.roots.add(self.current_block.nid)
 
         for statement in ctx.statements():
             self.visitStatements(statement)

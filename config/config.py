@@ -1,11 +1,8 @@
 import colorlog
 
-from shared.enums.config_flags import ClassifyLevel
-from shared.enums.config_flags import IdentifyLevel
-from shared.enums.config_flags import Problem
-from shared.enums.config_flags import ReportingLevel
-from shared.enums.config_flags import Target
-from shared.enums.config_flags import TypeChecker
+from shared.enums.chemical_operations import *
+from shared.enums.config_flags import *
+from shared.enums.target import Target
 
 
 class Config(object):
@@ -30,7 +27,7 @@ class Config(object):
         self.abstract_interaction = './resources/abstract-interaction.txt'
         self.input = None
         self.input_file = None
-        self.typecheck = TypeChecker.NAIVE
+        self.typecheck = TypeCheckLevel.NAIVE
         # Database stuff.
         self.db = {'name': None, 'pass': None, 'addr': None, 'user': None, 'driver': None}
         # For classification, how big of filters to use.
@@ -88,11 +85,11 @@ class Config(object):
                 self.error_level = ReportingLevel.ERROR
 
             if args.typecheck.lower() == "d" or args.typecheck.lower() == "disable":
-                self.typecheck = TypeChecker.DISABLED
+                self.typecheck = TypeCheckLevel.DISABLED
             elif args.typecheck.lower() == "union" or args.typecheck.lower() == 'u':
-                self.typecheck = TypeChecker.UNION
+                self.typecheck = TypeCheckLevel.UNION
             else:
-                self.typecheck = TypeChecker.NAIVE
+                self.typecheck = TypeCheckLevel.NAIVE
 
             if args.target is not None:
                 """

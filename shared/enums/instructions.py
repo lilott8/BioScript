@@ -39,6 +39,7 @@ class IRInstruction(IntEnum):
     USEBY = 16
     EXECUTEFOR = 17
     NOP = 18
+    PHI = 19
 
 
 class BinaryOps(IntEnum):

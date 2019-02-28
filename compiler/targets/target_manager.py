@@ -1,7 +1,7 @@
 import colorlog
 
 from compiler.data_structures.bs_program import BSProgram
-from shared.enums.config_flags import Target
+from shared.enums.target import Target
 
 
 class TargetManager(object):

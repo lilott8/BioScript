@@ -4,7 +4,7 @@ from shared.enums.chemtypes import ChemTypes
 
 class Variable(object):
 
-    def __init__(self, name: str, types: frozenset = None, scope: str = "unknown", size: int = 1,
+    def __init__(self, name: str, types: set = None, scope: str = "unknown", size: int = 1,
                  is_global: bool = False):
         self.name = name
         self.types = types
@@ -32,7 +32,7 @@ class Variable(object):
 
 class Chemical(Variable):
 
-    def __init__(self, name: str, types: frozenset = None, scope: str = "unknown", size: int = 1,
+    def __init__(self, name: str, types: set = {ChemTypes.UNKNOWN}, scope: str = "unknown", size: int = 1,
                  is_global: bool = False, stationary: bool = False, volume: float = 10.0,
                  units: BSVolume = BSVolume.MICROLITRE):
         super().__init__(name, types, scope, size, is_global)

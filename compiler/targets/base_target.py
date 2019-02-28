@@ -1,13 +1,11 @@
 import colorlog
 
-import config.config
 from compiler.data_structures.bs_program import BSProgram
 
 
 class BaseTarget(object):
 
     def __init__(self, program: BSProgram, name="BaseTarget"):
-        self.config = config.Config.getInstance(None)
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.name = name
         self.program = program

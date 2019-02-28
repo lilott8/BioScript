@@ -1,8 +1,5 @@
 import re
 
-import colorlog
-
-from shared.enums.config_flags import IdentifyLevel
 from shared.variable import Variable
 
 
@@ -16,26 +13,24 @@ class Identifier(object):
     smiles_regex = re.compile(smiles_string)
     inchi_key_regex = re.compile('^InChI\=1S?\/[A-Za-z0-9]+(\+[0-9]+)?(\/[cnpbtmshi][A-Za-z0-9\-\+\(\)\,\/]+)*$')
 
-    def __init__(self, level: IdentifyLevel):
-        self.level = level
-        self.log = colorlog.getLogger(__name__)
+    def __init__(self):
         pass
 
     def identify(self, search_for: str, types: set = frozenset(), scope: str = "") -> Variable:
         raise NotImplementedError
 
     @staticmethod
-    def is_cas_number(string):
-        return Identifier.cas_number_regex.match(string) != None
+    def is_cas_number(string) -> bool:
+        return Identifier.cas_number_regex.match(string) is not None
 
     @staticmethod
-    def is_chemical_formula(string):
-        return Identifier.formula_regex.match(string) != None
+    def is_chemical_formula(string) -> bool:
+        return Identifier.formula_regex.match(string) is not None
 
     @staticmethod
-    def is_smiles(string):
-        return Identifier.smiles_regex.match(string) != None
+    def is_smiles(string) -> bool:
+        return Identifier.smiles_regex.match(string) is not None
 
     @staticmethod
-    def is_inchi_key(string):
-        return Identifier.inchi_key_regex.match(string) != None
+    def is_inchi_key(string) -> bool:
+        return Identifier.inchi_key_regex.match(string) is not None

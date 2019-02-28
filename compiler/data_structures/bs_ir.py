@@ -58,6 +58,13 @@ class BinaryOp(Expression):
         return "BINARYOP {} {} {}".format(self.op, self.left, self.right)
 
 
+class Phi(Expression):
+    def __init__(self, left: Expression, right: []):
+        super().__init__(IRInstruction.PHI)
+        self.left = left
+        self.phi = right
+
+
 class Call(Expression):
     def __init__(self, func: Function):
         super().__init__(IRInstruction.CALL)

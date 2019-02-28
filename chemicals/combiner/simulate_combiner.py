@@ -1,21 +1,21 @@
 from chemicals.combiner.combiner import Combiner
-from chemicals.epa_manager import EpaManager
-from shared import Variable
+from shared.enums.chemtypes import ChemTypes
+from shared.variable import Chemical
 
 
 class SimulateCombiner(Combiner):
 
-    def __init__(self, epa_manager: EpaManager):
-        super().__init__(epa_manager)
+    def __init__(self, config):
+        super().__init__(config)
 
     def combine(self, *args: set) -> set:
-        self.log.warning("Not doing anything with this.")
         return set()
 
-    def combine_variables(self, var1: Variable, var2: Variable) -> set:
-        self.log.warning("Not doing anything with this.")
+    def combine_variables(self, var1: Chemical, var2: Chemical) -> set:
         return set()
 
     def combine_sets(self, t1: set, t2: set) -> set:
-        self.log.warning("Not doing anything with this.")
         return set()
+
+    def combine_types(self, t1: ChemTypes, t2: ChemTypes) -> set:
+        pass
