@@ -5,69 +5,60 @@ A simple type-safe Domain Specific Language (DSL) for chemistry and biology.
 
 
 ## Usage
-usage: main.py
+usage: 
 ``` 
-[-h] [-epa EPA_DEFS] [-abs ABS_INT] -i INPUT [-llvm]
-[-s | -dis | -m | -b] [-d]
-[-t {inkwell,puddle,m,mfsim,p,i,l,llvm}] [-p PATH]
-[-sim {False,True}] [-id {0,1,2,32,4,8,16}] [-nf]
-[-smarts SMARTS] [-l {error,warn,none}]
-[-tc {disable,naive,n,u,d,union}] [--dbname DBNAME]
-[--dbuser DBUSER] [--dbpass DBPASS] [--dbaddr DBADDR]
-[--dbdriver {mysql,odbc}]
+ main.py 
+    [-h] -i INPUT [-d] [-t {p,mfsim,llvm,l,i,inkwell,m,puddle}]
+    [-wd WORKING_DIRECTORY]
+    [-p {compile,d,disposal,b,c,bioscript,mix,s,store,m}]
+    [-sim {False,True}] [-id {0,1,2,32,4,8,16}] [-nf]
+    [-smarts SMARTS] [-tcl {warn,none,error}]
+    [-tc {u,union,naive,disable,d,n}] [-epa EPA_DEFS]
+    [-abs ABS_INT] [--dbname DBNAME] [--dbuser DBUSER]
+    [--dbpass DBPASS] [--dbaddr DBADDR] [--dbdriver {mysql,odbc}]
 ```
-optional arguments:
-  -h, --help            show this help message and exit
-  
-  -s, --store           Is this a storage problem?
-  
-  -dis, --disposal      Is this a disposal problem?
-  -m, --mix             Is this a mixing problem?
-  -b, --bioscript       Compile a BioScript program.
-  -d, --debug           Enable debug mode.
-  -t {inkwell,puddle,m,mfsim,p,i,l,llvm}, --target {inkwell,puddle,m,mfsim,p,i,l,llvm}
-                        Platforms to target.
-  -p PATH, --path PATH  Working path.
+### Optional Arguments:
 
-required:
-  Required flags for operations.
+| Short             | Long                  | Flag                  | Purpose                                               |
+| ------------------|-----------------------|-----------------------|-------------------------------------------------------|
+| -h                | --help                |                       | show this help message and exit                       |
+| -i                | --input               | path/to/input.bs      | Location of input file                                |
+| -d                | --debug               |                       | Enable debugging.                                     |
+| -t                | --target              | {inkwell,puddle,m,mfsim,p,i,l,llvm} | What platform do you wish to target?    |
+| -wd               | --working-directory   | path/to/directory     | Directory from where you wish to work                 |
+| -p                | --problem             | {b, bioscript, c, compile, m, mix, s, store} | What problem are you solving?  |
+|
 
-  -epa EPA_DEFS, --epa-defs EPA_DEFS
-                        Location of EPA definition file.
-  -abs ABS_INT, --abs-int ABS_INT
-                        Location for the abstract interaction files.
-  -i INPUT, --input INPUT
-                        input file.
-  -llvm, --llvm         Use the LLVM for various optimizations.
+### Chemistry:
+**Chemistry specific arguments**
 
-chemistry:
-  Chemistry specific arguments
+| Short             | Long                  | Flag                  | Purpose                           |
+| ------------------|-----------------------|-----------------------|-----------------------------------|
+| -sim              | --simulate            | {True, False}         | Simulate chemistry?               |
+| -id               | --identify            | {0,1,2,32,4,8,16}     | Chemical identification level     |
+| -nf               | --no-filters          |                       | Disable smart filter creation     |
+| -smarts           | --smarts              | 0-255                 | Length of smarts file to use      |
 
-  -sim {False,True}, --simulate {False,True}
-                        Simulate chemistry.
-  -id {0,1,2,32,4,8,16}, --identify {0,1,2,32,4,8,16}
-                        Chemical identification level.
-  -nf, --no-filters     Disable smart filter creation.
-  -smarts SMARTS, --smarts SMARTS
-                        Length of smart filters to use.
+### Typing:
+**Typing specific arguments**
 
-typing:
-  Typing specific arguments
+| Short             | Long                  |  Flag                         | Purpose                                                                                       |
+| ------------------|-----------------------|-------------------------------|-----------------------------------------------------------------------------------------------|
+| -tcl              | --typechecklevel      | {error, warn, none}           | What interactions elicit notifications                                                        |
+| -tc               | --typecheck           | {disable,naive,n,u,d,union}   | How to typecheck default is `naive`                                                           |
+| -epa              | --epa-defs            | Path/to/epa_defs.json         | Location of the EPA definition file (default: `./resources/epa.json`)                         |
+| -abs              | --abs-int             | path/to/abs-int.txt           | Location of the abstract interaction file (default: `./resources/abstract-interaction.txt`)   |
 
-  -l {error,warn,none}, --level {error,warn,none}
-                        What level to report errors.
-  -tc {disable,naive,n,u,d,union}, --typecheck {disable,naive,n,u,d,union}
-                        What level to type check this problem.
+### DB:
+**Database specific arguments**
 
-db:
-  Database specific arguments:
-
-  --dbname DBNAME       Name of database.
-  --dbuser DBUSER       Database user.
-  --dbpass DBPASS       Database password for user.
-  --dbaddr DBADDR       Address of database. [IP address | host name]
-  --dbdriver {mysql,odbc}
-                        Database driver.
+| Flag              | Argument      | Purpose                                   |
+|-------------------|---------------|-------------------------------------------|
+| --dbname          | str           | Name of database.                         |
+| --dbuser          | str           | Database user.                            |
+| --dbpass          | str           | Database password for user.               |
+| --dbaddr          | {IP, Host}    | Address of database.                      |
+| --dbdriver        | {mysql,odbc}  | Database driver.                          |
                         
 ### Example Usages:
 

@@ -18,32 +18,27 @@ class Cli(object):
         self.config = None
 
         parser = argparse.ArgumentParser()
-        required_group = parser.add_argument_group('required', 'Required flags for operations.')
-        required_group.add_argument('-epa', '--epa-defs', help='Location of EPA definition file.', required=False,
-                                    default='./resources/epa.json')
-        required_group.add_argument('-abs', '--abs-int', help="Location for the abstract interaction files.",
-                                    required=False, default='./resources/abstract-interaction.txt')
-        required_group.add_argument('-i', '--input', help='input file.', required=True)
-        required_group.add_argument('-llvm', '--llvm', help="Use the LLVM for various optimizations.", required=False,
-                                    default=False, action='store_true')
 
-        problem_group = parser.add_mutually_exclusive_group(required=False)
-        problem_group.add_argument('-s', '--store', help='Is this a storage problem?', action='store_true',
-                                   default=False)
-        problem_group.add_argument('-dis', '--disposal', help='Is this a disposal problem?', action='store_true',
-                                   default=False)
-        problem_group.add_argument('-m', '--mix', help='Is this a mixing problem?', action='store_true', default=False)
-        problem_group.add_argument('-b', '--bioscript', help='Compile a BioScript program.', action='store_true',
-                                   default=True)
+        # problem_group = parser.add_mutually_exclusive_group(required=False)
+        # problem_group.add_argument('-s', '--store', help='Is this a storage problem?', action='store_true',
+        #                            default=False)
+        # problem_group.add_argument('-dis', '--disposal', help='Is this a disposal problem?', action='store_true',
+        #                            default=False)
+        # problem_group.add_argument('-m', '--mix', help='Is this a mixing problem?', action='store_true', default=False)
+        # problem_group.add_argument('-b', '--bioscript', help='Compile a BioScript program.', action='store_true',
+        #                            default=True)
 
         """
         Generic Parser Arguments
         """
+        parser.add_argument('-i', '--input', help='input file.', required=True)
         parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', default=False)
         parser.add_argument('-t', '--target', help='Platforms to target.', type=str,
                             default='mfsim', choices={'llvm', 'mfsim', 'puddle', 'inkwell',
                                                       'l', 'm', 'p', 'i'})
-        parser.add_argument('-p', '--path', help="Working path.", default="./", type=str)
+        parser.add_argument('-wd', '--working-directory', help="Working path.", default="./", type=str)
+        parser.add_argument('-p', '--path', help='What problem are you solving', default='bioscript', type=str,
+                            choices={'b', 'bioscript', 'c', 'compile', 'm', 'mix', 'd', 'disposal', 's', 'store'})
 
         chemistry = parser.add_argument_group('chemistry', 'Chemistry specific arguments')
         chemistry.add_argument('-sim', '--simulate', help='Simulate chemistry.', default=False,
@@ -54,10 +49,14 @@ class Cli(object):
         chemistry.add_argument('-smarts', '--smarts', help='Length of smart filters to use.', default=5, type=int)
 
         typing_group = parser.add_argument_group('typing', 'Typing specific arguments')
-        typing_group.add_argument('-l', '--level', help='What level to report errors.', default="error",
+        typing_group.add_argument('-tcl', '--typechecklevel', help='What level to report errors.', default="error",
                                   choices={'error', 'warn', 'none'})
         typing_group.add_argument('-tc', '--typecheck', help='What level to type check this problem.', default='n',
                                   choices={'n', 'naive', 'u', 'union', 'd', 'disable'})
+        typing_group.add_argument('-epa', '--epa-defs', help='Location of EPA definition file.', required=False,
+                                  default='./resources/epa.json')
+        typing_group.add_argument('-abs', '--abs-int', help="Location for the abstract interaction files.",
+                                  required=False, default='./resources/abstract-interaction.txt')
 
         db_group = parser.add_argument_group('db', 'Database specific arguments:')
         db_group.add_argument('--dbname', help='Name of database.', default='')

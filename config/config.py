@@ -54,7 +54,6 @@ class Config(object):
         else:
             # self.log.warning(args)
             self.debug = args.debug
-            self.llvm = args.llvm
             self.path = args.path
             if args.epa_defs:
                 self.epa_defs = args.epa_defs
@@ -77,9 +76,9 @@ class Config(object):
             else:
                 self.combine = ClassifyLevel.NAIVE
 
-            if args.level.lower() == "none":
+            if args.typechecklevel.lower() == "none":
                 self.error_level = ReportingLevel.NONE
-            elif args.level.lower() == "warn":
+            elif args.typechecklevel.lower() == "warn":
                 self.error_level = ReportingLevel.WARNING
             else:
                 self.error_level = ReportingLevel.ERROR
