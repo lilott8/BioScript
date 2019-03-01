@@ -6,7 +6,7 @@ class BSProgram(object):
 
     def __init__(self, ir: 'IRVisitor'):
         # A dict: id->basic block
-        self.basic_blocks = ir.basic_blocks
+        self.functions = ir.functions
         # Set of basic block ids that are roots
         self.roots = ir.roots
         # The main entry point for the program

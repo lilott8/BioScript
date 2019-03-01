@@ -14,35 +14,47 @@ class IRVisitor(BSBaseVisitor):
 
     def __init__(self, symbol_table):
         super().__init__(symbol_table, "Basic Block Visitor")
-        self.basic_blocks = dict()
+        # This is the list of *all* basic blocks.
+        # self.basic_blocks = dict()
+        # This is the blocks which belong to specific functions.
+        self.functions = dict()
         self.current_block = BasicBlock()
         # The root nodes for all functions (this includes "main").
         self.roots = {self.current_block.nid}
         # The entry block to the program.
         self.entry_block = self.current_block.nid
+        # What is allocated to what.
         self.allocation_map = dict()
+        # Global vars.
         self.globals = dict()
+        # Used for controlling the control basic blocks.
         self.control_stack = list()
+        # Call stack for the program.
         self.call_stack = list()
+        # This is the graph for the *entire* program.
         self.graph = nx.DiGraph()
         self.graph.add_node(self.current_block.nid)
+        # Does this rename vars?
         self.rename = False
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
         self.symbol_table.current_scope = self.symbol_table.scope_map['main']
         # Create the place to store main's basic blocks.
-        self.basic_blocks["main"] = dict()
+        # self.basic_blocks["main"] = dict()
 
         self.visitModuleDeclaration(ctx.moduleDeclaration())
         self.visitManifestDeclaration(ctx.manifestDeclaration())
         self.visitStationaryDeclaration(ctx.stationaryDeclaration())
 
+        self.functions['main'] = {'blocks': dict(), 'entry': self.current_block.nid}
+
         # Add all the subsequent instructions to the B.B.
         for i in ctx.statements():
             self.visitStatements(i)
 
-        self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+        # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+        self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
 
         if ctx.functionDeclaration():
             for func in ctx.functionDeclaration():
@@ -50,7 +62,8 @@ class IRVisitor(BSBaseVisitor):
                 self.visitFunctionDeclaration(func)
                 pass
 
-        self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+        # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+        self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         for module in ctx.IDENTIFIER():
@@ -76,7 +89,7 @@ class IRVisitor(BSBaseVisitor):
         self.symbol_table.current_scope = self.symbol_table.scope_map[name]
 
         self.current_block = BasicBlock()
-        self.roots.add(self.current_block.nid)
+        self.functions[name] = {"blocks": None, "entry": self.current_block.nid}
         label = Label("{}_entry".format(name))
         self.current_block.label = label
         self.current_block.add(label)
@@ -85,7 +98,9 @@ class IRVisitor(BSBaseVisitor):
             self.visitStatements(statement)
 
         self.current_block.add(self.visitReturnStatement(ctx.returnStatement()))
-        self.basic_blocks[self.scope_stack[-1]][name][self.current_block.nid] = self.current_block
+        # self.basic_blocks[self.scope_stack[-1]][name][self.current_block.nid] = self.current_block
+        self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+        # self.functions[name]['blocks'] = self.basic_blocks[self.scope_stack[-1][name]]
 
         self.scope_stack.pop()
         return None
@@ -116,7 +131,9 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_node(true_block.nid)
         self.graph.add_edge(self.current_block.nid, true_block.nid)
         condition.true_branch = true_label
-        self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
+
+        # self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
+        self.functions[self.scope_stack[-1]]['blocks'][true_block.nid] = true_block
 
         # Build the false block of this statement.
         false_block = BasicBlock()
@@ -126,7 +143,9 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_node(false_block.nid)
         self.graph.add_edge(self.current_block.nid, false_block.nid)
         condition.false_branch = false_label
-        self.basic_blocks[self.scope_stack[-1]][false_block.nid] = false_block
+
+        # self.basic_blocks[self.scope_stack[-1]][false_block.nid] = false_block
+        self.functions[self.scope_stack[-1]]['blocks'][false_block.nid] = true_block
 
         if not ctx.ELSE():
             join_block = false_block
@@ -136,11 +155,16 @@ class IRVisitor(BSBaseVisitor):
             join_block.label = join_label
             join_block.add(join_label)
             self.graph.add_node(join_block.nid)
-            self.basic_blocks[self.scope_stack[-1]][join_block.nid] = join_block
+            # self.basic_blocks[self.scope_stack[-1]][join_block.nid] = join_block
+            self.functions[self.scope_stack[-1]]['blocks'][join_block.nid] = join_block
 
         self.current_block.add("Condition")
-        self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+
+        # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+        self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+
         self.current_block = true_block
+
         # Save the parent join
         self.control_stack.append(join_block)
         # Visit the conditional's statements.
@@ -158,7 +182,9 @@ class IRVisitor(BSBaseVisitor):
             self.graph.add_edge(true_block.nid, join_block.nid)
 
         if ctx.ELSE():
-            self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+            # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+            self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+
             self.control_stack.append(join_block)
             self.current_block = false_block
 
@@ -180,7 +206,9 @@ class IRVisitor(BSBaseVisitor):
             self.graph.add_edge(join_block.nid, self.control_stack[-1].nid)
             pass
 
-        self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+        # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+        self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+
         self.current_block = join_block
 
         return NOP()
@@ -207,14 +235,20 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_node(true_block.nid)
         true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
         true_block.add(true_label)
-        self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
+
+        # self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
+        self.functions[self.scope_stack[-1]]['blocks'][true_block.nid] = true_block
+
         condition.true_branch = true_label
 
         self.current_block.add(condition)
         # If condition evaluates true.
         self.graph.add_cycle([true_block.nid, self.current_block.nid])
         self.control_stack.append(self.current_block)
-        self.basic_blocks[self.scope_stack[-1]][self.current_block] = self.current_block
+
+        # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+        self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+
         self.current_block = true_block
 
         self.visitBlockStatement(ctx.blockStatement())
@@ -237,9 +271,12 @@ class IRVisitor(BSBaseVisitor):
             condition.false_branch = false_label
             # Create the edge.
             self.graph.add_edge(parent_block.nid, false_block.nid)
+
             # We are done, so we need to handle the book keeping for
             # next basic block generation.
-            self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+            # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+            self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+
             self.current_block = false_block
             pass
         else:
@@ -277,13 +314,19 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_node(true_block.nid)
         true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
         true_block.add(true_label)
-        self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
+
+        # self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
+        self.functions[self.scope_stack[-1]]['blocks'][true_block.nid] = true_block
+
         condition.true_branch = true_label
 
         # If condition evaluates true.
         self.graph.add_cycle([true_block.nid, self.current_block.nid])
         self.control_stack.append(self.current_block)
-        self.basic_blocks[self.scope_stack[-1]][self.current_block] = self.current_block
+
+        # self.basic_blocks[self.scope_stack[-1]][self.current_block] = self.current_block
+        self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+
         self.current_block = true_block
 
         self.visitBlockStatement(ctx.blockStatement())
@@ -308,7 +351,9 @@ class IRVisitor(BSBaseVisitor):
             self.graph.add_edge(parent_block.nid, false_block.nid)
             # We are done, so we need to handle the book keeping for
             # next basic block generation.
-            self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+            # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
+            self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+
             self.current_block = false_block
             pass
         else:
