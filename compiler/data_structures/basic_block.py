@@ -11,7 +11,8 @@ class BasicBlock(object):
         self.jumps = set()
         # This list of instructions in this basic block
         self.instructions = list()
-        self.defs = dict()
+        self.defs = set()
+        self.uses = set()
         self.label = None
 
     def get_leader(self) -> str:
@@ -24,7 +25,10 @@ class BasicBlock(object):
         self.instructions.append(instruction)
 
     def add_defs(self, var: Variable):
-        self.defs[var.name] = var
+        self.defs.add(var.name)
+
+    def add_uses(self, var: Variable):
+        self.uses.add(var.name)
 
     def __repr__(self):
         return self.__str__()
@@ -33,10 +37,20 @@ class BasicBlock(object):
         output = "ID: {}\n".format(self.nid)
 
         output += "defs: {"
-        for key, value in self.defs.items():
-            output += "{}, ".format(key)
-        output = output[:-2]
-        output += "}\n"
+        defs = ""
+        for key in self.defs:
+            defs += "{}, ".format(key)
+        if defs:
+            defs = defs[:-2]
+        output += "{}}}\n".format(defs)
+
+        output += "uses: {"
+        uses = ""
+        for key in self.uses:
+            uses += "{}, ".format(key)
+        if uses:
+            uses = uses[:-2]
+        output += "{}}}\n".format(uses)
 
         for i in self.instructions:
             output += "{}\n".format(i)

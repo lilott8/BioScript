@@ -66,6 +66,10 @@ class BSCompiler(object):
         self.program = BSProgram(ir_visitor)
         self.program.name = filename
 
+        # pos = nx.nx_agraph.graphviz_layout(ir_visitor.graph)
+        # nx.draw(ir_visitor.graph, pos=pos)
+        # write_dot(ir_visitor.graph, 'file.dot')
+
         return self.program
 
     def optimizations(self, program: BSProgram):
