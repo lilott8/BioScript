@@ -9,7 +9,7 @@ import chemicals.identifier as identifier
 import compiler.targets.base_target as target
 
 
-class DeprecatedConfig(object):
+class Config(object):
 
     def __init__(self, args=None):
         self.log = colorlog.getLogger(self.__class__.__name__)

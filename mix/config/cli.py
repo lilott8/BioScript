@@ -1,7 +1,6 @@
 import argparse
 
 import colorlog
-
 import config.config as config
 
 
