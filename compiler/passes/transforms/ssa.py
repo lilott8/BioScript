@@ -1,6 +1,6 @@
 import networkx as nx
 
-from compiler.data_structures.bs_program import BSProgram
+from compiler.data_structures.program import Program
 from .bs_transform import BSTransform
 
 
@@ -21,7 +21,7 @@ class SSA(BSTransform):
                 # self.dominator_tree[root].add_node()
                 self.log.warn(bid)
 
-    def transform(self, program: BSProgram):
+    def transform(self, program: Program):
         self.build_dominator_tree(program)
 
         # Build the dominator tree

@@ -1,5 +1,5 @@
-from shared.enums.bs_properties import *
-from shared.variable import Variable
+from compiler.data_structures.properties import *
+from compiler.data_structures.variable import Variable
 
 
 class MFSimVarBuilder(object):

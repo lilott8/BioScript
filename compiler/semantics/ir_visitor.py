@@ -4,10 +4,9 @@ import string
 import networkx as nx
 
 from compiler.data_structures.basic_block import BasicBlock
-from compiler.data_structures.bs_ir import *
+from compiler.data_structures.ir import *
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
-from shared.enums.instructions import *
 
 
 class IRVisitor(BSBaseVisitor):

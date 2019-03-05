@@ -1,15 +1,19 @@
+from chemicals.chemtypes import *
+from chemicals.identifier import Identifier
+from compiler.data_structures.ir import IRInstruction
+from compiler.data_structures.properties import BSVolume
+from compiler.data_structures.variable import Variable, Chemical, Number
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import *
-from shared.enums.chemtypes import *
-from shared.enums.instructions import Instruction
-from shared.variable import *
 from .bs_base_visitor import BSBaseVisitor
 
 
 class SymbolTableVisitor(BSBaseVisitor):
 
-    def __init__(self, symbol_table):
+    def __init__(self, symbol_table, identifier: Identifier):
         super().__init__(symbol_table, "Symbol Visitor")
+        # The identifier to use.
+        self.identifier = identifier
         self.rename = False
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
@@ -110,7 +114,7 @@ class SymbolTableVisitor(BSBaseVisitor):
         if not types:
             types.add(ChemTypes.MAT)
 
-        return {'types': types, 'size': 1, 'instruction': Instruction.MIX, "name": Instruction.MIX.name}
+        return {'types': types, 'size': 1, 'instruction': IRInstruction.MIX, "name": IRInstruction.MIX.name}
 
     def visitDetect(self, ctx: BSParser.DetectContext):
         types = {ChemTypes.REAL}
@@ -125,14 +129,14 @@ class SymbolTableVisitor(BSBaseVisitor):
         material_types = {ChemTypes.MAT}
         var = self.identifier.identify(material_name, material_types, self.symbol_table.current_scope.name)
         self.symbol_table.update_symbol(material_name, var.types)
-        return {'types': types, 'size': 1, 'instruction': Instruction.DETECT, "name": Instruction.DETECT.name}
+        return {'types': types, 'size': 1, 'instruction': IRInstruction.DETECT, "name": IRInstruction.DETECT.name}
 
     def visitHeat(self, ctx: BSParser.HeatContext):
         name = ctx.IDENTIFIER().__str__()
         types = {ChemTypes.MAT}
         var = self.identifier.identify(name, types, self.symbol_table.current_scope.name)
         self.symbol_table.update_symbol(name, var.types)
-        return {'types': types, 'size': 1, 'instruction': Instruction.HEAT, "name": Instruction.HEAT.name}
+        return {'types': types, 'size': 1, 'instruction': IRInstruction.HEAT, "name": IRInstruction.HEAT.name}
 
     def visitSplit(self, ctx: BSParser.SplitContext):
         name = ctx.IDENTIFIER().__str__()
@@ -141,7 +145,7 @@ class SymbolTableVisitor(BSBaseVisitor):
         size = int(ctx.INTEGER_LITERAL().__str__())
         if not SymbolTableVisitor.isPower(2, size):
             raise InvalidOperation("Split 2^x-ways is supported; split {}-ways is not supported".format(size))
-        return {'types': types, 'size': size, 'instruction': Instruction.SPLIT, "name": Instruction.SPLIT.name}
+        return {'types': types, 'size': size, 'instruction': IRInstruction.SPLIT, "name": IRInstruction.SPLIT.name}
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
         name = ctx.IDENTIFIER().__str__()
@@ -150,17 +154,17 @@ class SymbolTableVisitor(BSBaseVisitor):
         types = {ChemTypes.MAT}
         self.symbol_table.update_symbol(name, types)
         return {'types': types, 'size': 1,
-                'instruction': Instruction.DISPENSE, "name": Instruction.DISPENSE.name}
+                'instruction': IRInstruction.DISPENSE, "name": IRInstruction.DISPENSE.name}
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
         name = ctx.IDENTIFIER().__str__()
         types = {ChemTypes.MAT}
         self.symbol_table.update_symbol(name, types)
-        return {'types': types, 'size': 1, 'instruction': Instruction.DISPOSE, "name": Instruction.DISPOSE.name}
+        return {'types': types, 'size': 1, 'instruction': IRInstruction.DISPOSE, "name": IRInstruction.DISPOSE.name}
 
     def visitExpression(self, ctx: BSParser.ExpressionContext):
         return {"types": {ChemTypes.REAL, ChemTypes.NAT}, "size": 1,
-                'instruction': Instruction.EXPRESSION, "name": Instruction.EXPRESSION.name}
+                'instruction': IRInstruction.BINARYOP, "name": IRInstruction.BINARYOP.name}
 
     def visitParExpression(self, ctx: BSParser.ParExpressionContext):
         return super().visitParExpression(ctx)
@@ -179,7 +183,7 @@ class SymbolTableVisitor(BSBaseVisitor):
         if method_name not in self.symbol_table.functions:
             self.log.fatal("Function {} is not defined.".format(method_name))
         return {'types': self.symbol_table.functions[method_name].types, 'size': 1,
-                'instruction': Instruction.METHOD, 'name': method_name}
+                'instruction': IRInstruction.CALL, 'name': method_name}
 
     def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
         return self.visitChildren(ctx)
@@ -231,7 +235,7 @@ class SymbolTableVisitor(BSBaseVisitor):
             size = int(ctx.INTEGER_LITERAL().__str__())
             if size != operation['size']:
                 operation['size'] = size
-        if operation['instruction'] == Instruction.METHOD:
+        if operation['instruction'] == IRInstruction.CALL:
             operation['size'] = self.symbol_table.functions[operation['name']].return_size
             if ctx.INTEGER_LITERAL() and int(ctx.INTEGER_LITERAL().__str__()) != operation['size']:
                 raise InvalidOperation("Array size doesn't match method return size.")

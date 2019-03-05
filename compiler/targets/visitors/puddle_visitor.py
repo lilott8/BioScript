@@ -1,8 +1,7 @@
-from bioscript.visitors import TargetVisitor
+from compiler.data_structures.ir import IRInstruction, InstructionSet
+from compiler.targets.visitors.target_visitor import TargetVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import *
-from shared.enums.instructions import Instruction
-from shared.enums.instructions import InstructionSet
 from shared.tree_node import TreeNode
 
 
@@ -221,7 +220,7 @@ class PuddleVisitor(TargetVisitor):
         if 'instruction' in op:
             if op['instruction'] not in InstructionSet.instructions:
                 raise InvalidOperation("Unknown instruction: {}".format(op['op'].name))
-            if op['instruction'] == Instruction.DISPENSE:
+            if op['instruction'] == IRInstruction.DISPENSE:
                 """
                 This has to happen here; a = dispense bbb will always give us a size = 1 and is_simd = False.
                 This is because in the visitDispenseStatement() parsing, the variable that will determine
@@ -239,13 +238,13 @@ class PuddleVisitor(TargetVisitor):
             output += "{}{} = {}".format(self.tab, name, op)
         return output
 
-    def process_simd(self, lhs: str, op: Instruction, args: dict) -> dict:
+    def process_simd(self, lhs: str, op: IRInstruction, args: dict) -> dict:
         output = ""
 
-        if op == Instruction.SPLIT:
+        if op == IRInstruction.SPLIT:
             self.log.error("Not doing anything with split, right now.")
             pass
-        elif op == Instruction.MIX:
+        elif op == IRInstruction.MIX:
             mixes = "{} = list(){}".format(lhs, self.nl)
             dispenses = ""
             input_1 = args['args']['input'][0]['variable']
@@ -253,7 +252,7 @@ class PuddleVisitor(TargetVisitor):
             """
             Only one of the variables will be a global.  
             If no variables are global, then both must be arrays.
-            If they aren't then it would be a sisd-instruction.
+            If they aren't then it would be a sisd-IRInstruction.
             """
             if input_1.is_global:
                 for x in range(0, args['size']):
@@ -271,10 +270,10 @@ class PuddleVisitor(TargetVisitor):
                                                                                  input_2.name, x, self.nl)
             output += dispenses
             output += mixes
-        elif op == Instruction.HEAT:
+        elif op == IRInstruction.HEAT:
             # Heat is an independent statement.  Meaning it is resolved in the visitHeatStatement()
             pass
-        elif op == Instruction.DETECT:
+        elif op == IRInstruction.DETECT:
             self.log.critical("Not sure if Puddle supports detection yet...")
             output += "{}{} = list(){}".format(self.tab, lhs, self.nl)
             for x in range(0, args['size']):
@@ -282,45 +281,45 @@ class PuddleVisitor(TargetVisitor):
                                                                                   args['args']['input'], x,
                                                                                   args['args']['module'], self.nl)
             pass
-        elif op == Instruction.METHOD:
+        elif op == IRInstruction.METHOD:
             self.log.critical("Alpha-convert this trash!")
             pass
-        elif op == Instruction.DISPOSE:
+        elif op == IRInstruction.DISPOSE:
             # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
             pass
-        elif op == Instruction.DISPENSE:
+        elif op == IRInstruction.DISPENSE:
             output += "{}{} = list(){}".format(self.tab, lhs, self.nl)
             for x in range(0, args['size']):
                 output += '{}{}[{}] = session.input({}, location=(), volume=1000000.0, dimensions=(1,1)){}'.format(
                     self.tab, lhs, x, args['args']['input'], self.nl)
         return output
 
-    def process_sisd(self, lhs: str, op: Instruction, args: dict) -> str:
+    def process_sisd(self, lhs: str, op: IRInstruction, args: dict) -> str:
         output = ""
-        if op == Instruction.SPLIT:
+        if op == IRInstruction.SPLIT:
             output += self.build_split(lhs, args['args']['input'], args['args']['quantity'])
             #output += "std::vector<mat> {} = split({}, {});".format(
             #    lhs, args['args']['input'], args['args']['quantity'])
-        elif op == Instruction.MIX:
+        elif op == IRInstruction.MIX:
             mixes = ""
             for x in args['args']['input']:
                 mixes += "{}, ".format(x['variable'].name)
             # Note the comma between ({} {}) is appended to the first {}!
             output += "{} = mix({})".format(lhs, mixes[:-2])
-        elif op == Instruction.HEAT:
+        elif op == IRInstruction.HEAT:
             # Heat is an independent statement.  Meaning it is resolved in the visitHeatStatement()
             pass
-        elif op == Instruction.DETECT:
+        elif op == IRInstruction.DETECT:
             # args['args']['time']['quantity'] is the time component.
             output += "{} = detect({}, {})".format(
                 lhs, args['args']['module'], args['args']['input'])
-        elif op == Instruction.METHOD:
+        elif op == IRInstruction.METHOD:
             output += "{} = {}({})".format(lhs, args['function'].name, args['args']['args'])
             # raise InvalidOperation("Not implemented yet")
-        elif op == Instruction.DISPOSE:
+        elif op == IRInstruction.DISPOSE:
             # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
             pass
-        elif op == Instruction.DISPENSE:
+        elif op == IRInstruction.DISPENSE:
             output += self.get_input(lhs, args['args']['input'], args['args']['quantity'])
         # output += "session._flush(){}".format(self.nl)
         return output

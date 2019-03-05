@@ -1,8 +1,11 @@
-from compiler.data_structures.bs_program import BSProgram
+from compiler.data_structures import Program
 from compiler.targets.base_target import BaseTarget
 
 
 class PuddleTarget(BaseTarget):
 
-    def __init__(self, program: BSProgram):
-        super().__init__(program, "PuddleTarget")
+    def __init__(self, configuration):
+        super().__init__(configuration, "PuddleTarget")
+
+    def transform(self, program: Program):
+        return False

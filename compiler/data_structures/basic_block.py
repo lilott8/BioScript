@@ -1,4 +1,4 @@
-from compiler.data_structures.bs_ir import *
+from compiler.data_structures.ir import *
 
 
 class BasicBlock(object):

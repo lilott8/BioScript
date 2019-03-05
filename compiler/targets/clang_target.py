@@ -1,11 +1,11 @@
-from compiler.data_structures.bs_program import BSProgram
+from compiler.data_structures import Program
 from compiler.targets.base_target import BaseTarget
 
 
 class ClangTarget(BaseTarget):
 
-    def __init__(self, program: BSProgram):
-        super().__init__(program, "ClangTarget")
+    def __init__(self, configuration: 'Config'):
+        super().__init__(configuration, "ClangTarget")
         # This *should* be moved into the LLVM target...
         self.keywords = ("alignas", "alignof", "and", "and_eq", "asm", "atomic_cancel", "atomic_commit",
                          "atomic_noexcept", "auto", "bitand", "bitor", "bool", "break", "case", "catch", "char",
@@ -19,3 +19,6 @@ class ClangTarget(BaseTarget):
                          "switch", "synchronized", "template", "this", "thread_local", "throw", "true", "try",
                          "typedef", "typeid", "typename", "union", "unsigned", "using", "virtual", "void", "volatile",
                          "wchar_t", "while", "xor", "xor_eq")
+
+    def transform(self, program: Program):
+        return False

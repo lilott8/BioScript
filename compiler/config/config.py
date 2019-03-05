@@ -6,10 +6,10 @@ import colorlog
 import chemicals.chemtypes as ct
 import chemicals.combiner as combiner
 import chemicals.identifier as identifier
-import compiler.targets.base_target as target
+import compiler.targets.base_target as targets
 
 
-class DeprecatedConfig(object):
+class Config(object):
 
     def __init__(self, args=None):
         self.log = colorlog.getLogger(self.__class__.__name__)
@@ -33,13 +33,13 @@ class DeprecatedConfig(object):
         self.identify = 4
         # What level to report things.
         self.error_level = ct.ReportingLevel.ERROR
-        self.typecheck = combiner.TypeCheckLevel.NAIVE
+        self.typecheck = True
 
         """
         Compiler Stuff
         """
         # What is the target?
-        self.target = target.Target.INKWELL
+        self.target = targets.Target.INKWELL
         self.supports_functions = False
         self.supports_recursion = False
         self.supports_nesting = False
@@ -73,10 +73,6 @@ class DeprecatedConfig(object):
         self.smarts_length = args.smarts
         self.filters = not args.no_filters
         self.identify = identifier.IdentifyLevel(args.identify)
-        if args.simulate:
-            self.combine = combiner.CombineMethod.SIMULATE
-        else:
-            self.combine = combiner.CombineMethod.NAIVE
 
         if args.typechecklevel.lower() == "none":
             self.error_level = ct.ReportingLevel.NONE
@@ -85,12 +81,18 @@ class DeprecatedConfig(object):
         else:
             self.error_level = ct.ReportingLevel.ERROR
 
-        if args.typecheck.lower() == "d" or args.typecheck.lower() == "disable":
-            self.typecheck = combiner.TypeCheckLevel.DISABLED
-        elif args.typecheck.lower() == "union" or args.typecheck.lower() == 'u':
-            self.typecheck = combiner.TypeCheckLevel.UNION
+        if args.simulate:
+            self.combine = combiner.CombineMethod.SIMULATE
         else:
-            self.typecheck = combiner.TypeCheckLevel.NAIVE
+            self.combine = combiner.CombineMethod.NAIVE
+
+        # boolean to enable/disable typechecking.
+        self.typecheck = args.typecheck
+
+        if args.typecheckmethod == 'n' or args.typecheckmethod == 'naive':
+            self.typecheck_method = combiner.TypeCheckLevel.NAIVE
+        elif args.typecheckmethod == 'u' or args.typecheckmethod == 'union':
+            self.typecheck_method = combiner.TypeCheckLevel.UNION
 
         if args.target is not None:
             """
@@ -99,14 +101,14 @@ class DeprecatedConfig(object):
             necessary.
             """
             if args.target.lower() == "m" or args.target.lower() == "mfsim":
-                self.target = target.Target.MFSIM
+                self.target = targets.Target.MFSIM
                 self.supports_functions = True
                 self.supports_nesting = True
             elif args.target.lower() == 'i' or args.target.lower() == 'inkwell':
-                self.target = target.Target.INKWELL
+                self.target = targets.Target.INKWELL
                 self.supports_functions = True
             elif args.target.lower() == "p" or args.target.lower() == "puddle":
-                self.target = target.Target.PUDDLE
+                self.target = targets.Target.PUDDLE
                 self.supports_functions = True
                 self.supports_recursion = True
                 self.supports_nesting = True
@@ -117,12 +119,3 @@ class DeprecatedConfig(object):
                 self.db['addr'] = 'localhost'
             if not self.db['driver']:
                 self.db['driver'] = 'mysql'
-
-        # if args.problem == 'i' or args.problem == 'inkwell':
-        #     self.problem = Problem.INKWELL
-        # elif args.problem == 's' or args.problem == 'store':
-        #     self.problem = Problem.STORAGE
-        # elif args.problem == 'd' or args.problem == 'disposal':
-        #     self.problem = Problem.DISPOSAL
-        # elif args.problem == 'm' or args.problem == 'mix':
-        #     self.problem = Problem.MIX

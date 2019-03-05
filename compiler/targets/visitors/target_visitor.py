@@ -1,9 +1,9 @@
+from compiler.data_structures.ir import IRInstruction
+from compiler.data_structures.properties import *
 from compiler.data_structures.symbol_table import SymbolTable
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import InvalidOperation
-from shared.enums.bs_properties import *
-from shared.enums.instructions import Instruction
 
 
 class TargetVisitor(BSBaseVisitor):
@@ -36,7 +36,7 @@ class TargetVisitor(BSBaseVisitor):
         output += ");"
 
         is_simd = True if self.symbol_table.get_variable(material).size > 1 else False
-        return {'operation': output, 'instruction': Instruction.DETECT,
+        return {'operation': output, 'instruction': IRInstruction.DETECT,
                 'args': {'input': material, 'module': module, 'time': time},
                 'variable': self.symbol_table.get_variable(material),
                 'size': self.symbol_table.get_variable(material).size, 'is_simd': is_simd}
@@ -45,7 +45,7 @@ class TargetVisitor(BSBaseVisitor):
         name = self.check_identifier(ctx.IDENTIFIER().__str__())
         # Split can never be a SIMD operation.
         return {"operation": "split({}, {});".format(name, ctx.INTEGER_LITERAL().__str__()),
-                "instruction": Instruction.SPLIT, "size": int(ctx.INTEGER_LITERAL().__str__()),
+                "instruction": IRInstruction.SPLIT, "size": int(ctx.INTEGER_LITERAL().__str__()),
                 'args': {'input': name, "quantity": int(ctx.INTEGER_LITERAL().__str__())},
                 'variable': self.symbol_table.get_variable(name), 'is_simd': False}
 
@@ -59,7 +59,7 @@ class TargetVisitor(BSBaseVisitor):
         """
         name = ctx.IDENTIFIER().__str__()
         return {'operation': "dispense({});".format(name),
-                "instruction": Instruction.DISPENSE, 'size': 1,
+                "instruction": IRInstruction.DISPENSE, 'size': 1,
                 'args': {'input': name, 'quantity': 10.0, 'units': BSVolume.MICROLITRE},
                 'variable': self.symbol_table.get_variable(name),
                 'is_simd': False}
@@ -73,7 +73,7 @@ class TargetVisitor(BSBaseVisitor):
             arguments = "{}".format(self.visitExpressionList(ctx.expressionList()))
         operation += ");"
         is_simd = True if method.return_size > 1 else False
-        return {'operation': operation, 'instruction': Instruction.METHOD,
+        return {'operation': operation, 'instruction': IRInstruction.METHOD,
                 'args': {'args': arguments}, 'size': method.return_size, 'function': method, 'is_simd': is_simd}
 
     def visitMix(self, ctx: BSParser.MixContext):
@@ -110,11 +110,11 @@ class TargetVisitor(BSBaseVisitor):
         output += ");"
         is_simd = True if next(iter(test)) > 1 else False
         # This will get the first element of the set "test"
-        return {'operation': output, 'instruction': Instruction.MIX,
+        return {'operation': output, 'instruction': IRInstruction.MIX,
                 'args': {'input': inputs, 'time': time}, 'size': next(iter(test)), 'is_simd': is_simd}
 
-    def process_simd(self, lhs: str, op: Instruction, args: dict) -> dict:
+    def process_simd(self, lhs: str, op: IRInstruction, args: dict) -> dict:
         raise NotImplementedError
 
-    def process_sisd(self, lhs: str, op: Instruction, args: dict) -> dict:
+    def process_sisd(self, lhs: str, op: IRInstruction, args: dict) -> dict:
         raise NotImplementedError

@@ -1,5 +1,5 @@
-from shared.enums.bs_properties import *
-from shared.enums.chemtypes import ChemTypes
+from chemicals.chemtypes import ChemTypes
+from compiler.data_structures.properties import *
 
 
 class Variable(object):

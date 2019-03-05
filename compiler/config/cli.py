@@ -2,7 +2,7 @@ import argparse
 
 import colorlog
 
-import config.config as config
+import compiler.config.config as config
 
 
 class Cli(object):
@@ -27,8 +27,6 @@ class Cli(object):
                             default='mfsim', choices={'llvm', 'mfsim', 'puddle', 'inkwell',
                                                       'l', 'm', 'p', 'i'})
         parser.add_argument('-wd', '--working-directory', help="Working path.", default="./", type=str)
-        parser.add_argument('-p', '--problem', help='What problems are you solving', default='bioscript', type=str,
-                            choices={'b', 'bioscript', 'c', 'compile', 'm', 'mix', 'd', 'disposal', 's', 'store'})
 
         chemistry = parser.add_argument_group('chemistry', 'Chemistry specific arguments')
         chemistry.add_argument('-sim', '--simulate', help='Simulate chemistry.', default=False,
@@ -41,8 +39,10 @@ class Cli(object):
         typing_group = parser.add_argument_group('typing', 'Typing specific arguments')
         typing_group.add_argument('-tcl', '--typechecklevel', help='What level to report errors.', default="error",
                                   choices={'error', 'warn', 'none'})
-        typing_group.add_argument('-tc', '--typecheck', help='What level to type check this problems.', default='n',
-                                  choices={'n', 'naive', 'u', 'union', 'd', 'disable'})
+        typing_group.add_argument('-tc', '--typecheck', help='Enable type checking input program.',
+                                  action='store_true', default=False)
+        typing_group.add_argument('-tcm', '--typecheckmethod', help='How to type check input program.',
+                                  choices={'u', 'union', 'n', 'naive'}, default='n')
         typing_group.add_argument('-epa', '--epa-defs', help='Location of EPA definition file.', required=False,
                                   default='./resources/epa.json')
         typing_group.add_argument('-abs', '--abs-int', help="Location for the abstract interaction files.",

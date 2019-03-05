@@ -1,10 +1,13 @@
-class BSProgram(object):
+from compiler.semantics.ir_visitor import IRVisitor
+
+
+class Program(object):
     """
     This class models the input program and
     stores various data about the program.
     """
 
-    def __init__(self, ir: 'IRVisitor'):
+    def __init__(self, ir: IRVisitor):
         # A dict: id->basic block
         self.functions = ir.functions
         # Set of basic block ids that are roots

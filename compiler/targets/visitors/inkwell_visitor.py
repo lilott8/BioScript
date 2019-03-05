@@ -1,7 +1,8 @@
 from bioscript.visitors import TargetVisitor
+
+from compiler.data_structures.properties import *
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import UnsupportedOperation
-from shared.enums.bs_properties import *
 
 
 class InkwellVisitor(TargetVisitor):

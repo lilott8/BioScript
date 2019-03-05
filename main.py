@@ -3,27 +3,15 @@ import sys
 
 import colorlog
 
-from config.cli import Cli
-from problem.bioscript import BioScript
-from problem.disposal import Disposal
-from problem.mix import Mix
-from problem.storage import Storage
+from compiler.compiler import BSCompiler
+from compiler.config.cli import Cli
 
 
 def main(args):
     # parse the args.
     cli = Cli(args)
-
-    if cli.args.store:
-        problem = Storage()
-    elif cli.args.disposal:
-        problem = Disposal()
-    elif cli.args.mix:
-        problem = Mix()
-    else:
-        problem = BioScript()
-
-    problem.run()
+    compiler = BSCompiler(cli.config)
+    compiler.compile()
 
 
 if __name__ == '__main__':

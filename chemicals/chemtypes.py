@@ -1,6 +1,12 @@
 from enum import IntEnum
 
 
+class ReportingLevel(IntEnum):
+    NONE = 0
+    WARNING = 1
+    ERROR = 2
+
+
 class ChemTypes(IntEnum):
     ACIDS_STRONG_NON_OXIDIZING = 1
     ACIDS_STRONG_OXIDIZING = 2

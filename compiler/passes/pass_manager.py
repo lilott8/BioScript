@@ -1,17 +1,16 @@
 import colorlog
 import networkx as nx
 
-from compiler.data_structures.bs_program import BSProgram
+from compiler.data_structures.program import Program
 from compiler.passes.analyses.call_graph import CallGraph
 from compiler.passes.transforms.split_edges import SplitEdges
 from compiler.passes.transforms.ssa import SSA
-from config.config import Config
 
 
 class PassManager(object):
 
-    def __init__(self, program: BSProgram):
-        self.config = Config.getInstance(None)
+    def __init__(self, program: Program):
+        self.config = None
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.log.debug("Initializing pass manager.")
         self.program = program

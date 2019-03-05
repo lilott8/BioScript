@@ -1,4 +1,4 @@
-from shared.variable import Variable
+from compiler.data_structures.variable import Variable
 
 class Scope(object):
 

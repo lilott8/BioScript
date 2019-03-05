@@ -1,6 +1,6 @@
+from compiler.data_structures.function import Function
+from compiler.data_structures.variable import *
 from grammar.parsers.python.BSParser import BSParser
-from shared.function import Function
-from shared.variable import *
 from .bs_base_visitor import BSBaseVisitor
 
 

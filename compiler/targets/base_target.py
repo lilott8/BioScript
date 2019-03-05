@@ -1,14 +1,37 @@
+from enum import IntEnum
+
 import colorlog
 
-from compiler.data_structures.bs_program import BSProgram
+import compiler.targets as targets
+from compiler.data_structures.program import Program
+
+
+class Target(IntEnum):
+    LLVM_IR = 1
+    MFSIM = 2
+    PUDDLE = 4
+    INKWELL = 8
+
+    def get_target(self, configuration):
+        if self == Target.PUDDLE:
+            return targets.PuddleTarget(configuration)
+        elif self.value == Target.INKWELL:
+            return targets.InkwellTarget(configuration)
+        elif self.value == Target.MFSIM:
+            return targets.MFSimTarget(configuration)
+        else:
+            return targets.ClangTarget(configuration)
 
 
 class BaseTarget(object):
 
-    def __init__(self, program: BSProgram, name="BaseTarget"):
+    def __init__(self, configuration: 'Config', name="BaseTarget"):
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.name = name
-        self.program = program
+        self.config = configuration
+
+    def transform(self, program: Program):
+        raise NotImplemented
 
     def map_mix(self):
         raise NotImplemented

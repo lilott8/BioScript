@@ -1,9 +1,9 @@
 import colorlog
 
+from chemicals.chemtypes import ChemTypes
+from compiler.data_structures.function import Function
 from compiler.data_structures.scope import Scope
-from shared.enums.chemtypes import ChemTypes
-from shared.function import Function
-from shared.variable import Variable
+from compiler.data_structures.variable import Variable
 
 
 class SymbolTable(object):

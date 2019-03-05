@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 
 import colorlog
 
-from compiler.data_structures.bs_program import BSProgram
+from compiler.data_structures.program import Program
 
 
 class BSAnalysis(metaclass=ABCMeta):
@@ -12,5 +12,5 @@ class BSAnalysis(metaclass=ABCMeta):
         self.name = pass_name
 
     @abstractmethod
-    def analyze(self, program: BSProgram):
+    def analyze(self, program: Program):
         pass

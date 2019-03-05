@@ -1,4 +1,4 @@
-from shared.enums.chemtypes import ChemTypes
+from chemicals.chemtypes import ChemTypes
 
 
 class ReactiveGroup(object):

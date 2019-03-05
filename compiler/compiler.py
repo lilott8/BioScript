@@ -1,7 +1,8 @@
 import colorlog
 from antlr4 import *
 
-from compiler.data_structures.bs_program import BSProgram
+from compiler.config.config import Config
+from compiler.data_structures.program import Program
 from compiler.data_structures.symbol_table import SymbolTable
 from compiler.passes.pass_manager import PassManager
 from compiler.semantics.global_visitor import GlobalVariableVisitor
@@ -9,18 +10,15 @@ from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
 from compiler.semantics.type_visitor import TypeCheckVisitor
-from compiler.targets.target_manager import TargetManager
-from config.config import Config
 from grammar.parsers.python.BSLexer import BSLexer
 from grammar.parsers.python.BSParser import BSParser
-from shared.enums.config_flags import TypeCheckLevel
 from solvers.z3_solver import Z3Solver
 
 
 class BSCompiler(object):
 
-    def __init__(self):
-        self.config = Config.getInstance(None)
+    def __init__(self, configuration: Config):
+        self.config = configuration
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.log.warning(self.config.input)
         # The symbol is built is phases, hence it's globalness.
@@ -32,7 +30,7 @@ class BSCompiler(object):
         ir = self.optimizations(self.program)
         target = self.target(self.program)
 
-    def translate(self, filename: str) -> BSProgram:
+    def translate(self, filename: str) -> Program:
         """
         Translates the program from the AST into the corresponding IR.
         :param filename: name of file to parse.
@@ -45,7 +43,7 @@ class BSCompiler(object):
         tree = parser.program()
 
         # This gets run first, gathering all the globals.
-        global_visitor = GlobalVariableVisitor(SymbolTable())
+        global_visitor = GlobalVariableVisitor(SymbolTable(), self.config.identify.get_identifier())
         global_visitor.visit(tree)
 
         # Build the functions and their symbols next.
@@ -53,7 +51,7 @@ class BSCompiler(object):
         method_visitor.visit(tree)
 
         # Finish building the symbol table.
-        symbol_visitor = SymbolTableVisitor(method_visitor.symbol_table)
+        symbol_visitor = SymbolTableVisitor(method_visitor.symbol_table, self.config.identify.get_identifier())
         symbol_visitor.visit(tree)
 
         # Attempt to type check the program
@@ -63,7 +61,7 @@ class BSCompiler(object):
         ir_visitor = IRVisitor(symbol_visitor.symbol_table)
         ir_visitor.visit(tree)
         # Always update the symbol table.
-        self.program = BSProgram(ir_visitor)
+        self.program = Program(ir_visitor)
         self.program.name = filename
 
         # pos = nx.nx_agraph.graphviz_layout(ir_visitor.graph)
@@ -72,36 +70,39 @@ class BSCompiler(object):
 
         return self.program
 
-    def optimizations(self, program: BSProgram):
+    def optimizations(self, program: Program):
         """
         Run the various optimizations that can be run.
         :param program:
         :return:
         """
         passes = PassManager(self.program)
+        passes.config = self.config
         passes.run_analysis()
         passes.run_transformations()
         # return passes
         return program
 
-    def target(self, program: BSProgram):
+    def target(self, program: Program):
         """
         Run the various transforms that can be run.
         :param program:
         :return:
         """
-        target = TargetManager(program, self.config.target)
-        target.transform()
+        target = self.config.target.get_target(self.config)
+        target.transform(self.program)
         return target
 
     def visit_type_check(self, tree, symbol_table: SymbolTable):
         """
         Attempts to typecheck a program if enabled.
         :param tree: the AST of a program.
+        :param symbol_table: The symbol table of the program.
         :return: None
         """
-        if self.config.typecheck != TypeCheckLevel.DISABLED:
-            type_checker = TypeCheckVisitor(symbol_table)
+        if self.config.typecheck:
+            combiner = self.config.combine.get_combiner(self.config.epa_defs, self.config.abstract_interaction)
+            type_checker = TypeCheckVisitor(symbol_table, combiner, )
             type_checker.visit(tree)
             z3 = Z3Solver()
             self.log.info(type_checker.smt_string)

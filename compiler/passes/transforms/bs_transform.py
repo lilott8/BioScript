@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 
 import colorlog
 
-from compiler.data_structures.bs_program import BSProgram
+from compiler.data_structures.program import Program
 
 
 class BSTransform(metaclass=ABCMeta):
@@ -12,5 +12,5 @@ class BSTransform(metaclass=ABCMeta):
         self.name = pass_name
 
     @abstractmethod
-    def transform(self, program: BSProgram):
+    def transform(self, program: Program):
         raise NotImplemented

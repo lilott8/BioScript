@@ -1,12 +1,11 @@
 import copy
 
-from bioscript.visitors import TargetVisitor
+from compiler.data_structures.ir import IRInstruction, InstructionSet
+from compiler.data_structures.variable import Variable
 from compiler.targets.builders.mfsim_builder import MFSimVarBuilder
+from compiler.targets.visitors.target_visitor import TargetVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import *
-from shared.enums.instructions import Instruction
-from shared.enums.instructions import InstructionSet
-from shared.variable import Variable
 
 
 class MFSimVisitor(TargetVisitor):
@@ -179,7 +178,7 @@ class MFSimVisitor(TargetVisitor):
         if 'instruction' in op:
             if op['instruction'] not in InstructionSet.instructions:
                 raise InvalidOperation("Unknown instruction: {}".format(op['op'].name))
-            if op['instruction'] == Instruction.DISPENSE:
+            if op['instruction'] == IRInstruction.DISPENSE:
                 """
                 This has to happen here; a = dispense bbb will always give us a size = 1 and is_simd = False.
                 This is because in the visitDispenseStatement() parsing, the variable that will determine
@@ -201,13 +200,13 @@ class MFSimVisitor(TargetVisitor):
     def visitLiteral(self, ctx: BSParser.LiteralContext):
         return super().visitLiteral(ctx)
 
-    def process_simd(self, lhs: str, op: Instruction, args: dict) -> list:
+    def process_simd(self, lhs: str, op: IRInstruction, args: dict) -> list:
         output = []
 
-        if op == Instruction.SPLIT:
+        if op == IRInstruction.SPLIT:
             self.log.error("Not doing anything with split, right now.")
             pass
-        elif op == Instruction.MIX:
+        elif op == IRInstruction.MIX:
             """
             If either of the inputs are globals, 
             then we must build the dispense for it.
@@ -242,10 +241,10 @@ class MFSimVisitor(TargetVisitor):
                     else:
                         inputs.append(MFSimVarBuilder.build_input_with_volume(simd_var, v))
                 output.append(MFSimVarBuilder.build_operation('MIX', 'getInstructionID()', 'MIX', inputs, mix_output))
-        elif op == Instruction.HEAT:
+        elif op == IRInstruction.HEAT:
             # Heat is an independent statement.  Meaning it is resolved in the visitHeatStatement()
             pass
-        elif op == Instruction.DETECT:
+        elif op == IRInstruction.DETECT:
             for x in range(0, args['size']):
                 inputs = list()
                 outputs = list()
@@ -259,13 +258,13 @@ class MFSimVisitor(TargetVisitor):
                 output.append(
                     MFSimVarBuilder.build_operation("DETECT", 'getInstructionID()', 'DETECT', inputs, outputs))
             pass
-        elif op == Instruction.METHOD:
+        elif op == IRInstruction.METHOD:
             self.log.critical("Alpha-convert this trash!")
             pass
-        elif op == Instruction.DISPOSE:
+        elif op == IRInstruction.DISPOSE:
             # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
             pass
-        elif op == Instruction.DISPENSE:
+        elif op == IRInstruction.DISPENSE:
             for x in range(0, args['size']):
                 name = '{}{}'.format(args['args']['input'], x)
                 dispense_input = MFSimVarBuilder.build_variable_declaration(name, name)
@@ -273,7 +272,7 @@ class MFSimVisitor(TargetVisitor):
                                                               [dispense_input], []))
         return output
 
-    def process_sisd(self, lhs: str, op: Instruction, args: dict) -> dict:
+    def process_sisd(self, lhs: str, op: IRInstruction, args: dict) -> dict:
         inputs = []
         # A variable that is marked for deletion.
         outputs = []
@@ -282,7 +281,7 @@ class MFSimVisitor(TargetVisitor):
         if 'time' in args['args']:
             inputs.append(MFSimVarBuilder.build_time_property(args['args']['time']))
 
-        if op == Instruction.SPLIT:
+        if op == IRInstruction.SPLIT:
             if args['variable'].is_stationary:
                 inputs.append(MFSimVarBuilder.build_stationary_input(args['variable']))
             else:
@@ -292,7 +291,7 @@ class MFSimVisitor(TargetVisitor):
                 name = "{}{}".format(lhs, x)
                 outputs.append(MFSimVarBuilder.build_output(-1, name))
             output = MFSimVarBuilder.build_operation('SPLIT', 'getInstructionID()', 'SPLIT', inputs, outputs)
-        elif op == Instruction.MIX:
+        elif op == IRInstruction.MIX:
             for x in args['args']['input']:
                 if x['variable'].is_stationary:
                     inputs.append(MFSimVarBuilder.build_stationary_input(x['variable']))
@@ -300,23 +299,23 @@ class MFSimVisitor(TargetVisitor):
                     inputs.append(MFSimVarBuilder.build_input_with_volume(x['variable'], x))
             outputs.append(MFSimVarBuilder.build_output(lhs, lhs, "VARIABLE"))
             output = MFSimVarBuilder.build_operation('MIX', 'getInstructionID()', 'MIX', inputs, outputs)
-        elif op == Instruction.HEAT:
+        elif op == IRInstruction.HEAT:
             # Heat is an independent statement.  Meaning it is resolved in the visitHeatStatement()
             pass
-        elif op == Instruction.DETECT:
+        elif op == IRInstruction.DETECT:
             if args['variable'].is_stationary:
                 inputs.append(MFSimVarBuilder.build_stationary_input(args['variable']))
             else:
                 inputs.append(MFSimVarBuilder.build_general_input(args['variable']))
             outputs.append(MFSimVarBuilder.build_detect_output(lhs, lhs))
             output = MFSimVarBuilder.build_operation("DETECT", 'getInstructionID()', 'DETECT', inputs, outputs)
-        elif op == Instruction.METHOD:
+        elif op == IRInstruction.METHOD:
             self.log.critical("Alpha-convert this trash!")
             pass
-        elif op == Instruction.DISPOSE:
+        elif op == IRInstruction.DISPOSE:
             # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
             pass
-        elif op == Instruction.DISPENSE:
+        elif op == IRInstruction.DISPENSE:
             inputs.append(MFSimVarBuilder.build_input_with_volume(args['variable'], args['args']))
             outputs.append(MFSimVarBuilder.build_variable_declaration(lhs, lhs))
             output = MFSimVarBuilder.build_operation('DISPENSE', 'getInstructionID()', 'DISPENSE', inputs, outputs)

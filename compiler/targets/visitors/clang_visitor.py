@@ -1,9 +1,8 @@
-from bioscript.visitors import TargetVisitor
+from chemicals.chemtypes import ChemTypes
+from compiler.data_structures.ir import IRInstruction, InstructionSet
+from compiler.targets.visitors.target_visitor import TargetVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import InvalidOperation
-from shared.enums.chemtypes import ChemTypes
-from shared.enums.instructions import Instruction
-from shared.enums.instructions import InstructionSet
 
 
 class ClangVisitor(TargetVisitor):
@@ -194,7 +193,7 @@ class ClangVisitor(TargetVisitor):
         if 'instruction' in operation:
             if operation['instruction'] not in InstructionSet.instructions:
                 raise InvalidOperation("Unknown instruction: {}".format(operation['instruction'].name))
-            if operation['instruction'] == Instruction.DISPENSE:
+            if operation['instruction'] == IRInstruction.DISPENSE:
                 """
                 This has to happen here; a = dispense bbb will always give us a size = 1 and is_simd = False.
                 This is because in the visitDispenseStatement() parsing, the variable that will determine
@@ -278,12 +277,12 @@ class ClangVisitor(TargetVisitor):
     def decrement_repeat_counter(self):
         self.repeat_counter -= 1
 
-    def process_simd(self, lhs: str, op: Instruction, args: dict) -> str:
+    def process_simd(self, lhs: str, op: IRInstruction, args: dict) -> str:
         output = ""
-        if op == Instruction.SPLIT:
+        if op == IRInstruction.SPLIT:
             output += "std::vector<mat> {} = split({}, {});{}".format(
                 lhs, op['variable'].name, op['size'], self.nl)
-        elif op == Instruction.MIX:
+        elif op == IRInstruction.MIX:
             mixes = ""
             for x in args['args']['input']:
                 mixes += "{}, {}, ".format(
@@ -291,21 +290,21 @@ class ClangVisitor(TargetVisitor):
             # Note the comma between ({} {}) is appended to the first {}!
             output += "std::vector<mat> {} = mix({} {});{}".format(
                 lhs, mixes, args['args']['time']['quantity'], self.nl)
-        elif op == Instruction.HEAT:
+        elif op == IRInstruction.HEAT:
             # Heat is an independent statement.  Meaning it is resolved in the visitHeatStatement()
             pass
-        elif op == Instruction.DETECT:
+        elif op == IRInstruction.DETECT:
             output += "std::vector<double> {};{}".format(lhs, self.nl)
             for x in range(0, args['size']):
                 output += "{}.at({}) = detect({}, {}.at({}), {});{}".format(lhs, x, args['args']['module'].name,
                                                                             args['args']['input'].name, x,
                                                                             args['args']['time'].quantity, self.nl)
-        elif op == Instruction.METHOD:
+        elif op == IRInstruction.METHOD:
             output += "std::vector<mat> {} = {}({});".format(lhs, args['function'].name, args['args']['args'])
-        elif op == Instruction.DISPOSE:
+        elif op == IRInstruction.DISPOSE:
             # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
             pass
-        elif op == Instruction.DISPENSE:
+        elif op == IRInstruction.DISPENSE:
             output += "std::vector<mat> {};{}".format(lhs, self.nl)
             for x in range(0, args['size']):
                 output += "{}.at({}) = dispense({},{});{}".format(
@@ -313,12 +312,12 @@ class ClangVisitor(TargetVisitor):
 
         return output
 
-    def process_sisd(self, lhs: str, op: Instruction, args: dict) -> str:
+    def process_sisd(self, lhs: str, op: IRInstruction, args: dict) -> str:
         output = ""
-        if op == Instruction.SPLIT:
+        if op == IRInstruction.SPLIT:
             output += "std::vector<mat> {} = split({}, {});".format(
                 lhs, args['args']['input'], args['args']['quantity'])
-        elif op == Instruction.MIX:
+        elif op == IRInstruction.MIX:
             mixes = ""
             for x in args['args']['input']:
                 mixes += "{}, {}, ".format(
@@ -326,18 +325,18 @@ class ClangVisitor(TargetVisitor):
             # Note the comma between ({} {}) is appended to the first {}!
             output += "mat {} = mix({} {});".format(
                 lhs, mixes, args['args']['time']['quantity'])
-        elif op == Instruction.HEAT:
+        elif op == IRInstruction.HEAT:
             # Heat is an independent statement.  Meaning it is resolved in the visitHeatStatement()
             pass
-        elif op == Instruction.DETECT:
+        elif op == IRInstruction.DETECT:
             output += "float {} = detect({}, {}, {});".format(
                 lhs, args['args']['module'], args['args']['input'], args['args']['time']['quantity'])
-        elif op == Instruction.METHOD:
+        elif op == IRInstruction.METHOD:
             output += "{} {} = {}({});".format(self.get_types(args['function'].types), lhs, args['function'].name,
                                                args['args']['args'])
-        elif op == Instruction.DISPOSE:
+        elif op == IRInstruction.DISPOSE:
             # Dispose is an independent statement.  Meaning it is resolved in the visitDisposeStatement()
             pass
-        elif op == Instruction.DISPENSE:
+        elif op == IRInstruction.DISPENSE:
             output += "mat {} = dispense({}, {});".format(lhs, args['args']['input'], args['args']['quantity'])
         return output

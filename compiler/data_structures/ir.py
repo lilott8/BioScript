@@ -1,6 +1,57 @@
+from compiler.data_structures.function import Function
 from compiler.data_structures.registers import *
-from shared.enums.instructions import *
-from shared.function import Function
+
+
+class IRInstruction(IntEnum):
+    # Expressions
+    CONSTANT = 0
+    TEMP = 1
+    BINARYOP = 2
+    CALL = 3
+    NAME = 4
+    # Statements
+    MIX = 5
+    SPLIT = 6
+    DETECT = 7
+    HEAT = 8
+    DISPENSE = 9
+    DISPOSE = 10
+    STORE = 11
+    # Control
+    JUMP = 12
+    CONDITIONAL = 13
+    LABEL = 14
+    RETURN = 15
+    # Meta
+    USEBY = 16
+    EXECUTEFOR = 17
+    NOP = 18
+    PHI = 19
+
+
+class BinaryOps(IntEnum):
+    ADD = 0
+    SUBTRACT = 1
+    MULTIPLE = 2
+    DIVIDE = 3
+    OR = 4
+    AND = 5
+
+
+class RelationalOps(IntEnum):
+    EQUAL = 0
+    NE = 1
+    LT = 2
+    LTE = 3
+    GT = 4
+    GTE = 5
+
+
+class InstructionSet(object):
+    instructions = {IRInstruction.MIX, IRInstruction.SPLIT, IRInstruction.DETECT, IRInstruction.DISPENSE,
+                    IRInstruction.DISPOSE, IRInstruction.HEAT, IRInstruction.CALL, IRInstruction.BINARYOP}
+
+    BinaryOps = {BinaryOps.AND, BinaryOps.ADD, BinaryOps.DIVIDE, BinaryOps.MULTIPLE, BinaryOps.OR, BinaryOps.SUBTRACT}
 
 
 class IR(object):

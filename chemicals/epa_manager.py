@@ -2,9 +2,9 @@ import json
 
 import colorlog
 
+from chemicals.chemtypes import ChemTypes
+from chemicals.chemtypes import Consequence
 from chemicals.reactive_group import ReactiveGroup
-from shared.enums.chemtypes import ChemTypes
-from shared.enums.chemtypes import Consequence
 
 
 class EpaManager(object):

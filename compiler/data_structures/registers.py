@@ -1,4 +1,4 @@
-from shared.variable import *
+from compiler.data_structures.variable import *
 
 
 class Register(object):
