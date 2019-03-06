@@ -8,26 +8,24 @@ A simple type-safe Domain Specific Language (DSL) for chemistry and biology.
 usage: 
 ``` 
  main.py 
-    [-h] -i INPUT [-d] [-t {p,mfsim,llvm,l,i,inkwell,m,puddle}]
-    [-wd WORKING_DIRECTORY]
-    [-p {compile,d,disposal,b,c,bioscript,mix,s,store,m}]
-    [-sim {False,True}] [-id {0,1,2,32,4,8,16}] [-nf]
-    [-smarts SMARTS] [-tcl {warn,none,error}]
-    [-tc {u,union,naive,disable,d,n}] [-epa EPA_DEFS]
-    [-abs ABS_INT] [--dbname DBNAME] [--dbuser DBUSER]
-    [--dbpass DBPASS] [--dbaddr DBADDR] [--dbdriver {mysql,odbc}]
+    [-h] -i INPUT [-d] [-t {inkwell,p,puddle,llvm,mfsim,l,m,i}]
+    [-wd WORKING_DIRECTORY] [-sim {False,True}]
+    [-id {0,1,2,32,4,8,16}] [-nf] [-smarts SMARTS]
+    [-tcl {error,warn,none}] [-tc] [-tcu {simple,c,complex,s}]
+    [-epa EPA_DEFS] [-abs ABS_INT] [--dbname DBNAME]
+    [--dbuser DBUSER] [--dbpass DBPASS] [--dbaddr DBADDR]
+    [--dbdriver {mysql,odbc}]
+
 ```
 ### Optional Arguments:
 
-| Short             | Long                  | Flag                  | Purpose                                               |
-| ------------------|-----------------------|-----------------------|-------------------------------------------------------|
-| -h                | --help                |                       | show this help message and exit                       |
-| -i                | --input               | path/to/input.bs      | Location of input file                                |
-| -d                | --debug               |                       | Enable debugging.                                     |
-| -t                | --target              | {inkwell,puddle,m,mfsim,p,i,l,llvm} | What platform do you wish to target?    |
-| -wd               | --working-directory   | path/to/directory     | Directory from where you wish to work                 |
-| -p                | --problem             | {b, bioscript, c, compile, m, mix, s, store} | What problem are you solving?  |
-|
+| Short             | Long                  | Flag                                  | Purpose                                               |
+| ------------------|-----------------------|---------------------------------------|-------------------------------------------------------|
+| -h                | --help                |                                       | show this help message and exit                       |
+| -i                | --input               | path/to/input.bs                      | Location of input file                                |
+| -d                | --debug               |                                       | Enable debugging.                                     |
+| -t                | --target              | {i,inkwell,p,puddle,m,mfsim,l,llvm}   | What platform do you wish to target?                  |
+| -wd               | --working-directory   | path/to/directory                     | Directory from where you wish to work                 |
 
 ### Chemistry:
 **Chemistry specific arguments**
@@ -45,7 +43,8 @@ usage:
 | Short             | Long                  |  Flag                         | Purpose                                                                                       |
 | ------------------|-----------------------|-------------------------------|-----------------------------------------------------------------------------------------------|
 | -tcl              | --typechecklevel      | {error, warn, none}           | What interactions elicit notifications                                                        |
-| -tc               | --typecheck           | {disable,naive,n,u,d,union}   | How to typecheck default is `naive`                                                           |
+| -tc               | --typecheck           |                               | Enable type checking of input program                                                         |
+| -tcu              | --typesused           | {s, simple, c, complex}       | What types to use to typecheck a program, s = {mat, nat, real}, c = {all types in chemtype}   |
 | -epa              | --epa-defs            | Path/to/epa_defs.json         | Location of the EPA definition file (default: `./resources/epa.json`)                         |
 | -abs              | --abs-int             | path/to/abs-int.txt           | Location of the abstract interaction file (default: `./resources/abstract-interaction.txt`)   |
 
@@ -62,6 +61,6 @@ usage:
                         
 ### Example Usages:
 
-Enable debug (-d), compile a file (-i ...), disable typechecking (-tc d), declare a working path (-p ...), and target inkwell (-t ...):
+Enable debug (-d), compile a file (-i ...), and target inkwell (-t ...):
 
 ```-d -i resources/programs/scratch_pad.bs -tc d -p ./resources/ -t inkwell```
