@@ -1,0 +1,18 @@
+module mod
+stationary stat
+manifest aaa
+manifest bbb
+manifest ccc
+manifest ddd
+
+functions:
+
+instructions:
+
+x = 0
+if ( 3 == 3) {
+    x = 3
+} else {
+    x = 5
+}
+y = x

@@ -1,9 +1,9 @@
 import unittest
 
+from chemicals.chemtypes import ChemTypes
+from chemicals.chemtypes import Consequence
 from chemicals.epa_manager import EpaManager
-from chemicals.identification.identifier import Identifier
-from shared.enums.chemtypes import ChemTypes
-from shared.enums.chemtypes import Consequence
+from chemicals.identifier import Identifier
 from shared.io.database import Database
 
 

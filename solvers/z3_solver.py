@@ -19,7 +19,7 @@ class Z3Solver(BaseSolver):
             solver.add(bool_expr)
             status = solver.check()
             if status == z3.CheckSatResult(z3.Z3_L_TRUE):
-                self.log.trace('This BioScript program is safe.')
+                self.log.debug('This BioScript program is safe.')
                 return True
             else:
                 self.log.error('This BioScript program may be unsafe for execution, halting compilation')

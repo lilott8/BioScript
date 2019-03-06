@@ -2,14 +2,14 @@ import json
 
 import colorlog
 
+from chemicals.chemtypes import ChemTypes
+from chemicals.chemtypes import Consequence
 from chemicals.reactive_group import ReactiveGroup
-from shared.enums.chemtypes import ChemTypes
-from shared.enums.chemtypes import Consequence
 
 
 class EpaManager(object):
 
-    def __init__(self, epa_defs_file_name, interaction_file_name):
+    def __init__(self, epa_defs_file_name: str, interaction_file_name: str):
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.interactions = EpaManager.build_interaction_table(interaction_file_name)
         # We store both the entire reactive groups and the associated data in conjunction with
