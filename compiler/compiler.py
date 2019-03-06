@@ -102,7 +102,7 @@ class BSCompiler(object):
         """
         if self.config.typecheck:
             combiner = self.config.combine.get_combiner(self.config.epa_defs, self.config.abstract_interaction)
-            type_checker = TypeCheckVisitor(symbol_table, combiner, )
+            type_checker = TypeCheckVisitor(symbol_table, combiner, self.config.types_used)
             type_checker.visit(tree)
             z3 = Z3Solver()
             self.log.info(type_checker.smt_string)

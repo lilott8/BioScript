@@ -6,6 +6,7 @@ import colorlog
 import chemicals.chemtypes as ct
 import chemicals.combiner as combiner
 import chemicals.identifier as identifier
+import compiler.semantics.type_visitor as tv
 import compiler.targets.base_target as targets
 
 
@@ -34,6 +35,7 @@ class Config(object):
         # What level to report things.
         self.error_level = ct.ReportingLevel.ERROR
         self.typecheck = True
+        self.types_used = tv.TypesUsed.SIMPLE
 
         """
         Compiler Stuff
@@ -89,10 +91,10 @@ class Config(object):
         # boolean to enable/disable typechecking.
         self.typecheck = args.typecheck
 
-        if args.typecheckmethod == 'n' or args.typecheckmethod == 'naive':
-            self.typecheck_method = combiner.TypeCheckLevel.NAIVE
-        elif args.typecheckmethod == 'u' or args.typecheckmethod == 'union':
-            self.typecheck_method = combiner.TypeCheckLevel.UNION
+        if args.typesused == 's' or args.typesused == 'simple':
+            self.types_used = tv.TypesUsed.SIMPLE
+        elif args.typesused == 'c' or args.typesused == 'complex':
+            self.types_used = tv.TypesUsed.COMPLEX
 
         if args.target is not None:
             """

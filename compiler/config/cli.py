@@ -41,8 +41,8 @@ class Cli(object):
                                   choices={'error', 'warn', 'none'})
         typing_group.add_argument('-tc', '--typecheck', help='Enable type checking input program.',
                                   action='store_true', default=False)
-        typing_group.add_argument('-tcm', '--typecheckmethod', help='How to type check input program.',
-                                  choices={'u', 'union', 'n', 'naive'}, default='n')
+        typing_group.add_argument('-tcu', '--typesused', help='What types to use to typecheck a program.',
+                                  choices={'s', 'simple', 'c', 'complex'}, default='s')
         typing_group.add_argument('-epa', '--epa-defs', help='Location of EPA definition file.', required=False,
                                   default='./resources/epa.json')
         typing_group.add_argument('-abs', '--abs-int', help="Location for the abstract interaction files.",

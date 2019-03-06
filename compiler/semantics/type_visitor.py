@@ -1,27 +1,39 @@
 import copy
+from enum import IntEnum
 
 from chemicals.chemtypes import ChemTypeResolver, ChemTypes
-from chemicals.combiner import TypeCheckLevel, Combiner
+from chemicals.combiner import Combiner
 from compiler.data_structures.variable import Variable
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import UndefinedException
 
 
+class TypesUsed(IntEnum):
+    """
+    This dictates which sets of types to 
+    use to typecheck an input program.
+    SIMPLE: {mat, nat, real}
+    COMPLEX: {all types in compiler.chemtypes} 
+    """
+    SIMPLE = 1
+    COMPLEX = 2
+
+
 class TypeCheckVisitor(BSBaseVisitor):
 
-    def __init__(self, symbol_table, combiner: Combiner, check: TypeCheckLevel):
+    def __init__(self, symbol_table, combiner: Combiner, types_used: TypesUsed = TypesUsed.SIMPLE):
         # We deep copy symbol table because we don't
         # want to affect change on the created one.
         super().__init__(copy.deepcopy(symbol_table), "Type Visitor")
-        self.typecheck = check
         self.smt_string = ""
         self.tab = "\t"
-        self.build_declares()
         self.output = None
         self.expressions = list()
         # The combiner to use.
         self.combiner = combiner
+        self.types_used = types_used
+        self.build_declares()
 
     def get_smt_name(self, var: Variable, chemtype: ChemTypes = None) -> str:
         string = "{}_{}".format(BSBaseVisitor.get_safe_name(var.scope), BSBaseVisitor.get_safe_name(var.name))
@@ -38,7 +50,7 @@ class TypeCheckVisitor(BSBaseVisitor):
         return kill
 
     def build_declares(self):
-        if self.typecheck == TypeCheckLevel.UNION:
+        if self.types_used == TypesUsed.COMPLEX:
             types = ChemTypeResolver.available_types
         else:
             types = ChemTypeResolver.naive_types
@@ -63,7 +75,7 @@ class TypeCheckVisitor(BSBaseVisitor):
                 """
                 defines += "(assert (= {} true)){}".format(self.get_smt_name(var, t), self.nl)
 
-            if self.typecheck == TypeCheckLevel.NAIVE:
+            if self.types_used == TypesUsed.SIMPLE:
                 """
                 If it's naive, then make sure that unknown is false.
                 In other words, we must have a nat/real/mat type.
@@ -88,7 +100,7 @@ class TypeCheckVisitor(BSBaseVisitor):
                 for t in var.types:
                     defines += "(assert (= {} true)){}".format(self.get_smt_name(var, t), self.nl)
 
-                if self.typecheck == TypeCheckLevel.NAIVE:
+                if self.types_used == TypesUsed.SIMPLE:
                     """
                     If it's naive, then make sure that unknown is false.
                     In other words, we must have a nat/real/mat type.
