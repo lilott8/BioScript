@@ -14,8 +14,8 @@ class IRVisitor(BSBaseVisitor):
     def __init__(self, symbol_table):
         super().__init__(symbol_table, "Basic Block Visitor")
         # This is the list of *all* basic blocks.
-        # self.basic_blocks = dict()
         # This is the blocks which belong to specific functions.
+        # This minimally is populated with a 'main'
         self.functions = dict()
         self.current_block = BasicBlock()
         # The root nodes for all functions (this includes "main").
@@ -34,7 +34,7 @@ class IRVisitor(BSBaseVisitor):
         self.graph = nx.DiGraph()
         self.graph.add_node(self.current_block.nid)
         # Does this rename vars?
-        self.rename = False
+        self.rename = True
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
@@ -371,10 +371,13 @@ class IRVisitor(BSBaseVisitor):
 
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
         details = self.visitChildren(ctx)
-        lhs = Temp(self.symbol_table.get_local(
-            self.rename_var(ctx.IDENTIFIER().__str__(), True), self.scope_stack[-1]))
-        self.allocation_map[lhs.value.name] = lhs
-        self.current_block.add_defs(lhs.value)
+        old = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+        lhs = RenamedVar(self.rename_var(old.name, True), old)
+        # self.symbol_table.get_local(
+        # self.rename_var(ctx.IDENTIFIER().__str__(), True), self.scope_stack[-1])
+        self.symbol_table.add_local(lhs)
+        self.allocation_map[lhs.name] = lhs
+        self.current_block.add_defs(lhs)
 
         if 'op' not in details:
             if self.is_number(details):
@@ -409,16 +412,19 @@ class IRVisitor(BSBaseVisitor):
         else:
             time = (10, BSTime.SECOND)
 
-        reagents = [self.allocation_map[self.visitVolumeIdentifier(ctx.volumeIdentifier(0))['variable'].name],
-                    self.allocation_map[self.visitVolumeIdentifier(ctx.volumeIdentifier(1))['variable'].name]]
-        self.current_block.add_uses(reagents[0])
-        self.current_block.add_uses(reagents[1])
+        reagent1 = self.visitVolumeIdentifier(ctx.volumeIdentifier(0))['variable']
+        reagent2 = self.visitVolumeIdentifier(ctx.volumeIdentifier(1))['variable']
+
+        reagents = [self.allocation_map[reagent1.name],
+                    self.allocation_map[reagent2.name]]
+        self.current_block.add_uses(reagent1)
+        self.current_block.add_uses(reagent2)
 
         return {"reagents": reagents, "execute_for": time, "op": IRInstruction.MIX}
 
     def visitDetect(self, ctx: BSParser.DetectContext):
         module = self.globals[ctx.IDENTIFIER(0).__str__()]
-        variable = [self.allocation_map[ctx.IDENTIFIER(1).__str__()]]
+        variable = self.allocation_map[ctx.IDENTIFIER(1).__str__()]
         self.current_block.add_uses(variable)
 
         if ctx.timeIdentifier():
@@ -426,7 +432,7 @@ class IRVisitor(BSBaseVisitor):
         else:
             time = (10, BSTime.SECOND)
 
-        return {"module": module, "reagents": variable, "execute_for": time, "op": IRInstruction.DETECT}
+        return {"module": module, "reagents": [variable], "execute_for": time, "op": IRInstruction.DETECT}
 
     def visitHeat(self, ctx: BSParser.HeatContext):
         variable = self.allocation_map[ctx.IDENTIFIER().__str__()]
@@ -443,7 +449,7 @@ class IRVisitor(BSBaseVisitor):
         variable = self.allocation_map[ctx.IDENTIFIER().__str__()]
         self.current_block.add_uses(variable)
         size = int(ctx.INTEGER_LITERAL().__str__())
-        return {"reagents": variable, "size": size, "op": IRInstruction.SPLIT}
+        return {"reagents": [variable], "size": size, "op": IRInstruction.SPLIT}
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
         return {"reagents": [self.symbol_table.get_global(ctx.IDENTIFIER().__str__())], "op": IRInstruction.DISPENSE}

@@ -25,10 +25,10 @@ class BasicBlock(object):
         self.instructions.append(instruction)
 
     def add_defs(self, var: Variable):
-        self.defs.add(var.name)
+        self.defs.add(var)
 
     def add_uses(self, var: Variable):
-        self.uses.add(var.name)
+        self.uses.add(var)
 
     def __repr__(self):
         return self.__str__()

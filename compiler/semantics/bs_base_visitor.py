@@ -49,7 +49,7 @@ class BSBaseVisitor(BSParserVisitor):
         output = "{}{}".format(name, self.rename_counter[name])
         return output
 
-    def rename_var(self, name: str, is_def: bool = True) -> str:
+    def rename_var(self, name: str, is_def: bool = False) -> str:
         if not self.rename:
             return name
         if is_def:
@@ -85,11 +85,12 @@ class BSBaseVisitor(BSParserVisitor):
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
         if ctx.IDENTIFIER():
-            name = self.rename_var(ctx.IDENTIFIER().__str__())
-            renamed = self.symbol_table.get_variable(name, self.scope_stack[-1])
+            original = ctx.IDENTIFIER().__str__()
+            renamed = self.rename_var(ctx.IDENTIFIER().__str__())
+            var = self.symbol_table.get_variable(renamed, self.scope_stack[-1])
             if not renamed:
-                raise UndefinedException("Undeclared variable: " + name)
-            return renamed.name
+                raise UndefinedException("Undeclared variable: {} (original: {})".format(renamed, original))
+            return var.name
         elif ctx.literal():
             return self.visitLiteral(ctx.literal())
         else:

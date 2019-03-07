@@ -30,6 +30,16 @@ class Variable(object):
         return output
 
 
+class RenamedVar(Variable):
+
+    def __init__(self, rename: str, var: Variable):
+        super().__init__(var.name, var.types, var.scope, var.size, var.is_global)
+        self.rename = rename
+        self.use_by = var.use_by
+        self.points_to = var.name
+        self.name = rename
+
+
 class Chemical(Variable):
 
     def __init__(self, name: str, types: set = {ChemTypes.UNKNOWN}, scope: str = "unknown", size: int = 1,
