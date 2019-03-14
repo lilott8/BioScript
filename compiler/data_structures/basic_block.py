@@ -14,6 +14,8 @@ class BasicBlock(object):
         self.defs = set()
         self.uses = set()
         self.label = None
+        # Inserted phi nodes
+        self.phis = set()
 
     def get_leader(self) -> str:
         return self.instructions[0]
@@ -25,16 +27,17 @@ class BasicBlock(object):
         self.instructions.append(instruction)
 
     def add_defs(self, var: Variable):
-        self.defs.add(var)
+        self.defs.add(var.name)
 
     def add_uses(self, var: Variable):
-        self.uses.add(var)
+        self.uses.add(var.name)
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        output = "ID: {}\n".format(self.nid)
+        output = "\nID: {}\n".format(self.nid)
+        output += "{}\n".format(self.label)
 
         output += "defs: {"
         defs = ""
@@ -52,8 +55,9 @@ class BasicBlock(object):
             uses = uses[:-2]
         output += "{}}}\n".format(uses)
 
+        output += "Instructions: \n"
         for i in self.instructions:
-            output += "{}\n".format(i)
+            output += "\t{}\n".format(i)
 
         output += "=============\n"
         return output

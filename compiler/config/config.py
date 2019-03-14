@@ -45,6 +45,7 @@ class Config(object):
         self.supports_functions = False
         self.supports_recursion = False
         self.supports_nesting = False
+        self.write_cfg = args.write_cfg
 
         """
         Necessary for identify

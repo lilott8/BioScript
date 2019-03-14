@@ -1,4 +1,5 @@
 import colorlog
+import networkx as nx
 from antlr4 import *
 
 from compiler.config.config import Config
@@ -64,9 +65,10 @@ class BSCompiler(object):
         self.program = Program(ir_visitor)
         self.program.name = filename
 
-        # pos = nx.nx_agraph.graphviz_layout(ir_visitor.graph)
-        # nx.draw(ir_visitor.graph, pos=pos)
-        # write_dot(ir_visitor.graph, 'file.dot')
+        if self.config.write_cfg:
+            pos = nx.nx_agraph.graphviz_layout(ir_visitor.graph)
+            nx.draw(ir_visitor.graph, pos=pos)
+            nx.drawing.nx_pydot.write_dot(ir_visitor.graph, 'file.dot')
 
         return self.program
 

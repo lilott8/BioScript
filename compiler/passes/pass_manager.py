@@ -27,6 +27,7 @@ class PassManager(object):
             ssa = SSA()
             self.program = ssa.transform(self.program)
             self.program.ssa_form = True
+            self.log.info(self.program.functions['main']['blocks'])
 
     def run_transformations(self):
         # TODO: Make this handle dependencies correctly.

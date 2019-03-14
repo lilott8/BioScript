@@ -123,7 +123,7 @@ class BSBaseVisitor(BSParserVisitor):
             elif ctx.AND():
                 op = BinaryOps.AND
             elif ctx.EQUALITY():
-                op = RelationalOps.EQUAL
+                op = RelationalOps.EQUALITY
             elif ctx.GT():
                 op = RelationalOps.GT
             elif ctx.GTE():
@@ -137,7 +137,7 @@ class BSBaseVisitor(BSParserVisitor):
             elif ctx.OR():
                 op = BinaryOps.OR
             else:
-                op = RelationalOps.EQUAL
+                op = RelationalOps.EQUALITY
 
             if ctx.LBRACKET():
                 """

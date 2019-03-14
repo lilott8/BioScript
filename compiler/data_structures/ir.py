@@ -39,12 +39,26 @@ class BinaryOps(IntEnum):
 
 
 class RelationalOps(IntEnum):
-    EQUAL = 0
+    EQUALITY = 0
     NE = 1
     LT = 2
     LTE = 3
     GT = 4
     GTE = 5
+
+    def get_readable(self):
+        if self.value == RelationalOps.EQUALITY:
+            return "=="
+        if self.value == RelationalOps.NE:
+            return "!="
+        if self.value == RelationalOps.LT:
+            return "<"
+        if self.value == RelationalOps.LTE:
+            return "<="
+        if self.value == RelationalOps.GT:
+            return ">"
+        else:
+            return ">="
 
 
 class InstructionSet(object):
@@ -91,11 +105,14 @@ class Constant(Expression):
         super().__init__(IRInstruction.CONSTANT)
         self.value = value
 
+    def __str__(self):
+        return "CONSTANT: {}".format(self.value)
+
 
 class Temp(Expression):
     def __init__(self, value: Variable):
         super().__init__(IRInstruction.TEMP)
-        self.value = value
+        self.value = value.name
 
 
 class BinaryOp(Expression):
@@ -110,10 +127,19 @@ class BinaryOp(Expression):
 
 
 class Phi(Expression):
-    def __init__(self, left: Expression, right: []):
+    def __init__(self, left: Expression, right: list):
         super().__init__(IRInstruction.PHI)
         self.left = left
         self.phi = right
+
+    def __str__(self):
+        out = "{} = Phi(".format(self.left)
+        temp = ""
+        for r in self.phi:
+            temp += "{}, ".format(r)
+        temp = temp[:-2]
+        out += temp + ")"
+        return out
 
 
 class Call(Expression):
@@ -144,14 +170,14 @@ class Statement(IR):
     def __init__(self, op: IRInstruction, out, execute_for=(-1, BSTime.SECOND), use_by=None):
         super().__init__(op)
         self.reagents = []
-        self.register = out
+        self.register = out.name
         self.execute_for = ExecuteFor(execute_for[0], execute_for[1])
         self.use_by = None
         if use_by:
             self.use_by = UseBy(use_by[0], use_by[1])
 
     def __str__(self):
-        return "{}: out-register: {}".format(super().__str__(), self.register)
+        return "{}: out-register: {}, in-values: [{}]".format(super().__str__(), self.register, self.reagents)
 
 
 class Mix(Statement):
@@ -159,6 +185,9 @@ class Mix(Statement):
                  execute_for: (float, BSTime) = (10, BSTime.SECOND), use_by: (float, BSTime) = None):
         super().__init__(IRInstruction.MIX, out, execute_for, use_by)
         self.reagents.extend([one, two])
+
+    def __str__(self):
+        return "{} = mix({}, {})".format(self.register, self.reagents[0], self.reagents[1])
 
 
 class Split(Statement):
@@ -199,6 +228,9 @@ class Store(Statement):
     def __init__(self, out: Temp, value: Expression):
         super().__init__(IRInstruction.STORE, out)
         self.reagents.append(value)
+
+    def __str__(self):
+        return "{} = {}".format(self.register, self.reagents)
 
 
 """
@@ -252,7 +284,8 @@ class Conditional(Control):
         self.right = right
 
     def __str__(self):
-        return "({}{}{}) T: {}\tF:{}".format(self.left, self.relop, self.right, self.true_branch, self.false_branch)
+        return "({} {} {}) T: {}\tF:{}".format(self.left, self.relop.get_readable(), self.right, self.true_branch,
+                                               self.false_branch)
 
     def __repr__(self):
         return self.__str__()

@@ -17,7 +17,8 @@ class IRVisitor(BSBaseVisitor):
         # This is the blocks which belong to specific functions.
         # This minimally is populated with a 'main'
         self.functions = dict()
-        self.current_block = BasicBlock()
+        self.current_block = BasicBlock("entry")
+        self.current_block.label = Label("entry")
         # The root nodes for all functions (this includes "main").
         self.roots = {self.current_block.nid}
         # The entry block to the program.
@@ -34,7 +35,7 @@ class IRVisitor(BSBaseVisitor):
         self.graph = nx.DiGraph()
         self.graph.add_node(self.current_block.nid)
         # Does this rename vars?
-        self.rename = True
+        self.rename = False
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
@@ -82,7 +83,7 @@ class IRVisitor(BSBaseVisitor):
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
         name = ctx.IDENTIFIER().__str__()
         func = self.symbol_table.functions[name]
-        self.basic_blocks[name] = dict()
+        self.functions[name] = dict()
 
         self.scope_stack.append(name)
         self.symbol_table.current_scope = self.symbol_table.scope_map[name]
@@ -126,7 +127,7 @@ class IRVisitor(BSBaseVisitor):
         true_block = BasicBlock()
         true_label = Label("bsbbif_{}_t".format(true_block.nid))
         true_block.label = true_label
-        true_block.add(true_label)
+        # true_block.add(true_label)
         self.graph.add_node(true_block.nid)
         self.graph.add_edge(self.current_block.nid, true_block.nid)
         condition.true_branch = true_label
@@ -138,7 +139,7 @@ class IRVisitor(BSBaseVisitor):
         false_block = BasicBlock()
         false_label = Label("bsbbif_{}_f".format(false_block.nid))
         false_block.label = false_label
-        false_block.add(false_label)
+        # false_block.add(false_label)
         self.graph.add_node(false_block.nid)
         self.graph.add_edge(self.current_block.nid, false_block.nid)
         condition.false_branch = false_label
@@ -152,7 +153,7 @@ class IRVisitor(BSBaseVisitor):
             join_block = BasicBlock()
             join_label = Label("bsbbif_{}_j".format(join_block.nid))
             join_block.label = join_label
-            join_block.add(join_label)
+            # join_block.add(join_label)
             self.graph.add_node(join_block.nid)
             # self.basic_blocks[self.scope_stack[-1]][join_block.nid] = join_block
             self.functions[self.scope_stack[-1]]['blocks'][join_block.nid] = join_block
@@ -226,6 +227,7 @@ class IRVisitor(BSBaseVisitor):
 
         pre_condition_label_string = "bsbbw_{}_l".format(self.current_block.nid)
         pre_condition_label = Label(pre_condition_label_string)
+        self.current_block.label = pre_condition_label
         self.current_block.add(pre_condition_label)
 
         # Condition is added to self.current_block.
@@ -233,6 +235,7 @@ class IRVisitor(BSBaseVisitor):
         true_block = BasicBlock()
         self.graph.add_node(true_block.nid)
         true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
+        true_block.label = true_label
         true_block.add(true_label)
 
         # self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
@@ -302,6 +305,7 @@ class IRVisitor(BSBaseVisitor):
 
         pre_condition_label_string = "bsbbw_{}_l".format(self.current_block.nid)
         pre_condition_label = Label(pre_condition_label_string)
+        self.current_block.labdl = pre_condition_label
         self.current_block.add(pre_condition_label)
 
         condition = Conditional(RelationalOps.GT, Temp(new_var), Constant(0))
@@ -312,6 +316,7 @@ class IRVisitor(BSBaseVisitor):
         true_block = BasicBlock()
         self.graph.add_node(true_block.nid)
         true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
+        true_block.label = true_label
         true_block.add(true_label)
 
         # self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
@@ -424,7 +429,8 @@ class IRVisitor(BSBaseVisitor):
 
     def visitDetect(self, ctx: BSParser.DetectContext):
         module = self.globals[ctx.IDENTIFIER(0).__str__()]
-        variable = self.allocation_map[ctx.IDENTIFIER(1).__str__()]
+        variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER(1).__str__()), self.scope_stack[-1])
+        # variable = self.allocation_map[ctx.IDENTIFIER(1).__str__()]
         self.current_block.add_uses(variable)
 
         if ctx.timeIdentifier():
@@ -435,7 +441,8 @@ class IRVisitor(BSBaseVisitor):
         return {"module": module, "reagents": [variable], "execute_for": time, "op": IRInstruction.DETECT}
 
     def visitHeat(self, ctx: BSParser.HeatContext):
-        variable = self.allocation_map[ctx.IDENTIFIER().__str__()]
+        variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
+        # variable = self.allocation_map[ctx.IDENTIFIER().__str__()]
         self.current_block.add_uses(variable)
         if ctx.timeIdentifier():
             time = self.visitTimeIdentifier(ctx.timeIdentifier())
@@ -446,7 +453,8 @@ class IRVisitor(BSBaseVisitor):
         return ir
 
     def visitSplit(self, ctx: BSParser.SplitContext):
-        variable = self.allocation_map[ctx.IDENTIFIER().__str__()]
+        variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
+        # variable = self.allocation_map[ctx.IDENTIFIER().__str__()]
         self.current_block.add_uses(variable)
         size = int(ctx.INTEGER_LITERAL().__str__())
         return {"reagents": [variable], "size": size, "op": IRInstruction.SPLIT}
