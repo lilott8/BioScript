@@ -158,7 +158,7 @@ class IRVisitor(BSBaseVisitor):
             # self.basic_blocks[self.scope_stack[-1]][join_block.nid] = join_block
             self.functions[self.scope_stack[-1]]['blocks'][join_block.nid] = join_block
 
-        self.current_block.add("Condition")
+        # self.current_block.add("Condition")
 
         # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
@@ -227,7 +227,8 @@ class IRVisitor(BSBaseVisitor):
 
         pre_condition_label_string = "bsbbw_{}_l".format(self.current_block.nid)
         pre_condition_label = Label(pre_condition_label_string)
-        self.current_block.label = pre_condition_label
+        self.current_block.add(pre_condition_label)
+        # self.current_block.label = pre_condition_label
         self.current_block.add(pre_condition_label)
 
         # Condition is added to self.current_block.
@@ -235,7 +236,7 @@ class IRVisitor(BSBaseVisitor):
         true_block = BasicBlock()
         self.graph.add_node(true_block.nid)
         true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
-        true_block.label = true_label
+        # true_block.label = true_label
         true_block.add(true_label)
 
         # self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
@@ -269,7 +270,7 @@ class IRVisitor(BSBaseVisitor):
             self.graph.add_node(false_block.nid)
             false_label = Label("bsbbw_{}_f".format(false_block.nid))
             false_block.add(false_label)
-            false_block.label = false_label
+            # false_block.label = false_label
             condition.false_branch = false_label
             # Create the edge.
             self.graph.add_edge(parent_block.nid, false_block.nid)
@@ -316,7 +317,7 @@ class IRVisitor(BSBaseVisitor):
         true_block = BasicBlock()
         self.graph.add_node(true_block.nid)
         true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
-        true_block.label = true_label
+        # true_block.label = true_label
         true_block.add(true_label)
 
         # self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
@@ -349,7 +350,7 @@ class IRVisitor(BSBaseVisitor):
             self.graph.add_node(false_block.nid)
             false_label = Label("bsbbw_{}_f".format(false_block.nid))
             false_block.add(false_label)
-            false_block.label = false_label
+            # false_block.label = false_label
             condition.false_branch = false_label
             # Create the edge.
             self.graph.add_edge(parent_block.nid, false_block.nid)
@@ -376,28 +377,24 @@ class IRVisitor(BSBaseVisitor):
 
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
         details = self.visitChildren(ctx)
-        old = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
-        lhs = RenamedVar(self.rename_var(old.name, True), old)
-        # self.symbol_table.get_local(
-        # self.rename_var(ctx.IDENTIFIER().__str__(), True), self.scope_stack[-1])
-        self.symbol_table.add_local(lhs)
-        self.allocation_map[lhs.name] = lhs
-        self.current_block.add_defs(lhs)
+        var = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+        self.allocation_map[var.name] = var
+        self.current_block.add_defs(var)
 
         if 'op' not in details:
             if self.is_number(details):
-                ir = Store(lhs, Constant(float(details)))
+                ir = Store(var, Constant(float(details)))
             else:
-                ir = Store(lhs, details)
+                ir = Store(var, Temp(self.symbol_table.get_local(details, self.scope_stack[-1])))
                 self.current_block.add_uses(self.symbol_table.get_local(details))
         elif details['op'] == IRInstruction.MIX:
-            ir = Mix(lhs, details['reagents'][0], details['reagents'][1], details['execute_for'])
+            ir = Mix(var, details['reagents'][0], details['reagents'][1], details['execute_for'])
         elif details['op'] == IRInstruction.SPLIT:
-            ir = Split(lhs, details['reagents'][0], details['size'])
+            ir = Split(var, details['reagents'][0], details['size'])
         elif details['op'] == IRInstruction.DISPENSE:
-            ir = Dispense(lhs, details['reagents'][0])
+            ir = Dispense(var, details['reagents'][0])
         elif details['op'] == IRInstruction.CALL:
-            ir = Store(lhs, Call(details['func']))
+            ir = Store(var, Call(details['func']))
         elif details['op'] in InstructionSet.BinaryOps:
             ir = BinaryOp(details['exp1'], details['exp2'], details['op'])
         else:
@@ -448,7 +445,7 @@ class IRVisitor(BSBaseVisitor):
             time = self.visitTimeIdentifier(ctx.timeIdentifier())
         else:
             time = (10, BSTime.SECOND)
-        ir = Heat(variable, variable, time)
+        ir = Heat(Temp(variable), Temp(variable), time)
         self.current_block.add(ir)
         return ir
 

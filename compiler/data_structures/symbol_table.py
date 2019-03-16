@@ -27,8 +27,11 @@ class SymbolTable(object):
         self.scope_map[self.current_scope.get_name()] = self.current_scope
         self.current_scope = self.scope_stack.pop()
 
-    def add_local(self, local: Variable) -> None:
-        self.current_scope.add_local(local)
+    def add_local(self, local: Variable, scope: str = None) -> None:
+        if not scope:
+            self.current_scope.add_local(local)
+        else:
+            self.scope_map[scope].add_local(local)
 
     def add_global(self, local: Variable) -> None:
         self.globals[local.name] = local

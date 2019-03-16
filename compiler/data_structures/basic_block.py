@@ -1,3 +1,5 @@
+import colorlog
+
 from compiler.data_structures.ir import *
 
 
@@ -6,9 +8,10 @@ class BasicBlock(object):
 
     def __init__(self, name: str = ""):
         self.nid = BasicBlock.get_next_id()
+        self.log = colorlog.getLogger(name=BasicBlock.__name__)
         self.name = name
         # The list of BB ids this block can reach
-        self.jumps = set()
+        self.jumps = list()
         # This list of instructions in this basic block
         self.instructions = list()
         self.defs = set()
@@ -24,7 +27,16 @@ class BasicBlock(object):
         return self.instructions[-1]
 
     def add(self, instruction: IR):
-        self.instructions.append(instruction)
+        if instruction.op == IRInstruction.LABEL:
+            if self.label:
+                self.log.warning("Trying to add a label to an already labeled block.")
+            self.label = instruction
+        elif instruction.op == IRInstruction.JUMP:
+            self.jumps.append(instruction)
+        elif instruction.op == IRInstruction.CONDITIONAL:
+            self.instructions.append(instruction)
+        else:
+            self.instructions.append(instruction)
 
     def add_defs(self, var: Variable):
         self.defs.add(var.name)

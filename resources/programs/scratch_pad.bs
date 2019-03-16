@@ -10,7 +10,7 @@ functions:
 instructions:
 
 x = 0
-while (3 > 3) {
+if (3 > 3) {
     x = 4
 }
 y = x

@@ -29,6 +29,9 @@ class Variable(object):
         output += "\t({})".format(self.scope)
         return output
 
+    def __str__(self):
+        return self.__repr__()
+
 
 class RenamedVar(Variable):
 
@@ -64,6 +67,7 @@ class Number(Variable):
         self.value = value
 
     def __repr__(self):
-        output = super().__repr__()
-        output += "Number: {}".format(self.value)
+        output = "Number: {}\t".format(super().__repr__())
+        # output = super().__repr__()
+        output += "value: {}".format(self.value)
         return output

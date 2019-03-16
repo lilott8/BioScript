@@ -30,6 +30,15 @@ class BaseTarget(object):
         self.name = name
         self.config = configuration
 
+    @staticmethod
+    def get_safe_name(name: str) -> str:
+        """
+        Unified manner to create program-safe names
+        :param name: Name of unsafe variable.
+        :return: Safe name.
+        """
+        return name.replace(" ", "_").replace("-", "_")
+
     def transform(self, program: Program):
         raise NotImplemented
 
