@@ -14,6 +14,9 @@ class BasicBlock(object):
         self.jumps = list()
         # This list of instructions in this basic block
         self.instructions = list()
+        # The def(s)/use(s) of a block.
+        # These only hold the variable name,
+        # not the entire variable object.
         self.defs = set()
         self.uses = set()
         self.label = None
@@ -27,6 +30,16 @@ class BasicBlock(object):
         return self.instructions[-1]
 
     def add(self, instruction: IR):
+        # All statements have def/uses.
+        if isinstance(instruction, Statement):
+            for use in instruction.uses:
+                self.uses.add(use.name)
+            self.defs.add(instruction.defs.name)
+        # Conditionals can only have uses.
+        if isinstance(instruction, Conditional):
+            for use in instruction.uses:
+                self.uses.add(use.name)
+
         if instruction.op == IRInstruction.LABEL:
             if self.label:
                 self.log.warning("Trying to add a label to an already labeled block.")
@@ -50,6 +63,14 @@ class BasicBlock(object):
     def __str__(self):
         output = "\nID: {}\n".format(self.nid)
         output += "{}\n".format(self.label)
+        jumps = "Jumps: "
+        in_jumps = False
+        for j in self.jumps:
+            jumps += "{} -- \t".format(j)
+            in_jumps = True
+        if in_jumps:
+            jumps = jumps[:-5]
+        output += jumps + "\n"
 
         output += "defs: {"
         defs = ""

@@ -12,7 +12,6 @@ instructions:
 x = dispense aaa
 if (3 > 3) {
     x = dispense bbb
-    a = dispense ccc
-    x = dispense ccc
+    heat x at 45f
 }
 b = detect mod on x

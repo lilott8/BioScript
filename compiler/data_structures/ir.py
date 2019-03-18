@@ -84,6 +84,8 @@ class IR(object):
 class NOP(IR):
     def __init__(self):
         super().__init__(IRInstruction.NOP)
+        self.uses = []
+        self.defs = None
 
 
 """
@@ -160,49 +162,50 @@ Statement IR:
 
 
 class Statement(IR):
-    def __init__(self, op: IRInstruction, out, execute_for=(-1, BSTime.SECOND), use_by=None):
+    def __init__(self, op: IRInstruction, out):
         super().__init__(op)
         self.uses = []
         self.defs = out
-        self.execute_for = ExecuteFor(execute_for[0], execute_for[1])
-        self.use_by = None
-        if use_by:
-            self.use_by = UseBy(use_by[0], use_by[1])
 
     def __str__(self):
-        return "{}: out-register: {}, in-values: [{}]".format(super().__str__(), self.defs, self.uses)
+        return "{}: {}=[{}]".format(super().__str__(), self.defs, self.uses)
 
 
 class Mix(Statement):
-    def __init__(self, out: Temp, one: Temp, two: Temp,
-                 execute_for: (float, BSTime) = (10, BSTime.SECOND), use_by: (float, BSTime) = None):
-        super().__init__(IRInstruction.MIX, out, execute_for, use_by)
+    def __init__(self, out: Temp, one: Temp, two: Temp):
+        super().__init__(IRInstruction.MIX, out)
         self.uses.extend([one, two])
 
     def __str__(self):
-        return "{} = mix({}, {})".format(self.defs, self.uses[0], self.uses[1])
+        return "MIX:\t {} = mix({}, {})".format(self.defs, self.uses[0], self.uses[1])
 
 
 class Split(Statement):
-    def __init__(self, out: Temp, one: Temp, size: int, execute_for: (float, BSTime) = (-1, BSTime.SECOND),
-                 use_by: (float, BSTime) = None):
-        super().__init__(IRInstruction.SPLIT, out, execute_for, use_by=use_by)
+    def __init__(self, out: Temp, one: Temp, size: int):
+        super().__init__(IRInstruction.SPLIT, out)
         self.uses.append(one)
         self.size = size
 
+    def __str__(self):
+        return "SPLIT:\t {} = split({}, {})".format(self.defs, self.uses)
+
 
 class Detect(Statement):
-    def __init__(self, module: Temp, out: Temp, execute_for: (float, BSTime)):
-        super().__init__(IRInstruction.DETECT, out, execute_for)
+    def __init__(self, module: Temp, out: Temp):
+        super().__init__(IRInstruction.DETECT, out)
         self.module = module
+
+    def __str__(self):
+        return "DETECT:\t {} = detect({}, {})".format(self.defs, self.module, self.uses[0])
 
 
 class Heat(Statement):
-    def __init__(self, out: Temp, reagent: Temp, execute_for: (float, BSTime),
-                 use_by: (float, BSTime) = None, heat_for: (float, BSTime) = (10, BSTime.SECOND)):
-        super().__init__(IRInstruction.HEAT, out, execute_for, use_by=use_by)
+    def __init__(self, out: Temp, reagent: Temp):
+        super().__init__(IRInstruction.HEAT, out)
         self.uses.append(reagent)
-        self.time = heat_for
+
+    def __str__(self):
+        return "HEAT:\t {} = heat({})".format(self.defs, self.uses[0])
 
 
 class Dispense(Statement):
@@ -210,11 +213,17 @@ class Dispense(Statement):
         super().__init__(IRInstruction.DISPENSE, out)
         self.uses.append(reagent)
 
+    def __str__(self):
+        return "DISPENSE:\t {} = dispense({})".format(self.defs, self.uses[0])
+
 
 class Dispose(Statement):
     def __init__(self, out: Output, reagent: Temp):
         super().__init__(IRInstruction.DISPOSE, out)
         self.uses.append(reagent)
+
+    def __str__(self):
+        return "DISPOSE:\t dispose({})".format(self.uses[0])
 
 
 class Store(Statement):
@@ -223,7 +232,7 @@ class Store(Statement):
         self.uses.append(value)
 
     def __str__(self):
-        return "{} = {}".format(self.defs, self.uses)
+        return "STORE:\t {} = {}".format(self.defs, self.uses)
 
 
 """
@@ -279,8 +288,9 @@ class Conditional(Control):
         self.defs = None
 
     def __str__(self):
-        return "({} {} {}) T: {}\tF:{}".format(self.left, self.relop.get_readable(), self.right, self.true_branch,
-                                               self.false_branch)
+        return "CONDITIONAL:\t ({} {} {}) T: {}\tF:{}".format(self.left.name, self.relop.get_readable(),
+                                                              self.right.name, self.true_branch,
+                                                              self.false_branch)
 
     def __repr__(self):
         return self.__str__()
@@ -317,7 +327,7 @@ class Phi(Meta):
         self.uses = right
 
     def __str__(self):
-        out = "{} = Phi(".format(self.defs)
+        out = "PHI:\t {} = Phi(".format(self.defs)
         temp = ""
         for r in self.uses:
             temp += "{}, ".format(r)

@@ -103,8 +103,9 @@ class SSA(BSTransform):
         for instruction in block.instructions:
             if instruction.op is not IRInstruction.PHI:
                 for x in range(0, len(instruction.uses)):
-                    if instruction.uses[x].op is not IRInstruction.CONSTANT:
-                        current_var = instruction.uses[x].value
+                    current_var = instruction.uses[x]
+                    # We don't care about constants or globals.
+                    if not current_var.is_constant and not current_var.is_global:
                         new_name = "{}{}".format(current_var.name,
                                                  self.bookkeeper[current_var.name]['stack'][-1])
                         renamed = RenamedVar(new_name, current_var)
@@ -128,15 +129,20 @@ class SSA(BSTransform):
         # Look at the successors of this block
         if block.nid in self.dominator_tree[root]:
             for sid in self.dominator_tree[root][block.nid]:
+                if block.nid == 3 or sid == 3:
+                    aaaa = 3
                 successor = self.program.functions[root]['blocks'][sid]
                 for instruction in successor.instructions:
                     if instruction.op == IRInstruction.PHI:
                         for x in range(0, len(instruction.uses)):
-                            new_var = self.program.symbol_table.get_local(
-                                "{}{}".format(instruction.uses[x].name, x), root)
-                            if not new_var:
-                                new_var = RenamedVar("{}{}".format(instruction.uses[x].name, x), instruction.uses[x])
-                            instruction.uses[x] = new_var
+                            # We don't care about constants or globals.
+                            if not instruction.uses[x].is_constant and not instruction.uses[x].is_global:
+                                new_var = self.program.symbol_table.get_local(
+                                    "{}{}".format(instruction.uses[x].name, x), root)
+                                if not new_var:
+                                    new_var = RenamedVar("{}{}".format(instruction.uses[x].name, x),
+                                                         instruction.uses[x])
+                                instruction.uses[x] = new_var
         if block.nid in self.dominator_tree[root]:
             """
             Visit the nodes that are immediately dominated by this.

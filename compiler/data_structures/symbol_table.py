@@ -68,7 +68,7 @@ class SymbolTable(object):
         if name in scope.get_locals():
             return scope.get_locals()[name]
         elif name in self.globals:
-            return False
+            return self.globals[name]
         else:
             # self.log.fatal("No local variable found: {}".format(name))
             return False

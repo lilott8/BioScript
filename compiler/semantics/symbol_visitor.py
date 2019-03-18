@@ -128,14 +128,14 @@ class SymbolTableVisitor(BSBaseVisitor):
             self.log.fatal("Undefined Variable: {}".format(material_name))
         material_types = {ChemTypes.MAT}
         var = self.identifier.identify(material_name, material_types, self.symbol_table.current_scope.name)
-        self.symbol_table.update_symbol(material_name, var.types)
+        self.symbol_table.update_symbol(material_name, var['types'])
         return {'types': types, 'size': 1, 'instruction': IRInstruction.DETECT, "name": IRInstruction.DETECT.name}
 
     def visitHeat(self, ctx: BSParser.HeatContext):
         name = ctx.IDENTIFIER().__str__()
         types = {ChemTypes.MAT}
         var = self.identifier.identify(name, types, self.symbol_table.current_scope.name)
-        self.symbol_table.update_symbol(name, var.types)
+        self.symbol_table.update_symbol(name, var['types'])
         return {'types': types, 'size': 1, 'instruction': IRInstruction.HEAT, "name": IRInstruction.HEAT.name}
 
     def visitSplit(self, ctx: BSParser.SplitContext):
@@ -287,7 +287,9 @@ class SymbolTableVisitor(BSBaseVisitor):
             units = BSVolume.get_from_string(x['units'])
             quantity = units.normalize(x['quantity'])
 
-        variable = self.identifier.identify(name, types, self.symbol_table.current_scope.name)
+        var = self.identifier.identify(name, types, self.symbol_table.current_scope.name)
+        variable = Variable(var['name'], var['types'], var['scope'])
+
         variable.volume = quantity
         variable.unit = units
         return variable

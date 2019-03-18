@@ -1,3 +1,4 @@
+import importlib
 import random
 import string
 
@@ -5,6 +6,7 @@ import networkx as nx
 
 from compiler.data_structures.basic_block import BasicBlock
 from compiler.data_structures.ir import *
+from compiler.data_structures.registers import *
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
 
@@ -37,6 +39,15 @@ class IRVisitor(BSBaseVisitor):
         # Does this rename vars?
         self.rename = False
 
+    def get_register(self, var: Variable, register: str = "Temp"):
+        if var.name not in self.allocation_map:
+            module = importlib.import_module("compiler.data_structures.registers")
+            class_ = getattr(module, register.capitalize())
+            instance = class_(var)
+            self.allocation_map[var.name] = instance
+
+        return self.allocation_map[var.name]
+
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
         self.symbol_table.current_scope = self.symbol_table.scope_map['main']
@@ -68,17 +79,20 @@ class IRVisitor(BSBaseVisitor):
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         for module in ctx.IDENTIFIER():
             name = module.__str__()
-            self.globals[name] = Module(self.symbol_table.get_global(name))
+            # self.globals[name] = Module(self.symbol_table.get_global(name))
+            self.globals[name] = self.symbol_table.get_global(name)
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
         for manifest in ctx.IDENTIFIER():
             name = manifest.__str__()
-            self.globals[name] = Global(self.symbol_table.get_global(name))
+            # self.globals[name] = Global(self.symbol_table.get_global(name))
+            self.globals[name] = self.symbol_table.get_global(name)
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
         for stationary in ctx.IDENTIFIER():
             name = stationary.__str__()
-            self.globals[name] = Stationary(self.symbol_table.get_global(name))
+            # self.globals[name] = Stationary(self.symbol_table.get_global(name))
+            self.globals[name] = self.symbol_table.get_global(name)
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
         name = ctx.IDENTIFIER().__str__()
@@ -112,11 +126,15 @@ class IRVisitor(BSBaseVisitor):
         # Build the conditional for this statement.
         par_expression = self.visitParExpression(ctx.parExpression())
         if BSBaseVisitor.is_number(par_expression['exp1']):
-            exp1 = Constant(float(par_expression['exp1']))
+            exp1 = Number("Constant_{}".format(par_expression['exp1']), {ChemTypes.NAT, ChemTypes.REAL},
+                          self.scope_stack[-1], value=float(par_expression['exp1']), is_constant=True)
         else:
             exp1 = self.allocation_map[par_expression['exp1']]
+            self.symbol_table.add_local(exp1, self.scope_stack[-1])
         if BSBaseVisitor.is_number(par_expression['exp2']):
-            exp2 = Constant(float(par_expression['exp2']))
+            exp2 = Number("Constant_{}".format(par_expression['exp2']), {ChemTypes.NAT, ChemTypes.REAL},
+                          self.scope_stack[-1], value=float(par_expression['exp2']), is_constant=True)
+            self.symbol_table.add_local(exp2, self.scope_stack[-1])
         else:
             exp2 = self.allocation_map[par_expression['exp2']]
 
@@ -378,23 +396,26 @@ class IRVisitor(BSBaseVisitor):
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
         details = self.visitChildren(ctx)
         var = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
-        self.allocation_map[var.name] = var
-        self.current_block.add_defs(var)
+        # self.allocation_map[var.name] = var
+        # self.current_block.add_defs(var)
 
         if 'op' not in details:
             if self.is_number(details):
-                ir = Store(var, Constant(float(details)))
+                ir = Store(var, float(details))
             else:
-                ir = Store(var, Temp(self.symbol_table.get_local(details, self.scope_stack[-1])))
-                self.current_block.add_uses(self.symbol_table.get_local(details))
+                ir = Store(var, self.symbol_table.get_local(details, self.scope_stack[-1]))
+                # self.current_block.add_uses(self.symbol_table.get_local(details))
         elif details['op'] == IRInstruction.MIX:
-            ir = Mix(var, details['reagents'][0], details['reagents'][1], details['execute_for'])
+            ir = Mix(var, details['reagents'][0], details['reagents'][1])
         elif details['op'] == IRInstruction.SPLIT:
             ir = Split(var, details['reagents'][0], details['size'])
         elif details['op'] == IRInstruction.DISPENSE:
             ir = Dispense(var, details['reagents'][0])
         elif details['op'] == IRInstruction.CALL:
             ir = Store(var, Call(details['func']))
+        elif details['op'] == IRInstruction.DETECT:
+            ir = Detect(details['module'], var)
+            ir.uses.extend(details['reagents'])
         elif details['op'] in InstructionSet.BinaryOps:
             ir = BinaryOp(details['exp1'], details['exp2'], details['op'])
         else:
@@ -417,18 +438,17 @@ class IRVisitor(BSBaseVisitor):
         reagent1 = self.visitVolumeIdentifier(ctx.volumeIdentifier(0))['variable']
         reagent2 = self.visitVolumeIdentifier(ctx.volumeIdentifier(1))['variable']
 
-        reagents = [self.allocation_map[reagent1.name],
-                    self.allocation_map[reagent2.name]]
-        self.current_block.add_uses(reagent1)
-        self.current_block.add_uses(reagent2)
+        reagents = [reagent1, reagent2]
+
+        # self.current_block.add_uses(reagent1)
+        # self.current_block.add_uses(reagent2)
 
         return {"reagents": reagents, "execute_for": time, "op": IRInstruction.MIX}
 
     def visitDetect(self, ctx: BSParser.DetectContext):
         module = self.globals[ctx.IDENTIFIER(0).__str__()]
         variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER(1).__str__()), self.scope_stack[-1])
-        # variable = self.allocation_map[ctx.IDENTIFIER(1).__str__()]
-        self.current_block.add_uses(variable)
+        # self.current_block.add_uses(variable)
 
         if ctx.timeIdentifier():
             time = super().visitTimeIdentifier(ctx.timeIdentifier())
@@ -439,30 +459,30 @@ class IRVisitor(BSBaseVisitor):
 
     def visitHeat(self, ctx: BSParser.HeatContext):
         variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
-        # variable = self.allocation_map[ctx.IDENTIFIER().__str__()]
-        self.current_block.add_uses(variable)
+        # self.current_block.add_uses(variable)
+        # self.current_block.add_defs(variable)
         if ctx.timeIdentifier():
             time = self.visitTimeIdentifier(ctx.timeIdentifier())
         else:
             time = (10, BSTime.SECOND)
-        ir = Heat(Temp(variable), Temp(variable), time)
+        ir = Heat(variable, variable)
         self.current_block.add(ir)
         return ir
 
     def visitSplit(self, ctx: BSParser.SplitContext):
         variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
-        # variable = self.allocation_map[ctx.IDENTIFIER().__str__()]
-        self.current_block.add_uses(variable)
+        # self.current_block.add_uses(variable)
         size = int(ctx.INTEGER_LITERAL().__str__())
         return {"reagents": [variable], "size": size, "op": IRInstruction.SPLIT}
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
-        return {"reagents": [self.symbol_table.get_global(ctx.IDENTIFIER().__str__())], "op": IRInstruction.DISPENSE}
+        variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__(), self.scope_stack[-1]))
+        return {"reagents": [variable], "op": IRInstruction.DISPENSE}
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
         variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
-        output = Output(variable)
-        self.current_block.add_uses(variable)
-        ir = Dispose(output, self.allocation_map[output.value.name])
+        # self.current_block.add_uses(variable)
+        # TODO: Attempt to calculate the number of disposal registers (i.e. number of ports.)
+        ir = Dispose(variable, variable)
         self.current_block.add(ir)
         return ir
