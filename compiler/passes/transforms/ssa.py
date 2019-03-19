@@ -129,8 +129,6 @@ class SSA(BSTransform):
         # Look at the successors of this block
         if block.nid in self.dominator_tree[root]:
             for sid in self.dominator_tree[root][block.nid]:
-                if block.nid == 3 or sid == 3:
-                    aaaa = 3
                 successor = self.program.functions[root]['blocks'][sid]
                 for instruction in successor.instructions:
                     if instruction.op == IRInstruction.PHI:

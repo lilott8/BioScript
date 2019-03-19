@@ -32,11 +32,13 @@ class PassManager(object):
             self.log.info(self.program.functions['main']['blocks'])
 
     def run_transformations(self):
+        # TODO: This should be handled through decorator.
         # TODO: Make this handle dependencies correctly.
         for key, value in self.transforms.items():
             self.program = value.transform(self.program)
 
     def run_analysis(self):
+        # TODO: This should be handled through decorator.
         for key, value in self.analysis.items():
             self.program.analysis[key] = value.analyze(self.program)
 

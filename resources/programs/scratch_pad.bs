@@ -9,10 +9,10 @@ functions:
 
 instructions:
 
-x = dispense aaa
-if (3 > 3) {
-    x = dispense bbb
-    a = dispense ccc
-    x = dispense ccc
-}
-b = detect mod on x
+a = dispense aaa
+b = dispense bbb
+c = dispense ccc
+d = dispense ddd
+e = mix a with b
+f = mix c with d
+g = mix e with f
