@@ -19,4 +19,5 @@ class InkwellTarget(BaseTarget):
                 queue.append(edge)
             for instruction in program.functions['main']['blocks'][block].instructions:
                 self.log.debug(instruction)
+
         return False
