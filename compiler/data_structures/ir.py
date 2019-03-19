@@ -39,12 +39,26 @@ class BinaryOps(IntEnum):
 
 
 class RelationalOps(IntEnum):
-    EQUAL = 0
+    EQUALITY = 0
     NE = 1
     LT = 2
     LTE = 3
     GT = 4
     GTE = 5
+
+    def get_readable(self):
+        if self.value == RelationalOps.EQUALITY:
+            return "=="
+        if self.value == RelationalOps.NE:
+            return "!="
+        if self.value == RelationalOps.LT:
+            return "<"
+        if self.value == RelationalOps.LTE:
+            return "<="
+        if self.value == RelationalOps.GT:
+            return ">"
+        else:
+            return ">="
 
 
 class InstructionSet(object):
@@ -70,6 +84,8 @@ class IR(object):
 class NOP(IR):
     def __init__(self):
         super().__init__(IRInstruction.NOP)
+        self.uses = []
+        self.defs = None
 
 
 """
@@ -81,7 +97,6 @@ Expression IR:
 
 
 class Expression(IR):
-
     def __init__(self, op: IRInstruction):
         super().__init__(op)
 
@@ -91,11 +106,23 @@ class Constant(Expression):
         super().__init__(IRInstruction.CONSTANT)
         self.value = value
 
+    def __str__(self):
+        return "CONSTANT: {}".format(self.value)
+
+    def __repr__(self):
+        return self.__str__()
+
 
 class Temp(Expression):
     def __init__(self, value: Variable):
         super().__init__(IRInstruction.TEMP)
         self.value = value
+
+    def __str__(self):
+        return "TEMP: {}".format(self.value)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class BinaryOp(Expression):
@@ -109,19 +136,13 @@ class BinaryOp(Expression):
         return "BINARYOP {} {} {}".format(self.op, self.left, self.right)
 
 
-class Phi(Expression):
-    def __init__(self, left: Expression, right: []):
-        super().__init__(IRInstruction.PHI)
-        self.left = left
-        self.phi = right
-
-
 class Call(Expression):
     def __init__(self, func: Function):
         super().__init__(IRInstruction.CALL)
         self.function = func
         self.args = self.function.args
         self.name = self.function.name
+        self.uses = func.args
 
 
 class Name(Expression):
@@ -141,64 +162,77 @@ Statement IR:
 
 
 class Statement(IR):
-    def __init__(self, op: IRInstruction, out, execute_for=(-1, BSTime.SECOND), use_by=None):
+    def __init__(self, op: IRInstruction, out):
         super().__init__(op)
-        self.reagents = []
-        self.register = out
-        self.execute_for = ExecuteFor(execute_for[0], execute_for[1])
-        self.use_by = None
-        if use_by:
-            self.use_by = UseBy(use_by[0], use_by[1])
+        self.uses = []
+        self.defs = out
 
     def __str__(self):
-        return "{}: out-register: {}".format(super().__str__(), self.register)
+        return "{}: {}=[{}]".format(super().__str__(), self.defs, self.uses)
 
 
 class Mix(Statement):
-    def __init__(self, out: Temp, one: Temp, two: Temp,
-                 execute_for: (float, BSTime) = (10, BSTime.SECOND), use_by: (float, BSTime) = None):
-        super().__init__(IRInstruction.MIX, out, execute_for, use_by)
-        self.reagents.extend([one, two])
+    def __init__(self, out: Temp, one: Temp, two: Temp):
+        super().__init__(IRInstruction.MIX, out)
+        self.uses.extend([one, two])
+
+    def __str__(self):
+        return "MIX:\t {} = mix({}, {})".format(self.defs, self.uses[0], self.uses[1])
 
 
 class Split(Statement):
-    def __init__(self, out: Temp, one: Temp, size: int, execute_for: (float, BSTime) = (-1, BSTime.SECOND),
-                 use_by: (float, BSTime) = None):
-        super().__init__(IRInstruction.SPLIT, out, execute_for, use_by=use_by)
-        self.reagents.append(one)
+    def __init__(self, out: Temp, one: Temp, size: int):
+        super().__init__(IRInstruction.SPLIT, out)
+        self.uses.append(one)
         self.size = size
+
+    def __str__(self):
+        return "SPLIT:\t {} = split({}, {})".format(self.defs, self.uses)
 
 
 class Detect(Statement):
-    def __init__(self, module: Temp, out: Temp, execute_for: (float, BSTime)):
-        super().__init__(IRInstruction.DETECT, out, execute_for)
+    def __init__(self, module: Temp, out: Temp):
+        super().__init__(IRInstruction.DETECT, out)
         self.module = module
+
+    def __str__(self):
+        return "DETECT:\t {} = detect({}, {})".format(self.defs, self.module, self.uses[0])
 
 
 class Heat(Statement):
-    def __init__(self, out: Temp, reagent: Temp, execute_for: (float, BSTime),
-                 use_by: (float, BSTime) = None, heat_for: (float, BSTime) = (10, BSTime.SECOND)):
-        super().__init__(IRInstruction.HEAT, out, execute_for, use_by=use_by)
-        self.reagents.append(reagent)
-        self.time = heat_for
+    def __init__(self, out: Temp, reagent: Temp):
+        super().__init__(IRInstruction.HEAT, out)
+        self.uses.append(reagent)
+
+    def __str__(self):
+        return "HEAT:\t {} = heat({})".format(self.defs, self.uses[0])
 
 
 class Dispense(Statement):
     def __init__(self, out: Temp, reagent: Temp):
         super().__init__(IRInstruction.DISPENSE, out)
-        self.reagents.append(reagent)
+        self.uses.append(reagent)
+
+    def __str__(self):
+        return "DISPENSE:\t {} = dispense({})".format(self.defs, self.uses[0])
 
 
 class Dispose(Statement):
     def __init__(self, out: Output, reagent: Temp):
         super().__init__(IRInstruction.DISPOSE, out)
-        self.reagents.append(reagent)
+        self.uses.append(reagent)
+
+    def __str__(self):
+        return "DISPOSE:\t dispose({})".format(self.uses[0])
 
 
 class Store(Statement):
     def __init__(self, out: Temp, value: Expression):
         super().__init__(IRInstruction.STORE, out)
-        self.reagents.append(value)
+        self.uses.append(value)
+
+    def __str__(self):
+        return "STORE:\t {} = {}".format(self.defs, self.uses)
 
 
 """
@@ -250,9 +284,13 @@ class Conditional(Control):
         self.relop = relop
         self.left = left
         self.right = right
+        self.uses = [right, left]
+        self.defs = None
 
     def __str__(self):
-        return "({}{}{}) T: {}\tF:{}".format(self.left, self.relop, self.right, self.true_branch, self.false_branch)
+        return "CONDITIONAL:\t ({} {} {}) T: {}\tF:{}".format(self.left.name, self.relop.get_readable(),
+                                                              self.right.name, self.true_branch,
+                                                              self.false_branch)
 
     def __repr__(self):
         return self.__str__()
@@ -278,7 +316,28 @@ Meta IR:
 
 class Meta(IR):
 
-    def __init__(self, op: IRInstruction, time: float, unit: BSTime):
+    def __init__(self, op: IRInstruction):
+        super().__init__(op)
+
+
+class Phi(Meta):
+    def __init__(self, left: Expression, right: list):
+        super().__init__(IRInstruction.PHI)
+        self.defs = left
+        self.uses = right
+
+    def __str__(self):
+        out = "PHI:\t {} = Phi(".format(self.defs)
+        temp = ""
+        for r in self.uses:
+            temp += "{}, ".format(r)
+        temp = temp[:-2]
+        out += temp + ")"
+        return out
+
+
+class TimeConstraint(Meta):
+    def __init__(self, op: IRInstruction, time: float = 10, unit: BSTime = BSTime.SECOND):
         super().__init__(op)
         self.time = time
         self.unit = unit
@@ -287,22 +346,22 @@ class Meta(IR):
             self.unit = BSTime.SECOND
 
     def __repr__(self):
-        return "{}s".format(self.time)
+        return "{}{}".format(self.time, self.unit.name)
 
 
-class UseBy(Meta):
+class UseBy(TimeConstraint):
 
     def __init__(self, time: float, unit: BSTime):
         super().__init__(IRInstruction.USEBY, time, unit)
 
     def __repr__(self):
-        return "USEBY {}".format(super.__repr__())
+        return "USEBY {}{}".format(self.time, self.unit.value)
 
 
-class ExecuteFor(Meta):
+class ExecuteFor(TimeConstraint):
 
     def __init__(self, execute_for: float = 10, unit: BSTime = BSTime.SECOND):
         super().__init__(IRInstruction.EXECUTEFOR, execute_for, unit)
 
     def __repr__(self):
-        return "EXECUTEFOR {}".format(super.__repr__())
+        return "EXECUTEFOR {}{}".format(self.time, self.unit.value)

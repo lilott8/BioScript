@@ -1,3 +1,4 @@
+import importlib
 import random
 import string
 
@@ -5,6 +6,7 @@ import networkx as nx
 
 from compiler.data_structures.basic_block import BasicBlock
 from compiler.data_structures.ir import *
+from compiler.data_structures.registers import *
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
 
@@ -14,10 +16,11 @@ class IRVisitor(BSBaseVisitor):
     def __init__(self, symbol_table):
         super().__init__(symbol_table, "Basic Block Visitor")
         # This is the list of *all* basic blocks.
-        # self.basic_blocks = dict()
         # This is the blocks which belong to specific functions.
+        # This minimally is populated with a 'main'
         self.functions = dict()
-        self.current_block = BasicBlock()
+        self.current_block = BasicBlock("entry")
+        self.current_block.label = Label("entry")
         # The root nodes for all functions (this includes "main").
         self.roots = {self.current_block.nid}
         # The entry block to the program.
@@ -35,6 +38,15 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_node(self.current_block.nid)
         # Does this rename vars?
         self.rename = False
+
+    def get_register(self, var: Variable, register: str = "Temp"):
+        if var.name not in self.allocation_map:
+            module = importlib.import_module("compiler.data_structures.registers")
+            class_ = getattr(module, register.capitalize())
+            instance = class_(var)
+            self.allocation_map[var.name] = instance
+
+        return self.allocation_map[var.name]
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
@@ -67,22 +79,25 @@ class IRVisitor(BSBaseVisitor):
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         for module in ctx.IDENTIFIER():
             name = module.__str__()
-            self.globals[name] = Module(self.symbol_table.get_global(name))
+            # self.globals[name] = Module(self.symbol_table.get_global(name))
+            self.globals[name] = self.symbol_table.get_global(name)
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
         for manifest in ctx.IDENTIFIER():
             name = manifest.__str__()
-            self.globals[name] = Global(self.symbol_table.get_global(name))
+            # self.globals[name] = Global(self.symbol_table.get_global(name))
+            self.globals[name] = self.symbol_table.get_global(name)
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
         for stationary in ctx.IDENTIFIER():
             name = stationary.__str__()
-            self.globals[name] = Stationary(self.symbol_table.get_global(name))
+            # self.globals[name] = Stationary(self.symbol_table.get_global(name))
+            self.globals[name] = self.symbol_table.get_global(name)
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
         name = ctx.IDENTIFIER().__str__()
         func = self.symbol_table.functions[name]
-        self.basic_blocks[name] = dict()
+        self.functions[name] = dict()
 
         self.scope_stack.append(name)
         self.symbol_table.current_scope = self.symbol_table.scope_map[name]
@@ -111,11 +126,15 @@ class IRVisitor(BSBaseVisitor):
         # Build the conditional for this statement.
         par_expression = self.visitParExpression(ctx.parExpression())
         if BSBaseVisitor.is_number(par_expression['exp1']):
-            exp1 = Constant(float(par_expression['exp1']))
+            exp1 = Number("Constant_{}".format(par_expression['exp1']), {ChemTypes.NAT, ChemTypes.REAL},
+                          self.scope_stack[-1], value=float(par_expression['exp1']), is_constant=True)
         else:
             exp1 = self.allocation_map[par_expression['exp1']]
+            self.symbol_table.add_local(exp1, self.scope_stack[-1])
         if BSBaseVisitor.is_number(par_expression['exp2']):
-            exp2 = Constant(float(par_expression['exp2']))
+            exp2 = Number("Constant_{}".format(par_expression['exp2']), {ChemTypes.NAT, ChemTypes.REAL},
+                          self.scope_stack[-1], value=float(par_expression['exp2']), is_constant=True)
+            self.symbol_table.add_local(exp2, self.scope_stack[-1])
         else:
             exp2 = self.allocation_map[par_expression['exp2']]
 
@@ -126,7 +145,7 @@ class IRVisitor(BSBaseVisitor):
         true_block = BasicBlock()
         true_label = Label("bsbbif_{}_t".format(true_block.nid))
         true_block.label = true_label
-        true_block.add(true_label)
+        # true_block.add(true_label)
         self.graph.add_node(true_block.nid)
         self.graph.add_edge(self.current_block.nid, true_block.nid)
         condition.true_branch = true_label
@@ -138,7 +157,7 @@ class IRVisitor(BSBaseVisitor):
         false_block = BasicBlock()
         false_label = Label("bsbbif_{}_f".format(false_block.nid))
         false_block.label = false_label
-        false_block.add(false_label)
+        # false_block.add(false_label)
         self.graph.add_node(false_block.nid)
         self.graph.add_edge(self.current_block.nid, false_block.nid)
         condition.false_branch = false_label
@@ -152,12 +171,12 @@ class IRVisitor(BSBaseVisitor):
             join_block = BasicBlock()
             join_label = Label("bsbbif_{}_j".format(join_block.nid))
             join_block.label = join_label
-            join_block.add(join_label)
+            # join_block.add(join_label)
             self.graph.add_node(join_block.nid)
             # self.basic_blocks[self.scope_stack[-1]][join_block.nid] = join_block
             self.functions[self.scope_stack[-1]]['blocks'][join_block.nid] = join_block
 
-        self.current_block.add("Condition")
+        # self.current_block.add("Condition")
 
         # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
@@ -227,12 +246,15 @@ class IRVisitor(BSBaseVisitor):
         pre_condition_label_string = "bsbbw_{}_l".format(self.current_block.nid)
         pre_condition_label = Label(pre_condition_label_string)
         self.current_block.add(pre_condition_label)
+        # self.current_block.label = pre_condition_label
+        self.current_block.add(pre_condition_label)
 
         # Condition is added to self.current_block.
         condition = Conditional(par_expression['op'], exp1, exp2)
         true_block = BasicBlock()
         self.graph.add_node(true_block.nid)
         true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
+        # true_block.label = true_label
         true_block.add(true_label)
 
         # self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
@@ -266,7 +288,7 @@ class IRVisitor(BSBaseVisitor):
             self.graph.add_node(false_block.nid)
             false_label = Label("bsbbw_{}_f".format(false_block.nid))
             false_block.add(false_label)
-            false_block.label = false_label
+            # false_block.label = false_label
             condition.false_branch = false_label
             # Create the edge.
             self.graph.add_edge(parent_block.nid, false_block.nid)
@@ -302,6 +324,7 @@ class IRVisitor(BSBaseVisitor):
 
         pre_condition_label_string = "bsbbw_{}_l".format(self.current_block.nid)
         pre_condition_label = Label(pre_condition_label_string)
+        self.current_block.labdl = pre_condition_label
         self.current_block.add(pre_condition_label)
 
         condition = Conditional(RelationalOps.GT, Temp(new_var), Constant(0))
@@ -312,6 +335,7 @@ class IRVisitor(BSBaseVisitor):
         true_block = BasicBlock()
         self.graph.add_node(true_block.nid)
         true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
+        # true_block.label = true_label
         true_block.add(true_label)
 
         # self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
@@ -344,7 +368,7 @@ class IRVisitor(BSBaseVisitor):
             self.graph.add_node(false_block.nid)
             false_label = Label("bsbbw_{}_f".format(false_block.nid))
             false_block.add(false_label)
-            false_block.label = false_label
+            # false_block.label = false_label
             condition.false_branch = false_label
             # Create the edge.
             self.graph.add_edge(parent_block.nid, false_block.nid)
@@ -371,25 +395,27 @@ class IRVisitor(BSBaseVisitor):
 
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
         details = self.visitChildren(ctx)
-        lhs = Temp(self.symbol_table.get_local(
-            self.rename_var(ctx.IDENTIFIER().__str__(), True), self.scope_stack[-1]))
-        self.allocation_map[lhs.value.name] = lhs
-        self.current_block.add_defs(lhs.value)
+        var = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+        # self.allocation_map[var.name] = var
+        # self.current_block.add_defs(var)
 
         if 'op' not in details:
             if self.is_number(details):
-                ir = Store(lhs, Constant(float(details)))
+                ir = Store(var, float(details))
             else:
-                ir = Store(lhs, details)
-                self.current_block.add_uses(self.symbol_table.get_local(details))
+                ir = Store(var, self.symbol_table.get_local(details, self.scope_stack[-1]))
+                # self.current_block.add_uses(self.symbol_table.get_local(details))
         elif details['op'] == IRInstruction.MIX:
-            ir = Mix(lhs, details['reagents'][0], details['reagents'][1], details['execute_for'])
+            ir = Mix(var, details['reagents'][0], details['reagents'][1])
         elif details['op'] == IRInstruction.SPLIT:
-            ir = Split(lhs, details['reagents'][0], details['size'])
+            ir = Split(var, details['reagents'][0], details['size'])
         elif details['op'] == IRInstruction.DISPENSE:
-            ir = Dispense(lhs, details['reagents'][0])
+            ir = Dispense(var, details['reagents'][0])
         elif details['op'] == IRInstruction.CALL:
-            ir = Store(lhs, Call(details['func']))
+            ir = Store(var, Call(details['func']))
+        elif details['op'] == IRInstruction.DETECT:
+            ir = Detect(details['module'], var)
+            ir.uses.extend(details['reagents'])
         elif details['op'] in InstructionSet.BinaryOps:
             ir = BinaryOp(details['exp1'], details['exp2'], details['op'])
         else:
@@ -409,49 +435,54 @@ class IRVisitor(BSBaseVisitor):
         else:
             time = (10, BSTime.SECOND)
 
-        reagents = [self.allocation_map[self.visitVolumeIdentifier(ctx.volumeIdentifier(0))['variable'].name],
-                    self.allocation_map[self.visitVolumeIdentifier(ctx.volumeIdentifier(1))['variable'].name]]
-        self.current_block.add_uses(reagents[0])
-        self.current_block.add_uses(reagents[1])
+        reagent1 = self.visitVolumeIdentifier(ctx.volumeIdentifier(0))['variable']
+        reagent2 = self.visitVolumeIdentifier(ctx.volumeIdentifier(1))['variable']
+
+        reagents = [reagent1, reagent2]
+
+        # self.current_block.add_uses(reagent1)
+        # self.current_block.add_uses(reagent2)
 
         return {"reagents": reagents, "execute_for": time, "op": IRInstruction.MIX}
 
     def visitDetect(self, ctx: BSParser.DetectContext):
         module = self.globals[ctx.IDENTIFIER(0).__str__()]
-        variable = [self.allocation_map[ctx.IDENTIFIER(1).__str__()]]
-        self.current_block.add_uses(variable)
+        variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER(1).__str__()), self.scope_stack[-1])
+        # self.current_block.add_uses(variable)
 
         if ctx.timeIdentifier():
             time = super().visitTimeIdentifier(ctx.timeIdentifier())
         else:
             time = (10, BSTime.SECOND)
 
-        return {"module": module, "reagents": variable, "execute_for": time, "op": IRInstruction.DETECT}
+        return {"module": module, "reagents": [variable], "execute_for": time, "op": IRInstruction.DETECT}
 
     def visitHeat(self, ctx: BSParser.HeatContext):
-        variable = self.allocation_map[ctx.IDENTIFIER().__str__()]
-        self.current_block.add_uses(variable)
+        variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
+        # self.current_block.add_uses(variable)
+        # self.current_block.add_defs(variable)
         if ctx.timeIdentifier():
             time = self.visitTimeIdentifier(ctx.timeIdentifier())
         else:
             time = (10, BSTime.SECOND)
-        ir = Heat(variable, variable, time)
+        ir = Heat(variable, variable)
         self.current_block.add(ir)
         return ir
 
     def visitSplit(self, ctx: BSParser.SplitContext):
-        variable = self.allocation_map[ctx.IDENTIFIER().__str__()]
-        self.current_block.add_uses(variable)
+        variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
+        # self.current_block.add_uses(variable)
         size = int(ctx.INTEGER_LITERAL().__str__())
-        return {"reagents": variable, "size": size, "op": IRInstruction.SPLIT}
+        return {"reagents": [variable], "size": size, "op": IRInstruction.SPLIT}
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
-        return {"reagents": [self.symbol_table.get_global(ctx.IDENTIFIER().__str__())], "op": IRInstruction.DISPENSE}
+        variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__(), self.scope_stack[-1]))
+        return {"reagents": [variable], "op": IRInstruction.DISPENSE}
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
         variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
-        output = Output(variable)
-        self.current_block.add_uses(variable)
-        ir = Dispose(output, self.allocation_map[output.value.name])
+        # self.current_block.add_uses(variable)
+        # TODO: Attempt to calculate the number of disposal registers (i.e. number of ports.)
+        ir = Dispose(variable, variable)
         self.current_block.add(ir)
         return ir

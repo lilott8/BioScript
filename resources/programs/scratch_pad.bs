@@ -9,10 +9,10 @@ functions:
 
 instructions:
 
-x = 0
-if ( 3 == 3) {
-    x = 3
-} else {
-    x = 5
-}
-y = x
+a = dispense aaa
+b = dispense bbb
+c = dispense ccc
+d = dispense ddd
+e = mix a with b
+f = mix c with d
+g = mix e with f

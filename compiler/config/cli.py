@@ -27,6 +27,7 @@ class Cli(object):
                             default='mfsim', choices={'llvm', 'mfsim', 'puddle', 'inkwell',
                                                       'l', 'm', 'p', 'i'})
         parser.add_argument('-wd', '--working-directory', help="Working path.", default="./", type=str)
+        parser.add_argument('-cfg', '--write-cfg', help="Write the CFG to dot file", default=False, action='store_true')
 
         chemistry = parser.add_argument_group('chemistry', 'Chemistry specific arguments')
         chemistry.add_argument('-sim', '--simulate', help='Simulate chemistry.', default=False,

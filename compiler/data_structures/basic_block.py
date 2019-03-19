@@ -1,3 +1,5 @@
+import colorlog
+
 from compiler.data_structures.ir import *
 
 
@@ -6,14 +8,20 @@ class BasicBlock(object):
 
     def __init__(self, name: str = ""):
         self.nid = BasicBlock.get_next_id()
+        self.log = colorlog.getLogger(name=BasicBlock.__name__)
         self.name = name
         # The list of BB ids this block can reach
-        self.jumps = set()
+        self.jumps = list()
         # This list of instructions in this basic block
         self.instructions = list()
+        # The def(s)/use(s) of a block.
+        # These only hold the variable name,
+        # not the entire variable object.
         self.defs = set()
         self.uses = set()
         self.label = None
+        # Inserted phi nodes
+        self.phis = set()
 
     def get_leader(self) -> str:
         return self.instructions[0]
@@ -22,7 +30,26 @@ class BasicBlock(object):
         return self.instructions[-1]
 
     def add(self, instruction: IR):
-        self.instructions.append(instruction)
+        # All statements have def/uses.
+        if isinstance(instruction, Statement):
+            for use in instruction.uses:
+                self.uses.add(use.name)
+            self.defs.add(instruction.defs.name)
+        # Conditionals can only have uses.
+        if isinstance(instruction, Conditional):
+            for use in instruction.uses:
+                self.uses.add(use.name)
+
+        if instruction.op == IRInstruction.LABEL:
+            if self.label:
+                self.log.warning("Trying to add a label to an already labeled block.")
+            self.label = instruction
+        elif instruction.op == IRInstruction.JUMP:
+            self.jumps.append(instruction)
+        elif instruction.op == IRInstruction.CONDITIONAL:
+            self.instructions.append(instruction)
+        else:
+            self.instructions.append(instruction)
 
     def add_defs(self, var: Variable):
         self.defs.add(var.name)
@@ -34,7 +61,16 @@ class BasicBlock(object):
         return self.__str__()
 
     def __str__(self):
-        output = "ID: {}\n".format(self.nid)
+        output = "\nID: {}\n".format(self.nid)
+        output += "{}\n".format(self.label)
+        jumps = "Jumps: "
+        in_jumps = False
+        for j in self.jumps:
+            jumps += "{} -- \t".format(j)
+            in_jumps = True
+        if in_jumps:
+            jumps = jumps[:-5]
+        output += jumps + "\n"
 
         output += "defs: {"
         defs = ""
@@ -52,8 +88,9 @@ class BasicBlock(object):
             uses = uses[:-2]
         output += "{}}}\n".format(uses)
 
+        output += "Instructions: \n"
         for i in self.instructions:
-            output += "{}\n".format(i)
+            output += "\t{}\n".format(i)
 
         output += "=============\n"
         return output
