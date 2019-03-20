@@ -1,6 +1,9 @@
 import colorlog
 
-from compiler.data_structures.ir import *
+import compiler.data_structures.ir as ir
+
+
+# import compiler.data_structures.variable as variable
 
 
 class BasicBlock(object):
@@ -29,33 +32,30 @@ class BasicBlock(object):
     def get_jump(self):
         return self.instructions[-1]
 
-    def add(self, instruction: IR):
+    def add(self, instruction: ir.IR):
         # All statements have def/uses.
-        if isinstance(instruction, Statement):
-            for use in instruction.uses:
-                self.uses.add(use.name)
+        if hasattr(instruction, 'defs'):
             self.defs.add(instruction.defs.name)
-        # Conditionals can only have uses.
-        if isinstance(instruction, Conditional):
+        if hasattr(instruction, 'uses'):
             for use in instruction.uses:
                 self.uses.add(use.name)
 
-        if instruction.op == IRInstruction.LABEL:
+        if instruction.op == ir.IRInstruction.LABEL:
             if self.label:
                 self.log.warning("Trying to add a label to an already labeled block.")
             self.label = instruction
-        elif instruction.op == IRInstruction.JUMP:
+        elif instruction.op == ir.IRInstruction.JUMP:
             self.jumps.append(instruction)
-        elif instruction.op == IRInstruction.CONDITIONAL:
+        elif instruction.op == ir.IRInstruction.CONDITIONAL:
             self.instructions.append(instruction)
         else:
             self.instructions.append(instruction)
 
-    def add_defs(self, var: Variable):
-        self.defs.add(var.name)
-
-    def add_uses(self, var: Variable):
-        self.uses.add(var.name)
+    # def add_defs(self, var: variable.Variable):
+    #     self.defs.add(var.name)
+    #
+    # def add_uses(self, var: variable.Variable):
+    #     self.uses.add(var.name)
 
     def __repr__(self):
         return self.__str__()

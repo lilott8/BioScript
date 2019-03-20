@@ -1,9 +1,10 @@
+import abc
 from enum import IntEnum
 
 import colorlog
 
+import compiler.data_structures.program as prog
 import compiler.targets as targets
-from compiler.data_structures.program import Program
 
 
 class Target(IntEnum):
@@ -12,23 +13,23 @@ class Target(IntEnum):
     PUDDLE = 4
     INKWELL = 8
 
-    def get_target(self, configuration):
+    def get_target(self, program: prog.Program):
         if self == Target.PUDDLE:
-            return targets.PuddleTarget(configuration)
+            return targets.PuddleTarget(program)
         elif self.value == Target.INKWELL:
-            return targets.InkwellTarget(configuration)
+            return targets.InkwellTarget(program)
         elif self.value == Target.MFSIM:
-            return targets.MFSimTarget(configuration)
+            return targets.MFSimTarget(program)
         else:
-            return targets.ClangTarget(configuration)
+            return targets.ClangTarget(program)
 
 
-class BaseTarget(object):
+class BaseTarget(metaclass=abc.ABCMeta):
 
-    def __init__(self, configuration: 'Config', name="BaseTarget"):
+    def __init__(self, program: prog.Program, name="BaseTarget"):
         self.log = colorlog.getLogger(self.__class__.__name__)
+        self.program = program
         self.name = name
-        self.config = configuration
 
     @staticmethod
     def get_safe_name(name: str) -> str:
@@ -39,26 +40,34 @@ class BaseTarget(object):
         """
         return name.replace(" ", "_").replace("-", "_")
 
-    def transform(self, program: Program):
-        raise NotImplemented
+    @abc.abstractmethod
+    def transform(self):
+        pass
 
-    def map_mix(self):
-        raise NotImplemented
+    @abc.abstractmethod
+    def write_mix(self) -> str:
+        pass
 
-    def map_split(self):
-        raise NotImplemented
+    @abc.abstractmethod
+    def write_split(self) -> str:
+        pass
 
-    def map_detect(self):
-        raise NotImplemented
+    @abc.abstractmethod
+    def write_detect(self) -> str:
+        pass
 
-    def map_dispose(self):
-        raise NotImplemented
+    @abc.abstractmethod
+    def write_dispose(self) -> str:
+        pass
 
-    def map_dispense(self):
-        raise NotImplemented
+    @abc.abstractmethod
+    def write_dispense(self) -> str:
+        pass
 
-    def map_expression(self):
-        raise NotImplemented
+    @abc.abstractmethod
+    def write_expression(self) -> str:
+        pass
 
-    def map_branch(self):
-        raise NotImplemented
+    @abc.abstractmethod
+    def write_branch(self) -> str:
+        pass

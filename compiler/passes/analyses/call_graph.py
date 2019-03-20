@@ -8,4 +8,4 @@ class CallGraph(BSAnalysis):
         super().__init__("CallGraph")
 
     def analyze(self, program: Program):
-        pass
+        return {}

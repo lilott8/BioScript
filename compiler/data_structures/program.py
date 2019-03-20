@@ -1,4 +1,4 @@
-from compiler.semantics.ir_visitor import IRVisitor
+from compiler.data_structures.symbol_table import SymbolTable
 
 
 class Program(object):
@@ -7,20 +7,24 @@ class Program(object):
     stores various data about the program.
     """
 
-    def __init__(self, ir: IRVisitor):
+    def __init__(self, functions: dict = dict, roots: dict = dict, entry_point: int = 1,
+                 symbol_table: SymbolTable = None, bb_graph=None, name: str = "program",
+                 ssa_form: bool = False, analysis: dict = dict(), globals: dict = dict()):
         # A dict: id->basic block
-        self.functions = ir.functions
+        self.functions = functions
         # Set of basic block ids that are roots
-        self.roots = ir.roots
+        self.roots = roots
         # The main entry point for the program
-        self.entry_point = ir.entry_block
+        self.entry_point = entry_point
         # The symbol table for the program
-        self.symbol_table = ir.symbol_table
+        self.symbol_table = symbol_table
         # The basic block based control flow graph
-        self.bb_graph = ir.graph
+        self.bb_graph = bb_graph
         # The name of the graph
-        self.name = None
+        self.name = name
         # Is this program in SSA form?
-        self.ssa_form = False
+        self.ssa_form = ssa_form
         # Storing different analysis here (liveness, call graph, etc)
-        self.analysis = dict()
+        self.analysis = analysis
+        # Keep track of the globals
+        self.globals = globals

@@ -36,7 +36,7 @@ class TypeCheckVisitor(BSBaseVisitor):
         self.build_declares()
 
     def get_smt_name(self, var: Variable, chemtype: ChemTypes = None) -> str:
-        string = "{}_{}".format(BSBaseVisitor.get_safe_name(var.scope), BSBaseVisitor.get_safe_name(var.name))
+        string = "{}_{}".format(var.scope, var.name)
         if chemtype:
             string += "_{}".format(chemtype.name)
         return string

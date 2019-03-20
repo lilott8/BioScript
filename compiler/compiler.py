@@ -2,7 +2,7 @@ import colorlog
 import networkx as nx
 from antlr4 import *
 
-from compiler.config.config import Config
+import compiler.config.config as config
 from compiler.data_structures.program import Program
 from compiler.data_structures.symbol_table import SymbolTable
 from compiler.passes.pass_manager import PassManager
@@ -18,12 +18,14 @@ from solvers.z3_solver import Z3Solver
 
 class BSCompiler(object):
 
-    def __init__(self, configuration: Config):
+    def __init__(self, configuration: config.Config):
         self.config = configuration
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.log.warning(self.config.input)
-        # The symbol is built is phases, hence it's globalness.
+        # The symbol is built is phases,
+        # And used in many place, hence it's globalness.
         self.symbol_table = None
+        # This is the representation of an input program.
         self.program = None
 
     def compile(self):
@@ -62,8 +64,8 @@ class BSCompiler(object):
         ir_visitor = IRVisitor(symbol_visitor.symbol_table)
         ir_visitor.visit(tree)
         # Always update the symbol table.
-        self.program = Program(ir_visitor)
-        self.program.name = filename
+        self.program = Program(functions=ir_visitor.functions, roots=ir_visitor.roots, globals=ir_visitor.globals,
+                               symbol_table=ir_visitor.symbol_table, bb_graph=ir_visitor.graph, name=filename)
 
         if self.config.write_cfg:
             pos = nx.nx_agraph.graphviz_layout(ir_visitor.graph)
@@ -91,9 +93,9 @@ class BSCompiler(object):
         :param program:
         :return:
         """
-        target = self.config.target.get_target(self.config)
-        target.transform(self.program)
-        return target
+        target = self.config.target.get_target(program)
+        target.transform()
+        return True
 
     def visit_type_check(self, tree, symbol_table: SymbolTable):
         """
