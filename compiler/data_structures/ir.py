@@ -71,10 +71,18 @@ class InstructionSet(object):
 
 
 class IR(metaclass=abc.ABCMeta):
+    id_counter = 1
+
+    @staticmethod
+    def get_next_id():
+        temp = IR.id_counter
+        IR.id_counter += 1
+        return temp
 
     def __init__(self, op: IRInstruction):
         self.op = op
         self.name = op.name
+        self.iid = IR.get_next_id()
 
     @abc.abstractmethod
     def write(self, target: 'BaseTarget') -> str:
@@ -227,6 +235,7 @@ class Detect(Statement):
     def __init__(self, module: Temp, out: Temp):
         super().__init__(IRInstruction.DETECT, out)
         self.module = module
+        self.uses.append(module)
 
     def write(self, target: 'BaseTarget') -> str:
         pass

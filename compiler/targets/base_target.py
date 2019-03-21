@@ -2,6 +2,7 @@ import abc
 from enum import IntEnum
 
 import colorlog
+import networkx as nx
 
 import compiler.data_structures.program as prog
 import compiler.targets as targets
@@ -30,6 +31,59 @@ class BaseTarget(metaclass=abc.ABCMeta):
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.program = program
         self.name = name
+        self.dags = dict()
+        self.build_dags()
+
+    def build_dags(self):
+        for root in self.program.functions:
+            self.dags[root] = dict()
+            # Set of output variables seen in the DAG.
+            leafs = set()
+            # This maps an output variable (key) to a node in the graph.
+            tags = dict()
+            for nid, block in self.program.functions[root]['blocks'].items():
+                graph = nx.DiGraph()
+                # Op nodes are defined as {output var, op}
+                # Var nodes are defined as {var}
+                for instruction in block.instructions:
+                    # self.log.info(instruction)
+                    # Case x = op y (dispense, heat, dispose, store)
+                    if len(instruction.uses) == 1:
+                        # Look at the r-value.  This does
+                        # that without altering the set.
+                        use = next(iter(instruction.uses))
+                        if use not in leafs:
+                            graph.add_node(use.name)
+                            leafs.add(use.name)
+                            leaf = use.name
+                        else:
+                            leaf = use.name
+                        # Do the same thing, except for the l-value.
+                        if instruction.defs.name not in tags:
+                            graph.add_node(leaf, iid=instruction.iid, op=instruction.op.name)
+                            var_def = instruction.defs.name
+                            tags[instruction.defs.name] = var_def
+                        else:
+                            var_def = instruction.defs.name
+                        graph.add_edge(leaf, var_def)
+                    else:
+                        var_def = instruction.defs.name
+                        graph.add_node(instruction.defs.name, iid=instruction.iid, op=instruction.op.name)
+                        tags[var_def] = var_def
+                        for use in instruction.uses:
+                            leaf = use.name
+                            if leaf not in leafs:
+                                graph.add_node(leaf)
+                                leafs.add(leaf)
+                            graph.add_edge(leaf, var_def)
+                # self.write_graph(graph)
+                self.dags[root][nid] = graph
+        pass
+
+    def write_graph(self, graph):
+        pos = nx.nx_agraph.graphviz_layout(graph)
+        nx.draw(graph, pos=pos)
+        nx.drawing.nx_pydot.write_dot(graph, 'dag.dot')
 
     @staticmethod
     def get_safe_name(name: str) -> str:

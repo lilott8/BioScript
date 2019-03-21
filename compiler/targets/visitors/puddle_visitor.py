@@ -2,7 +2,6 @@ from compiler.data_structures.ir import IRInstruction, InstructionSet
 from compiler.targets.visitors.target_visitor import TargetVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import *
-from shared.tree_node import TreeNode
 
 
 class PuddleVisitor(TargetVisitor):
@@ -327,7 +326,7 @@ class PuddleVisitor(TargetVisitor):
     def build_split(self, output_var, input_var, size):
         output = "{} = list(){}".format(output_var, self.nl)
         quantity = PuddleVisitor.get_exponent(size)
-        node = TreeNode(-1)
+        node = {'value': -1}
         nodes = PuddleVisitor.build_tree(node, quantity['quantity'])
         for x in range(0, len(nodes)):
             previous_input = input_var
@@ -349,8 +348,8 @@ class PuddleVisitor(TargetVisitor):
                 output += "{}({},{}) = sessions.split({}){}".format(self.tab, output_a, output_b,
                                                                     previous_input, self.nl)
 
-            if (x == (len(nodes) - quantity['exponent']) - 1 and len(nodes) > 3) or x >= len(nodes) - quantity[
-                'exponent']:
+            if (x == (len(nodes) - quantity['exponent']) - 1 and len(nodes) > 3) or \
+                    x >= len(nodes) - quantity['exponent']:
                 """
                 Only append the last level of the tree to the list.
                 """
@@ -359,34 +358,35 @@ class PuddleVisitor(TargetVisitor):
         return output
 
     @staticmethod
-    def build_tree(root: TreeNode, quantity: int):
+    def build_tree(root: dict, quantity: int):
         x = 1
         queue = [root]
         while x <= quantity:
-            if queue[0].left is not None and queue[0].right is not None:
+            if queue[0]['left'] is not None and queue[0]['right'] is not None:
                 queue.pop(0)
-            node = TreeNode(x)
+            node = {'value': x}
             if x % 2 == 0:
-                queue[0].right = node
+                queue[0]['right'] = node
             else:
-                queue[0].left = node
+                queue[0]['left'] = node
             queue.append(node)
             x += 1
         return PuddleVisitor.build_splits(root)
 
     @staticmethod
-    def build_splits(root: TreeNode) -> list:
+    def build_splits(root: dict) -> list:
         queue = [root]
         splits = list()
         while queue:
             current = queue.pop(0)
-            if current.left and current.right:
-                splits.append({'input': current.value, 'output': [current.left.value, current.right.value]})
+            if current['left'] and current['right']:
+                splits.append({'input': current['value'],
+                               'output': [current['left']['value'], current['right']['value']]})
 
             if current.left:
-                queue.append(current.left)
+                queue.append(current['left'])
             if current.right:
-                queue.append(current.right)
+                queue.append(current['right'])
 
         return splits
 

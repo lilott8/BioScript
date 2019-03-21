@@ -70,7 +70,7 @@ class BSCompiler(object):
         if self.config.write_cfg:
             pos = nx.nx_agraph.graphviz_layout(ir_visitor.graph)
             nx.draw(ir_visitor.graph, pos=pos)
-            nx.drawing.nx_pydot.write_dot(ir_visitor.graph, 'file.dot')
+            nx.drawing.nx_pydot.write_dot(ir_visitor.graph, 'cfg.dot')
 
         return self.program
 

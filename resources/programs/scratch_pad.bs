@@ -16,3 +16,4 @@ d = dispense ddd
 e = mix a with b
 f = mix c with d
 g = mix e with f
+x = detect mod on g
