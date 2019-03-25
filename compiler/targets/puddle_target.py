@@ -8,6 +8,7 @@ class PuddleTarget(BaseTarget):
         super().__init__(program, "PuddleTarget")
 
     def transform(self):
+        print('PUDDLE')
         return False
 
     def write_mix(self) -> str:

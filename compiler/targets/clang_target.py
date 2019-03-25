@@ -20,6 +20,10 @@ class ClangTarget(BaseTarget):
                          "typedef", "typeid", "typename", "union", "unsigned", "using", "virtual", "void", "volatile",
                          "wchar_t", "while", "xor", "xor_eq")
 
+
+    def transform(self, verify: bool = False):
+        print('hello!!!!') 
+
     def check_identifier(self, name):
         if name in self.keywords:
             return "{}{}".format(name, name)
