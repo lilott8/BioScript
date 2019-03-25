@@ -1,10 +1,12 @@
 import abc
 
+import colorlog
+
 
 class ComponentAPI(object, metaclass=abc.ABCMeta):
 
     def __init__(self):
-        pass
+        self.log = colorlog.getLogger()
 
     @abc.abstractmethod
     def get_component(self, attr: dict):
@@ -26,7 +28,7 @@ class NaiveAPI(ComponentAPI):
 
     def get_component(self, attr: dict):
         component = dict()
-        if attr['taxonomy'].lower() == 'input':
+        if attr['taxonomy'].lower() == 'input' or attr['taxonomy'].lower() == 'dispense':
             component['entity'] = 'Input'
             component['id'] = attr['name'] + "_id"
             component["layers"] = [str(attr['uuid'])]
@@ -44,7 +46,7 @@ class NaiveAPI(ComponentAPI):
         elif attr['taxonomy'].lower() == 'mix':
             component['entity'] = 'Mixer'
             component['id'] = attr['name'] + "_id"
-            component['layers'] = [attr[str(attr['uuid'])]]
+            component['layers'] = [str(attr['uuid'])]
             component['name'] = attr['name']
             component['ports'] = [
                 {
@@ -68,5 +70,31 @@ class NaiveAPI(ComponentAPI):
             ]
             component['x-span'] = 20
             component['y-span'] = 20
+        elif attr['taxonomy'].lower() == 'detect':
+            component['entity'] = 'Detect'
+            component['id'] = attr['name'] + "_id"
+            component['layers'] = [str(attr['uuid'])]
+            component['name'] = attr['name']
+            component['ports'] = [
+                {
+                    'label': 'input1',
+                    'layer': str(attr['uuid']),
+                    'x': 10,
+                    'y': 0
+                },
+                {
+                    'label': 'output',
+                    'layer': str(attr['uuid']),
+                    'x': 10,
+                    'y': 20
+                }
+            ]
+            component['x-span'] = 20
+            component['y-span'] = 20
+        else:
+            self.log.error("No taxonomy for: {}".format(attr['taxonomy']))
 
         return component
+
+    def build_connection(self, a: dict, b: dict) -> dict:
+        pass

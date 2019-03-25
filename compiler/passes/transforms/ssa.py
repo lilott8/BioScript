@@ -52,13 +52,16 @@ class SSA(BSTransform):
                 self.dominator_tree[root][value].append(key)
 
     def insert_phi_functions(self, root: str):
+        """
+        This is the work-list algorithm described in
+        Algorithm 19.6 on page 407 of the 2nd edition
+        of the Appel book.
+        :param root: The function we are looking at.
+        :return: None.
+        """
         variables = self.program.symbol_table.scope_map[root]
         blocks = self.program.functions[root]['blocks']
 
-        """
-        This algorithm is derived from:
-        http://pages.cs.wisc.edu/~fischer/cs701.f08/lectures/Lecture23.4up.pdf
-        """
         for var_name in variables.get_locals():
             inserted_phi = set()
             # This works in reverse,
@@ -95,11 +98,26 @@ class SSA(BSTransform):
                             work_list.append(frontier)
 
     def rename_variables(self, root: str):
+        """
+        This is the initial set-up and invocation for the recursive
+        renaming function call.  It initializes the bookkeeping,
+        and then begins renaming variables.
+        :param root: The name of the function call to begin the renaming process.
+        :return: None
+        """
         for variable in self.program.symbol_table.scope_map[root].locals:
             self.bookkeeper[variable] = {'count': 0, 'stack': [0]}
         self.rename(self.program.functions[root]['blocks'][self.program.functions[root]['entry']], root)
 
     def rename(self, block: BasicBlock, root: str):
+        """
+        This follows the algorithm described in
+        Algorithm 19.7 on page 409 of the 2nd edition
+        of the Appel book.
+        :param block: The block we are renaming.
+        :param root: The function this block resides in.
+        :return: None.
+        """
         for instruction in block.instructions:
             if instruction.op is not IRInstruction.PHI:
                 for x in range(0, len(instruction.uses)):

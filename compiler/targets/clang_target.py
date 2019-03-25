@@ -27,4 +27,26 @@ class ClangTarget(BaseTarget):
             return name
 
     def transform(self):
+        self.log.info("In clang target")
         return False
+
+    def write_mix(self) -> str:
+        pass
+
+    def write_split(self) -> str:
+        pass
+
+    def write_detect(self) -> str:
+        pass
+
+    def write_dispose(self) -> str:
+        pass
+
+    def write_dispense(self) -> str:
+        pass
+
+    def write_expression(self) -> str:
+        pass
+
+    def write_branch(self) -> str:
+        pass

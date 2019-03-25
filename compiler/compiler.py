@@ -32,6 +32,7 @@ class BSCompiler(object):
         ir = self.translate(self.config.input)
         ir = self.optimizations(self.program)
         target = self.target(self.program)
+        self.log.critical("You aren't doing anything with the results of the compile function.")
 
     def translate(self, filename: str) -> Program:
         """

@@ -1,5 +1,4 @@
 module mod
-stationary stat
 manifest aaa
 manifest bbb
 manifest ccc

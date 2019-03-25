@@ -115,6 +115,11 @@ class Config(object):
                 self.supports_functions = True
                 self.supports_recursion = True
                 self.supports_nesting = True
+            else:
+                self.target = targets.Target.LLVM_IR
+                self.supports_functions = True
+                self.supports_recursion = True
+                self.supports_nesting = True
 
         if self.db['name'] and self.db['user'] and self.db['pass']:
             self.db_enabled = True
