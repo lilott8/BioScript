@@ -1,6 +1,5 @@
 import json
 import uuid
-from collections import deque
 
 from jsonschema import validate
 
@@ -20,27 +19,71 @@ class InkwellTarget(BaseTarget):
         output = {'name': self.program.name, 'layers': [{"id": str(uid), "name": "flow"}],
                   'components': [], 'connections': []}
 
-        self.inputs = dict()
-        self.component = dict()
+        inputs = dict()
+        outputs = dict()
+        # Mapping of components already
+        # added to the parchmint file.
+        components = dict()
 
-        for i in self.program.globals:
-            self.log.info(i)
-            component = self.api.get_component({'taxonomy': 'input', 'name': i, 'uuid': uuid})
-            self.inputs[i] = component
-            output['components'].append(component)
+        # for i in self.program.globals:
+        #     component = self.api.get_component({'taxonomy': 'input', 'name': i, 'uuid': uuid})
+        #     inputs[i] = component
+        #     components[i] = component
+        #     output['components'].append(component)
 
-        queue = deque()
-        queue.append(self.program.functions['main']['entry'])
-        while queue:
-            block = queue.popleft()
-            self.log.info("Exploring block: " + str(block))
+        for root in self.program.functions:
+            for bid, block in self.program.functions[root]['blocks'].items():
+                for node, attr in list(block.dag.nodes(data=True)):
+                    if 'op' in attr:
+                        var = self.program.symbol_table.get_local(node, root)
+                        if var.is_global:
+                            components[var.name] = self.api.get_component(
+                                {'taxonomy': 'input', 'uuid': uid, 'name': '{}_{}'.format(attr['op'], var.name)})
+                            output['components'].append(components[var.name])
+                        self.log.info(node)
+                        self.log.info(var)
+                        pass
+                break
+        #             """
+        #             We have 2 cases:
+        #             1) We have an operation (component)
+        #                 that needs to be added to the device.
+        #             2) We have to build the connection
+        #                 between two components.
+        #             """
+        #             if op is not None:
+        #                 if var not in components:
+        #                     components[var] = self.api.get_component(
+        #                         {'taxonomy': op, 'uuid': uid, 'name': '{}_{}'.format(var, op)})
+        #                     output['components'].append(components[var])
+        #             else:
+        #                 self.log.info("{}: in: {}\t out: {}".format(var, block.dag.in_edges(var), block.dag.out_edges(var)))
+        #                 sinks = {b for a, b in block.dag.out_edges(var)}
+        #                 sinks.discard(var)
+        #                 sources = {a for a, b in block.dag.in_edges(var)}
+        #                 sources.discard(var)
+        #                 output['connections'].append({
+        #                     'id': '',
+        #                     'layer': str(uid),
+        #                     'name': '{}_{}'.format(1, 2),
+        #                     'sinks': [
+        #                         {
+        #                             'component': '',
+        #                             'port': ''
+        #                          }
+        #                     ],
+        #                     'source':
+        #                         {
+        #                             'component': '',
+        #                             'port': ''
+        #                         }
+        #                 }
+        #                 )
+        #                 # self.log.info("{}, {}".format(var, op))
+        #                 # self.log.info('build the connection')
+        # # self.log.info(json.dumps(output))
 
-            for node, edge in self.program.bb_graph.out_edges(block):
-                queue.append(edge)
-            # for instruction in self.program.functions['main']['blocks'][block].instructions:
-            # self.log.debug(instruction.write(self))
-
-        verify = True
+        verify = False
         if verify:
             with open('resources/parchmint_schema.json') as f:
                 schema = json.load(f)
@@ -49,7 +92,7 @@ class InkwellTarget(BaseTarget):
 
         return False
 
-    def write_mix(self, ir) -> str:
+    def write_mix(self) -> str:
         return "oh, you know!"
 
     def write_dispense(self) -> str:

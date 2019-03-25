@@ -3,6 +3,7 @@ import networkx as nx
 
 from compiler.data_structures.program import Program
 from compiler.passes.analyses.call_graph import CallGraph
+from compiler.passes.analyses.def_use import DefUseChains
 from compiler.passes.transforms.split_edges import SplitEdges
 from compiler.passes.transforms.ssa import SSA
 
@@ -27,9 +28,8 @@ class PassManager(object):
             ssa = SSA()
             self.program = ssa.transform(self.program)
             self.program.ssa_form = True
-
-            self.log.info(self.program.symbol_table)
-            self.log.info(self.program.functions['main']['blocks'])
+            # self.log.info(self.program.symbol_table)
+            # self.log.info(self.program.functions['main']['blocks'])
 
     def run_transformations(self):
         # TODO: This should be handled through decorator.
@@ -44,6 +44,7 @@ class PassManager(object):
 
     def init_analysis(self):
         self.analysis['call_graph'] = CallGraph()
+        self.analysis['def-use'] = DefUseChains()
         self.dependencies['analysis'].add_node('call_graph')
 
     def init_transforms(self):
