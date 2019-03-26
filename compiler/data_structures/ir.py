@@ -163,12 +163,12 @@ class BinaryOp(Expression):
 
 
 class Call(Expression):
-    def __init__(self, func: Function):
+    def __init__(self, func: Function, arguments: list):
         super().__init__(IRInstruction.CALL)
         self.function = func
         self.args = self.function.args
         self.name = self.function.name
-        self.uses = func.args
+        self.uses = arguments
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -232,10 +232,10 @@ class Split(Statement):
 
 
 class Detect(Statement):
-    def __init__(self, module: Temp, out: Temp):
+    def __init__(self, out: Temp, module: Temp, one: Temp):
         super().__init__(IRInstruction.DETECT, out)
         self.module = module
-        self.uses.append(module)
+        self.uses.append(one)
 
     def write(self, target: 'BaseTarget') -> str:
         pass

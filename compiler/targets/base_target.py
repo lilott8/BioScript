@@ -58,7 +58,6 @@ class BaseTarget(metaclass=abc.ABCMeta):
                         use = next(iter(instruction.uses))
                         if use not in leafs:
                             graph.add_node(use.name, type="variable")
-                            # graph.add_node(use.name, iid=-1, op=ir.IRInstruction.NOP)
                             leafs.add(use.name)
                             leaf = use.name
                         else:
@@ -80,7 +79,6 @@ class BaseTarget(metaclass=abc.ABCMeta):
                             leaf = use.name
                             if leaf not in leafs:
                                 graph.add_node(leaf, type="variable")
-                                # graph.add_node(leaf, iid=-1, op=ir.IRInstruction.NOP)
                                 leafs.add(leaf)
                             graph.add_edge(leaf, var_def)
                 # self.write_graph(graph)
