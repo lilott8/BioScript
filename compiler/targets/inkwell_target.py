@@ -13,84 +13,91 @@ class InkwellTarget(BaseTarget):
     def __init__(self, program: Program):
         super().__init__(program, "InkwellTarget")
         self.api = NaiveAPI()
+        self.inputs = dict()
+        self.components = dict()
+        self.connections = dict()
 
     def transform(self, verify: bool = False):
         uid = uuid.uuid5(uuid.NAMESPACE_OID, self.program.name)
         output = {'name': self.program.name, 'layers': [{"id": str(uid), "name": "flow"}],
                   'components': [], 'connections': []}
 
-        inputs = dict()
-        outputs = dict()
-        # Mapping of components already
-        # added to the parchmint file.
-        components = dict()
-
-        # for i in self.program.globals:
-        #     component = self.api.get_component({'taxonomy': 'input', 'name': i, 'uuid': uuid})
-        #     inputs[i] = component
-        #     components[i] = component
-        #     output['components'].append(component)
-
         for root in self.program.functions:
             for bid, block in self.program.functions[root]['blocks'].items():
                 for node, attr in list(block.dag.nodes(data=True)):
                     if 'op' in attr:
                         var = self.program.symbol_table.get_local(node, root)
-                        if var.is_global:
-                            components[var.name] = self.api.get_component(
-                                {'taxonomy': 'input', 'uuid': uid, 'name': '{}_{}'.format(attr['op'], var.name)})
-                            output['components'].append(components[var.name])
-                        self.log.info(node)
-                        self.log.info(var)
-                        pass
-                break
-        #             """
-        #             We have 2 cases:
-        #             1) We have an operation (component)
-        #                 that needs to be added to the device.
-        #             2) We have to build the connection
-        #                 between two components.
-        #             """
-        #             if op is not None:
-        #                 if var not in components:
-        #                     components[var] = self.api.get_component(
-        #                         {'taxonomy': op, 'uuid': uid, 'name': '{}_{}'.format(var, op)})
-        #                     output['components'].append(components[var])
-        #             else:
-        #                 self.log.info("{}: in: {}\t out: {}".format(var, block.dag.in_edges(var), block.dag.out_edges(var)))
-        #                 sinks = {b for a, b in block.dag.out_edges(var)}
-        #                 sinks.discard(var)
-        #                 sources = {a for a, b in block.dag.in_edges(var)}
-        #                 sources.discard(var)
-        #                 output['connections'].append({
-        #                     'id': '',
-        #                     'layer': str(uid),
-        #                     'name': '{}_{}'.format(1, 2),
-        #                     'sinks': [
-        #                         {
-        #                             'component': '',
-        #                             'port': ''
-        #                          }
-        #                     ],
-        #                     'source':
-        #                         {
-        #                             'component': '',
-        #                             'port': ''
-        #                         }
-        #                 }
-        #                 )
-        #                 # self.log.info("{}, {}".format(var, op))
-        #                 # self.log.info('build the connection')
-        # # self.log.info(json.dumps(output))
+                        component_name = '{}_{}'.format(attr['op'], var.name)
+                        if component_name not in self.components:
+                            # build the component
+                            component = self.build_component(var, uid, op=attr['op'])
+                            output['components'].append(component)
+                        else:
+                            component = self.components[component_name]
 
-        verify = False
+                        graph = dict(block.dag.nodes('op'))
+                        for source, destination in block.dag.out_edges(node):
+                            op = graph[destination]
+                            if op:
+                                dest_var = self.program.symbol_table.get_local(destination, root)
+                                dest_component_name = '{}_{}'.format(op, dest_var.name)
+                                if dest_component_name not in component:
+                                    dest_component = self.build_component(dest_var, uid, op)
+                                    output['components'].append(dest_component)
+                                else:
+                                    dest_component = self.components[dest_component_name]
+                                # It shouldn't matter how you try to reference a connection.
+                                connection_a = '{}|{}'.format(component_name, dest_component_name)
+                                connection_b = '{}|{}'.format(dest_component_name, component_name)
+                                # Build the connection.
+                                connection = self.build_connection(component, dest_component, connection_a, uid)
+                                output['connections'].append(connection)
+        verify = True
         if verify:
+            self.log.info(json.dumps(output))
             with open('resources/parchmint_schema.json') as f:
                 schema = json.load(f)
             validate(instance=output, schema=schema)
             self.log.debug("JSON validation successful")
 
         return False
+
+    def build_component(self, var, layer: uuid, op: str = 'mix'):
+        name = '{}_{}'.format(op, var.name)
+        if var.is_global:
+            out = self.api.get_component({'taxonomy': 'input', 'uuid': layer, 'name': name})
+            self.inputs[var.name] = out
+        else:
+            out = self.api.get_component({'taxonomy': op, 'uuid': layer, 'name': name})
+        self.components[name] = out
+        self.connections[name] = set(n['label'] for n in out['ports'])
+        return out
+
+    def build_connection(self, source: dict, destination: dict, name: str, layer: uuid) -> dict:
+        if name.lower() == 'mix_g0|detect_x0':
+            x = 1
+        connection = dict()
+        connection['id'] = str(uuid.uuid5(uuid.NAMESPACE_OID, '{}|{}'.format(source['name'], destination['name'])))
+        connection['layer'] = str(layer)
+        connection['name'] = name
+        connection['sinks'] = list()
+        self.log.critical("Ports are hard coded as index 0.")
+        label = None
+        for p in source['ports']:
+            if 'output' in p['label'] and p['label'] in self.connections[source['name']]:
+                label = p['label']
+                self.connections[source['name']].remove(label)
+                break
+        connection['source'] = {'component': source['id'], 'port': label}
+        label = None
+        for p in destination['ports']:
+            if 'input' in p['label'] and p['label'] in self.connections[destination['name']]:
+                label = p['label']
+                self.connections[destination['name']].remove(label)
+                break
+        connection['sinks'].append({'component': destination['id'], 'port': label})
+
+        return connection
 
     def write_mix(self) -> str:
         return "oh, you know!"
