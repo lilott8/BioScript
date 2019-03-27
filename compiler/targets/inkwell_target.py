@@ -63,6 +63,7 @@ class InkwellTarget(BaseTarget):
             for bid, block in self.program.functions[root]['blocks'].items():
                 queue = deque()
                 seen = set()
+                connections = set()
                 # This gets all the nodes with no incoming edges
                 # These are the source nodes of a graph.
                 # This is an initialization step.
@@ -91,7 +92,7 @@ class InkwellTarget(BaseTarget):
                     # by now, which means we don't have to create.
                     for ancestor in block.dag.in_edges(var.name):
                         incoming = self.program.symbol_table.get_variable(ancestor[0], root)
-                        source_op = graph[incoming.name]
+                        # source_op = graph[incoming.name]
                         if incoming.name not in self.components:
                             source = self.build_component(incoming, uid, op=graph[incoming.name])
                             output['components'].append(source)
@@ -99,14 +100,18 @@ class InkwellTarget(BaseTarget):
                         else:
                             source = self.components[incoming.name]
                         connection_name = "{}_{}".format(incoming.name, var.name)
-                        output['connections'].append(self.build_connection(source, destination, connection_name, uid))
+                        if connection_name not in connections:
+                            output['connections'].append(
+                                self.build_connection(source, destination, connection_name, uid))
+                            connections.add(connection_name)
 
                     # Gather all the edges that leave this node and
                     # Add them to the queue if we haven't seen them.
                     for out in block.dag.out_edges(var.name):
                         if out not in seen:
-                            seen.add(out[1])
-                            queue.append(out[1])
+                            queue.appendleft(out[1])
+                    # We've now seen this
+                    seen.add(current)
             self.verify_json(output, True)
 
     def verify_json(self, output: dict, verify: bool = False):
@@ -129,8 +134,6 @@ class InkwellTarget(BaseTarget):
         return out
 
     def build_connection(self, source: dict, destination: dict, name: str, layer: uuid) -> dict:
-        if name.lower() == 'mix_g0|detect_x0':
-            x = 1
         connection = dict()
         connection['id'] = str(uuid.uuid5(uuid.NAMESPACE_OID, '{}|{}'.format(source['name'], destination['name'])))
         connection['layer'] = str(layer)
