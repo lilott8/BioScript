@@ -35,7 +35,7 @@ class NaiveAPI(ComponentAPI):
             component["name"] = attr['name']
             component["ports"] = [
                 {
-                    "label": "",
+                    "label": "output",
                     "layer": str(attr['uuid']),
                     "x": 10,
                     "y": 20
