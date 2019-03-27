@@ -120,7 +120,11 @@ class IRVisitor(BSBaseVisitor):
         return None
 
     def visitReturnStatement(self, ctx: BSParser.ReturnStatementContext):
-        return Return(self.allocation_map[ctx.IDENTIFIER().__str__()], None)
+        if ctx.IDENTIFIER().__str__() in self.allocation_map:
+            ret_val = self.allocation_map[ctx.IDENTIFIER().__str__()]
+        else:
+            ret_val = Constant(float(ctx.IDENTIFIER().__str__()))
+        return Return(ret_val)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
         # Build the conditional for this statement.
