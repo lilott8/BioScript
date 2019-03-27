@@ -75,10 +75,14 @@ class ClangTarget(BaseTarget):
         #TODO: this will have to change as we add more functions and more blocks to it 
         #currently only one block
 
-        self.compiled += 'int main(int argc, char const **argv) {\n'
 
         for root in self.program.functions:
             
+            if root == 'main':
+                self.compiled += 'int main(int argc, char const **argv) {\n'
+            else:
+
+                pass 
             #self.compiled += 'mat {}()'
             #go through each function
             #print('ROOT', root)
@@ -112,9 +116,9 @@ class ClangTarget(BaseTarget):
                     #    self.compiled += '  mat {} = dis' 
                     #elif instr.name == 'STORE':
                     #    self.compiled += 
-                    
+            self.compiled += '}\n'
 
-        self.compiled += '}\n'
+
         with open('stuff.cpp', 'w') as file:
             file.write(self.compiled)
         return False
