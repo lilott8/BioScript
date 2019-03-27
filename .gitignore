@@ -8,6 +8,10 @@ Makefile
 
 # C extensions
 *.so
+*.c
+*.cpp
+*.o
+*.out
 
 # Distribution / packaging
 .Python

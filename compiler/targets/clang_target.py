@@ -28,6 +28,9 @@ class ClangTarget(BaseTarget):
             return name
 
     def transform(self):
+
+        #a list of strings that represents all the function code
+        self.function_code = []
         self.compiled = \
         '#include <unistd.h>\n' \
         '#include <vector>\n\n' \
@@ -72,20 +75,18 @@ class ClangTarget(BaseTarget):
                 self.compiled += '{} {};\n'.format('mat', name)
             elif ChemTypes.MODULE in v.types:
                 self.compiled += '{} {};\n'.format('module', name)
-        #TODO: this will have to change as we add more functions and more blocks to it 
-        #currently only one block
 
-
-        for root in self.program.functions:
+        #add functions
+        for root, zzzz in self.program.functions.items():
             
             if root == 'main':
                 self.compiled += 'int main(int argc, char const **argv) {\n'
             else:
-
-                pass 
-            #self.compiled += 'mat {}()'
+                ret = 'mat'
+                args = '' 
+                self.compiled += '{} {}({});'.format(ret, root, args) 
+            
             #go through each function
-            #print('ROOT', root)
             for bid, block in self.program.functions[root]['blocks'].items():
 
                 #used the 'instructions' from the block directly.
@@ -111,7 +112,7 @@ class ClangTarget(BaseTarget):
                         self.compiled += '  mat {} = heat({}, {}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size, instr.uses[0].size) 
                     elif instr.name == 'DISPENSE':
                         self.compiled += '  mat {} = dispense({}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size) 
-                    #(Daniel) There is NO dispose or store instruction. 
+                    #(Daniel) There is NO dispose or store instruction yet...
                     #elif instr.name == 'DISPOSE ':
                     #    self.compiled += '  mat {} = dis' 
                     #elif instr.name == 'STORE':
@@ -119,8 +120,12 @@ class ClangTarget(BaseTarget):
             self.compiled += '}\n'
 
 
+        for fn in self.function_code:
+            self.compiled += fn 
+
         with open('stuff.cpp', 'w') as file:
             file.write(self.compiled)
+        
         return False
 
     def write_mix(self) -> str:

@@ -4,15 +4,12 @@ manifest bbb
 
 functions:
 
-function foo() {
-    a = bar()
-    return 1
-}
-
-function bar() {
-    return 2
+function a() {
+  return 1
 }
 
 instructions:
 
-c = foo()
+var = a()
+
+
