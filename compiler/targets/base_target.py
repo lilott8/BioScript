@@ -63,13 +63,14 @@ class BaseTarget(metaclass=abc.ABCMeta):
                         else:
                             leaf = use.name
                         # Do the same thing, except for the l-value.
-                        if instruction.defs.name not in tags:
-                            graph.add_node(leaf, iid=instruction.iid, op=instruction.op.name, type="register")
-                            var_def = instruction.defs.name
-                            tags[instruction.defs.name] = var_def
-                        else:
-                            var_def = instruction.defs.name
-                        graph.add_edge(leaf, var_def)
+                        if instruction.defs:
+                            if instruction.defs.name not in tags:
+                                graph.add_node(leaf, iid=instruction.iid, op=instruction.op.name, type="register")
+                                var_def = instruction.defs.name
+                                tags[instruction.defs.name] = var_def
+                            else:
+                                var_def = instruction.defs.name
+                            graph.add_edge(leaf, var_def)
                     else:
                         # Case x = y op z (mix, split)
                         var_def = instruction.defs.name
@@ -81,7 +82,7 @@ class BaseTarget(metaclass=abc.ABCMeta):
                                 graph.add_node(leaf, type="variable")
                                 leafs.add(leaf)
                             graph.add_edge(leaf, var_def)
-                # self.write_graph(graph)
+                self.write_graph(graph)
                 self.program.functions[root]['blocks'][nid].dag = graph
                 self.dags[root][nid] = graph
         pass

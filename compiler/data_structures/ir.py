@@ -283,7 +283,9 @@ class Dispose(Statement):
 class Store(Statement):
     def __init__(self, out: Temp, value: Expression):
         super().__init__(IRInstruction.STORE, out)
-        self.uses.append(value)
+        if value.op == IRInstruction.CALL:
+            self.uses.extend(value.uses)
+        self.defs = out
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -371,6 +373,8 @@ class Return(Control):
         super().__init__(IRInstruction.RETURN)
         self.return_value = return_value
         self.return_to = return_value
+        self.uses = [return_value]
+        self.defs = None
 
     def write(self, target: 'BaseTarget') -> str:
         pass

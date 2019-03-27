@@ -176,10 +176,10 @@ class SymbolTableVisitor(BSBaseVisitor):
         :return: Set of ChemType Enums.
         """
         method_name = ctx.IDENTIFIER().__str__()
-        if not self.config.supports_nesting and self.symbol_table.current_scope.name != "main":
-            raise UnsupportedOperation("%s architecture does not support nested functions" % self.config.target.name)
-        if not self.config.supports_recursion and self.symbol_table.current_scope.name == method_name:
-            raise UnsupportedOperation("%s architecture does not support recursion" % self.config.target.name)
+        # if not self.config.supports_nesting and self.symbol_table.current_scope.name != "main":
+        #     raise UnsupportedOperation("%s architecture does not support nested functions" % self.config.target.name)
+        # if not self.config.supports_recursion and self.symbol_table.current_scope.name == method_name:
+        #     raise UnsupportedOperation("%s architecture does not support recursion" % self.config.target.name)
         if method_name not in self.symbol_table.functions:
             self.log.fatal("Function {} is not defined.".format(method_name))
         return {'types': self.symbol_table.functions[method_name].types, 'size': 1,
