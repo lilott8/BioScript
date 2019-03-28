@@ -80,7 +80,7 @@ class InkwellTarget(BaseTarget):
 
     def transform(self, verify: bool = False):
         uid = uuid.uuid5(uuid.NAMESPACE_OID, self.program.name)
-        output = {'name': self.program.name, 'layers': [{"id": str(uid), "name": "flow"}],
+        output = {'name': self.program.name.replace('/', '_'), 'layers': [{"id": str(uid), "name": "flow"}],
                   'components': [], 'connections': []}
 
         for root in self.program.functions:
