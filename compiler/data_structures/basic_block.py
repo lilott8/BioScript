@@ -36,7 +36,8 @@ class BasicBlock(object):
     def add(self, instruction: ir.IR):
         # All statements have def/uses.
         if hasattr(instruction, 'defs'):
-            self.defs.add(instruction.defs.name)
+            if instruction.defs is not None:
+                self.defs.add(instruction.defs.name)
         if hasattr(instruction, 'uses'):
             for use in instruction.uses:
                 self.uses.add(use.name)

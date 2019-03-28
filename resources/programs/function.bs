@@ -1,13 +1,20 @@
 module mod
 manifest aaa
 manifest bbb
-
 functions:
 
-function foo() {
-    return 1
+function foo(a, b) {
+    a = dispense aaa
+    b = dispense bbb
+    c = mix a with b
+    return 10 
+}
+
+function bar() {
+    a = dispense aaa
+    b = dispense bbb
+    return 2 
 }
 
 instructions:
-
-a = foo()
+c = bar()

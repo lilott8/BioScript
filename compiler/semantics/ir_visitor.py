@@ -103,10 +103,11 @@ class IRVisitor(BSBaseVisitor):
         self.symbol_table.current_scope = self.symbol_table.scope_map[name]
 
         self.current_block = BasicBlock()
-        self.functions[name] = {"blocks": None, "entry": self.current_block.nid}
+        self.functions[name] = {"blocks": dict(), "entry": self.current_block.nid}
         label = Label("{}_entry".format(name))
         self.current_block.label = label
         self.current_block.add(label)
+        self.graph.add_node(self.current_block.nid)
 
         for statement in ctx.statements():
             self.visitStatements(statement)
@@ -120,11 +121,14 @@ class IRVisitor(BSBaseVisitor):
         return None
 
     def visitReturnStatement(self, ctx: BSParser.ReturnStatementContext):
-        if ctx.IDENTIFIER().__str__() in self.allocation_map:
-            ret_val = self.allocation_map[ctx.IDENTIFIER().__str__()]
-        else:
-            ret_val = Constant(float(ctx.IDENTIFIER().__str__()))
-        return Return(ret_val)
+        if ctx.IDENTIFIER():
+            value = ctx.IDENTIFIER().__str__()
+        elif ctx.literal():
+            value = Number('Constant_{}'.format(self.visitLiteral(ctx.literal())),
+                           value=float(self.visitLiteral(ctx.literal())), is_constant=True)
+        elif ctx.methodCall():
+            value = self.visitMethodCall(ctx.methodCall())
+        return Return(value, None)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
         # Build the conditional for this statement.

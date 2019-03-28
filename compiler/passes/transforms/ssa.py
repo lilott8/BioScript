@@ -1,7 +1,8 @@
 import networkx as nx
 
 from compiler.data_structures.basic_block import BasicBlock
-from compiler.data_structures.ir import IRInstruction
+# from compiler.data_structures.ir import IRInstruction
+from compiler.data_structures.ir import *
 from compiler.data_structures.ir import Phi
 from compiler.data_structures.program import Program
 from compiler.data_structures.variable import RenamedVar
@@ -39,6 +40,8 @@ class SSA(BSTransform):
         :param root: Name of function to build for.
         :return: None
         """
+        if root == 'foo':
+            x = 2
         self.frontier[root] = nx.dominance_frontiers(self.program.bb_graph, self.program.functions[root]['entry'])
         self.idoms[root] = nx.immediate_dominators(self.program.bb_graph, self.program.functions[root]['entry'])
         self.dominator_tree[root] = dict()

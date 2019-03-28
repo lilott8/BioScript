@@ -80,8 +80,8 @@ class SymbolTable(object):
             #self.log.fatal("No global variable found: {}".format(name))
             return False
 
-    def is_global(self, var: Variable) -> bool:
-        return var.name in self.globals
+    def is_global(self, var: str) -> bool:
+        return var in self.globals
 
     def get_variable(self, variable: str, scope_name=False) -> Variable:
         # Check for scope.

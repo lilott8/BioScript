@@ -21,50 +21,38 @@ class InkwellTarget(BaseTarget):
 
     def build_dags(self):
         """
-        This is the classic Instruction Selection DAG algorithm.
+        This is a modified DAG construction algorithm.
+        The primary difference is that all vertices
+        have an output var and consume something.
         :return:
         """
         for root in self.program.functions:
             self.dags[root] = dict()
-            # Set of output variables seen in the DAG.
-            leafs = set()
             # This maps an output variable (key) to a node in the graph.
-            tags = dict()
+            tags = set()
             for nid, block in self.program.functions[root]['blocks'].items():
                 graph = nx.DiGraph()
                 # Op nodes are defined as {output var, op}
                 # Var nodes are defined as {var}
                 for instruction in block.instructions:
-                    # self.log.info(instruction)
-                    # Case x = op y (dispense, heat, dispose, store)
-                    if len(instruction.uses) == 1:
-                        # Look at the r-value.  This does
-                        # that without altering the set.
-                        use = next(iter(instruction.uses))
-                        # Do the same thing, except for the l-value.
+                    if instruction.defs:
                         if instruction.defs.name not in tags:
-                            var_def = instruction.defs.name
-                            graph.add_node(var_def, iid=instruction.iid, defs=var_def,
-                                           uses=use.name, op=instruction.op.name)
-                            tags[instruction.defs.name] = var_def
+                            tags.add(instruction.defs.name)
+                            uses = list()
+                            for use in instruction.uses:
+                                uses.append(use.name)
+                            graph.add_node(instruction.defs.name, iid=instruction.iid, op=instruction.op.name,
+                                           defs=instruction.defs.name, uses=uses)
+                        for uses in instruction.uses:
+                            if not self.program.symbol_table.is_global(uses.name):
+                                graph.add_edge(uses.name, instruction.defs.name)
                     else:
-                        # Case x = y op z (mix, split)
-                        var_def = instruction.defs.name
-                        uses = list()
-                        for use in instruction.uses:
-                            uses.append(use.name)
-                        graph.add_node(var_def, iid=instruction.iid, defs=var_def,
-                                       uses=json.dumps(uses), op=instruction.op.name)
-                        tags[var_def] = var_def
-                        for use in instruction.uses:
-                            leaf = use.name
-                            if leaf not in leafs:
-                                leafs.add(leaf)
-                            graph.add_edge(leaf, var_def)
+                        graph.add_node(instruction.iid, iid=instruction.iid,
+                                       op=instruction.op.name, defs=None, uses=instruction.uses[0])
+                        graph.add_edge(instruction.iid, instruction.uses[0])
                 self.write_graph(graph)
                 self.program.functions[root]['blocks'][nid].dag = graph
                 self.dags[root][nid] = graph
-        pass
 
     def transform(self, verify: bool = False):
         uid = uuid.uuid5(uuid.NAMESPACE_OID, self.program.name)

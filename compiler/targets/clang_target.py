@@ -1,5 +1,6 @@
 # from compiler.data_structures import Program
 from compiler.targets.base_target import BaseTarget
+from compiler.data_structures.variable import *
 from chemicals.chemtypes import ChemTypes
 
 class ClangTarget(BaseTarget):
@@ -67,7 +68,7 @@ class ClangTarget(BaseTarget):
         '  return input;\n' \
         '}\n\n' \
         'void drain(mat input) {\n\n' \
-        '}\n'
+        '}\n\n'
 
         #go through the globals and add module/manifest code.
         for name, v in self.program.globals.items():
@@ -75,17 +76,20 @@ class ClangTarget(BaseTarget):
                 self.compiled += '{} {};\n'.format('mat', name)
             elif ChemTypes.MODULE in v.types:
                 self.compiled += '{} {};\n'.format('module', name)
-
+        self.compiled += '\n'
         #add functions
         for root, zzzz in self.program.functions.items():
-            
+            code = '' 
             if root == 'main':
-                self.compiled += 'int main(int argc, char const **argv) {\n'
+                code += 'int main(int argc, char const **argv) {\n'
             else:
                 ret = 'mat'
-                args = '' 
-                self.compiled += '{} {}({});'.format(ret, root, args) 
-            
+                args = ''
+
+                print((self.program.functions['foo']['blocks']))
+
+                self.compiled += '{} {}({});\n\n'.format(ret, root, args) 
+                code += '{} {}({})'.format(ret, root, args) + '{\n' 
             #go through each function
             for bid, block in self.program.functions[root]['blocks'].items():
 
@@ -93,7 +97,7 @@ class ClangTarget(BaseTarget):
                 for instr in block.instructions:
                     #(Daniel) I don't know where to get volume... 
                     if instr.name == 'MIX':
-                        self.compiled += '  mat {} = mix({}, {}, {}, {}, {});\n'.format(
+                        code += '  mat {} = mix({}, {}, {}, {}, {});\n'.format(
                                             instr.defs.name, 
                                             instr.uses[0].name, 
                                             instr.uses[0].size, 
@@ -101,24 +105,38 @@ class ClangTarget(BaseTarget):
                                             instr.uses[1].size,
                                             1000)  
                     elif instr.name == 'SPLIT':
-                        self.compiled += '  mat {} = split({}, {});\n'.format(
+                        code += '  mat {} = split({}, {});\n'.format(
                                             instr.defs.name,
                                             instr.uses[0].name,
                                             instr.uses[0].size)
                     elif instr.name == 'DETECT':
-                        self.compiled += '  double {} = detect({}, {}, {});\n'.format(instr.defs.name, instr.module.name, 'g0', instr.module.size)
+                        code += '  double {} = detect({}, {}, {});\n'.format(instr.defs.name, instr.module.name, 'g0', instr.module.size)
                     elif instr.name == 'HEAT':
                         #(Daniel) I don't know what to fill in for temp or time...
-                        self.compiled += '  mat {} = heat({}, {}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size, instr.uses[0].size) 
+                        code += '  mat {} = heat({}, {}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size, instr.uses[0].size) 
                     elif instr.name == 'DISPENSE':
-                        self.compiled += '  mat {} = dispense({}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size) 
+                        code += '  mat {} = dispense({}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size) 
+                    elif instr.name == 'RETURN':
+
+                        if type(instr.return_value) == Chemical:
+                            code += '  return {};\n'.format(instr.return_value.name)
+                        elif type(instr.return_value) == RenamedVar:
+                            code += '  return {};\n'.format(instr.return_value.name)
+                        elif type(instr.return_value) == Number: 
+                            code += '  return {};\n'.format(instr.return_value.value)
+                   
+                    elif instr.name == 'STORE':
+                        print('STORE') 
+                    else:
+                        pass
                     #(Daniel) There is NO dispose or store instruction yet...
                     #elif instr.name == 'DISPOSE ':
                     #    self.compiled += '  mat {} = dis' 
                     #elif instr.name == 'STORE':
                     #    self.compiled += 
-            self.compiled += '}\n'
+            code += '}\n\n'
 
+            self.function_code.append(code)
 
         for fn in self.function_code:
             self.compiled += fn 

@@ -91,6 +91,21 @@ class NaiveAPI(ComponentAPI):
             ]
             component['x-span'] = 20
             component['y-span'] = 20
+        elif attr['taxonomy'].lower() == 'dispose':
+            component['entity'] = 'Output'
+            component['id'] = attr['name'] + "_id"
+            component['layers'] = [str(attr['uuid'])]
+            component['name'] = attr['name']
+            component['ports'] = [
+                {
+                    'label': 'input1',
+                    'layer': str(attr['uuid']),
+                    'x': 10,
+                    'y': 0
+                }
+            ]
+            component['x-span'] = 20
+            component['y-span'] = 20
         else:
             self.log.error("No taxonomy for: {}".format(attr['taxonomy']))
 
