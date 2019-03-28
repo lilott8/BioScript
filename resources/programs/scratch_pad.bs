@@ -10,9 +10,16 @@ instructions:
 
 a = dispense aaa
 b = dispense bbb
-c = dispense ccc
-d = dispense ddd
-e = mix a with b
-f = mix c with d
-g = mix e with f
-dispose g
+c = mix a with b
+d = detect mod on c
+dispose c
+
+f = dispense ccc
+g = dispense ddd
+h = mix f with g
+dispose h
+
+i = dispense aaa
+j = dispense ccc
+k = mix i with j
+dispose k
