@@ -67,6 +67,8 @@ class ClangTarget(BaseTarget):
         '  output.quantity = quantity;\n' \
         '  return input;\n' \
         '}\n\n' \
+        'void dispose(mat a) {\n\n'\
+        '}\n\n' \
         'void drain(mat input) {\n\n' \
         '}\n\n'
 
@@ -85,18 +87,18 @@ class ClangTarget(BaseTarget):
             else:
                 ret = 'mat'
                 args = ''
-
-                print((self.program.functions['foo']['blocks']))
-
+                #function header
                 self.compiled += '{} {}({});\n\n'.format(ret, root, args) 
+                #function body 
                 code += '{} {}({})'.format(ret, root, args) + '{\n' 
             #go through each function
             for bid, block in self.program.functions[root]['blocks'].items():
 
                 #used the 'instructions' from the block directly.
                 for instr in block.instructions:
-                    #(Daniel) I don't know where to get volume... 
-                    if instr.name == 'MIX':
+                    if instr.name == 'DISPOSE':
+                        code += '  dispose({});\n'.format(instr.uses[0].name)
+                    elif instr.name == 'MIX':
                         code += '  mat {} = mix({}, {}, {}, {}, {});\n'.format(
                                             instr.defs.name, 
                                             instr.uses[0].name, 
@@ -110,7 +112,7 @@ class ClangTarget(BaseTarget):
                                             instr.uses[0].name,
                                             instr.uses[0].size)
                     elif instr.name == 'DETECT':
-                        code += '  double {} = detect({}, {}, {});\n'.format(instr.defs.name, instr.module.name, 'g0', instr.module.size)
+                        code += '  double {} = detect({}, {}, {});\n'.format(instr.defs.name, instr.module.name, instr.uses[0].name, instr.module.size)
                     elif instr.name == 'HEAT':
                         #(Daniel) I don't know what to fill in for temp or time...
                         code += '  mat {} = heat({}, {}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size, instr.uses[0].size) 
@@ -126,14 +128,7 @@ class ClangTarget(BaseTarget):
                             code += '  return {};\n'.format(instr.return_value.value)
                    
                     elif instr.name == 'STORE':
-                        print('STORE') 
-                    else:
                         pass
-                    #(Daniel) There is NO dispose or store instruction yet...
-                    #elif instr.name == 'DISPOSE ':
-                    #    self.compiled += '  mat {} = dis' 
-                    #elif instr.name == 'STORE':
-                    #    self.compiled += 
             code += '}\n\n'
 
             self.function_code.append(code)
