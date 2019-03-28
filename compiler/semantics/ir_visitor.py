@@ -423,7 +423,6 @@ class IRVisitor(BSBaseVisitor):
             ir = Store(var, Call(details['func'], details['args']))
         elif details['op'] == IRInstruction.DETECT:
             ir = Detect(var, details['module'], details['reagents'][0])
-            ir.uses.extend(details['reagents'])
         elif details['op'] in InstructionSet.BinaryOps:
             ir = BinaryOp(details['exp1'], details['exp2'], details['op'])
         else:

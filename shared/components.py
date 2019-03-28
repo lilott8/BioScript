@@ -106,6 +106,53 @@ class NaiveAPI(ComponentAPI):
             ]
             component['x-span'] = 20
             component['y-span'] = 20
+        elif attr['taxonomy'].lower() == 'split':
+            component['entity'] = 'Split'
+            component['id'] = attr['name'] + "_id"
+            component['layers'] = [str(attr['uuid'])]
+            component['name'] = attr['name']
+            component['x-span'] = 20
+            component['y-span'] = 20
+            ports = list()
+            component['ports'] = [
+                {
+                    "label": 'input1',
+                    'layer': str(attr['uuid']),
+                    'x': 10,
+                    'y': 0
+                }
+            ]
+            for x in range(0, attr['splits']):
+                component['ports'].append(
+                    {
+                        'label': 'output{}'.format(x + 1),
+                        'layer': str(attr['uuid']),
+                        'x': component['x-span'] / (x + 1),
+                        'y': 20
+                    }
+                )
+
+        elif attr['taxonomy'].lower() == 'heat':
+            component['entity'] = 'Heater'
+            component['id'] = attr['name'] + "_id"
+            component['layers'] = [str(attr['uuid'])]
+            component['name'] = attr['name']
+            component['ports'] = [
+                {
+                    'label': 'input1',
+                    'layer': str(attr['uuid']),
+                    'x': 10,
+                    'y': 0
+                },
+                {
+                    'label': 'output',
+                    'layer': str(attr['uuid']),
+                    'x': 10,
+                    'y': 20
+                }
+            ]
+            component['x-span'] = 20
+            component['y-span'] = 20
         else:
             self.log.error("No taxonomy for: {}".format(attr['taxonomy']))
 
