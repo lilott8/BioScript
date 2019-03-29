@@ -55,7 +55,6 @@ class ClangTarget(BaseTarget):
 
 
     def transform(self):
-
         #a list of strings that represents all the function code
         self.function_code = []
         self.compiled = \
@@ -112,11 +111,7 @@ class ClangTarget(BaseTarget):
                 code += 'int main(int argc, char const **argv) {\n'
             else:
                 function_data = self.program.symbol_table.functions[root]
-                print(type(function_data.types))
-                print(type(function_data.args))
-
                 ret = ClangTarget.get_type_string(function_data.types)
-                
                 args = ''
 
                 for arg in function_data.args:
@@ -168,7 +163,12 @@ class ClangTarget(BaseTarget):
                             code += '  return {};\n'.format(instr.return_value.value)
                    
                     elif instr.name == 'STORE':
+                        ##TODO: c = bar(), where bar() is a function turns into a store instruction????
+                        ##shouldn't it be a call instruction???? 
+                        pass 
+                    else:
                         pass
+
             code += '}\n\n'
 
             self.function_code.append(code)

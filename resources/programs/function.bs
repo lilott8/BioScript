@@ -4,7 +4,7 @@ manifest bbb
 manifest ccc
 functions:
 
-function foo(a, b) {
+function foo() {
     a = dispense aaa
     b = dispense bbb
     c = mix a with b
@@ -12,10 +12,9 @@ function foo(a, b) {
 }
 
 function bar() {
-    a = dispense aaa
-    b = dispense bbb 
     return 2 
 }
 
 instructions:
-c = bar()
+l = foo()
+m = bar()
