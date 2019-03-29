@@ -28,6 +28,32 @@ class ClangTarget(BaseTarget):
         else:
             return name
 
+    @staticmethod
+    def get_type_string(types : ChemTypes):
+        '''
+        Go through all the types in the set of return types,
+        and determine the C++ equivalent of those types
+        ''' 
+
+        for t in types:
+            if t == ChemTypes.REAL:
+                assert(len(types)==1)
+                return 'double'
+            elif t == ChemTypes.NAT:
+                assert(len(types)==1)
+                return 'int'
+            elif t == ChemTypes.BOOL:
+                assert(len(types)==1)
+                return 'bool'
+            elif t == ChemTypes.CONST:
+                #don't know what to do here
+                assert(False)
+            elif t == ChemTypes.NULL or t == ChemTypes.UNKNOWN:
+                assert(False)
+            else:
+                return 'mat'
+
+
     def transform(self):
 
         #a list of strings that represents all the function code
@@ -80,19 +106,33 @@ class ClangTarget(BaseTarget):
                 self.compiled += '{} {};\n'.format('module', name)
         self.compiled += '\n'
         #add functions
-        for root, zzzz in self.program.functions.items():
+        for root, function in self.program.functions.items():
             code = '' 
             if root == 'main':
                 code += 'int main(int argc, char const **argv) {\n'
             else:
-                ret = 'mat'
+                function_data = self.program.symbol_table.functions[root]
+                print(type(function_data.types))
+                print(type(function_data.args))
+
+                ret = ClangTarget.get_type_string(function_data.types)
+                
                 args = ''
+
+                for arg in function_data.args:
+                    val = ClangTarget.get_type_string(arg.types)
+                    if args:
+                        args += ', {} {}'.format(val, arg.name)
+                    else:
+                        args = '{} {}'.format(val, arg.name)
+
+
                 #function header
                 self.compiled += '{} {}({});\n\n'.format(ret, root, args) 
                 #function body 
                 code += '{} {}({})'.format(ret, root, args) + '{\n' 
             #go through each function
-            for bid, block in self.program.functions[root]['blocks'].items():
+            for bid, block in function['blocks'].items():
 
                 #used the 'instructions' from the block directly.
                 for instr in block.instructions:
