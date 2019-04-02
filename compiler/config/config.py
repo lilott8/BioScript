@@ -22,6 +22,7 @@ class Config(object):
         self.abstract_interaction = '/resources/abstract-interaction.txt'
         self.input = None
         self.input_file = None
+        self.output = None
 
         """
         Chemical Stuff
@@ -59,6 +60,7 @@ class Config(object):
         """
         # self.log.warning(args)
         self.debug = args.debug
+        self.output = args.output
         self.path = os.path.dirname(sys.modules['__main__'].__file__)
         if args.epa_defs:
             self.epa_defs = args.epa_defs

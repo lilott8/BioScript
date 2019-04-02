@@ -3,15 +3,15 @@ import sys
 
 import colorlog
 
-from compiler.compiler import BSCompiler
-from compiler.config.compiler_cli import CompilerCLI
+from flow_synth.config.flow_synth_cli import FlowSynthCLI
+from flow_synth.flow_synthesizer import FlowSynthesizer
 
 
 def main(args):
     # parse the args.
-    cli = CompilerCLI(args)
-    compiler = BSCompiler(cli.config)
-    compiler.compile()
+    cli = FlowSynthCLI(args)
+    synthesizer = FlowSynthesizer(cli.config)
+    synthesizer.synthesize()
 
 
 if __name__ == '__main__':
