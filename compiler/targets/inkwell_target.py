@@ -1,8 +1,10 @@
+import copy
 import json
 import uuid
 from collections import deque
 
 import networkx as nx
+from jsonschema import exceptions
 from jsonschema import validate
 
 from compiler.data_structures import Program
@@ -52,14 +54,9 @@ class InkwellTarget(BaseTarget):
                             var_uses[uses.name] = list()
                         instruction_uses[instruction.iid].add(uses.name)
                         var_uses[uses.name].append(instruction.iid)
-                        if uses.is_global:
-                            graph.add_node(uses.name, data={'defs': instruction.defs.name, 'uses': uses.name,
-                                                            'op': instruction.op.name})
-                            nodes.add(uses.name)
 
                     data = {'op': instruction.op.name, 'defs': instruction.defs.name,
                             'uses': instruction_uses[instruction.iid]}
-                    graph.add_node(instruction.iid, data=data)
                     graph.add_node(instruction.iid, data=data)
 
                     for use in instruction_uses[instruction.iid]:
@@ -71,8 +68,8 @@ class InkwellTarget(BaseTarget):
                             else:
                                 node = var_uses[use][-2]
                             graph.add_edge(node, instruction.iid)
-                        else:
-                            graph.add_edge(use, var_defs[instruction.defs.name])
+                        # else:
+                        #     graph.add_edge(use, var_defs[instruction.defs.name])
 
                 self.write_graph(graph)
                 self.program.functions[root]['blocks'][nid].dag = graph
@@ -80,7 +77,8 @@ class InkwellTarget(BaseTarget):
 
     def transform(self, verify: bool = False):
         uid = uuid.uuid5(uuid.NAMESPACE_OID, self.program.name)
-        output = {'name': self.program.name.replace('/', '_'), 'layers': [{"id": str(uid), "name": "flow"}],
+        output = {'name': self.program.name.replace('/', '_').replace('.', '_'),
+                  'layers': [{"id": str(uid), "name": "flow"}],
                   'components': [], 'connections': []}
 
         for root in self.program.functions:
@@ -88,6 +86,7 @@ class InkwellTarget(BaseTarget):
                 queue = deque()
                 seen = set()
                 connections = set()
+                globals = dict()
                 # This gets all the nodes with no incoming edges
                 # These are the source nodes of a graph.
                 # This is an initialization step.
@@ -103,14 +102,18 @@ class InkwellTarget(BaseTarget):
                     current = queue.pop()
                     var = self.program.symbol_table.get_variable(graph[current]['defs'], root)
 
-                    if not var.is_global:
-                        # destination_op = graph[var.name]
+                    # destination_op = graph[var.name]
+                    if var.name not in self.components:
+                        use = self.program.symbol_table.get_local(copy.deepcopy(graph[current]['uses']).pop(), root)
+                        if use.is_global:
+                            globals[var.name] = use
+                            var = use
                         if var.name not in self.components:
                             destination = self.build_component(var, uid, graph[current]['op'], splits=var.size)
                             output['components'].append(destination)
                             self.components[var.name] = destination
-                        else:
-                            destination = self.components[var.name]
+                    else:
+                        destination = self.components[var.name]
 
                     # All the edges that are coming into this
                     # node requires connections; build them.
@@ -122,6 +125,8 @@ class InkwellTarget(BaseTarget):
                         if self.program.symbol_table.is_global(ancestor[0]):
                             continue
                         # source_op = graph[incoming.name]
+                        if incoming.name in globals:
+                            incoming = globals[incoming.name]
                         if incoming.name not in self.components:
                             source = self.build_component(incoming, uid, op=graph[incoming.name], splits=incoming.size)
                             output['components'].append(source)
@@ -131,7 +136,7 @@ class InkwellTarget(BaseTarget):
                         connection_name = "{}_{}".format(incoming.name, var.name)
                         if connection_name not in connections:
                             output['connections'].append(
-                                self.build_connection(source, destination, connection_name, uid))
+                                self.build_connection(source, destination, connection_name, uid, incoming.is_global))
                             connections.add(connection_name)
 
                     # Gather all the edges that leave this node and
@@ -142,15 +147,31 @@ class InkwellTarget(BaseTarget):
                             queue.appendleft(out[1])
                     # We've now seen this
                     seen.add(current)
-            self.verify_json(output, True)
+            verified = self.verify_json(output, True)
+            if verified:
+                self.json_to_graph(output)
 
-    def verify_json(self, output: dict, verify: bool = False):
+    def json_to_graph(self, spec):
+        graph = nx.DiGraph()
+        for component in spec['components']:
+            graph.add_node(component['id'])
+        for connection in spec['connections']:
+            for sink in connection['sinks']:
+                graph.add_edge(connection['source']['component'], sink['component'])
+        self.write_graph(graph, "json.dag")
+
+    def verify_json(self, output: dict, verify: bool = False) -> bool:
         if verify:
-            self.log.info(json.dumps(output))
-            with open('resources/parchmint_schema.json') as f:
-                schema = json.load(f)
-            validate(instance=output, schema=schema)
-            self.log.debug("JSON validation successful")
+            try:
+                self.log.info(json.dumps(output))
+                with open('resources/parchmint_schema.json') as f:
+                    schema = json.load(f)
+                validate(instance=output, schema=schema)
+                self.log.debug("JSON validation successful")
+                return True
+            except exceptions.ValidationError as e:
+                self.log.warning(str(e))
+                return False
 
     def build_component(self, var, layer: uuid, op: str = 'mix', splits: int = 1):
         name = '{}_{}'.format(op, var.name)
@@ -159,11 +180,11 @@ class InkwellTarget(BaseTarget):
             self.inputs[var.name] = out
         else:
             out = self.api.get_component({'taxonomy': op, 'uuid': layer, 'name': name, 'splits': splits})
-        self.components[name] = out
         self.connections[name] = set(n['label'] for n in out['ports'])
         return out
 
-    def build_connection(self, source: dict, destination: dict, name: str, layer: uuid) -> dict:
+    def build_connection(self, source: dict, destination: dict, name: str, layer: uuid,
+                         source_global: bool = False) -> dict:
         connection = dict()
         connection['id'] = str(uuid.uuid5(uuid.NAMESPACE_OID, '{}|{}'.format(source['name'], destination['name'])))
         connection['layer'] = str(layer)
@@ -173,7 +194,8 @@ class InkwellTarget(BaseTarget):
         for p in source['ports']:
             if 'output' in p['label'] and p['label'] in self.connections[source['name']]:
                 label = p['label']
-                self.connections[source['name']].remove(label)
+                if not source_global:
+                    self.connections[source['name']].remove(label)
                 break
         connection['source'] = {'component': source['id'], 'port': label}
         label = None

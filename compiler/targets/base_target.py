@@ -87,10 +87,11 @@ class BaseTarget(metaclass=abc.ABCMeta):
                 self.dags[root][nid] = graph
         pass
 
-    def write_graph(self, graph):
+    def write_graph(self, graph, name="dag.dot"):
+        self.log.critical("Writing graph: " + name)
         pos = nx.nx_agraph.graphviz_layout(graph)
         nx.draw(graph, pos=pos)
-        nx.drawing.nx_pydot.write_dot(graph, 'dag.dot')
+        nx.drawing.nx_pydot.write_dot(graph, name)
 
     @staticmethod
     def get_safe_name(name: str) -> str:

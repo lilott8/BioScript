@@ -16,7 +16,7 @@ def main(args):
 
 if __name__ == '__main__':
     colorlog.basicConfig(level=logging.DEBUG,
-                         format='%(log_color)s%(levelname)s%(reset)s:\t[%(lineno)d %(name)s.%(funcName)s]\t %(message)s')
+                         format='%(log_color)s%(levelname)s:\t[%(name)s.%(funcName)s:%(lineno)d]\t %(message)s')
 
     # We don't need the first argument.
     main(sys.argv[1:])

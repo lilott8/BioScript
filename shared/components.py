@@ -29,22 +29,40 @@ class NaiveAPI(ComponentAPI):
     def get_component(self, attr: dict):
         component = dict()
         if attr['taxonomy'].lower() == 'input' or attr['taxonomy'].lower() == 'dispense':
-            component['entity'] = 'Input'
+            component['entity'] = 'IO-port'
             component['id'] = attr['name'] + "_id"
             component["layers"] = [str(attr['uuid'])]
             component["name"] = attr['name']
             component["ports"] = [
                 {
-                    "label": "output",
+                    "label": "output1",
                     "layer": str(attr['uuid']),
-                    "x": 10,
-                    "y": 20
+                    "x": 70,
+                    "y": 140
+                },
+                {
+                    "label": "output2",
+                    "layer": str(attr['uuid']),
+                    "x": 140,
+                    "y": 70
+                },
+                {
+                    "label": "output3",
+                    "layer": str(attr['uuid']),
+                    "x": 70,
+                    "y": 0
+                },
+                {
+                    "label": "output4",
+                    "layer": str(attr['uuid']),
+                    "x": 70,
+                    "y": 70
                 }
             ]
-            component["x-span"] = 20
-            component["y-span"] = 20
+            component["x-span"] = 140
+            component["y-span"] = 140
         elif attr['taxonomy'].lower() == 'mix':
-            component['entity'] = 'Mixer'
+            component['entity'] = 'serpentine-mixer'
             component['id'] = attr['name'] + "_id"
             component['layers'] = [str(attr['uuid'])]
             component['name'] = attr['name']
@@ -52,24 +70,24 @@ class NaiveAPI(ComponentAPI):
                 {
                     'label': 'input1',
                     'layer': str(attr['uuid']),
-                    'x': 5,
-                    'y': 0
+                    'x': 0,
+                    'y': 52
                 },
                 {
                     'label': 'input2',
                     'layer': str(attr['uuid']),
-                    'x': 15,
-                    'y': 0
+                    'x': 0,
+                    'y': 8
                 },
                 {
                     'label': 'output',
                     'layer': str(attr['uuid']),
-                    'x': 10,
-                    'y': 20
+                    'x': 150,
+                    'y': 30
                 }
             ]
-            component['x-span'] = 20
-            component['y-span'] = 20
+            component['x-span'] = 150
+            component['y-span'] = 60
         elif attr['taxonomy'].lower() == 'detect':
             component['entity'] = 'Detect'
             component['id'] = attr['name'] + "_id"
@@ -92,20 +110,38 @@ class NaiveAPI(ComponentAPI):
             component['x-span'] = 20
             component['y-span'] = 20
         elif attr['taxonomy'].lower() == 'dispose':
-            component['entity'] = 'Output'
+            component['entity'] = 'IO-port'
             component['id'] = attr['name'] + "_id"
             component['layers'] = [str(attr['uuid'])]
             component['name'] = attr['name']
-            component['ports'] = [
+            component["ports"] = [
                 {
-                    'label': 'input1',
-                    'layer': str(attr['uuid']),
-                    'x': 10,
-                    'y': 0
+                    "label": "input1",
+                    "layer": str(attr['uuid']),
+                    "x": 70,
+                    "y": 140
+                },
+                {
+                    "label": "input2",
+                    "layer": str(attr['uuid']),
+                    "x": 140,
+                    "y": 70
+                },
+                {
+                    "label": "input3",
+                    "layer": str(attr['uuid']),
+                    "x": 70,
+                    "y": 0
+                },
+                {
+                    "label": "input4",
+                    "layer": str(attr['uuid']),
+                    "x": 70,
+                    "y": 70
                 }
             ]
-            component['x-span'] = 20
-            component['y-span'] = 20
+            component["x-span"] = 140
+            component["y-span"] = 140
         elif attr['taxonomy'].lower() == 'split':
             component['entity'] = 'Split'
             component['id'] = attr['name'] + "_id"
