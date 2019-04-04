@@ -5,21 +5,10 @@ manifest ccc
 manifest ddd
 
 functions:
+function bar(a, b) {
+    c = a + b
+    return c
+}
 
 instructions:
-
-a = dispense aaa
-b = dispense bbb
-c = mix a with b
-d = detect mod on c
-dispose c
-
-f = dispense ccc
-g = dispense ddd
-h = mix f with g
-dispose h
-
-i = dispense aaa
-j = dispense ccc
-k = mix i with j
-dispose k
+m = bar(3, 1)

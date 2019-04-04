@@ -66,12 +66,13 @@ class BSCompiler(object):
         ir_visitor.visit(tree)
         # Always update the symbol table.
         self.program = Program(functions=ir_visitor.functions, roots=ir_visitor.roots, globals=ir_visitor.globals,
-                               symbol_table=ir_visitor.symbol_table, bb_graph=ir_visitor.graph, name=filename)
+                               symbol_table=ir_visitor.symbol_table, bb_graph=ir_visitor.graph, name=filename,
+                               calls=ir_visitor.calls)
 
         if self.config.write_cfg:
-            pos = nx.nx_agraph.graphviz_layout(ir_visitor.graph)
-            nx.draw(ir_visitor.graph, pos=pos)
-            nx.drawing.nx_pydot.write_dot(ir_visitor.graph, 'cfg.dot')
+            pos = nx.nx_agraph.graphviz_layout(self.program.bb_graph)
+            nx.draw(self.program.bb_graph, pos=pos)
+            nx.drawing.nx_pydot.write_dot(self.program.bb_graph, 'cfg.dot')
 
         return self.program
 

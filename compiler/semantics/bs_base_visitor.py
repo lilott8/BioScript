@@ -148,6 +148,10 @@ class BSBaseVisitor(BSParserVisitor):
                         exp1, exp2, exp1, variable.size))
                 output = "{}[{}]".format(exp1, exp2)
             else:
+                if not self.is_number(exp1):
+                    exp1 = self.symbol_table.get_local(exp1, self.scope_stack[-1])
+                if not self.is_number(exp2):
+                    exp2 = self.symbol_table.get_local(exp2, self.scope_stack[-1])
                 output = {"exp1": exp1, "exp2": exp2, "op": op}
 
             return output

@@ -38,6 +38,12 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_node(self.current_block.nid)
         # Does this rename vars?
         self.rename = False
+        self.calls = dict()
+
+    def add_call(self, source: str, dest: str):
+        if source not in self.calls:
+            self.calls[source] = set()
+        self.calls[source].add(dest)
 
     def get_register(self, var: Variable, register: str = "Temp"):
         if var.name not in self.allocation_map:
@@ -112,7 +118,8 @@ class IRVisitor(BSBaseVisitor):
         for statement in ctx.statements():
             self.visitStatements(statement)
 
-        self.current_block.add(self.visitReturnStatement(ctx.returnStatement()))
+        ret_statement = self.visitReturnStatement(ctx.returnStatement())
+        self.current_block.add(ret_statement)
         # self.basic_blocks[self.scope_stack[-1]][name][self.current_block.nid] = self.current_block
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
         # self.functions[name]['blocks'] = self.basic_blocks[self.scope_stack[-1][name]]
@@ -122,12 +129,15 @@ class IRVisitor(BSBaseVisitor):
 
     def visitReturnStatement(self, ctx: BSParser.ReturnStatementContext):
         if ctx.IDENTIFIER():
-            value = ctx.IDENTIFIER().__str__()
+            value = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
         elif ctx.literal():
             value = Number('Constant_{}'.format(self.visitLiteral(ctx.literal())),
-                           value=float(self.visitLiteral(ctx.literal())), is_constant=True)
+                           value=float(self.visitLiteral(ctx.literal())), is_constant=False)
         elif ctx.methodCall():
             value = self.visitMethodCall(ctx.methodCall())
+        else:
+            value = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+
         return Return(value, None)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
@@ -243,11 +253,13 @@ class IRVisitor(BSBaseVisitor):
         par_expression = self.visitParExpression(ctx.parExpression())
 
         if BSBaseVisitor.is_number(par_expression['exp1']):
-            exp1 = Constant(float(par_expression['exp1']))
+            exp1 = Number("Constant_{}".format(par_expression['exp1']), {ChemTypes.NAT, ChemTypes.REAL},
+                          self.scope_stack[-1], value=float(par_expression['exp1']), is_constant=True)
         else:
             exp1 = self.allocation_map[par_expression['exp1']]
         if BSBaseVisitor.is_number(par_expression['exp2']):
-            exp2 = Constant(float(par_expression['exp2']))
+            exp2 = Number("Constant_{}".format(par_expression['exp2']), {ChemTypes.NAT, ChemTypes.REAL},
+                          self.scope_stack[-1], value=float(par_expression['exp2']), is_constant=True)
         else:
             exp2 = self.allocation_map[par_expression['exp2']]
 
@@ -322,11 +334,13 @@ class IRVisitor(BSBaseVisitor):
         par_expression = self.visitParExpression(ctx.parExpression())
 
         if BSBaseVisitor.is_number(par_expression['exp1']):
-            exp1 = Constant(float(par_expression['exp1']))
+            exp1 = Number("Constant_{}".format(par_expression['exp1']), {ChemTypes.NAT, ChemTypes.REAL},
+                          self.scope_stack[-1], value=float(par_expression['exp1']))
         else:
             exp1 = self.allocation_map[par_expression['exp1']]
         if BSBaseVisitor.is_number(par_expression['exp2']):
-            exp2 = Constant(float(par_expression['exp2']))
+            exp2 = Number("Constant_{}".format(par_expression['exp2']), {ChemTypes.NAT, ChemTypes.REAL},
+                          self.scope_stack[-1], value=float(par_expression['exp2']))
         else:
             exp2 = self.allocation_map[par_expression['exp2']]
 
@@ -335,7 +349,7 @@ class IRVisitor(BSBaseVisitor):
         self.current_block.labdl = pre_condition_label
         self.current_block.add(pre_condition_label)
 
-        condition = Conditional(RelationalOps.GT, Temp(new_var), Constant(0))
+        condition = Conditional(RelationalOps.GT, new_var, Constant(0))
         self.current_block.add(condition)
 
         # Condition is added to self.current_block.
@@ -396,9 +410,21 @@ class IRVisitor(BSBaseVisitor):
     def visitParExpression(self, ctx: BSParser.ParExpressionContext):
         return self.visitExpression(ctx.expression())
 
+    def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
+        args = list()
+        for expr in ctx.expression():
+            arg = self.visitExpression(expr)
+            if self.is_number(arg):
+                args.append(Number("Constant_{}".format(arg), {ChemTypes.NAT, ChemTypes.REAL},
+                                   self.scope_stack[-1], value=float(arg), is_constant=True))
+            else:
+                args.append(self.symbol_table.get_local(arg, self.scope_stack[-1]))
+
+        return args
+
     def visitMethodCall(self, ctx: BSParser.MethodCallContext):
         name = ctx.IDENTIFIER().__str__()
-        return {"args": self.symbol_table.functions[name].args, "func": self.symbol_table.functions[name],
+        return {"args": self.visitExpressionList(ctx.expressionList()), "func": self.symbol_table.functions[name],
                 "op": IRInstruction.CALL}
 
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
@@ -421,6 +447,7 @@ class IRVisitor(BSBaseVisitor):
             ir = Dispense(var, details['reagents'][0])
         elif details['op'] == IRInstruction.CALL:
             ir = Store(var, Call(details['func'], details['args']))
+            self.add_call(self.scope_stack[-1], details['func'].name)
         elif details['op'] == IRInstruction.DETECT:
             ir = Detect(var, details['module'], details['reagents'][0])
         elif details['op'] in InstructionSet.BinaryOps:
@@ -446,9 +473,6 @@ class IRVisitor(BSBaseVisitor):
         reagent2 = self.visitVolumeIdentifier(ctx.volumeIdentifier(1))['variable']
 
         reagents = [reagent1, reagent2]
-
-        # self.current_block.add_uses(reagent1)
-        # self.current_block.add_uses(reagent2)
 
         return {"reagents": reagents, "execute_for": time, "op": IRInstruction.MIX}
 

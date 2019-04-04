@@ -9,7 +9,7 @@ class Program(object):
 
     def __init__(self, functions: dict = dict, roots: dict = dict, entry_point: int = 1,
                  symbol_table: SymbolTable = None, bb_graph=None, name: str = "program",
-                 ssa_form: bool = False, analysis: dict = dict(), globals: dict = dict()):
+                 ssa_form: bool = False, analysis: dict = dict(), globals: dict = dict(), calls: dict = dict()):
         # A dict: id->basic block
         self.functions = functions
         # Set of basic block ids that are roots
@@ -28,3 +28,8 @@ class Program(object):
         self.analysis = analysis
         # Keep track of the globals
         self.globals = globals
+        # keep the call graph.
+        self.calls = calls
+        # for source, destinations in calls.items():
+        #     for destination in destinations:
+        #         self.bb_graph.add_edge(self.functions[source]['entry'], self.functions[destination]['entry'])

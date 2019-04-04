@@ -18,6 +18,7 @@ class Variable(object):
         if self.types is None:
             self.types = set()
             self.types.add(ChemTypes.UNKNOWN)
+        self.is_chemical = False
 
     def __repr__(self):
         output = "\t["
@@ -53,6 +54,7 @@ class Chemical(Variable):
         self.stationary = stationary
         self.volume = volume
         self.unit = units
+        self.is_chemical = True
 
     def __repr__(self):
         output = "Chemical: "

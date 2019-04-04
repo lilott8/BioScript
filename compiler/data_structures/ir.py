@@ -154,6 +154,8 @@ class BinaryOp(Expression):
         self.left = left
         self.right = right
         self.op = op
+        self.uses = [left, right]
+        self.defs = None
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -374,7 +376,7 @@ class Return(Control):
         self.return_value = return_value
         self.return_to = return_value
         self.uses = [return_value]
-        self.defs = None
+        self.defs = return_value
 
     def write(self, target: 'BaseTarget') -> str:
         pass

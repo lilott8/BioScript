@@ -66,7 +66,7 @@ class MethodVisitor(BSBaseVisitor):
         else:
             types.add(ChemTypes.UNKNOWN)
 
-        name = self.get_renamed_var(ctx.IDENTIFIER().__str__())
+        name = self.rename_var(ctx.IDENTIFIER().__str__())
         variable = Variable(name, types, self.symbol_table.current_scope.name)
         self.symbol_table.add_local(variable)
         return variable
