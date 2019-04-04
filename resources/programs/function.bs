@@ -4,10 +4,11 @@ manifest bbb
 
 functions:
 
-function foo() {
-    return 1
+function foo(a, b) {
+    c = a + b
+    return c 
 }
 
 instructions:
 
-a = foo()
+a = foo(1, 3)
