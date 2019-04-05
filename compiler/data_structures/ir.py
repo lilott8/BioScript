@@ -165,16 +165,22 @@ class BinaryOp(Expression):
 
 
 class Call(Expression):
-    def __init__(self, func: Function, arguments: list):
+    def __init__(self, out: Temp, func: Function, arguments: list):
         super().__init__(IRInstruction.CALL)
         self.function = func
         self.args = self.function.args
         self.name = self.function.name
         self.uses = arguments
+        self.defs = out
 
     def write(self, target: 'BaseTarget') -> str:
         pass
 
+    def __str__(self):
+        return "{} = {}({})".format(self.defs.name, self.function.name, self.uses)
+
+    def __repr__(self):
+        return self.__str__()
 
 class Name(Expression):
     def __init__(self, name: str):

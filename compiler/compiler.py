@@ -30,8 +30,8 @@ class BSCompiler(object):
 
     def compile(self):
         ir = self.translate(self.config.input)
-        ir = self.optimizations(self.program)
-        target = self.target(self.program)
+        prog = self.optimizations(self.program)
+        target = self.target(ir)
         self.log.critical("You aren't doing anything with the results of the compile function.")
 
     def translate(self, filename: str) -> Program:
@@ -65,7 +65,7 @@ class BSCompiler(object):
         ir_visitor = IRVisitor(symbol_visitor.symbol_table)
         ir_visitor.visit(tree)
         # Always update the symbol table.
-        self.program = Program(functions=ir_visitor.functions, roots=ir_visitor.roots, globals=ir_visitor.globals,
+        self.program = Program(functions=ir_visitor.functions, globalz=ir_visitor.globalz,
                                symbol_table=ir_visitor.symbol_table, bb_graph=ir_visitor.graph, name=filename,
                                calls=ir_visitor.calls)
 
@@ -87,7 +87,7 @@ class BSCompiler(object):
         passes.run_analysis()
         passes.run_transformations()
         # return passes
-        return program
+        return passes.program
 
     def target(self, program: Program):
         """

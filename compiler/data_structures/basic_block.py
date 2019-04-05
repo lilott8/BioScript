@@ -32,7 +32,23 @@ class BasicBlock(object):
         return self.instructions[0]
 
     def get_jump(self):
-        return self.instructions[-1]
+        jumps = list()
+        for jump in self.jumps:
+            if jump.op == ir.IRInstruction.JUMP:
+                jumps.append(jump)
+        return jumps
+
+    def get_returns(self):
+        for jump in self.jumps:
+            if jump.op == ir.IRInstruction.RETURN:
+                return jump
+        return None
+
+    def get_call(self):
+        for jump in self.jumps:
+            if jump.op == ir.IRInstruction.CALL:
+                return jump
+        return None
 
     def add(self, instruction: ir.IR):
         # All statements have def/uses.
@@ -47,7 +63,9 @@ class BasicBlock(object):
             if self.label:
                 self.log.warning("Trying to add a label to an already labeled block.")
             self.label = instruction
-        elif instruction.op == ir.IRInstruction.JUMP:
+        elif instruction.op == ir.IRInstruction.JUMP or \
+                instruction.op == ir.IRInstruction.RETURN or \
+                instruction.op == ir.IRInstruction.CALL:
             self.jumps.append(instruction)
         elif instruction.op == ir.IRInstruction.CONDITIONAL:
             self.instructions.append(instruction)

@@ -5,12 +5,12 @@ import colorlog
 from compiler.data_structures.program import Program
 
 
-class BSAnalysis(metaclass=ABCMeta):
+class Analyzer(metaclass=ABCMeta):
 
-    def __init__(self, pass_name: str):
+    def __init__(self, name: str):
         self.log = colorlog.getLogger(self.__class__.__name__)
-        self.name = pass_name
+        self.name = name
 
     @abstractmethod
-    def analyze(self, program: Program) -> dict:
+    def analyze(self, program: Program):
         pass
