@@ -15,8 +15,8 @@ from shared.components import NaiveAPI
 
 class InkwellTarget(BaseTarget):
 
-    def __init__(self, program: Program):
-        super().__init__(program, "InkwellTarget")
+    def __init__(self, program: Program, inline=False):
+        super().__init__(program, "InkwellTarget", inline)
         self.api = NaiveAPI()
         self.inputs = dict()
         self.components = dict()

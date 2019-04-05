@@ -4,8 +4,8 @@ from compiler.targets.base_target import BaseTarget
 
 class ClangTarget(BaseTarget):
 
-    def __init__(self, program: 'Program'):
-        super().__init__(program, "ClangTarget")
+    def __init__(self, program: 'Program', inline=False):
+        super().__init__(program, "ClangTarget", inline)
         # This *should* be moved into the LLVM target...
         self.keywords = ("alignas", "alignof", "and", "and_eq", "asm", "atomic_cancel", "atomic_commit",
                          "atomic_noexcept", "auto", "bitand", "bitor", "bool", "break", "case", "catch", "char",
