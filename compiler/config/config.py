@@ -47,7 +47,7 @@ class Config(object):
         self.supports_recursion = False
         self.supports_nesting = False
         self.write_cfg = args.write_cfg
-
+        self.inline = False
         """
         Necessary for identify
         """
@@ -69,6 +69,7 @@ class Config(object):
         self.input = args.input
         # Converts: /path/to/bioscript.bs => bioscript
         self.input_file = args.input.split("/")[-1].split(".")[0]
+        self.inline = args.inline
         # self.log.info(self.input_file)
         self.db['name'] = args.dbname
         self.db['user'] = args.dbuser
