@@ -453,15 +453,6 @@ class IRVisitor(BSBaseVisitor):
             ir = Dispense(var, details['reagents'][0])
         elif details['op'] == IRInstruction.CALL:
             ir = Call(var, details['func'], details['args'])
-            # self.graph.add_edge(self.current_block.nid, self.functions[details['func'].name]['entry'])
-            self.bb_calls[self.scope_stack[-1]].append((self.current_block.nid, details['func'].name))
-            self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
-            next_block = BasicBlock()
-            next_block.add(Label("{}_return".format(details['func'].name)))
-            self.graph.add_node(next_block.nid, function=self.scope_stack[-1])
-            self.graph.add_edge(self.current_block.nid, next_block.nid)
-            self.current_block = next_block
-            self.add_call(self.scope_stack[-1], details['func'].name)
         elif details['op'] == IRInstruction.DETECT:
             ir = Detect(var, details['module'], details['reagents'][0])
         elif details['op'] in InstructionSet.BinaryOps:
@@ -470,6 +461,21 @@ class IRVisitor(BSBaseVisitor):
             ir = NOP()
 
         self.current_block.add(ir)
+        if ir.op == IRInstruction.CALL:
+            # Make the call.
+            self.bb_calls[self.scope_stack[-1]].append((self.current_block.nid, ir.function.name))
+            # Save the block.
+            self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+            # We need to initialize a new block.
+            next_block = BasicBlock()
+            next_block.add(Label("{}_return".format(ir.function.name)))
+            self.graph.add_node(next_block.nid, function=self.scope_stack[-1])
+            self.graph.add_edge(self.current_block.nid, next_block.nid)
+            # Point to the new block.
+            self.current_block = next_block
+            # Add the call.
+            self.add_call(self.scope_stack[-1], ir.function.name)
+
         return ir
 
     def visitVariableDeclaration(self, ctx: BSParser.VariableDeclarationContext):

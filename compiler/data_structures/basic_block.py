@@ -67,6 +67,7 @@ class BasicBlock(object):
                 instruction.op == ir.IRInstruction.RETURN or \
                 instruction.op == ir.IRInstruction.CALL:
             self.jumps.append(instruction)
+            self.instructions.append(instruction)
         elif instruction.op == ir.IRInstruction.CONDITIONAL:
             self.instructions.append(instruction)
         else:
