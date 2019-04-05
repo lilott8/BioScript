@@ -4,9 +4,12 @@
 __pycache__/
 *.py[cod]
 *$py.class
-Makefile
 # C extensions
 *.so
+*.c
+*.cpp
+*.o
+*.out
 
 # Distribution / packaging
 .Python
@@ -26,6 +29,8 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+Makefile
+
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

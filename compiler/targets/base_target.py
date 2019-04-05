@@ -82,7 +82,7 @@ class BaseTarget(metaclass=abc.ABCMeta):
                                 graph.add_node(leaf, type="variable")
                                 leafs.add(leaf)
                             graph.add_edge(leaf, var_def)
-                self.write_graph(graph)
+                #self.write_graph(graph)
                 self.program.functions[root]['blocks'][nid].dag = graph
                 self.dags[root][nid] = graph
         pass
