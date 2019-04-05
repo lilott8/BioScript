@@ -42,15 +42,15 @@ class MethodVisitor(BSBaseVisitor):
         if ctx.formalParameters():
             args = self.visitFormalParameters(ctx.formalParameters())
 
-        return_var = self.visitReturnStatement(ctx.returnStatement())
-        bs_function = Function(name, types, args, return_var)
+        # return_var = self.visitReturnStatement(ctx.returnStatement())
+        bs_function = Function(name, types, args)
 
         self.symbol_table.add_function(bs_function)
         self.symbol_table.end_scope()
 
     def visitReturnStatement(self, ctx: BSParser.ReturnStatementContext):
         if ctx.IDENTIFIER():
-            value = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+            value = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.symbol_table.current_scope.name)
             value = value.name
         elif ctx.literal():
             value = Number('Constant_{}'.format(self.visitLiteral(ctx.literal())),
@@ -61,7 +61,7 @@ class MethodVisitor(BSBaseVisitor):
             call = self.visitMethodCall(ctx.methodCall())
             value = call + "_return"
         else:
-            value = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+            value = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.symbol_table.current_scope.name)
             value = value.name
         return value
 

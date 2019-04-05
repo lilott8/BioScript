@@ -21,6 +21,7 @@ class SymbolTable(object):
         self.scope_stack.append(self.current_scope)
         self.scope_map[self.current_scope.get_name()] = self.current_scope
         self.current_scope = Scope(name)
+        self.scope_map[self.current_scope.name] = self.current_scope
 
     def end_scope(self) -> None:
         # Save the current stack first.
