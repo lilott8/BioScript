@@ -1,6 +1,6 @@
 class Function(object):
 
-    def __init__(self, name: str, return_types, args, return_var, return_size: int = 1):
+    def __init__(self, name: str, return_types, args, return_var=None, return_size: int = 1):
         self.name = name
         self.types = return_types
         self.args = args
