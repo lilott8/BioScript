@@ -10,9 +10,7 @@ function foo(a, b) {
 }
 
 instructions:
-a = dispense aaa
-b = dispense bbb
-c = foo(aaa, bbb)
-
-
+x = dispense aaa
+z = dispense bbb
+c = foo(x, z)
 

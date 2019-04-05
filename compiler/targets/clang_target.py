@@ -1,7 +1,10 @@
 # from compiler.data_structures import Program
 from compiler.targets.base_target import BaseTarget
-from compiler.data_structures.variable import *
 from chemicals.chemtypes import ChemTypes
+from compiler.data_structures.variable import *
+from compiler.data_structures.ir import *
+
+
 
 class ClangTarget(BaseTarget):
 
@@ -50,9 +53,66 @@ class ClangTarget(BaseTarget):
             return 'mat'
 
 
+    @staticmethod
+    def construct_basic_block_code(instructions, inline=False):
+        code = ''
+        for instr in instructions:
+            if type(instr) == Dispose:
+                code += '  dispose({});\n'.format(instr.uses[0].name)
+            elif type(instr) == Mix:
+                code += '  mat {} = mix({}, {}, {}, {}, {});\n'.format(
+                                            instr.defs.name, 
+                                            instr.uses[0].name, 
+                                            instr.uses[0].size, 
+                                            instr.uses[1].name, 
+                                            instr.uses[1].size,
+                                            1000)  
+            elif type(instr) == Split:
+                        code += '  mat {} = split({}, {});\n'.format(
+                                            instr.defs.name,
+                                            instr.uses[0].name,
+                                            instr.uses[0].size)
+            elif type(instr) == Detect: 
+                        code += '  double {} = detect({}, {}, {});\n'.format(instr.defs.name, instr.module.name, instr.uses[0].name, instr.module.size)
+            elif type(instr) == Heat: 
+                #(Daniel) I don't know what to fill in for temp or time...
+                code += '  mat {} = heat({}, {}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size, instr.uses[0].size) 
+            elif type(instr) == Dispense:
+                        code += '  mat {} = dispense({}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size) 
+            elif type(instr) == Return:
+            
+                if type(instr.return_value) == Chemical:
+                    code += '  return {};\n'.format(instr.return_value.name)
+                elif type(instr.return_value) == RenamedVar:
+                    code += '  return {};\n'.format(instr.return_value.name)
+                elif type(instr.return_value) == Number: 
+                    code += '  return {};\n'.format(instr.return_value.value)
+            elif type(instr) == Store:
+                pass 
+            elif type(instr) == Call:
+                if inline == True:
+                    code += '  INLINED CODE:\n'
+                else:
+                    ret = ClangTarget.get_type_string(instr.function.types)
+                    args = ''
+                    for arg in instr.args:
+                        if args:
+                            args += ', '+arg.name
+                        else:
+                            args = arg.name
+
+                    code += '  {} {} = {}({});\n'.format(ret, instr.defs.name, instr.name, args)
+            elif type(instr) == BinaryOps:
+                pass
+            else:
+                pass
+        return code
+
+
+
     def transform(self):
         #TODO: fix when inlining is truly implemented
-        INLINE = True
+        INLINE = False 
 
         #a list of strings that represents all the function code
         self.function_code = []
@@ -103,82 +163,29 @@ class ClangTarget(BaseTarget):
             elif ChemTypes.MODULE in v.types:
                 self.compiled += '{} {};\n'.format('module', name)
         self.compiled += '\n'
-        #add functions
-        for root, function in self.program.functions.items():
-            code = '' 
-            if root == 'main':
-                code += 'int main(int argc, char const **argv) {\n'
-            else:
-                function_data = self.program.symbol_table.functions[root]
-                ret = ClangTarget.get_type_string(function_data.types)
-                args = ''
 
-                for arg in function_data.args:
-                    val = ClangTarget.get_type_string(arg.types)
-                    if args:
-                        args += ', {} {}'.format(val, arg.name)
-                    else:
-                        args = '{} {}'.format(val, arg.name)
+        if INLINE == True:
+            self.compiled += 'int main(int argc, char const **argv) {\n'
+            for block in self.program.functions['main']['blocks'].values():
+                self.compiled += ClangTarget.construct_basic_block_code(block.instructions, inline=INLINE)
+            self.compiled += '}\n\n'
+        else:
+            code_func = []
+            for func_name, function in self.program.functions.items():
+                print(function)
+                code = ''
+                for block in function['blocks'].values(): 
+                    code += ClangTarget.construct_basic_block_code(block.instructions, inline=INLINE)
+                code += '}\n\n'
+                code_func.append(code)
+                print(code)
+ 
+            for c in code_func:
+                self.compiled += c
 
 
-                #function header
-                self.compiled += '{} {}({});\n\n'.format(ret, root, args) 
-                #function body 
-                code += '{} {}({}) '.format(ret, root, args) + '{\n' 
-            #go through each function
-            for bid, block in function['blocks'].items():
-                #used the 'instructions' from the block directly.
-                for instr in block.instructions:
-                    print('INSTRUCTIONS:', instr.name)
-                    if instr.name == 'DISPOSE':
-                        code += '  dispose({});\n'.format(instr.uses[0].name)
-                    elif instr.name == 'MIX':
-                        code += '  mat {} = mix({}, {}, {}, {}, {});\n'.format(
-                                            instr.defs.name, 
-                                            instr.uses[0].name, 
-                                            instr.uses[0].size, 
-                                            instr.uses[1].name, 
-                                            instr.uses[1].size,
-                                            1000)  
-                    elif instr.name == 'SPLIT':
-                        code += '  mat {} = split({}, {});\n'.format(
-                                            instr.defs.name,
-                                            instr.uses[0].name,
-                                            instr.uses[0].size)
-                    elif instr.name == 'DETECT':
-                        code += '  double {} = detect({}, {}, {});\n'.format(instr.defs.name, instr.module.name, instr.uses[0].name, instr.module.size)
-                    elif instr.name == 'HEAT':
-                        #(Daniel) I don't know what to fill in for temp or time...
-                        code += '  mat {} = heat({}, {}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size, instr.uses[0].size) 
-                    elif instr.name == 'DISPENSE':
-                        code += '  mat {} = dispense({}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size) 
-                    elif instr.name == 'RETURN':
-
-                        if type(instr.return_value) == Chemical:
-                            code += '  return {};\n'.format(instr.return_value.name)
-                        elif type(instr.return_value) == RenamedVar:
-                            code += '  return {};\n'.format(instr.return_value.name)
-                        elif type(instr.return_value) == Number: 
-                            code += '  return {};\n'.format(instr.return_value.value)
-                   
-                    elif instr.name == 'STORE':
-                        pass 
-                    elif instr.name == 'CALL':
-                        pass
-                    #addition, subtraction, mult, div
-                    elif instr.name == 'BINARYOP':
-                        pass
-                    else:
-                        pass
-
-            code += '}\n\n'
-            self.function_code.append(code)
-
-        for fn in self.function_code:
-            self.compiled += fn 
-
-        with open('stuff.cpp', 'w') as file:
-            file.write(self.compiled)
+        '''with open('stuff.cpp', 'w') as file:
+            file.write(self.compiled)'''
         return False 
 
     def write_mix(self) -> str:
