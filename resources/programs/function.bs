@@ -3,16 +3,12 @@ manifest aaa
 manifest bbb
 manifest ccc
 
-
 functions:
 function foo(a, b) {
-    c = a + b
-    return c 
+  c = a + b
+  return c
 }
 
-
 instructions:
-c = foo(1, 3)
-
-
+c = foo(1, 2) 
 

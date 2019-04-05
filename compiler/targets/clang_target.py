@@ -34,7 +34,7 @@ class ClangTarget(BaseTarget):
         Go through all the types in the set of return types,
         and determine the C++ equivalent of those types
         ''' 
-
+        print(types)
         for t in types:
             if t == ChemTypes.REAL:
                 assert(len(types)==1)
@@ -49,7 +49,8 @@ class ClangTarget(BaseTarget):
                 #don't know what to do here
                 assert(False)
             elif t == ChemTypes.NULL or t == ChemTypes.UNKNOWN:
-                assert(False)
+                #TODO: I don't know what to do here....
+                return 'void *'
             else:
                 return 'mat'
 
@@ -96,9 +97,8 @@ class ClangTarget(BaseTarget):
         '}\n\n' \
         'void drain(mat input) {\n\n' \
         '}\n\n'
-
         #go through the globals and add module/manifest code.
-        for name, v in self.program.globals.items():
+        for name, v in self.program.symbol_table.globals.items():
             if ChemTypes.MAT in v.types:
                 self.compiled += '{} {};\n'.format('mat', name)
             elif ChemTypes.MODULE in v.types:
