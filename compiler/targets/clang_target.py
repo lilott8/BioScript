@@ -34,25 +34,20 @@ class ClangTarget(BaseTarget):
         Go through all the types in the set of return types,
         and determine the C++ equivalent of those types
         ''' 
-        print(types)
-        for t in types:
-            if t == ChemTypes.REAL:
-                assert(len(types)==1)
-                return 'double'
-            elif t == ChemTypes.NAT:
-                assert(len(types)==1)
-                return 'int'
-            elif t == ChemTypes.BOOL:
-                assert(len(types)==1)
-                return 'bool'
-            elif t == ChemTypes.CONST:
-                #don't know what to do here
-                assert(False)
-            elif t == ChemTypes.NULL or t == ChemTypes.UNKNOWN:
-                #TODO: I don't know what to do here....
-                return 'void *'
-            else:
-                return 'mat'
+        if ChemTypes.REAL in types:
+            return 'double'
+        elif ChemTypes.NAT in types:
+            return 'double'
+        elif ChemTypes.BOOL in types:
+            return 'bool'
+        elif ChemTypes.CONST in types:
+            #don't know what to do here
+            assert(False)
+        elif ChemTypes.NULL in types or ChemTypes.UNKNOWN in types:
+            #TODO: I don't know what to do here....
+            return 'void *'
+        else:
+            return 'mat'
 
 
     def transform(self):
@@ -97,6 +92,9 @@ class ClangTarget(BaseTarget):
         '}\n\n' \
         'void drain(mat input) {\n\n' \
         '}\n\n'
+
+        print(self.program)
+
         #go through the globals and add module/manifest code.
         for name, v in self.program.symbol_table.globals.items():
             if ChemTypes.MAT in v.types:
@@ -125,7 +123,7 @@ class ClangTarget(BaseTarget):
                 #function header
                 self.compiled += '{} {}({});\n\n'.format(ret, root, args) 
                 #function body 
-                code += '{} {}({})'.format(ret, root, args) + '{\n' 
+                code += '{} {}({}) '.format(ret, root, args) + '{\n' 
             #go through each function
             for bid, block in function['blocks'].items():
 
@@ -163,14 +161,15 @@ class ClangTarget(BaseTarget):
                             code += '  return {};\n'.format(instr.return_value.value)
                    
                     elif instr.name == 'STORE':
-                        ##TODO: c = bar(), where bar() is a function turns into a store instruction????
-                        ##shouldn't it be a call instruction???? 
                         pass 
+
+                    #addition, subtraction, mult, div
+                    elif instr.name == 'BINARYOP':
+                        print(instr)
                     else:
-                        pass
+                        print(instr.name)
 
             code += '}\n\n'
-
             self.function_code.append(code)
 
         for fn in self.function_code:
