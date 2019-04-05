@@ -461,6 +461,7 @@ class IRVisitor(BSBaseVisitor):
             self.graph.add_node(next_block.nid, function=self.scope_stack[-1])
             self.graph.add_edge(self.current_block.nid, next_block.nid)
             self.current_block = next_block
+            self.add_call(self.scope_stack[-1], details['func'].name)
         elif details['op'] == IRInstruction.DETECT:
             ir = Detect(var, details['module'], details['reagents'][0])
         elif details['op'] in InstructionSet.BinaryOps:
