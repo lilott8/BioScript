@@ -42,10 +42,28 @@ class MethodVisitor(BSBaseVisitor):
         if ctx.formalParameters():
             args = self.visitFormalParameters(ctx.formalParameters())
 
-        bs_function = Function(name, types, args)
-        self.symbol_table.add_function(bs_function)
+        return_var = self.visitReturnStatement(ctx.returnStatement())
+        bs_function = Function(name, types, args, return_var)
 
+        self.symbol_table.add_function(bs_function)
         self.symbol_table.end_scope()
+
+    def visitReturnStatement(self, ctx: BSParser.ReturnStatementContext):
+        if ctx.IDENTIFIER():
+            value = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+            value = value.name
+        elif ctx.literal():
+            value = Number('Constant_{}'.format(self.visitLiteral(ctx.literal())),
+                           value=float(self.visitLiteral(ctx.literal())), is_constant=False)
+            self.symbol_table.add_local(value)
+            value = value.name
+        elif ctx.methodCall():
+            call = self.visitMethodCall(ctx.methodCall())
+            value = call + "_return"
+        else:
+            value = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
+            value = value.name
+        return value
 
     def visitFormalParameters(self, ctx: BSParser.FormalParametersContext):
         if ctx.formalParameterList():
@@ -74,3 +92,6 @@ class MethodVisitor(BSBaseVisitor):
     def visitFunctionTyping(self, ctx: BSParser.FunctionTypingContext):
         # This is a pass-thru function.
         return self.visitUnionType(ctx.unionType())
+
+    def visitMethodCall(self, ctx: BSParser.MethodCallContext):
+        return ctx.IDENTIFIER().__str__()

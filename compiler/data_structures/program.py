@@ -7,13 +7,11 @@ class Program(object):
     stores various data about the program.
     """
 
-    def __init__(self, functions: dict = dict, roots: dict = dict, entry_point: int = 1,
+    def __init__(self, functions: dict = dict, entry_point: int = 1,
                  symbol_table: SymbolTable = None, bb_graph=None, name: str = "program",
-                 ssa_form: bool = False, analysis: dict = dict(), globals: dict = dict(), calls: dict = dict()):
+                 ssa_form: bool = False, analysis: dict = dict, globalz: dict = dict, calls: dict = dict):
         # A dict: id->basic block
         self.functions = functions
-        # Set of basic block ids that are roots
-        self.roots = roots
         # The main entry point for the program
         self.entry_point = entry_point
         # The symbol table for the program
@@ -27,7 +25,7 @@ class Program(object):
         # Storing different analysis here (liveness, call graph, etc)
         self.analysis = analysis
         # Keep track of the globals
-        self.globals = globals
+        self.globalz = globalz
         # keep the call graph.
         self.calls = calls
         # for source, destinations in calls.items():

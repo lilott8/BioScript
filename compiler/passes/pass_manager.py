@@ -40,7 +40,8 @@ class PassManager(object):
     def run_analysis(self):
         # TODO: This should be handled through decorator.
         for key, value in self.analysis.items():
-            self.program.analysis[key] = value.analyze(self.program)
+            # self.program.analysis[key] = value.analyze(self.program)['result']
+            pass
 
     def init_analysis(self):
         self.analysis['call_graph'] = CallGraph()

@@ -7,7 +7,7 @@ manifest ddd
 functions:
 function bar(a, b) {
     c = a + b
-    return c
+    return 1
 }
 
 instructions:

@@ -9,6 +9,7 @@ from jsonschema import validate
 
 from compiler.data_structures import Program
 from compiler.targets.base_target import BaseTarget
+from shared.bs_exceptions import UnsupportedOperation
 from shared.components import NaiveAPI
 
 
@@ -46,8 +47,11 @@ class InkwellTarget(BaseTarget):
                     instruction_defs[instruction.iid] = set()
                     instruction_uses[instruction.iid] = set()
 
-                    instruction_defs[instruction.iid].add(instruction.defs.name)
-                    var_defs[instruction.defs.name] = instruction.iid
+                    if instruction.defs:
+                        instruction_defs[instruction.iid].add(instruction.defs.name)
+                        var_defs[instruction.defs.name] = instruction.iid
+                    else:
+                        raise UnsupportedOperation("Inkwell target does not support arithmetic math.")
 
                     for uses in instruction.uses:
                         if uses.name not in var_uses:
@@ -64,7 +68,10 @@ class InkwellTarget(BaseTarget):
                             # graph.add_node(use)
                             if use not in used_defs:
                                 used_defs.add(use)
-                                node = var_defs[use]
+                                if use not in var_defs:
+                                    raise UnsupportedOperation("Inkwell target does not support arithmetic math.")
+                                else:
+                                    node = var_defs[use]
                             else:
                                 node = var_uses[use][-2]
                             graph.add_edge(node, instruction.iid)
@@ -102,9 +109,14 @@ class InkwellTarget(BaseTarget):
                     current = queue.pop()
                     var = self.program.symbol_table.get_variable(graph[current]['defs'], root)
 
+                    if not var:
+                        break
+
                     # destination_op = graph[var.name]
                     if var.name not in self.components:
                         use = self.program.symbol_table.get_local(copy.deepcopy(graph[current]['uses']).pop(), root)
+                        if not use:
+                            break
                         if use.is_global:
                             globals[var.name] = use
                             var = use
