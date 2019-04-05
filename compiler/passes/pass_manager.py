@@ -40,12 +40,11 @@ class PassManager(object):
     def run_analysis(self):
         # TODO: This should be handled through decorator.
         for key, value in self.analysis.items():
-            # self.program.analysis[key] = value.analyze(self.program)['result']
-            pass
+            self.program.analysis[key] = value.analyze(self.program)['result']
 
     def init_analysis(self):
         self.analysis['call_graph'] = CallGraph()
-        self.analysis['def-use'] = DefUseChains()
+        self.analysis['def_use'] = DefUseChains()
         self.dependencies['analysis'].add_node('call_graph')
 
     def init_transforms(self):

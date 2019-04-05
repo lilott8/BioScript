@@ -9,7 +9,7 @@ class Program(object):
 
     def __init__(self, functions: dict = dict, entry_point: int = 1,
                  symbol_table: SymbolTable = None, bb_graph=None, name: str = "program",
-                 ssa_form: bool = False, analysis: dict = dict, globalz: dict = dict, calls: dict = dict):
+                 ssa_form: bool = False, globalz: dict = dict, calls: dict = dict):
         # A dict: id->basic block
         self.functions = functions
         # The main entry point for the program
@@ -23,7 +23,7 @@ class Program(object):
         # Is this program in SSA form?
         self.ssa_form = ssa_form
         # Storing different analysis here (liveness, call graph, etc)
-        self.analysis = analysis
+        self.analysis = dict()
         # Keep track of the globals
         self.globalz = globalz
         # keep the call graph.

@@ -10,7 +10,7 @@ __pycache__/
 *.cpp
 *.o
 *.out
-
+*.swp
 # Distribution / packaging
 .Python
 build/
