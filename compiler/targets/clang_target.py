@@ -170,9 +170,13 @@ class ClangTarget(BaseTarget):
                 self.compiled += ClangTarget.construct_basic_block_code(block.instructions, inline=INLINE)
             self.compiled += '}\n\n'
         else:
+
+
+
             code_func = []
             for func_name, function in self.program.functions.items():
-                print(function)
+                func_info = self.program.symbol_table.functions[func_name]
+                ret = ClangTarget.get_type_string(func_info.types)
                 code = ''
                 for block in function['blocks'].values(): 
                     code += ClangTarget.construct_basic_block_code(block.instructions, inline=INLINE)
@@ -182,7 +186,6 @@ class ClangTarget(BaseTarget):
  
             for c in code_func:
                 self.compiled += c
-
 
         '''with open('stuff.cpp', 'w') as file:
             file.write(self.compiled)'''
