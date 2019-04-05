@@ -5,8 +5,8 @@ from chemicals.chemtypes import ChemTypes
 
 class ClangTarget(BaseTarget):
 
-    def __init__(self, program: 'Program'):
-        super().__init__(program, 'ClangTarget')
+    def __init__(self, program: 'Program', inline=False):
+        super().__init__(program, "ClangTarget", inline)
         # This *should* be moved into the LLVM target...
         self.keywords = ('alignas', 'alignof', 'and', 'and_eq', 'asm', 'atomic_cancel', 'atomic_commit',
                          'atomic_noexcept', 'auto', 'bitand', 'bitor', 'bool', 'break', 'case', 'catch', 'char',
@@ -51,6 +51,9 @@ class ClangTarget(BaseTarget):
 
 
     def transform(self):
+        #TODO: fix when inlining is truly implemented
+        INLINE = True
+
         #a list of strings that represents all the function code
         self.function_code = []
         self.compiled = \
@@ -93,8 +96,6 @@ class ClangTarget(BaseTarget):
         'void drain(mat input) {\n\n' \
         '}\n\n'
 
-        print(self.program)
-
         #go through the globals and add module/manifest code.
         for name, v in self.program.symbol_table.globals.items():
             if ChemTypes.MAT in v.types:
@@ -126,9 +127,9 @@ class ClangTarget(BaseTarget):
                 code += '{} {}({}) '.format(ret, root, args) + '{\n' 
             #go through each function
             for bid, block in function['blocks'].items():
-
                 #used the 'instructions' from the block directly.
                 for instr in block.instructions:
+                    print('INSTRUCTIONS:', instr.name)
                     if instr.name == 'DISPOSE':
                         code += '  dispose({});\n'.format(instr.uses[0].name)
                     elif instr.name == 'MIX':
@@ -162,12 +163,13 @@ class ClangTarget(BaseTarget):
                    
                     elif instr.name == 'STORE':
                         pass 
-
+                    elif instr.name == 'CALL':
+                        pass
                     #addition, subtraction, mult, div
                     elif instr.name == 'BINARYOP':
-                        print(instr)
+                        pass
                     else:
-                        print(instr.name)
+                        pass
 
             code += '}\n\n'
             self.function_code.append(code)
@@ -177,7 +179,7 @@ class ClangTarget(BaseTarget):
 
         with open('stuff.cpp', 'w') as file:
             file.write(self.compiled)
-        return False
+        return False 
 
     def write_mix(self) -> str:
         pass

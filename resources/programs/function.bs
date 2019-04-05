@@ -5,11 +5,14 @@ manifest ccc
 
 functions:
 function foo(a, b) {
-  c = a + b
-  d = c - a
+  c = mix a with b 
   return c
 }
 
 instructions:
-c = foo(1, 2) 
+a = dispense aaa
+b = dispense bbb
+c = foo(aaa, bbb)
+
+
 
