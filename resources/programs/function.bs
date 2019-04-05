@@ -4,11 +4,10 @@ manifest bbb
 manifest ccc
 
 functions:
-function foo(a, b) {
-  c = a + b
-  return c
+function foo() {
+  return 1
 }
 
 instructions:
-c = foo(1, 2) 
+c = foo() 
 
