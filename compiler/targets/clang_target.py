@@ -170,25 +170,27 @@ class ClangTarget(BaseTarget):
                 self.compiled += ClangTarget.construct_basic_block_code(block.instructions, inline=INLINE)
             self.compiled += '}\n\n'
         else:
-
-
-
             code_func = []
             for func_name, function in self.program.functions.items():
-                func_info = self.program.symbol_table.functions[func_name]
-                ret = ClangTarget.get_type_string(func_info.types)
                 code = ''
+                if func_name == 'main':
+                    code = 'int main(int argc, char const **argv) {\n' 
+                else:
+                    func_info = self.program.symbol_table.functions[func_name]
+                    ret = ClangTarget.get_type_string(func_info.types)
+                    args = ''
+                    self.compiled += '{} {}({});\n\n'.format(ret, func_name, args)
+                    code = '{} {}({}) '.format(ret, func_name, args) + '{\n'
                 for block in function['blocks'].values(): 
                     code += ClangTarget.construct_basic_block_code(block.instructions, inline=INLINE)
                 code += '}\n\n'
                 code_func.append(code)
-                print(code)
  
             for c in code_func:
                 self.compiled += c
 
-        '''with open('stuff.cpp', 'w') as file:
-            file.write(self.compiled)'''
+
+        print(self.compiled)
         return False 
 
     def write_mix(self) -> str:
