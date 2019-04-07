@@ -171,7 +171,7 @@ class ClangTarget(BaseTarget):
 
     def transform(self):
         #TODO: fix when inlining is truly implemented
-        INLINE = True 
+        INLINE = False 
 
         #a list of strings that represents all the function code
         self.function_code = []
