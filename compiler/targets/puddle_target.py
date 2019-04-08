@@ -13,7 +13,7 @@ class PuddleTarget(BaseTarget):
         code = ''
         for instr in instructions:
             if type(instr) == Dispose:
-                code += 'UNKNOWN:: dispose({});\n'.format(instr.uses[0].name)
+                code += '##UNKNOWN:: dispose({});\n'.format(instr.uses[0].name)
             elif type(instr) == Mix:
                 code += '{}{} = session.mix({}, {})\n'.format(tabs,
                                             instr.defs.name, 
@@ -25,11 +25,11 @@ class PuddleTarget(BaseTarget):
                                             instr.defs.name,
                                             instr.uses[0].name)
             elif type(instr) == Detect: 
-                        code += '{}UNKNOWN{} = detect({}, {}, {})\n'.format(tabs, instr.defs.name, instr.module.name, instr.uses[0].name, instr.module.size)
+                        code += '{}##UNKNOWN{} = detect({}, {}, {})\n'.format(tabs, instr.defs.name, instr.module.name, instr.uses[0].name, instr.module.size)
             elif type(instr) == Heat: 
                 code += '{}{} = session.heat({}, temp={}, seconds={})\n'.format(tabs, instr.defs.name, instr.uses[0].name, instr.uses[0].size, instr.uses[0].size) 
             elif type(instr) == Dispense:
-                        code += '{}UNKNOWN{} = dispense({}, {})\n'.format(tabs, instr.defs.name, instr.uses[0].name, instr.uses[0].size) 
+                        code += '{}##UNKNOWN{} = dispense({}, {})\n'.format(tabs, instr.defs.name, instr.uses[0].name, instr.uses[0].size) 
             elif type(instr) == Return:
             
                 if type(instr.return_value) == Chemical:
