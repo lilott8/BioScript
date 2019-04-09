@@ -4,12 +4,20 @@ manifest bbb
 
 functions:
 
-function a() {
-  return 1
+function abc(a, b) {
+  c = dispense aaa
+  d = defg(a, b)
+  return c 
+}
+
+function defg(a, b) {
+  c = dispense bbb
+  return a
 }
 
 instructions:
-
-var = a()
+a = dispense aaa
+b = dispense bbb
+var = abc(a, b)
 
 

@@ -91,12 +91,11 @@ class ClangTarget(BaseTarget):
                 pass 
             elif type(instr) == Call:
                 if inline == True:
-                    ret = ClangTarget.get_type_string(instr.function.types)
-                    code += self.inlined_code_block(instr.name, instr.defs.name)
+                    code += self.inlined_code_block(instr, instr.name, instr.defs.name)
                 else:
                     ret = ClangTarget.get_type_string(instr.function.types)
                     args = ''
-                    for arg in instr.args:
+                    for arg in instr.uses:
                         if args:
                             args += ', '+arg.name
                         else:
@@ -110,7 +109,7 @@ class ClangTarget(BaseTarget):
         return code
 
 
-    def inlined_code_block(self, func_name, ret):
+    def inlined_code_block(self, instr, func_name, ret):
         '''
         alpha conversion of variables based on func_name e.g.
         a function fibonacci with a variable named "a" will
@@ -119,9 +118,9 @@ class ClangTarget(BaseTarget):
         func_info = self.program.symbol_table.functions[func_name]
         code = '  {} {};\n'.format(ClangTarget.get_type_string(func_info.types), ret)
         code += '  {\n    //inlined code\n'
-        for arg in func_info.args:
+        for arg, uses in zip(func_info.args, instr.uses):
             var_type = ClangTarget.get_type_string(arg.types)
-            code += '    {} {}_{};//TODO: pass the parameters into the function\n'.format(var_type, func_name, arg.name)
+            code += '    {} {}_{} = {};\n'.format(var_type, func_name, arg.name, uses.name)
 
         for block in self.program.functions[func_name]['blocks'].values():
             for instr in block.instructions:
@@ -162,16 +161,18 @@ class ClangTarget(BaseTarget):
                     elif type(instr.return_value) == Number:
                         code += '    {} = {}_{};\n'.format(
                                              ret, func_name, instr.return_value.name) 
+                    else:
+                        code += '    {} = {}_{};\n'.format(ret, func_name, instr.return_value.name)
                 elif type(instr) == Call:
-                    #nested inlined functions currently not supported!!!
-                    assert(False)
+                    print('hey there!')
+                    code += self.inlined_code_block(instr, instr.name, instr.defs.name)
         code += '  }\n' 
         return code
 
 
     def transform(self):
         #TODO: fix when inlining is truly implemented
-        INLINE = False 
+        INLINE = True 
 
         #a list of strings that represents all the function code
         self.function_code = []
