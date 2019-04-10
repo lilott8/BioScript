@@ -1,0 +1,280 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "layers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      }
+    },
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "layer": {
+            "type": "string"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "component": {
+                "type": "string"
+              },
+              "port": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "component",
+              "port"
+            ]
+          },
+          "sinks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "component": {
+                  "type": "string"
+                },
+                "port": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "component",
+                "port"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "layer",
+          "name",
+          "sinks",
+          "source"
+        ]
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "layers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "x-span": {
+            "type": "integer"
+          },
+          "y-span": {
+            "type": "integer"
+          },
+          "entity": {
+            "type": "string"
+          },
+          "ports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "layer": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "integer"
+                },
+                "y": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "label",
+                "layer",
+                "x",
+                "y"
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "id",
+          "layers",
+          "x-span",
+          "y-span",
+          "entity",
+          "ports"
+        ]
+      }
+    },
+    "features": {
+      "definitions": {
+        "connection-feature": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "layer": {
+              "type": "string"
+            },
+            "source": {
+              "type": "object",
+              "properties": {
+                "y": {
+                  "type": "integer"
+                },
+                "x": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "x",
+                "y"
+              ]
+            },
+            "sink": {
+              "type": "object",
+              "properties": {
+                "y": {
+                  "type": "integer"
+                },
+                "x": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "x",
+                "y"
+              ]
+            },
+            "connection": {
+              "type": "string"
+            },
+            "width": {
+              "type": "integer"
+            },
+            "depth": {
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "layer",
+            "name",
+            "type",
+            "source",
+            "sink",
+            "connection"
+          ]
+        },
+        "component-feature": {
+          "type": "object",
+          "properties": {
+            "layer": {
+              "type": "string"
+            },
+            "x-span": {
+              "type": "integer"
+            },
+            "depth": {
+              "type": "integer"
+            },
+            "location": {
+              "type": "object",
+              "properties": {
+                "y": {
+                  "type": "integer"
+                },
+                "x": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "x",
+                "y"
+              ]
+            },
+            "y-span": {
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "layer",
+            "name",
+            "depth",
+            "y-span",
+            "location",
+            "x-span"
+          ]
+        }
+      },
+      "type": "array",
+      "items": {
+        "type": "object",
+        "oneOf": [
+          {
+            "$ref": "#/properties/features/definitions/connection-feature"
+          },
+          {
+            "$ref": "#/properties/features/definitions/component-feature"
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "name",
+    "layers"
+  ]
+}

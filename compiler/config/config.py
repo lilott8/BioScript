@@ -22,6 +22,7 @@ class Config(object):
         self.abstract_interaction = '/resources/abstract-interaction.txt'
         self.input = None
         self.input_file = None
+        self.output = None
 
         """
         Chemical Stuff
@@ -46,7 +47,7 @@ class Config(object):
         self.supports_recursion = False
         self.supports_nesting = False
         self.write_cfg = args.write_cfg
-
+        self.inline = False
         """
         Necessary for identify
         """
@@ -59,6 +60,7 @@ class Config(object):
         """
         # self.log.warning(args)
         self.debug = args.debug
+        self.output = args.output
         self.path = os.path.dirname(sys.modules['__main__'].__file__)
         if args.epa_defs:
             self.epa_defs = args.epa_defs
@@ -67,6 +69,7 @@ class Config(object):
         self.input = args.input
         # Converts: /path/to/bioscript.bs => bioscript
         self.input_file = args.input.split("/")[-1].split(".")[0]
+        self.inline = args.inline
         # self.log.info(self.input_file)
         self.db['name'] = args.dbname
         self.db['user'] = args.dbuser
@@ -112,6 +115,11 @@ class Config(object):
                 self.supports_functions = True
             elif args.target.lower() == "p" or args.target.lower() == "puddle":
                 self.target = targets.Target.PUDDLE
+                self.supports_functions = True
+                self.supports_recursion = True
+                self.supports_nesting = True
+            else:
+                self.target = targets.Target.LLVM_IR
                 self.supports_functions = True
                 self.supports_recursion = True
                 self.supports_nesting = True

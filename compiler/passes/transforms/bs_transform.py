@@ -12,5 +12,5 @@ class BSTransform(metaclass=ABCMeta):
         self.name = pass_name
 
     @abstractmethod
-    def transform(self, program: Program):
+    def transform(self, program: Program) -> Program:
         raise NotImplemented

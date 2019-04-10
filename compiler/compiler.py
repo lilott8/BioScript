@@ -2,7 +2,7 @@ import colorlog
 import networkx as nx
 from antlr4 import *
 
-from compiler.config.config import Config
+import compiler.config.config as config
 from compiler.data_structures.program import Program
 from compiler.data_structures.symbol_table import SymbolTable
 from compiler.passes.pass_manager import PassManager
@@ -18,18 +18,21 @@ from solvers.z3_solver import Z3Solver
 
 class BSCompiler(object):
 
-    def __init__(self, configuration: Config):
+    def __init__(self, configuration: config.Config):
         self.config = configuration
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.log.warning(self.config.input)
-        # The symbol is built is phases, hence it's globalness.
+        # The symbol is built is phases,
+        # And used in many place, hence it's globalness.
         self.symbol_table = None
+        # This is the representation of an input program.
         self.program = None
 
     def compile(self):
         ir = self.translate(self.config.input)
-        ir = self.optimizations(self.program)
-        target = self.target(self.program)
+        prog = self.optimizations(self.program)
+        target = self.target(ir)
+        self.log.critical("You aren't doing anything with the results of the compile function.")
 
     def translate(self, filename: str) -> Program:
         """
@@ -62,13 +65,14 @@ class BSCompiler(object):
         ir_visitor = IRVisitor(symbol_visitor.symbol_table)
         ir_visitor.visit(tree)
         # Always update the symbol table.
-        self.program = Program(ir_visitor)
-        self.program.name = filename
+        self.program = Program(functions=ir_visitor.functions, globalz=ir_visitor.globalz,
+                               symbol_table=ir_visitor.symbol_table, bb_graph=ir_visitor.graph, name=filename,
+                               calls=ir_visitor.calls)
 
         if self.config.write_cfg:
-            pos = nx.nx_agraph.graphviz_layout(ir_visitor.graph)
-            nx.draw(ir_visitor.graph, pos=pos)
-            nx.drawing.nx_pydot.write_dot(ir_visitor.graph, 'file.dot')
+            pos = nx.nx_agraph.graphviz_layout(self.program.bb_graph)
+            nx.draw(self.program.bb_graph, pos=pos)
+            nx.drawing.nx_pydot.write_dot(self.program.bb_graph, 'cfg.dot')
 
         return self.program
 
@@ -83,7 +87,7 @@ class BSCompiler(object):
         passes.run_analysis()
         passes.run_transformations()
         # return passes
-        return program
+        return passes.program
 
     def target(self, program: Program):
         """
@@ -91,9 +95,9 @@ class BSCompiler(object):
         :param program:
         :return:
         """
-        target = self.config.target.get_target(self.config)
-        target.transform(self.program)
-        return target
+        target = self.config.target.get_target(program)
+        target.transform()
+        return True
 
     def visit_type_check(self, tree, symbol_table: SymbolTable):
         """

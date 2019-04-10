@@ -1,18 +1,14 @@
 module mod
-stationary stat
 manifest aaa
 manifest bbb
 manifest ccc
 manifest ddd
 
 functions:
+function bar(a, b) {
+    c = a + b
+    return c
+}
 
 instructions:
-
-a = dispense aaa
-b = dispense bbb
-c = dispense ccc
-d = dispense ddd
-e = mix a with b
-f = mix c with d
-g = mix e with f
+m = bar(3, 1)

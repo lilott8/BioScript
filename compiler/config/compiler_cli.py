@@ -1,11 +1,8 @@
-import argparse
-
-import colorlog
-
 import compiler.config.config as config
+from shared.base_cli import BaseCLI
 
 
-class Cli(object):
+class CompilerCLI(BaseCLI):
     """
     A CLI visitors class.
     Handles building the argsparser and validating the CLI arguments.
@@ -14,22 +11,18 @@ class Cli(object):
     """
 
     def __init__(self, args):
-        self.log = colorlog.getLogger(self.__class__.__name__)
+        super().__init__(args)
         self.config = None
 
-        parser = argparse.ArgumentParser()
-        """
-        Generic Parser Arguments
-        """
-        parser.add_argument('-i', '--input', help='input file.', required=True)
-        parser.add_argument('-d', '--debug', help='Enable debug mode.', action='store_true', default=False)
-        parser.add_argument('-t', '--target', help='Platforms to target.', type=str,
-                            default='mfsim', choices={'llvm', 'mfsim', 'puddle', 'inkwell',
-                                                      'l', 'm', 'p', 'i'})
-        parser.add_argument('-wd', '--working-directory', help="Working path.", default="./", type=str)
-        parser.add_argument('-cfg', '--write-cfg', help="Write the CFG to dot file", default=False, action='store_true')
+        self.parser.add_argument('-t', '--target', help='Platforms to target.', type=str,
+                                 default='mfsim', choices={'llvm', 'mfsim', 'puddle', 'inkwell',
+                                                           'l', 'm', 'p', 'i'})
+        self.parser.add_argument('-cfg', '--write-cfg',
+                                 help="Write the CFG to dot file", default=False, action='store_true')
+        self.parser.add_argument('-inline', '--inline', help="Inline all, non-recursive functions", default=False,
+                                 action='store_true')
 
-        chemistry = parser.add_argument_group('chemistry', 'Chemistry specific arguments')
+        chemistry = self.parser.add_argument_group('chemistry', 'Chemistry specific arguments')
         chemistry.add_argument('-sim', '--simulate', help='Simulate chemistry.', default=False,
                                choices={True, False}, type=bool)
         chemistry.add_argument('-id', '--identify', help='Chemical identification level.', default=8,
@@ -37,7 +30,7 @@ class Cli(object):
         chemistry.add_argument('-nf', '--no-filters', help='Disable smart filter creation.', action='store_true')
         chemistry.add_argument('-smarts', '--smarts', help='Length of smart filters to use.', default=5, type=int)
 
-        typing_group = parser.add_argument_group('typing', 'Typing specific arguments')
+        typing_group = self.parser.add_argument_group('typing', 'Typing specific arguments')
         typing_group.add_argument('-tcl', '--typechecklevel', help='What level to report errors.', default="error",
                                   choices={'error', 'warn', 'none'})
         typing_group.add_argument('-tc', '--typecheck', help='Enable type checking input program.',
@@ -49,14 +42,14 @@ class Cli(object):
         typing_group.add_argument('-abs', '--abs-int', help="Location for the abstract interaction files.",
                                   required=False, default='./resources/abstract-interaction.txt')
 
-        db_group = parser.add_argument_group('db', 'Database specific arguments:')
+        db_group = self.parser.add_argument_group('db', 'Database specific arguments:')
         db_group.add_argument('--dbname', help='Name of database.', default='')
         db_group.add_argument('--dbuser', help='Database user.')
         db_group.add_argument('--dbpass', help='Database password for user.')
         db_group.add_argument('--dbaddr', help='Address of database. [IP address | host name]', default='localhost')
         db_group.add_argument('--dbdriver', help='Database driver.', choices={'mysql', 'odbc'}, default='mysql')
 
-        self.args = parser.parse_args(args)
+        self.args = self.parser.parse_args(args)
         # This should always be the first instantiation of a Config.
         self.config = config.Config(self.args)
         self.validate_config()

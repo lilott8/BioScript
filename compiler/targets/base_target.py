@@ -1,9 +1,11 @@
+import abc
 from enum import IntEnum
 
 import colorlog
+import networkx as nx
 
+import compiler.data_structures.program as prog
 import compiler.targets as targets
-from compiler.data_structures.program import Program
 
 
 class Target(IntEnum):
@@ -12,23 +14,85 @@ class Target(IntEnum):
     PUDDLE = 4
     INKWELL = 8
 
-    def get_target(self, configuration):
+    def get_target(self, program: prog.Program, inline=False):
         if self == Target.PUDDLE:
-            return targets.PuddleTarget(configuration)
+            return targets.PuddleTarget(program, inline)
         elif self.value == Target.INKWELL:
-            return targets.InkwellTarget(configuration)
+            return targets.InkwellTarget(program, inline)
         elif self.value == Target.MFSIM:
-            return targets.MFSimTarget(configuration)
+            return targets.MFSimTarget(program, inline)
         else:
-            return targets.ClangTarget(configuration)
+            return targets.ClangTarget(program, inline)
 
 
-class BaseTarget(object):
+class BaseTarget(metaclass=abc.ABCMeta):
 
-    def __init__(self, configuration: 'Config', name="BaseTarget"):
+    def __init__(self, program: prog.Program, name="BaseTarget", inline=False):
         self.log = colorlog.getLogger(self.__class__.__name__)
+        self.program = program
         self.name = name
-        self.config = configuration
+        self.dags = dict()
+        self.build_dags()
+        self.inline = inline
+
+    def build_dags(self):
+        """
+        This is the classic Instruction Selection DAG algorithm.
+        :return:
+        """
+        # for root in self.program.functions:
+        #     self.dags[root] = dict()
+        #     # Set of output variables seen in the DAG.
+        #     leafs = set()
+        #     # This maps an output variable (key) to a node in the graph.
+        #     tags = dict()
+        #     for nid, block in self.program.functions[root]['blocks'].items():
+        #         graph = nx.DiGraph()
+        #         # Op nodes are defined as {output var, op}
+        #         # Var nodes are defined as {var}
+        #         for instruction in block.instructions:
+        #             # self.log.info(instruction)
+        #             # Case x = op y (dispense, heat, dispose, store)
+        #             if len(instruction.uses) == 1:
+        #                 # Look at the r-value.  This does
+        #                 # that without altering the set.
+        #                 use = next(iter(instruction.uses))
+        #                 if use not in leafs:
+        #                     graph.add_node(use.name, type="variable")
+        #                     leafs.add(use.name)
+        #                     leaf = use.name
+        #                 else:
+        #                     leaf = use.name
+        #                 # Do the same thing, except for the l-value.
+        #                 if instruction.defs:
+        #                     if instruction.defs.name not in tags:
+        #                         graph.add_node(leaf, iid=instruction.iid, op=instruction.op.name, type="register")
+        #                         var_def = instruction.defs.name
+        #                         tags[instruction.defs.name] = var_def
+        #                     else:
+        #                         var_def = instruction.defs.name
+        #                     graph.add_edge(leaf, var_def)
+        #             else:
+        #                 # Case x = y op z (mix, split)
+        #                 var_def = instruction.defs.name
+        #                 graph.add_node(var_def, iid=instruction.iid, op=instruction.op.name, type="register")
+        #                 tags[var_def] = var_def
+        #                 for use in instruction.uses:
+        #                     leaf = use.name
+        #                     if leaf not in leafs:
+        #                         graph.add_node(leaf, type="variable")
+        #                         leafs.add(leaf)
+        #                     graph.add_edge(leaf, var_def)
+        #         self.write_graph(graph)
+        #         self.program.functions[root]['blocks'][nid].dag = graph
+        #         self.dags[root][nid] = graph
+        pass
+
+    def write_graph(self, graph, name="dag.dot"):
+        self.log.critical("Writing graph: " + name)
+        pos = nx.nx_agraph.graphviz_layout(graph)
+        nx.draw(graph, pos=pos)
+        nx.drawing.nx_pydot.write_dot(graph, name)
 
     @staticmethod
     def get_safe_name(name: str) -> str:
@@ -39,26 +103,34 @@ class BaseTarget(object):
         """
         return name.replace(" ", "_").replace("-", "_")
 
-    def transform(self, program: Program):
-        raise NotImplemented
+    @abc.abstractmethod
+    def transform(self):
+        pass
 
-    def map_mix(self):
-        raise NotImplemented
+    @abc.abstractmethod
+    def write_mix(self) -> str:
+        pass
 
-    def map_split(self):
-        raise NotImplemented
+    @abc.abstractmethod
+    def write_split(self) -> str:
+        pass
 
-    def map_detect(self):
-        raise NotImplemented
+    @abc.abstractmethod
+    def write_detect(self) -> str:
+        pass
 
-    def map_dispose(self):
-        raise NotImplemented
+    @abc.abstractmethod
+    def write_dispose(self) -> str:
+        pass
 
-    def map_dispense(self):
-        raise NotImplemented
+    @abc.abstractmethod
+    def write_dispense(self) -> str:
+        pass
 
-    def map_expression(self):
-        raise NotImplemented
+    @abc.abstractmethod
+    def write_expression(self) -> str:
+        pass
 
-    def map_branch(self):
-        raise NotImplemented
+    @abc.abstractmethod
+    def write_branch(self) -> str:
+        pass

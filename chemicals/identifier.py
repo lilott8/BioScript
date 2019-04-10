@@ -2,7 +2,6 @@ import re
 from enum import IntEnum
 
 from chemicals.chemtypes import ChemTypes
-from compiler.data_structures.properties import BSVolume
 from shared.bs_exceptions import IdentificationException
 
 
@@ -64,9 +63,9 @@ class DBIdentifier(Identifier):
         self.db = db
 
     def identify(self, search_for: str, types: set = frozenset(), scope: str = "", volume: float = 10.0,
-                 units: BSVolume = BSVolume.MICROLITRE) -> dict:
+                 units: str = "mL") -> dict:
         self.log.fatal("DB Identifier isn't functioning correctly.")
-        return {'name': search_for, 'types': set(), 'scope': scope, volume: volume}
+        return {'name': search_for, 'types': set(), 'scope': scope, 'volume': volume, 'units': units}
 
     # fix(daniel): figure out if there is a way to prevent exceptions from firing...
     def is_name(self, string):

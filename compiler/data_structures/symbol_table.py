@@ -21,6 +21,7 @@ class SymbolTable(object):
         self.scope_stack.append(self.current_scope)
         self.scope_map[self.current_scope.get_name()] = self.current_scope
         self.current_scope = Scope(name)
+        self.scope_map[self.current_scope.name] = self.current_scope
 
     def end_scope(self) -> None:
         # Save the current stack first.
@@ -80,8 +81,8 @@ class SymbolTable(object):
             #self.log.fatal("No global variable found: {}".format(name))
             return False
 
-    def is_global(self, var: Variable) -> bool:
-        return var.name in self.globals
+    def is_global(self, var: str) -> bool:
+        return var in self.globals
 
     def get_variable(self, variable: str, scope_name=False) -> Variable:
         # Check for scope.

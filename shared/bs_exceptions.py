@@ -20,3 +20,15 @@ class UnsupportedOperation(Exception):
 
     def __init__(self, error_message):
         Exception.__init__(self, error_message)
+
+
+class UnsupportedVariable(Exception):
+
+    def __init__(self, error_message):
+        Exception.__init__(self, error_message)
+
+
+class UnInitializedError(Exception):
+
+    def __init__(self, error_message):
+        Exception.__init__(self, error_message)
