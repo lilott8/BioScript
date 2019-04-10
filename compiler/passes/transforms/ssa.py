@@ -23,7 +23,7 @@ class SSA(BSTransform):
         self.bookkeeper = dict()
         self.program = None
 
-    def transform(self, program: Program):
+    def transform(self, program: Program) -> Program:
         self.program = program
         for root in self.program.functions:
             self.log.info("Converting function: {}".format(root))
@@ -40,8 +40,6 @@ class SSA(BSTransform):
         :param root: Name of function to build for.
         :return: None
         """
-        if root == 'foo':
-            x = 2
         self.frontier[root] = nx.dominance_frontiers(self.program.bb_graph, self.program.functions[root]['entry'])
         self.idoms[root] = nx.immediate_dominators(self.program.bb_graph, self.program.functions[root]['entry'])
         self.dominator_tree[root] = dict()
