@@ -69,8 +69,6 @@ class BSCompiler(object):
                                symbol_table=ir_visitor.symbol_table, bb_graph=ir_visitor.graph, name=filename,
                                calls=ir_visitor.calls)
 
-        x = 1
-
         if self.config.write_cfg:
             pos = nx.nx_agraph.graphviz_layout(self.program.bb_graph)
             nx.draw(self.program.bb_graph, pos=pos)

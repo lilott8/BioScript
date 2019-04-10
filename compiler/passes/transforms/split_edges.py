@@ -7,5 +7,5 @@ class SplitEdges(BSTransform):
     def __init__(self):
         super().__init__("Split Edges")
 
-    def transform(self, program: Program):
+    def transform(self, program: Program) -> Program:
         pass
