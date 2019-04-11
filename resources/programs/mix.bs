@@ -7,13 +7,7 @@ functions:
 
 instructions:
 
-a = mix aaa with ccc
-...
-...
-...
-..
-....
-..
-..
-....
-b = mix bbb with a
+a = dispense aaa
+b = dispense bbb
+c = mix a with b
+dispose c

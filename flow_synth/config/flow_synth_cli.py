@@ -13,6 +13,7 @@ class FlowSynthCLI(BaseCLI):
         self.parser.add_argument('-r', '--router', help='What router to use', type=str,
                                  default='dijkstra_path', choices={'dijkstra_path', 'astar_path', 'bellman_ford_path'})
         self.parser.add_argument('-opt', '--optimize', help="Run optimizations?", type=bool, default=False)
+        self.parser.add_argument('-dag', '--dag', help='DOT file for DAG', type=str, required=True)
 
         self.args = self.parser.parse_args(args)
 
