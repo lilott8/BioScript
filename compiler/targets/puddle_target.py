@@ -98,7 +98,6 @@ class PuddleTarget(BaseTarget):
                     self.compiled += self.construct_basic_block_code(block.instructions, is_main=is_main, inline=INLINE)
                 self.compiled += '\n\n'
 
-
         print(self.compiled)
         return False
 
