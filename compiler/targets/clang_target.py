@@ -121,7 +121,6 @@ class ClangTarget(BaseTarget):
             small local function for transforming parameter arguments into their
             appropriate outer scope variables
             '''
-            print(a, parameter_map)
             if a in parameter_map:
                 return parameter_map[a] 
             #elif (a+'0') in parameter_map:
@@ -287,7 +286,7 @@ class ClangTarget(BaseTarget):
                 self.compiled += c
 
 
-        print(self.compiled)
+        ##print(self.compiled)
         return False 
 
     def write_mix(self) -> str:

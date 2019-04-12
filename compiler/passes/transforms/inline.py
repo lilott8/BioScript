@@ -16,4 +16,11 @@ class Inline(BSTransform):
         :param program: The program requiring modification.
         :return: The modified program.
         """
+        for func_name, function in program.functions.items():
+            for block in function['blocks'].values():
+                
+                pass
+
+
+
         return program
