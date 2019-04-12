@@ -109,64 +109,89 @@ class ClangTarget(BaseTarget):
         return code
 
 
-    def inlined_code_block(self, instr, func_name, ret):
+    def inlined_code_block(self, instr, func_name, ret, tab='  '):
         '''
         alpha conversion of variables based on func_name e.g.
         a function fibonacci with a variable named "a" will
         have variable alpha converted to the name "fibonacci_a"
         '''
+
+        def inline_var_names(a, parameter_map):
+            '''
+            small local function for transforming parameter arguments into their
+            appropriate outer scope variables
+            '''
+
+            if a in parameter_map:
+                return parameter_map[a] 
+            else:
+                return func_name + '_' + a
+
+
+        indent = tab + '  '
         func_info = self.program.symbol_table.functions[func_name]
-        code = '  {} {};\n'.format(ClangTarget.get_type_string(func_info.types), ret)
-        code += '  {\n    //inlined code\n'
+        code = '{}{} {};\n'.format(tab, ClangTarget.get_type_string(func_info.types), ret)
+        code += tab + '{\n' + indent + '//inlined code\n'
+        
+        parameter_map = {}
+        #map the parameters to the actual variable names
         for arg, uses in zip(func_info.args, instr.uses):
-            var_type = ClangTarget.get_type_string(arg.types)
-            code += '    {} {}_{} = {};\n'.format(var_type, func_name, arg.name, uses.name)
+            key = arg.name + '0' 
+            value = uses.name
+            parameter_map[key] = value 
+
 
         for block in self.program.functions[func_name]['blocks'].values():
             for instr in block.instructions:
                 if type(instr) == Dispose:
-                    code += '    dispose({}_{});\n'.format(func_name, instr.uses[0].name)
+                    a = inline_var_names(instr.uses[0].name, parameter_map)
+                    code += '{}dispose({});\n'.format(indent, a)
+
                 elif type(instr) == Mix:
-                    code += '    mat {}_{} = mix({}_{}, {}, {}_{}, {}, {});\n'.format(
-                                                     func_name, instr.defs.name,
-                                                     func_name, instr.uses[0].name,
+                    r = inline_var_names(instr.defs.name, parameter_map)
+                    a   = inline_var_names(instr.uses[0].name, parameter_map)
+                    b   = inline_var_names(instr.uses[1].name, parameter_map)
+                    code += '{}mat {} = mix({}, {}, {}, {}, {});\n'.format(
+                                                     indent, r,
+                                                     a, 
                                                      instr.uses[0].size,
-                                                     func_name, instr.uses[1].name,
+                                                     b, 
                                                      instr.uses[1].size,
                                                      1000)
                 elif type(instr) == Split:
-                    code += '    mat {}_{} = split({}_{}, {});\n'.format(
-                                             func_name, instr.defs.name,
-                                             func_name, instr.uses[0].name,
-                                             instr.uses[0].size)
+                    r = inline_var_names(instr.defs.name, parameter_map)
+                    a = inline_var_names(instr.uses[0].name, parameter_map)
+                    code += '{}mat {} = split({}, {});\n'.format(indent, r, a, instr.uses[0].size)
                 elif type(instr) == Detect:
-                    code += '    double {}_{} = detect({}, {}_{}, {});\n'.format(
-                                             func_name, instr.defs.name,
-                                             instr.module.name,
-                                             func_name, instr.uses[0].name,
-                                             instr.module.size)
+                    r = inline_var_names(instr.defs.name, parameter_map)
+                    a   = inline_var_names(instr.uses[0].name)
+                    code += '{}double {} = detect({}, {}, {});\n'.format(indent, r, instr.module.name, a, instr.module.size)
                 elif type(instr) == Heat:
-                    code += '    mat {}_{} = heat({}_{}, {}, {});\n'.format(
-                                             func_name, instr.defs.name,
-                                             func_name, instr.uses[0].name,
-                                             instr.uses[0].size, instr.uses[0].size) 
+                    r = inline_var_names(instr.defs.name, parameter_map)
+                    a = inline_var_names(instr.uses[0].name, parameter_map)
+                    code += '{}mat {} = heat({}, {}, {});\n'.format(indent, r, a, instr.uses[0].size, instr.uses[0].size) 
                 elif type(instr) == Dispense:
-                    code += '    mat {}_{} = dispense({}_{}, {});\n'.format(
-                                             func_name, instr.defs.name,
-                                             func_name, instr.uses[0].name, instr.uses[0].size)
+                    r = inline_var_names(instr.defs.name, parameter_map)
+                    a   = inline_var_names(instr.uses[0].size, parameter_map)
+                    code += '{}mat {} = dispense({}, {});\n'.format(indent, r, a, instr.uses[0].size)
                 elif type(instr) == Return:
-                    if type(instr.return_value) == Chemical or type(instr.return_value) == RenamedVar:
-                        code += '    {} = {}_{};\n'.format(
-                                             ret, func_name, instr.return_value.name)
-                    elif type(instr.return_value) == Number:
-                        code += '    {} = {}_{};\n'.format(
-                                             ret, func_name, instr.return_value.name) 
-                    else:
-                        code += '    {} = {}_{};\n'.format(ret, func_name, instr.return_value.name)
+                    val = inline_var_names(instr.return_value.name, parameter_map)
+                    code += '{}{} = {}0;\n'.format(indent, ret, val)
                 elif type(instr) == Call:
-                    print('hey there!')
-                    code += self.inlined_code_block(instr, instr.name, instr.defs.name)
-        code += '  }\n' 
+                    if instr.name == func_name:
+                        #we come across recursion, just call function normally
+                        #This is the condition for recursion
+                        r = ClangTarget.get_type_string(instr.function.types)
+                        args = ''
+                        for arg in instr.uses:
+                            if args:
+                                args += ', '+arg.name
+                            else:
+                                args = arg.name
+                        code += '{}{} {} = {}({});\n'.format(indent, r, instr.defs.name, instr.name, args)
+                    else:
+                        code += self.inlined_code_block(instr, instr.name, instr.defs.name, tab=indent)
+        code += tab + '}\n' 
         return code
 
 

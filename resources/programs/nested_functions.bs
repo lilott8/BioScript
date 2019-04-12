@@ -11,8 +11,13 @@ function abc(a, b) {
 }
 
 function defg(a, b) {
-  c = dispense bbb
+  g = ghi(a, b)
+
   return a
+}
+
+function ghi(a, b) {
+  return b
 }
 
 instructions:
