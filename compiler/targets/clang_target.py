@@ -121,22 +121,28 @@ class ClangTarget(BaseTarget):
             small local function for transforming parameter arguments into their
             appropriate outer scope variables
             '''
-
+            print(a, parameter_map)
             if a in parameter_map:
                 return parameter_map[a] 
+            #elif (a+'0') in parameter_map:
+            #    return parameter_map[a+'0']
             else:
-                return func_name + '_' + a
+                if a[-1] == '0':
+                    return func_name + '_' + a
+                else:
+                    return func_name + '_' + a + '0'
+
 
 
         indent = tab + '  '
         func_info = self.program.symbol_table.functions[func_name]
         code = '{}{} {};\n'.format(tab, ClangTarget.get_type_string(func_info.types), ret)
-        code += tab + '{\n' + indent + '//inlined code\n'
+        code += tab + '{\n' + indent + '//inlined function {}\n'.format(func_name)
         
         parameter_map = {}
         #map the parameters to the actual variable names
         for arg, uses in zip(func_info.args, instr.uses):
-            key = arg.name + '0' 
+            key = arg.name# + '0' 
             value = uses.name
             parameter_map[key] = value 
 
@@ -172,11 +178,11 @@ class ClangTarget(BaseTarget):
                     code += '{}mat {} = heat({}, {}, {});\n'.format(indent, r, a, instr.uses[0].size, instr.uses[0].size) 
                 elif type(instr) == Dispense:
                     r = inline_var_names(instr.defs.name, parameter_map)
-                    a   = inline_var_names(instr.uses[0].size, parameter_map)
+                    a   = inline_var_names(instr.uses[0].name, parameter_map)
                     code += '{}mat {} = dispense({}, {});\n'.format(indent, r, a, instr.uses[0].size)
                 elif type(instr) == Return:
                     val = inline_var_names(instr.return_value.name, parameter_map)
-                    code += '{}{} = {}0;\n'.format(indent, ret, val)
+                    code += '{}{} = {};\n'.format(indent, ret, val)
                 elif type(instr) == Call:
                     if instr.name == func_name:
                         #we come across recursion, just call function normally
@@ -229,9 +235,6 @@ class ClangTarget(BaseTarget):
         '}\n\n'\
         'double detect(module detect, mat input, double quantity) {\n' \
         '  sleep(quantity);\n' \
-        '  return -1.0;\n' \
-        '}\n\n' \
-        'mat dispense(mat input, double quantity) {\n' \
         '  mat output = input;\n' \
         '  output.quantity = quantity;\n' \
         '  return input;\n' \
