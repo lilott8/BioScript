@@ -13,7 +13,7 @@ class PuddleTarget(BaseTarget):
         code = ''
         for instr in instructions:
             if type(instr) == Dispose:
-                code += '##UNKNOWN:: dispose({});\n'.format(instr.uses[0].name)
+                code += '{}output({})\n'.format(tabs, instr.uses[0].name)
             elif type(instr) == Mix:
                 code += '{}{} = session.mix({}, {})\n'.format(tabs,
                                             instr.defs.name, 
@@ -21,15 +21,13 @@ class PuddleTarget(BaseTarget):
                                             instr.uses[1].name) 
                                             
             elif type(instr) == Split:
-                        code += '{}{} = session.split({})\n'.format(tabs,
-                                            instr.defs.name,
-                                            instr.uses[0].name)
+                code += '{}{} = session.split({})\n'.format(tabs, instr.defs.name, instr.uses[0].name)
             elif type(instr) == Detect: 
-                        code += '{}##UNKNOWN{} = detect({}, {}, {})\n'.format(tabs, instr.defs.name, instr.module.name, instr.uses[0].name, instr.module.size)
+                code += '{}{} = session.detect({}, {})\n'.format(tabs, instr.defs.name, instr.module.name, instr.uses[0].name)
             elif type(instr) == Heat: 
                 code += '{}{} = session.heat({}, temp={}, seconds={})\n'.format(tabs, instr.defs.name, instr.uses[0].name, instr.uses[0].size, instr.uses[0].size) 
             elif type(instr) == Dispense:
-                        code += '{}##UNKNOWN{} = dispense({}, {})\n'.format(tabs, instr.defs.name, instr.uses[0].name, instr.uses[0].size) 
+                code += '{}{} = session.input({}, location=(), volume=1000000.0, dimensions=(1,1))\n'.format(tabs, instr.defs.name, instr.uses[0].name)
             elif type(instr) == Return:
             
                 if type(instr.return_value) == Chemical:
@@ -45,7 +43,7 @@ class PuddleTarget(BaseTarget):
                     pass
                 else:
                     args = ''
-                    for arg in instr.args:
+                    for arg in instr.uses:
                         if args:
                             args += ', '+arg.name
                         else:
@@ -75,10 +73,12 @@ class PuddleTarget(BaseTarget):
             #i don't exactly know if this is right...
             for name, v in self.program.symbol_table.globals.items():
                 if ChemTypes.MAT in v.types:
-                    self.compiled += '  {} = session.create(None, 1e7, (1, 1))\n'.format(name)
-                elif ChemTypes.MODULE in v.types:
-                    self.compiled += '  {} = session.create(None, 1e7, (1, 1))\n'.format(name)
-            self.compiled += '\n\n'
+                    self.compiled += '  {} = session.input(location=(), volume=1000000.0, dimensions=(1,1))\n'.format(name)
+                #TODO: nothing for module???
+                #elif ChemTypes.MODULE in v.types:
+                #    self.compiled += '  {} = session.create(None, 1e7, (1, 1))\n'.format(name)
+
+            self.compiled += '\n\n  ##functions:\n'
 
             for func_name, function in self.program.functions.items():
                 if func_name != 'main':
@@ -87,11 +87,13 @@ class PuddleTarget(BaseTarget):
                     for arg in func_info.args:
                         var_name = arg.name
                         if args:
-                            args += ', {}'.format(var_name)
+                            args += ', {}0'.format(var_name)
                         else:
-                            args = '{}'.format(var_name)
+                            args = '{}0'.format(var_name)
 
                     self.compiled += '  def {}({}):\n'.format(func_name, args)
+                else:
+                    self.compiled += '  ##instructions:\n'
 
                 for block in function['blocks'].values(): 
                     is_main = func_name == 'main' 
