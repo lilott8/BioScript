@@ -2,7 +2,6 @@ import abc
 from enum import IntEnum
 
 import colorlog
-import networkx as nx
 
 import compiler.data_structures.program as prog
 import compiler.targets as targets
@@ -87,12 +86,6 @@ class BaseTarget(metaclass=abc.ABCMeta):
         #         self.program.functions[root]['blocks'][nid].dag = graph
         #         self.dags[root][nid] = graph
         pass
-
-    def write_graph(self, graph, name="dag.dot"):
-        self.log.critical("Writing graph: " + name)
-        pos = nx.nx_agraph.graphviz_layout(graph)
-        nx.draw(graph, pos=pos)
-        nx.drawing.nx_pydot.write_dot(graph, name)
 
     @staticmethod
     def get_safe_name(name: str) -> str:

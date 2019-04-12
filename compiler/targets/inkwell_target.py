@@ -11,6 +11,7 @@ from compiler.data_structures import Program
 from compiler.targets.base_target import BaseTarget
 from shared.bs_exceptions import UnsupportedOperation
 from shared.components import NaiveAPI
+from shared.bs_junk_drawer import write_graph
 
 
 class InkwellTarget(BaseTarget):
@@ -78,7 +79,7 @@ class InkwellTarget(BaseTarget):
                         # else:
                         #     graph.add_edge(use, var_defs[instruction.defs.name])
 
-                self.write_graph(graph)
+                write_graph(graph)
                 self.program.functions[root]['blocks'][nid].dag = graph
                 self.dags[root][nid] = graph
 
@@ -170,7 +171,7 @@ class InkwellTarget(BaseTarget):
         for connection in spec['connections']:
             for sink in connection['sinks']:
                 graph.add_edge(connection['source']['component'], sink['component'])
-        self.write_graph(graph, "json.dag")
+        write_graph(graph, "json.dag")
 
     def verify_json(self, output: dict, verify: bool = False) -> bool:
         if verify:

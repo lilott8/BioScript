@@ -18,6 +18,7 @@ class Config(object):
         self.output = args.output
         self.scheduler = self.get_scheduler(args.scheduler)
         self.router = args.router
+        self.dag_path = args.dag
 
     def get_scheduler(self, schedule: str) -> str:
         if schedule == 'list':
