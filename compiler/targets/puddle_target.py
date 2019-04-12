@@ -59,8 +59,6 @@ class PuddleTarget(BaseTarget):
 
     def transform(self):
         INLINE = False
-
-        #TODO: I have no idea how to do the 'mat' 'module' stuff in puddle...
         file_name = 'cool_looking_json_file.json'
         self.compiled = 'from puddle import mk_session, project_path\n' \
                         'arch_path = project_path(\'{}\')\n' \
