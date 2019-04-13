@@ -1,4 +1,5 @@
 import abc
+import json
 
 import colorlog
 
@@ -23,8 +24,26 @@ class NetworkAPI(ComponentAPI):
 
 
 class NaiveAPI(ComponentAPI):
-    def __init__(self):
+    def __init__(self, library):
         super().__init__()
+        with open(library, 'r') as f:
+            self.components = json.loads(f.read())
+
+    def get_mix(self):
+
+        pass
+
+    def get_split(self):
+        pass
+
+    def get_heat(self):
+        pass
+
+    def get_detect(self):
+        pass
+
+    def get_io(self):
+        pass
 
     def get_component(self, attr: dict):
         component = dict()

@@ -1,0 +1,108 @@
+{
+  "mix": [
+    {
+      "meta": [
+        "passive"
+      ],
+      "entity": "serpentine-mixer",
+      "id": "",
+      "layers": "flow",
+      "name": "",
+      "x-span": 150,
+      "y-span": 30,
+      "ports": [
+        {
+          "label": "input1",
+          "layer": "flow",
+          "x": 0,
+          "y": 52
+        },
+        {
+          "label": "input2",
+          "layer": "flow",
+          "x": 0,
+          "y": 8
+        },
+        {
+          "label": "output1",
+          "layer": "flow",
+          "x": 150,
+          "y": 30
+        },
+        {
+          "label": "control_input_1",
+          "layer": "control",
+          "x": 0,
+          "y": 72
+        },
+        {
+          "label": "control_input_2",
+          "layer": "control",
+          "x": 0,
+          "y": 28
+        },
+        {
+          "label": "control_output_3",
+          "layer": "control",
+          "x": 150,
+          "y": 10
+        }
+      ],
+      "activation": {
+        "load-left": {
+          "open": [
+            "control1_input_"
+          ],
+          "closed": [
+            "control_input_2",
+            "control_output_3"
+          ]
+        },
+        "load-right": {
+          "open": [
+            "control_input_2"
+          ],
+          "closed": [
+            "control_input_1",
+            "control_output_3"
+          ]
+        },
+        "load-all": {
+          "open": [
+            "control_input_1",
+            "control_input_2"
+          ],
+          "closed": [
+            "control_output_3"
+          ]
+        },
+        "stop": {
+          "open": [],
+          "closed": [
+            "control_input_1",
+            "control_input_2",
+            "control_output_3"
+          ]
+        },
+        "mix": {
+          "open": [
+            "control_input_1",
+            "control_input_2",
+            "control_output_3"
+          ],
+          "closed": []
+        }
+      }
+    }
+  ],
+  "detect": [
+  ],
+  "heat": [
+  ],
+  "split": [
+  ],
+  "input": [
+  ],
+  "output": [
+  ]
+}

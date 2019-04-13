@@ -41,6 +41,5 @@ class FlowSynthesizer(object):
     def build_activations(self, chip: dict, schedule, router: Router = Router()) -> list:
         activations = list()
         self.log.info(schedule)
-        
 
         return activations
