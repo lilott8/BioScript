@@ -7,7 +7,7 @@
         "layers": "flow",
         "name": "",
         "x-span": 150,
-        "y-span": 30,
+        "y-span": 60,
         "ports": [
           {
             "label": "input_1",
@@ -37,7 +37,7 @@
         "layers": "flow",
         "name": "",
         "x-span": 150,
-        "y-span": 30,
+        "y-span": 60,
         "ports": [
           {
             "label": "input_1",

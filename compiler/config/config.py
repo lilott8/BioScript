@@ -8,6 +8,7 @@ import chemicals.combiner as combiner
 import chemicals.identifier as identifier
 import compiler.semantics.type_visitor as tv
 import compiler.targets.base_target as targets
+from shared.components import FlowType
 
 
 class Config(object):
@@ -54,6 +55,13 @@ class Config(object):
         self.db_enabled = False
         # Database stuff.
         self.db = {'name': None, 'pass': None, 'addr': None, 'user': None, 'driver': None}
+
+        """
+        Inkwell Stuff
+        """
+        self.library = './resources/components/components.json'
+        self.flow_type = FlowType.PASSIVE
+        self.use_local_db = True
 
         """
         Build the config object now.
@@ -106,14 +114,15 @@ class Config(object):
             so we just toggle the necessary flags when
             necessary.
             """
-            if args.target.lower() == "m" or args.target.lower() == "mfsim":
+            target = args.target.lower()
+            if target == "m" or target == "mfsim":
                 self.target = targets.Target.MFSIM
                 self.supports_functions = True
                 self.supports_nesting = True
-            elif args.target.lower() == 'i' or args.target.lower() == 'inkwell':
+            elif target == 'i' or target == 'inkwell':
                 self.target = targets.Target.INKWELL
                 self.supports_functions = True
-            elif args.target.lower() == "p" or args.target.lower() == "puddle":
+            elif target == "p" or target == "puddle":
                 self.target = targets.Target.PUDDLE
                 self.supports_functions = True
                 self.supports_recursion = True
@@ -123,6 +132,15 @@ class Config(object):
                 self.supports_functions = True
                 self.supports_recursion = True
                 self.supports_nesting = True
+
+        if args.library is not None:
+            self.library = args.library
+
+        if args.flow.lower() == 'active' or args.flow.lower() == 'a':
+            self.flow_type = FlowType.ACTIVE
+
+        if args.cdb:
+            self.use_local_db = False
 
         if self.db['name'] and self.db['user'] and self.db['pass']:
             self.db_enabled = True
