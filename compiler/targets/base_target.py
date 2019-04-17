@@ -2,10 +2,10 @@ import abc
 from enum import IntEnum
 
 import colorlog
-import networkx as nx
 
 import compiler.data_structures.program as prog
 import compiler.targets as targets
+from shared.bs_exceptions import UnInitializedError
 
 
 class Target(IntEnum):
@@ -14,26 +14,26 @@ class Target(IntEnum):
     PUDDLE = 4
     INKWELL = 8
 
-    def get_target(self, program: prog.Program, inline=False):
+    def get_target(self, program: prog.Program):
         if self == Target.PUDDLE:
-            return targets.PuddleTarget(program, inline)
+            return targets.PuddleTarget(program)
         elif self.value == Target.INKWELL:
-            return targets.InkwellTarget(program, inline)
+            return targets.InkwellTarget(program)
         elif self.value == Target.MFSIM:
-            return targets.MFSimTarget(program, inline)
+            return targets.MFSimTarget(program)
         else:
-            return targets.ClangTarget(program, inline)
+            return targets.ClangTarget(program)
 
 
 class BaseTarget(metaclass=abc.ABCMeta):
 
-    def __init__(self, program: prog.Program, name="BaseTarget", inline=False):
+    def __init__(self, program: prog.Program, name="BaseTarget"):
         self.log = colorlog.getLogger(self.__class__.__name__)
+        self.config = None
         self.program = program
         self.name = name
         self.dags = dict()
         self.build_dags()
-        self.inline = inline
 
     def build_dags(self):
         """
@@ -88,12 +88,6 @@ class BaseTarget(metaclass=abc.ABCMeta):
         #         self.dags[root][nid] = graph
         pass
 
-    def write_graph(self, graph, name="dag.dot"):
-        self.log.critical("Writing graph: " + name)
-        pos = nx.nx_agraph.graphviz_layout(graph)
-        nx.draw(graph, pos=pos)
-        nx.drawing.nx_pydot.write_dot(graph, name)
-
     @staticmethod
     def get_safe_name(name: str) -> str:
         """
@@ -105,6 +99,8 @@ class BaseTarget(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def transform(self):
+        if self.config is None:
+            raise UnInitializedError("Config must be set before you can transform")
         pass
 
     @abc.abstractmethod

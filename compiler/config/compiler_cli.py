@@ -49,6 +49,12 @@ class CompilerCLI(BaseCLI):
         db_group.add_argument('--dbaddr', help='Address of database. [IP address | host name]', default='localhost')
         db_group.add_argument('--dbdriver', help='Database driver.', choices={'mysql', 'odbc'}, default='mysql')
 
+        inkwell_group = self.parser.add_argument_group('inkwell', "inkwell specific arguments:")
+        inkwell_group.add_argument('-lib', '--library', help="Path to flat file of database.", default=None)
+        inkwell_group.add_argument('-flow', '--flow', help="Which type of flow-based chip to target.",
+                                   default="passive", choices={'active', 'a', 'passive', 'p'})
+        inkwell_group.add_argument('--cdb', help="Name of Component Database", default='')
+
         self.args = self.parser.parse_args(args)
         # This should always be the first instantiation of a Config.
         self.config = config.Config(self.args)

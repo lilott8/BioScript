@@ -10,14 +10,15 @@ from jsonschema import validate
 from compiler.data_structures import Program
 from compiler.targets.base_target import BaseTarget
 from shared.bs_exceptions import UnsupportedOperation
-from shared.components import NaiveAPI
+from shared.bs_junk_drawer import write_graph
+from shared.components import get_component_api
 
 
 class InkwellTarget(BaseTarget):
 
-    def __init__(self, program: Program, inline=False):
-        super().__init__(program, "InkwellTarget", inline)
-        self.api = NaiveAPI()
+    def __init__(self, program: Program):
+        super().__init__(program, "InkwellTarget")
+        self.api = None
         self.inputs = dict()
         self.components = dict()
         self.connections = dict()
@@ -78,11 +79,20 @@ class InkwellTarget(BaseTarget):
                         # else:
                         #     graph.add_edge(use, var_defs[instruction.defs.name])
 
-                self.write_graph(graph)
+                write_graph(graph)
                 self.program.functions[root]['blocks'][nid].dag = graph
                 self.dags[root][nid] = graph
 
     def transform(self, verify: bool = False):
+        """
+        Transform the IR into something Inkwell can understand.
+        :param verify:
+        :return:
+        """
+        """
+        This is hacky, and I don't like it, but it works.
+        """
+        self.api = get_component_api(self.config)
         uid = uuid.uuid5(uuid.NAMESPACE_OID, self.program.name)
         output = {'name': self.program.name.replace('/', '_').replace('.', '_'),
                   'layers': [{"id": str(uid), "name": "flow"}],
@@ -170,7 +180,7 @@ class InkwellTarget(BaseTarget):
         for connection in spec['connections']:
             for sink in connection['sinks']:
                 graph.add_edge(connection['source']['component'], sink['component'])
-        self.write_graph(graph, "json.dag")
+        write_graph(graph, "json.dag")
 
     def verify_json(self, output: dict, verify: bool = False) -> bool:
         if verify:

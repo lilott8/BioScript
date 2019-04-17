@@ -1,14 +1,13 @@
 module mod
+stationary ccc
 manifest aaa
 manifest bbb
-manifest ccc
-manifest ddd
 
 functions:
-function bar(a, b) {
-    c = a + b
-    return c
-}
 
 instructions:
-m = bar(3, 1)
+
+a = dispense aaa
+b = dispense bbb
+c = mix a with b
+dispose c
