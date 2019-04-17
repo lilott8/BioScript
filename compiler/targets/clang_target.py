@@ -123,8 +123,6 @@ class ClangTarget(BaseTarget):
             '''
             if a in parameter_map:
                 return parameter_map[a] 
-            #elif (a+'0') in parameter_map:
-            #    return parameter_map[a+'0']
             else:
                 if a[-1] == '0':
                     return func_name + '_' + a
@@ -202,7 +200,7 @@ class ClangTarget(BaseTarget):
 
     def transform(self):
         #TODO: fix when inlining is truly implemented
-        INLINE = True 
+        INLINE = False 
 
         #a list of strings that represents all the function code
         self.function_code = []

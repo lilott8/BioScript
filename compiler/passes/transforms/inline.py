@@ -1,6 +1,6 @@
 from compiler.data_structures import Program
 from compiler.passes.transforms.bs_transform import BSTransform
-
+from compiler.data_structures.ir import *
 
 class Inline(BSTransform):
 
@@ -18,8 +18,13 @@ class Inline(BSTransform):
         """
         for func_name, function in program.functions.items():
             for block in function['blocks'].values():
-                
-                pass
+                for jmps in block.jumps:
+                    if type(jmps) == Call:
+                        #inline the function:
+                        jmps = Jump(program.functions[jmps.name]
+                        for inline_block in program.functions[jmps.name]['blocks']:
+                            print(type(function[jmps.name]['blocks']))
+                            function['blocks'] += (inline_block)
 
 
 
