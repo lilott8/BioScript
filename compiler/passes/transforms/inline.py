@@ -18,13 +18,25 @@ class Inline(BSTransform):
         """
         for func_name, function in program.functions.items():
             for block in function['blocks'].values():
-                for jmps in block.jumps:
-                    if type(jmps) == Call:
-                        #inline the function:
-                        jmps = Jump(program.functions[jmps.name]
-                        for inline_block in program.functions[jmps.name]['blocks']:
-                            print(type(function[jmps.name]['blocks']))
-                            function['blocks'] += (inline_block)
+
+                #TODO: I assume call is always the last element
+                #may or may not be true...
+                call = block.get_call()
+                if call != None:
+                    func_name = call.name
+                    print(type(program.functions[func_name]['entry']))
+                    print(type(program.functions[func_name]['blocks']))
+                    block.instructions[-1] = Label('bob')
+                #    if type(jmps) == Call:
+                #        #inline the function:
+                #print(jmps.name)
+                #        #jmps = Jump(program.functions[jmps.name])
+                #        for block in program.functions[func_name]['blocks']:
+                            
+                #        #print(program.symbol_table.functions[jmps.name])
+                #        #Efor inline_block in 
+                #j        #    print(type(function[jmps.name]['blocks']))
+                #        #    function['blocks'] += (inline_block)
 
 
 
