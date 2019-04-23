@@ -40,17 +40,14 @@ class PuddleTarget(BaseTarget):
             elif type(instr) == Store:
                 pass 
             elif type(instr) == Call:
-                if inline == True:
-                    pass
-                else:
-                    args = ''
-                    for arg in instr.uses:
-                        if args:
-                            args += ', '+arg.name
-                        else:
-                            args = arg.name
+                args = ''
+                for arg in instr.uses:
+                    if args:
+                        args += ', '+arg.name
+                    else:
+                        args = arg.name
 
-                    code += '{}{} = {}({});\n'.format(tabs, instr.defs.name, instr.name, args)
+                code += '{}{} = {}({});\n'.format(tabs, instr.defs.name, instr.name, args)
             elif type(instr) == BinaryOps:
                 pass
             else:
@@ -93,7 +90,7 @@ class PuddleTarget(BaseTarget):
                 is_main = func_name == 'main' 
                 self.compiled += self.construct_basic_block_code(block.instructions, is_main=is_main)
             self.compiled += '\n\n'
-
+        print(self.compiled)
         return False
 
     def write_mix(self) -> str:
