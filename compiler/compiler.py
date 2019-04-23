@@ -96,6 +96,7 @@ class BSCompiler(object):
         :return:
         """
         target = self.config.target.get_target(program)
+        target.config = self.config
         target.transform()
         return True
 

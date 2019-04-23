@@ -5,8 +5,8 @@ from compiler.data_structures.ir import *
 
 class PuddleTarget(BaseTarget):
 
-    def __init__(self, program, inline=False):
-        super().__init__(program, "PuddleTarget", inline)
+    def __init__(self, program):
+        super().__init__(program, "PuddleTarget")
 
 
     def construct_basic_block_code(self, instructions, is_main=False):
