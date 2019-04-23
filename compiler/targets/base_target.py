@@ -14,22 +14,22 @@ class Target(IntEnum):
     PUDDLE = 4
     INKWELL = 8
 
-    def get_target(self, program: prog.Program):
+    def get_target(self, config, program: prog.Program):
         if self == Target.PUDDLE:
-            return targets.PuddleTarget(program)
+            return targets.PuddleTarget(config, program)
         elif self.value == Target.INKWELL:
-            return targets.InkwellTarget(program)
+            return targets.InkwellTarget(config, program)
         elif self.value == Target.MFSIM:
-            return targets.MFSimTarget(program)
+            return targets.MFSimTarget(config, program)
         else:
-            return targets.ClangTarget(program)
+            return targets.ClangTarget(config, program)
 
 
 class BaseTarget(metaclass=abc.ABCMeta):
 
-    def __init__(self, program: prog.Program, name="BaseTarget"):
+    def __init__(self, config, program: prog.Program, name="BaseTarget"):
         self.log = colorlog.getLogger(self.__class__.__name__)
-        self.config = None
+        self.config = config
         self.program = program
         self.name = name
         self.dags = dict()

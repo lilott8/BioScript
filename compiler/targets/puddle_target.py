@@ -4,8 +4,8 @@ from compiler.targets.base_target import BaseTarget
 
 class PuddleTarget(BaseTarget):
 
-    def __init__(self, program):
-        super().__init__(program, "PuddleTarget")
+    def __init__(self, program, config):
+        super().__init__(config, program, "PuddleTarget")
 
     def transform(self):
         return False
