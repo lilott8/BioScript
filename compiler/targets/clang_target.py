@@ -61,6 +61,7 @@ class ClangTarget(BaseTarget):
                 code += '  dispose({});\n'.format(instr.uses[0].name)
             elif type(instr) == Store:
                 #print(instr)
+                
                 code += '  {} = {};\n'.format(instr.defs.name, instr.uses)
             elif type(instr) == Mix:
                 code += '  mat {} = mix({}, {}, {}, {}, {});\n'.format(
