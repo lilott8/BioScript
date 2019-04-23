@@ -182,8 +182,6 @@ class ClangTarget(BaseTarget):
         for c in code_func:
             self.compiled += c
 
-
-        print(self.compiled)
         return False 
 
     def write_mix(self) -> str:
