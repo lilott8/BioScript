@@ -16,7 +16,6 @@ class Inline(BSTransform):
             small local function for transforming parameter arguments into their
             appropriate outer scope variables
             '''
-            #print(a, parameter_map)
             if a[:-1] in parameter_map:
                 return parameter_map[a[:-1]]
 
@@ -81,12 +80,16 @@ class Inline(BSTransform):
                     a   = inline_var_names(instr.uses[0].name, parameter_map, global_vars)
                     inline_instr = Dispense(Variable(r), Variable(a))
                 elif type(instr) == Return:
-                    val = inline_var_names(instr.return_value.name, parameter_map, global_vars)
                     inline_instr = NOP()
                 elif type(instr) == Call:
                     if instr.name != func_name:
                         instructions = instructions + self.handle_call(program, instr)
-                    inline_instr = NOP()
+                        inline_instr = NOP()
+                    else:
+                        #we have entered a recursive area, cannot inline
+                        ret = inline_var_names(instr.defs.name, parameter_map, global_vars)
+                        arguments = map(lambda a: Variable(inline_var_names(a.name, parameter_map, global_vars)), instr.uses)
+                        inline_instr = Call(Variable(ret), instr.function, arguments)
 
                 instructions.append(inline_instr)
        
