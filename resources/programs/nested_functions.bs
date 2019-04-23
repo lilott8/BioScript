@@ -17,6 +17,7 @@ function defg(a, b) {
 }
 
 function ghi(a, b) {
+  c = mix a with b
   return b
 }
 

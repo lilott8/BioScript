@@ -59,6 +59,9 @@ class ClangTarget(BaseTarget):
         for instr in instructions:
             if type(instr) == Dispose:
                 code += '  dispose({});\n'.format(instr.uses[0].name)
+            elif type(instr) == Store:
+                #print(instr)
+                code += '  {} = {};\n'.format(instr.defs.name, instr.uses)
             elif type(instr) == Mix:
                 code += '  mat {} = mix({}, {}, {}, {}, {});\n'.format(
                                             instr.defs.name, 
@@ -87,8 +90,6 @@ class ClangTarget(BaseTarget):
                     code += '  return {};\n'.format(instr.return_value.name)
                 elif type(instr.return_value) == Number: 
                     code += '  return {};\n'.format(instr.return_value.value)
-            elif type(instr) == Store:
-                pass 
             elif type(instr) == Call:
                 if inline == True:
                     code += self.inlined_code_block(instr, instr.name, instr.defs.name)
@@ -149,7 +150,6 @@ class ClangTarget(BaseTarget):
                 if type(instr) == Dispose:
                     a = inline_var_names(instr.uses[0].name, parameter_map)
                     code += '{}dispose({});\n'.format(indent, a)
-
                 elif type(instr) == Mix:
                     r = inline_var_names(instr.defs.name, parameter_map)
                     a   = inline_var_names(instr.uses[0].name, parameter_map)
