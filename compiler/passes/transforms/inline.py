@@ -10,7 +10,7 @@ class Inline(BSTransform):
         self.var_num = 0
 
 
-    def handle_call(self, program, call):
+    def handle_call(self, program, call, already_called=set()):
         def inline_var_names(a, parameter_map, global_vars):
             '''
             small local function for transforming parameter arguments into their
@@ -82,8 +82,8 @@ class Inline(BSTransform):
                 elif type(instr) == Return:
                     inline_instr = NOP()
                 elif type(instr) == Call:
-                    if instr.name != func_name:
-                        instructions = instructions + self.handle_call(program, instr)
+                    if instr.name != func_name and instr.name not in already_called:
+                        instructions = instructions + self.handle_call(program, instr, already_called=already_called|{func_name})
                         inline_instr = NOP()
                     else:
                         #we have entered a recursive area, cannot inline
