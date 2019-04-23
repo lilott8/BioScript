@@ -1,5 +1,4 @@
 import colorlog
-
 import compiler.data_structures.ir as ir
 
 

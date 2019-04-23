@@ -4,15 +4,26 @@ manifest bbb
 
 functions:
 
-function foo() {
-    a = bar()
-    return 1
+function abc(a, b) {
+  c = dispense aaa
+  d = defg(a, b)
+  return c 
 }
 
-function bar() {
-    return 2
+function defg(a, b) {
+  g = ghi(a, b)
+
+  return a
+}
+
+function ghi(a, b) {
+  c = mix a with b
+  return b
 }
 
 instructions:
+a = dispense aaa
+b = dispense bbb
+var = abc(a, b)
 
-c = foo()
+
