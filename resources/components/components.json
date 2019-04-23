@@ -4,7 +4,10 @@
       {
         "entity": "serpentine-mixer",
         "id": "",
-        "layers": "flow",
+        "layers": [
+          "flow",
+          "control"
+        ],
         "name": "",
         "x-span": 150,
         "y-span": 60,
@@ -34,7 +37,10 @@
       {
         "entity": "circular-mixer",
         "id": "",
-        "layers": "flow",
+        "layers": [
+          "flow",
+          "control"
+        ],
         "name": "",
         "x-span": 150,
         "y-span": 60,
@@ -220,7 +226,10 @@
       {
         "entity": "line-detector",
         "id": "",
-        "layers": "flow",
+        "layers": [
+          "flow",
+          "control"
+        ],
         "name": "",
         "x-span": 150,
         "y-span": 30,
@@ -244,7 +253,10 @@
       {
         "entity": "line-detector",
         "id": "",
-        "layers": "flow",
+        "layers": [
+          "flow",
+          "control"
+        ],
         "name": "",
         "x-span": 150,
         "y-span": 30,
@@ -253,12 +265,24 @@
             "label": "input_1",
             "layer": "flow",
             "x": 0,
-            "y": 52
+            "y": 30
           },
           {
             "label": "output_1",
             "layer": "flow",
             "x": 150,
+            "y": 30
+          },
+          {
+            "label": "control_input_1",
+            "layer": "control",
+            "x": 10,
+            "y": 30
+          },
+          {
+            "label": "control_output_1",
+            "layer": "control",
+            "x": 140,
             "y": 30
           }
         ],
@@ -339,7 +363,10 @@
       {
         "entity": "line-detector",
         "id": "",
-        "layers": "flow",
+        "layers": [
+          "flow",
+          "control"
+        ],
         "name": "",
         "x-span": 150,
         "y-span": 30,
@@ -363,7 +390,10 @@
       {
         "entity": "line-detector",
         "id": "",
-        "layers": "flow",
+        "layers": [
+          "flow",
+          "control"
+        ],
         "name": "",
         "x-span": 150,
         "y-span": 30,
@@ -372,12 +402,24 @@
             "label": "input_1",
             "layer": "flow",
             "x": 0,
-            "y": 52
+            "y": 30
           },
           {
             "label": "output_1",
             "layer": "flow",
             "x": 150,
+            "y": 30
+          },
+          {
+            "label": "control_input_1",
+            "layer": "control",
+            "x": 10,
+            "y": 30
+          },
+          {
+            "label": "control_output_1",
+            "layer": "control",
+            "x": 140,
             "y": 30
           }
         ],
@@ -458,7 +500,10 @@
       {
         "entity": "2-split",
         "id": "",
-        "layers": "flow",
+        "layers": [
+          "flow",
+          "control"
+        ],
         "name": "",
         "x-span": 150,
         "y-span": 30,
@@ -488,7 +533,10 @@
       {
         "entity": "2-split",
         "id": "",
-        "layers": "flow",
+        "layers": [
+          "flow",
+          "control"
+        ],
         "name": "",
         "x-span": 150,
         "y-span": 30,
@@ -693,7 +741,10 @@
       {
         "entity": "input",
         "id": "",
-        "layers": "flow",
+        "layers": [
+          "flow",
+          "control"
+        ],
         "name": "",
         "x-span": 150,
         "y-span": 30,
@@ -717,7 +768,10 @@
       {
         "entity": "input",
         "id": "",
-        "layers": "flow",
+        "layers": [
+          "flow",
+          "control"
+        ],
         "name": "",
         "x-span": 150,
         "y-span": 30,
@@ -736,13 +790,13 @@
           },
           {
             "label": "control_input_1",
-            "layer": "flow",
+            "layer": "control",
             "x": 25,
             "y": 52
           },
           {
             "label": "control_output_1",
-            "layer": "flow",
+            "layer": "control",
             "x": 125,
             "y": 30
           }
@@ -826,7 +880,10 @@
       {
         "entity": "output",
         "id": "",
-        "layers": "flow",
+        "layers": [
+          "flow",
+          "control"
+        ],
         "name": "",
         "x-span": 150,
         "y-span": 30,
@@ -850,7 +907,10 @@
       {
         "entity": "output",
         "id": "",
-        "layers": "flow",
+        "layers": [
+          "flow",
+          "control"
+        ],
         "name": "",
         "x-span": 150,
         "y-span": 30,
@@ -869,13 +929,13 @@
           },
           {
             "label": "control_input_1",
-            "layer": "flow",
+            "layer": "control",
             "x": 25,
             "y": 52
           },
           {
             "label": "control_output_1",
-            "layer": "flow",
+            "layer": "control",
             "x": 125,
             "y": 30
           }
