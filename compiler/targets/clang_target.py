@@ -54,7 +54,7 @@ class ClangTarget(BaseTarget):
             return 'mat'
 
 
-    def construct_basic_block_code(self, instructions, inline=False):
+    def construct_basic_block_code(self, instructions):
         code = ''
         for instr in instructions:
             if type(instr) == Dispose:
@@ -92,18 +92,14 @@ class ClangTarget(BaseTarget):
                 elif type(instr.return_value) == Number: 
                     code += '  return {};\n'.format(instr.return_value.value)
             elif type(instr) == Call:
-                if inline == True:
-                    code += self.inlined_code_block(instr, instr.name, instr.defs.name)
-                else:
-                    ret = ClangTarget.get_type_string(instr.function.types)
-                    args = ''
-                    for arg in instr.uses:
-                        if args:
-                            args += ', '+arg.name
-                        else:
-                            args = arg.name
-
-                    code += '  {} {} = {}({});\n'.format(ret, instr.defs.name, instr.name, args)
+                ret = ClangTarget.get_type_string(instr.function.types)
+                args = ''
+                for arg in instr.uses:
+                    if args:
+                        args += ', '+arg.name
+                    else:
+                        args = arg.name
+                code += '  {} {} = {}({});\n'.format(ret, instr.defs.name, instr.name, args)
             elif type(instr) == BinaryOps:
                 pass
             else:
@@ -111,99 +107,7 @@ class ClangTarget(BaseTarget):
         return code
 
 
-    def inlined_code_block(self, instr, func_name, ret, tab='  '):
-        '''
-        alpha conversion of variables based on func_name e.g.
-        a function fibonacci with a variable named "a" will
-        have variable alpha converted to the name "fibonacci_a"
-        '''
-
-        def inline_var_names(a, parameter_map):
-            '''
-            small local function for transforming parameter arguments into their
-            appropriate outer scope variables
-            '''
-            if a in parameter_map:
-                return parameter_map[a] 
-            else:
-                if a[-1] == '0':
-                    return func_name + '_' + a
-                else:
-                    return func_name + '_' + a + '0'
-
-
-
-        indent = tab + '  '
-        func_info = self.program.symbol_table.functions[func_name]
-        code = '{}{} {};\n'.format(tab, ClangTarget.get_type_string(func_info.types), ret)
-        code += tab + '{\n' + indent + '//inlined function {}\n'.format(func_name)
-        
-        parameter_map = {}
-        #map the parameters to the actual variable names
-        for arg, uses in zip(func_info.args, instr.uses):
-            key = arg.name# + '0' 
-            value = uses.name
-            parameter_map[key] = value 
-
-
-        for block in self.program.functions[func_name]['blocks'].values():
-            for instr in block.instructions:
-                if type(instr) == Dispose:
-                    a = inline_var_names(instr.uses[0].name, parameter_map)
-                    code += '{}dispose({});\n'.format(indent, a)
-                elif type(instr) == Mix:
-                    r = inline_var_names(instr.defs.name, parameter_map)
-                    a   = inline_var_names(instr.uses[0].name, parameter_map)
-                    b   = inline_var_names(instr.uses[1].name, parameter_map)
-                    code += '{}mat {} = mix({}, {}, {}, {}, {});\n'.format(
-                                                     indent, r,
-                                                     a, 
-                                                     instr.uses[0].size,
-                                                     b, 
-                                                     instr.uses[1].size,
-                                                     1000)
-                elif type(instr) == Split:
-                    r = inline_var_names(instr.defs.name, parameter_map)
-                    a = inline_var_names(instr.uses[0].name, parameter_map)
-                    code += '{}mat {} = split({}, {});\n'.format(indent, r, a, instr.uses[0].size)
-                elif type(instr) == Detect:
-                    r = inline_var_names(instr.defs.name, parameter_map)
-                    a   = inline_var_names(instr.uses[0].name)
-                    code += '{}double {} = detect({}, {}, {});\n'.format(indent, r, instr.module.name, a, instr.module.size)
-                elif type(instr) == Heat:
-                    r = inline_var_names(instr.defs.name, parameter_map)
-                    a = inline_var_names(instr.uses[0].name, parameter_map)
-                    code += '{}mat {} = heat({}, {}, {});\n'.format(indent, r, a, instr.uses[0].size, instr.uses[0].size) 
-                elif type(instr) == Dispense:
-                    r = inline_var_names(instr.defs.name, parameter_map)
-                    a   = inline_var_names(instr.uses[0].name, parameter_map)
-                    code += '{}mat {} = dispense({}, {});\n'.format(indent, r, a, instr.uses[0].size)
-                elif type(instr) == Return:
-                    val = inline_var_names(instr.return_value.name, parameter_map)
-                    code += '{}{} = {};\n'.format(indent, ret, val)
-                elif type(instr) == Call:
-                    if instr.name == func_name:
-                        #we come across recursion, just call function normally
-                        #This is the condition for recursion
-                        r = ClangTarget.get_type_string(instr.function.types)
-                        args = ''
-                        for arg in instr.uses:
-                            if args:
-                                args += ', '+arg.name
-                            else:
-                                args = arg.name
-                        code += '{}{} {} = {}({});\n'.format(indent, r, instr.defs.name, instr.name, args)
-                    else:
-                        code += self.inlined_code_block(instr, instr.name, instr.defs.name, tab=indent)
-        code += tab + '}\n' 
-        return code
-
-
     def transform(self):
-        #TODO: fix when inlining is truly implemented
-        INLINE = False 
-
-        #a list of strings that represents all the function code
         self.function_code = []
         self.compiled = \
         '#include <unistd.h>\n' \
@@ -250,39 +154,33 @@ class ClangTarget(BaseTarget):
                 self.compiled += '{} {};\n'.format('module', name)
         self.compiled += '\n'
 
-        if INLINE == True:
-            self.compiled += 'int main(int argc, char const **argv) {\n'
-            for block in self.program.functions['main']['blocks'].values():
-                self.compiled += self.construct_basic_block_code(block.instructions, inline=INLINE)
-            self.compiled += '}\n\n'
-        else:
-            code_func = []
-            for func_name, function in self.program.functions.items():
-                code = ''
-                if func_name == 'main':
-                    code = 'int main(int argc, char const **argv) {\n' 
-                else:
-                    func_info = self.program.symbol_table.functions[func_name]
-                    ret = ClangTarget.get_type_string(func_info.types)
-                    args = ''
+        code_func = []
+        for func_name, function in self.program.functions.items():
+            code = ''
+            if func_name == 'main':
+                code = 'int main(int argc, char const **argv) {\n' 
+            else:
+                func_info = self.program.symbol_table.functions[func_name]
+                ret = ClangTarget.get_type_string(func_info.types)
+                args = ''
 
-                    for arg in func_info.args:
-                        var_name = arg.name
-                        var_type = ClangTarget.get_type_string(arg.types)
-                        if args:
-                            args += ', {} {}'.format(var_type, var_name)
-                        else:
-                            args = '{} {}'.format(var_type, var_name)
+                for arg in func_info.args:
+                    var_name = arg.name
+                    var_type = ClangTarget.get_type_string(arg.types)
+                    if args:
+                        args += ', {} {}'.format(var_type, var_name)
+                    else:
+                        args = '{} {}'.format(var_type, var_name)
 
-                    self.compiled += '{} {}({});\n\n'.format(ret, func_name, args)
-                    code = '{} {}({}) '.format(ret, func_name, args) + '{\n'
-                for block in function['blocks'].values(): 
-                    code += self.construct_basic_block_code(block.instructions, inline=INLINE)
-                code += '}\n\n'
-                code_func.append(code)
- 
-            for c in code_func:
-                self.compiled += c
+                self.compiled += '{} {}({});\n\n'.format(ret, func_name, args)
+                code = '{} {}({}) '.format(ret, func_name, args) + '{\n'
+            for block in function['blocks'].values(): 
+                code += self.construct_basic_block_code(block.instructions)
+            code += '}\n\n'
+            code_func.append(code)
+
+        for c in code_func:
+            self.compiled += c
 
 
         print(self.compiled)
