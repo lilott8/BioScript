@@ -14,6 +14,7 @@ from shared.bs_junk_drawer import write_graph
 from shared.components import FlowType
 from shared.components import get_component_api
 
+import heapq
 
 class InkwellTarget(BaseTarget):
 
@@ -240,6 +241,12 @@ class InkwellTarget(BaseTarget):
         schedule = self.build_schedule(dag, True)
         self.log.info(schedule)
 
+        #treat this list() as a heap, and call heapq functions on it,
+        #like heapq.heappush(queue, (priority, item))  
+        #or   item = heapq.heappop(queue)      
+        queue = []
+
+
         # This maps the node to the
         # extra data we store about it.
         graph = dict(dag.nodes('data'))
@@ -277,6 +284,11 @@ class InkwellTarget(BaseTarget):
                     Case 3: We can execute immediately.
                     """
                     pass
+
+
+
+
+
 
             """
             Now that we have the operations bound,
