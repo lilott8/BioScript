@@ -1,0 +1,13 @@
+module mod
+stationary ccc
+manifest aaa
+manifest bbb
+
+functions:
+
+instructions:
+
+a = dispense aaa
+b = dispense bbb
+c = gradient a with b for 0.0 , 100.0 at 5.0
+dispose c
