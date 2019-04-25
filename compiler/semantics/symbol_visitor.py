@@ -162,6 +162,31 @@ class SymbolTableVisitor(BSBaseVisitor):
         self.symbol_table.update_symbol(name, types)
         return {'types': types, 'size': 1, 'instruction': IRInstruction.DISPOSE, "name": IRInstruction.DISPOSE.name}
 
+    def visitGradient(self, ctx: BSParser.GradientContext):
+        name = ctx.IDENTIFIER(0).__str__()
+        types = {ChemTypes.MAT}
+        self.symbol_table.update_symbol(name, types)
+        start_interval = float(ctx.FLOAT_LITERAL(0).__str__())
+        if not (0.0 <= start_interval <= 100.0):
+            raise InvalidOperation('The interval must start between 0.0 and 100.0.'.format(start_interval))
+        end_interval = float(ctx.FLOAT_LITERAL(1).__str__())
+        if not (0.0 <= end_interval <= 100.0):
+            raise InvalidOperation('The interval must end between 0.0 and 100.0.'.format(endInterval))
+        if end_interval < start_interval:
+            end_interval, start_interval = start_interval, end_interval
+        increment = float(ctx.FLOAT_LITERAL(2).__str__())
+        if increment > (end_interval - start_interval):
+            raise InvalidOperation('The increment must be smaller than the interval.'.format(increment))
+        if increment < 0.0:
+            raise InvalidOperation('The increment must be greater than 0.0.'.format(increment))
+        count = start_interval
+        while count < end_interval:
+            dropName = 'gradient'+str(count)
+            var = self.identifier.identify(dropName, types, self.symbol_table.current_scope.name)
+            self.symbol_table.update_symbol(dropName, var['types'])
+            count += increment
+        return {'types': types, 'size': 1, 'instruction': IRInstruction.GRADIENT, "name": IRInstruction.GRADIENT.name}
+
     def visitExpression(self, ctx: BSParser.ExpressionContext):
         return {"types": {ChemTypes.REAL, ChemTypes.NAT}, "size": 1,
                 'instruction': IRInstruction.BINARYOP, "name": IRInstruction.BINARYOP.name}
@@ -315,3 +340,4 @@ class SymbolTableVisitor(BSBaseVisitor):
             power = power * x
 
         return power == y
+
