@@ -203,8 +203,6 @@ class InkwellTarget(BaseTarget):
                     # We've now seen this
                     seen.add(current)
                 
-                #TODO: when does this activate????? ---Daniel
-                self.config.flow_type = FlowType.ACTIVE 
                 if self.config.flow_type == FlowType.ACTIVE:
                     activations = self.generate_activations(output, component_set, block.dag, sinks)
                     sequences[root][bid]['timing'] = activations
