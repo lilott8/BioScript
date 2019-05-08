@@ -242,6 +242,9 @@ class InkwellTarget(BaseTarget):
         sinks=output
         '''
 
+        self.log.info(dag.nodes('data'))
+
+
         #TODO: this is hard-coded for mix.bs until a more general solution presents itself
         mapping_names_to_graph = {'aaa':1, 'bbb':2, 'c0_id':3, 'c1_id':4}
         mapping_graph_to_names = {1:'aaa', 2:'bbb', 3:'c0_id', 4:'c1_id'}
@@ -264,75 +267,78 @@ class InkwellTarget(BaseTarget):
         #where a variable originates from...
         dispense_dict = {}
 
-        for block in self.program.functions['main']['blocks'].values():
-            for instr in block.instructions:
-                if type(instr) == Dispose:
+        for i, data in dag.nodes('data'):
+            op = data['op']
+            if op == 'DISPOSE':
+                t = {'on':set(), 'off':set()}
 
-                    t = {'on':{}, 'off':{}}
+                node_num = None
+                name = None 
+                for s in data['uses']:
+                    name = s
+                    break
 
-                    node_num = None
-                    name = instr.uses[0].name
-                    if name in mapping_names_to_graph:
-                        node_num = mapping_names_to_graph[name]
-                    elif name + '_id' in mapping_names_to_graph:
-                        node_num = mapping_names_to_graph[name + '_id']
-                    else:
-                        assert(False)
-
-                    #find an arbitrary path to dispose the chemical
-                    for path in paths.values():
-                        #TODO: hard-coded until better solution
-                        a = filter(lambda x: x == node_num, path)
-                        if a:
-                            t['on'] = set(path)
-                            t['off'] = set(complete - t['on'])
-                            break
-                    assert(len(t['on']) != 0)
-
-                    timing.append(t)
-                        
-                               
-                elif type(instr) == Mix:
-                    #schedule the 1st element to be mixed.
-                    e = instr.uses[0].name
-                    start = dispense_dict[e]
-                    t1 = {'on': set(paths[start]), 'off': (complete - set(paths[start]))}
-
-                    #schedule closing of valves
-                    t2 = {'on': set(), 'off': complete}
-
-                    #schedule the 2nd element to be mixed.
-                    e = instr.uses[1].name
-                    start = dispense_dict[e]
-                    t3 = {'on': set(paths[start]), 'off': (complete - set(paths[start]))}
-
-                    timing.append(t1)
-                    timing.append(t2)
-                    timing.append(t3)
-
-                    pass
-                elif type(instr) == Split:
-                    #instr.defs.name,
-                    #instr.uses[0].name,
-                    pass
-                elif type(instr) == Detect:
-                    #instr.defs.name, instr.module.name, instr.uses[0].name,
-                    pass
-                elif type(instr) == Heat:
-                    #instr.defs.name, instr.uses[0].name,
-                    pass
-                elif type(instr) == Dispense:
-                    #to be used for dispensing...
-                    node_name=instr.uses[0].name
-                    dispense_dict[instr.defs.name] = node_name
-
-                    #I assume the start node for the dispense is the beginning of the DAG
-                    start = mapping_names_to_graph[node_name]  
-                    paths[node_name] = nx.dijkstra_path(dag, start, 4)
-
-                    pass
+                if name in mapping_names_to_graph:
+                    node_num = mapping_names_to_graph[name]
+                elif name + '_id' in mapping_names_to_graph:
+                    node_num = mapping_names_to_graph[name + '_id']
                 else:
-                    self.log.info('Unhandled instruction')
+                    assert(False)
+
+                #find an arbitrary path to dispose the chemical
+                for path in paths.values():
+                    #TODO: hard-coded until better solution
+                    a = False 
+                    for node in path:
+                        if node == node_num:
+                            a = True
+                            break
+
+                    if a:
+                        t['on'] = set(path)
+                        t['off'] = set(complete - t['on'])
+                        break
+                assert(len(t['on']) != 0)
+
+                timing.append(t)
+
+            elif op == 'MIX':
+                #schedule the 1st element to be mixed.
+                uses = list(data['uses'])
+                e = uses[0] 
+                start = dispense_dict[e]
+                t1 = {'on': set(paths[start]), 'off': (complete - set(paths[start]))}
+                #schedule closing of valves
+                t2 = {'on': set(), 'off': complete}
+
+                #schedule the 2nd element to be mixed.
+                e = uses[1]
+                start = dispense_dict[e]
+                t3 = {'on': set(paths[start]), 'off': (complete - set(paths[start]))}
+
+                #append timings
+                timing.append(t1)
+                timing.append(t2)
+                timing.append(t3)
+
+            elif op == 'SPLIT':
+                pass
+            elif op == 'HEAT':
+                pass
+            elif op == 'DISPENSE':
+                node_name = None
+                #get first element in set...retriving 1st element is ugly...
+                for a in data['uses']:
+                    node_name = a
+                    break
+                dispense_dict[data['defs']] = node_name
+
+                #I assume the start node for the dispense is the beginning of the DAG
+                start = mapping_names_to_graph[node_name]  
+                paths[node_name] = nx.dijkstra_path(dag, start, 4)
+            else:
+                self.log.warning('Unhandled instruction')
+
 
         self.log.info("Generating activation sequences")
         for i, t in enumerate(timing):
