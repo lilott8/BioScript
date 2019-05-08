@@ -246,6 +246,7 @@ class InkwellTarget(BaseTarget):
         mapping_names_to_graph = {'aaa':1, 'bbb':2, 'c0':3, 'c1':4}
         mapping_graph_to_names = {1:'aaa', 2:'bbb', 3:'c0', 4:'c1'}
 
+        #TODO: need to handle multiple outputs...
         end_node_name = None
         for s in sinks:
             end_node_name = s[7:] # cut-off "output_"
@@ -256,7 +257,7 @@ class InkwellTarget(BaseTarget):
 
         #where start originates from...
         dispense_dict = {}
-
+        #TODO: dag.nodes('data') is NOT the instructions, its the data associated with the ndoes
         for i, data in dag.nodes('data'):
             op = data['op']
             if op == 'DISPOSE':
