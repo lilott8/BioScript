@@ -90,7 +90,7 @@ class PuddleTarget(BaseTarget):
                 is_main = func_name == 'main' 
                 self.compiled += self.construct_basic_block_code(block.instructions, is_main=is_main)
             self.compiled += '\n\n'
-        print(self.compiled)
+        self.log.info(self.compiled)
         return False
 
     def write_mix(self) -> str:

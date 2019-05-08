@@ -14,7 +14,9 @@ from shared.bs_junk_drawer import write_graph
 from shared.components import FlowType
 from shared.components import get_component_api
 
+from compiler.data_structures.ir import *
 import heapq
+
 
 class InkwellTarget(BaseTarget):
 
@@ -103,7 +105,6 @@ class InkwellTarget(BaseTarget):
                   'components': [], 'connections': []}
         sequences = dict()
         component_set = dict()
-
         for root in self.program.functions:
             sequences[root] = dict()
             for bid, block in self.program.functions[root]['blocks'].items():
@@ -202,6 +203,9 @@ class InkwellTarget(BaseTarget):
                             queue.appendleft(out[1])
                     # We've now seen this
                     seen.add(current)
+                
+                #TODO: when does this activate????? ---Daniel
+                self.config.flow_type = FlowType.ACTIVE 
                 if self.config.flow_type == FlowType.ACTIVE:
                     activations = self.generate_activations(output, component_set, block.dag, sinks)
                     sequences[root][bid]['on'] = activations['on']
@@ -224,7 +228,7 @@ class InkwellTarget(BaseTarget):
     def verify_json(self, output: dict, verify: bool = False) -> bool:
         if verify:
             try:
-                self.log.info(json.dumps(output))
+                #self.log.info(json.dumps(output, indent=4, separators=(',', ':')))
                 with open('resources/parchmint_schema.json') as f:
                     schema = json.load(f)
                 validate(instance=output, schema=schema)
@@ -235,18 +239,108 @@ class InkwellTarget(BaseTarget):
                 return False
 
     def generate_activations(self, components: dict, component_set, dag, sinks) -> dict:
+        #TODO: isn't this supposed to be a list of T1, T2, T3, T4
+        # where T = {on: {}, off: {}}   ???????
         results = {"on": {}, "off": {}}
-        # Abstracted so we can change
-        # How this is computed later.
-        schedule = self.build_schedule(dag, True)
-        self.log.info(schedule)
+        '''
+        components=inkwell json.
+        component_set=dispose, mix, dispense, etc.
+        dag=multidigraph.MultiDiGraph
+        sinks=output
+        '''
 
-        #treat this list() as a heap, and call heapq functions on it,
-        #like heapq.heappush(queue, (priority, item))  
-        #or   item = heapq.heappop(queue)      
-        queue = []
+        #TODO: this is hard-coded for mix.bs until a more general solution presents itself
+        mapping_names_to_graph = {'aaa':1, 'bbb':2, 'c0_id':3, 'c1_id':4}
+        mapping_graph_to_names = {1:'aaa', 2:'bbb', 3:'c0_id', 4:'c1_id'}
+        complete = set(range(1, 5))
+        timing = list() 
 
+        self.log.info('\n\nvertices: {}\nedges: {}\n\n\n'.format(dag.nodes, dag.out_edges))
+        self.log.info(sinks)
 
+        #TODO: hard-coded
+        paths = {} 
+        paths['aaa'] = nx.dijkstra_path(dag, 1, 4)
+        paths['bbb'] = nx.dijkstra_path(dag, 2, 4)
+
+        #TODO: all this is hard-coded for mix.bs
+        #if I remember correctly, we inline everything for inkwell,
+
+        #where a variable originates from...
+        dispense_dict = {}
+
+        for block in self.program.functions['main']['blocks'].values():
+            for instr in block.instructions:
+                self.log.info(type(instr))
+                if type(instr) == Dispose:
+
+                    t = {'on':{}, 'off':{}}
+
+                    node_num = None
+                    name = instr.uses[0].name
+                    if name in mapping_names_to_graph:
+                        node_num = mapping_names_to_graph[name]
+                    elif name + '_id' in mapping_names_to_graph:
+                        node_num = mapping_names_to_graph[name + '_id']
+                    else:
+                        assert(False)
+
+                    #find an arbitrary path to dispose the chemical
+                    for path in paths.values():
+                        #TODO: hard-coded until better solution
+                        a = filter(lambda x: x == node_num, path)
+                        if a:
+                            t['on'] = set(path)
+                            t['off'] = set(complete - t['on'])
+                            break
+                    assert(t['on'] != {})
+
+                    timing.append(t)
+                        
+                               
+                elif type(instr) == Mix:
+                    #schedule the 1st element to be mixed.
+                    e = instr.uses[0].name
+                    start = dispense_dict[e]
+                    t1 = {'on': paths[start], 'off': (complete - set(paths[start]))}
+
+                    #schedule closing of valves
+                    t2 = {'on': {}, 'off': complete}
+
+                    #schedule the 2nd element to be mixed.
+                    e = instr.uses[1].name
+                    start = dispense_dict[e]
+                    t3 = {'on': paths[start], 'off': (complete - set(paths[start]))}
+
+                    timing.append(t1)
+                    timing.append(t2)
+                    timing.append(t3)
+
+                    pass
+                elif type(instr) == Split:
+                    #instr.defs.name,
+                    #instr.uses[0].name,
+                    pass
+                elif type(instr) == Detect:
+                    #instr.defs.name, instr.module.name, instr.uses[0].name,
+                    pass
+                elif type(instr) == Heat:
+                    #instr.defs.name, instr.uses[0].name,
+                    pass
+                elif type(instr) == Dispense:
+                    #to be used for dispensing...
+                    node_name=instr.uses[0].name
+                    dispense_dict[instr.defs.name] = node_name
+                    pass
+                else:
+                    self.log.info('Unhandled instruction')
+
+        for i, t in enumerate(timing):
+            print('t{}:   {}'.format(i, t))
+
+        #TODO: return timing #?????
+
+        '''
         # This maps the node to the
         # extra data we store about it.
         graph = dict(dag.nodes('data'))
@@ -284,22 +378,16 @@ class InkwellTarget(BaseTarget):
                     Case 3: We can execute immediately.
                     """
                     pass
-
-
-
-
-
-
             """
             Now that we have the operations bound,
             Let's schedule each operation and 
             The respective flow path.
             """
-
-        self.log.debug(graph)
+        '''
+        #self.log.debug(graph)
         self.log.info(self.components.keys())
-        for node in schedule:
-            pass
+        #for node in schedule:
+        #    pass
         self.log.info("Generating activation sequences")
 
         return results
