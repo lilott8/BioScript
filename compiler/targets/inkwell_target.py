@@ -242,10 +242,10 @@ class InkwellTarget(BaseTarget):
         sinks=output
         '''
         #TODO: this is hard-coded for mix.bs until a more general solution presents itself
+        complete = set(range(1, len(dag.nodes)))
         mapping_names_to_graph = {'aaa':1, 'bbb':2, 'c0':3, 'c1':4}
         mapping_graph_to_names = {1:'aaa', 2:'bbb', 3:'c0', 4:'c1'}
-        complete = set(range(1, 5))
- 
+
         end_node_name = None
         for s in sinks:
             end_node_name = s[7:] # cut-off "output_"
@@ -329,14 +329,13 @@ class InkwellTarget(BaseTarget):
             else:
                 self.log.warning('Unhandled instruction')
 
-
         self.log.info("Generating activation sequences")
         for i, t in enumerate(timing):
             t['on'] = set(map(lambda x: mapping_graph_to_names[x], t['on']))
             t['off'] = set(map(lambda x: mapping_graph_to_names[x], t['off']))
             self.log.info('t{}:   {}'.format(i, t))
-
         return timing
+
 
     def build_schedule(self, dag: nx.DiGraph, with_dispense: bool = False):
         schedule = list(nx.algorithms.dag.topological_sort(dag))
