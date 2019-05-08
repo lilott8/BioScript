@@ -242,12 +242,12 @@ class InkwellTarget(BaseTarget):
         sinks=output
         '''
 
-        self.log.info(dag.nodes('data'))
+        self.log.info(sinks)
 
 
         #TODO: this is hard-coded for mix.bs until a more general solution presents itself
-        mapping_names_to_graph = {'aaa':1, 'bbb':2, 'c0_id':3, 'c1_id':4}
-        mapping_graph_to_names = {1:'aaa', 2:'bbb', 3:'c0_id', 4:'c1_id'}
+        mapping_names_to_graph = {'aaa':1, 'bbb':2, 'c0':3, 'c1':4}
+        mapping_graph_to_names = {1:'aaa', 2:'bbb', 3:'c0', 4:'c1'}
         complete = set(range(1, 5))
         timing = list() 
 
@@ -278,12 +278,8 @@ class InkwellTarget(BaseTarget):
                     name = s
                     break
 
-                if name in mapping_names_to_graph:
-                    node_num = mapping_names_to_graph[name]
-                elif name + '_id' in mapping_names_to_graph:
-                    node_num = mapping_names_to_graph[name + '_id']
-                else:
-                    assert(False)
+                assert(name in mapping_names_to_graph)
+                node_num = mapping_names_to_graph[name]
 
                 #find an arbitrary path to dispose the chemical
                 for path in paths.values():
@@ -299,7 +295,6 @@ class InkwellTarget(BaseTarget):
                         t['off'] = set(complete - t['on'])
                         break
                 assert(len(t['on']) != 0)
-
                 timing.append(t)
 
             elif op == 'MIX':
