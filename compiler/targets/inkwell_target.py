@@ -301,7 +301,7 @@ class InkwellTarget(BaseTarget):
                     #schedule the 1st element to be mixed.
                     e = instr.uses[0].name
                     start = dispense_dict[e]
-                    t1 = {'on': paths[start], 'off': (complete - set(paths[start]))}
+                    t1 = {'on': set(paths[start]), 'off': (complete - set(paths[start]))}
 
                     #schedule closing of valves
                     t2 = {'on': {}, 'off': complete}
@@ -309,7 +309,7 @@ class InkwellTarget(BaseTarget):
                     #schedule the 2nd element to be mixed.
                     e = instr.uses[1].name
                     start = dispense_dict[e]
-                    t3 = {'on': paths[start], 'off': (complete - set(paths[start]))}
+                    t3 = {'on': set(paths[start]), 'off': (complete - set(paths[start]))}
 
                     timing.append(t1)
                     timing.append(t2)
