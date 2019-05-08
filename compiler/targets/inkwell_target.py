@@ -241,30 +241,20 @@ class InkwellTarget(BaseTarget):
         dag=multidigraph.MultiDiGraph
         sinks=output
         '''
-
-        self.log.info(sinks)
-
-
         #TODO: this is hard-coded for mix.bs until a more general solution presents itself
         mapping_names_to_graph = {'aaa':1, 'bbb':2, 'c0':3, 'c1':4}
         mapping_graph_to_names = {1:'aaa', 2:'bbb', 3:'c0', 4:'c1'}
         complete = set(range(1, 5))
+ 
+        end_node_name = None
+        for s in sinks:
+            end_node_name = s[7:] # cut-off "output_"
+            break
+        end_node_num = mapping_names_to_graph[end_node_name]
         timing = list() 
-
-        #self.log.info('\n\nvertices: {}\nedges: {}\n\n\n'.format(dag.nodes, dag.out_edges))
-        #self.log.info(sinks)
-
-        #TODO: hard-coded
         paths = {} 
-        #paths['aaa'] = nx.dijkstra_path(dag, 1, 4)
-        #paths['bbb'] = nx.dijkstra_path(dag, 2, 4)
 
-        #TODO: all this is hard-coded for mix.bs, but I try to also write some general code also...
-        #TODO: 4 is assumed to be the endpoint, but this will obviously change
-        #if I remember correctly, we inline everything for inkwell,
-
-
-        #where a variable originates from...
+        #where start originates from...
         dispense_dict = {}
 
         for i, data in dag.nodes('data'):
@@ -298,11 +288,15 @@ class InkwellTarget(BaseTarget):
                 timing.append(t)
 
             elif op == 'MIX':
+                ##TODO: does the order of the mix matters????? because
+                ##obtaining the mix a with b is in an unordered set...
+
                 #schedule the 1st element to be mixed.
                 uses = list(data['uses'])
                 e = uses[0] 
                 start = dispense_dict[e]
                 t1 = {'on': set(paths[start]), 'off': (complete - set(paths[start]))}
+
                 #schedule closing of valves
                 t2 = {'on': set(), 'off': complete}
 
@@ -330,7 +324,8 @@ class InkwellTarget(BaseTarget):
 
                 #I assume the start node for the dispense is the beginning of the DAG
                 start = mapping_names_to_graph[node_name]  
-                paths[node_name] = nx.dijkstra_path(dag, start, 4)
+                paths[node_name] = nx.dijkstra_path(dag, start, end_node_num )
+                print(nx.single_source_shortest_path(dag, start))
             else:
                 self.log.warning('Unhandled instruction')
 
