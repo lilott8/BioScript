@@ -263,6 +263,7 @@ class InkwellTarget(BaseTarget):
         #paths['bbb'] = nx.dijkstra_path(dag, 2, 4)
 
         #TODO: all this is hard-coded for mix.bs, but I try to also write some general code also...
+        #TODO: 4 is assumed to be the endpoint, but this will obviously change
         #if I remember correctly, we inline everything for inkwell,
 
 
@@ -292,7 +293,7 @@ class InkwellTarget(BaseTarget):
                             t['on'] = set(path)
                             t['off'] = set(complete - t['on'])
                             break
-                    assert(t['on'] != {})
+                    assert(len(t['on']) != 0)
 
                     timing.append(t)
                         
@@ -304,7 +305,7 @@ class InkwellTarget(BaseTarget):
                     t1 = {'on': set(paths[start]), 'off': (complete - set(paths[start]))}
 
                     #schedule closing of valves
-                    t2 = {'on': {}, 'off': complete}
+                    t2 = {'on': set(), 'off': complete}
 
                     #schedule the 2nd element to be mixed.
                     e = instr.uses[1].name
@@ -385,6 +386,8 @@ class InkwellTarget(BaseTarget):
         '''
         self.log.info("Generating activation sequences")
         for i, t in enumerate(timing):
+            t['on'] = set(map(lambda x: mapping_graph_to_names[x], t['on']))
+            t['off'] = set(map(lambda x: mapping_graph_to_names[x], t['off']))
             self.log.info('t{}:   {}'.format(i, t))
 
         #TODO: return timing #?????
