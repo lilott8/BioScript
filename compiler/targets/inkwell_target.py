@@ -15,7 +15,6 @@ from shared.components import FlowType
 from shared.components import get_component_api
 
 from compiler.data_structures.ir import *
-import heapq
 
 
 class InkwellTarget(BaseTarget):
