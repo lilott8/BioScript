@@ -207,8 +207,7 @@ class InkwellTarget(BaseTarget):
                 self.config.flow_type = FlowType.ACTIVE 
                 if self.config.flow_type == FlowType.ACTIVE:
                     activations = self.generate_activations(output, component_set, block.dag, sinks)
-                    sequences[root][bid]['on'] = activations['on']
-                    sequences[root][bid]['off'] = activations['off']
+                    sequences[root][bid]['timing'] = activations
 
             verified = self.verify_json(output, True)
             if verified:
@@ -238,9 +237,6 @@ class InkwellTarget(BaseTarget):
                 return False
 
     def generate_activations(self, components: dict, component_set, dag, sinks) -> dict:
-        #TODO: isn't this supposed to be a list of T1, T2, T3, T4
-        # where T = {on: {}, off: {}}   ???????
-        results = {"on": {}, "off": {}}
         '''
         components=inkwell json.
         component_set=dispose, mix, dispense, etc.
@@ -340,59 +336,13 @@ class InkwellTarget(BaseTarget):
                 else:
                     self.log.info('Unhandled instruction')
 
-        '''
-        # This maps the node to the
-        # extra data we store about it.
-        graph = dict(dag.nodes('data'))
-        while schedule:
-            op_to_bind = schedule.pop()
-            component_to_bind_to = None
-            earliest_time_to_bind = -1
-
-            """
-            Now we are going to find the best component
-            That can handle this operation.
-            """
-            for component in component_set[graph[op_to_bind]['op']]:
-                """
-                There are three cases:
-                1) The output of a predecessor is an input to this operation.
-                2) The output of op(m) is a fluid that is not input to o_j.
-                3) The component is ready to be used.
-                """
-                time_to_bind = -1
-                if len(list(dag.in_edges(op_to_bind))) > 0:
-                    self.log.info("We have incoming edges.")
-                    """
-                    Case 1: We have to wait until the predecessor is ready.
-                    """
-
-                    pass
-                elif 0 == 1:
-                    """
-                    Case 2: Output of op(m) is not needed for o_j
-                    """
-                    pass
-                else:
-                    """
-                    Case 3: We can execute immediately.
-                    """
-                    pass
-            """
-            Now that we have the operations bound,
-            Let's schedule each operation and 
-            The respective flow path.
-            """
-        '''
         self.log.info("Generating activation sequences")
         for i, t in enumerate(timing):
             t['on'] = set(map(lambda x: mapping_graph_to_names[x], t['on']))
             t['off'] = set(map(lambda x: mapping_graph_to_names[x], t['off']))
             self.log.info('t{}:   {}'.format(i, t))
 
-        #TODO: return timing #?????
-
-        return results
+        return timing
 
     def build_schedule(self, dag: nx.DiGraph, with_dispense: bool = False):
         schedule = list(nx.algorithms.dag.topological_sort(dag))
