@@ -255,23 +255,23 @@ class InkwellTarget(BaseTarget):
         complete = set(range(1, 5))
         timing = list() 
 
-        self.log.info('\n\nvertices: {}\nedges: {}\n\n\n'.format(dag.nodes, dag.out_edges))
-        self.log.info(sinks)
+        #self.log.info('\n\nvertices: {}\nedges: {}\n\n\n'.format(dag.nodes, dag.out_edges))
+        #self.log.info(sinks)
 
         #TODO: hard-coded
         paths = {} 
-        paths['aaa'] = nx.dijkstra_path(dag, 1, 4)
-        paths['bbb'] = nx.dijkstra_path(dag, 2, 4)
+        #paths['aaa'] = nx.dijkstra_path(dag, 1, 4)
+        #paths['bbb'] = nx.dijkstra_path(dag, 2, 4)
 
-        #TODO: all this is hard-coded for mix.bs
+        #TODO: all this is hard-coded for mix.bs, but I try to also write some general code also...
         #if I remember correctly, we inline everything for inkwell,
+
 
         #where a variable originates from...
         dispense_dict = {}
 
         for block in self.program.functions['main']['blocks'].values():
             for instr in block.instructions:
-                self.log.info(type(instr))
                 if type(instr) == Dispose:
 
                     t = {'on':{}, 'off':{}}
@@ -331,14 +331,14 @@ class InkwellTarget(BaseTarget):
                     #to be used for dispensing...
                     node_name=instr.uses[0].name
                     dispense_dict[instr.defs.name] = node_name
+
+                    #I assume the start node for the dispense is the beginning of the DAG
+                    start = mapping_names_to_graph[node_name]  
+                    paths[node_name] = nx.dijkstra_path(dag, start, 4)
+
                     pass
                 else:
                     self.log.info('Unhandled instruction')
-
-        for i, t in enumerate(timing):
-            print('t{}:   {}'.format(i, t))
-
-        #TODO: return timing #?????
 
         '''
         # This maps the node to the
@@ -384,11 +384,11 @@ class InkwellTarget(BaseTarget):
             The respective flow path.
             """
         '''
-        #self.log.debug(graph)
-        self.log.info(self.components.keys())
-        #for node in schedule:
-        #    pass
         self.log.info("Generating activation sequences")
+        for i, t in enumerate(timing):
+            self.log.info('t{}:   {}'.format(i, t))
+
+        #TODO: return timing #?????
 
         return results
 
