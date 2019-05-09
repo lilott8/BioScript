@@ -1,0 +1,22 @@
+manifest aaa
+manifest bbb
+manifest ccc
+
+functions:
+
+instructions:
+
+a = dispense aaa
+a2 = dispense aaa
+b = dispense bbb
+b2 = dispense bbb
+c = dispense ccc
+
+ab = mix a with b
+a2b2 = mix a2 with b2
+
+dispose ab
+dispose a2b2
+
+heat c at 10f for 30s
+dispose c
