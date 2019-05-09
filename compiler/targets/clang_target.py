@@ -60,8 +60,6 @@ class ClangTarget(BaseTarget):
             if type(instr) == Dispose:
                 code += '  dispose({});\n'.format(instr.uses[0].name)
             elif type(instr) == Store:
-                #print(instr)
-                
                 code += '  {} = {};\n'.format(instr.defs.name, instr.uses)
             elif type(instr) == Mix:
                 code += '  mat {} = mix({}, {}, {}, {}, {});\n'.format(
@@ -181,7 +179,7 @@ class ClangTarget(BaseTarget):
 
         for c in code_func:
             self.compiled += c
-        print(self.compiled)
+        self.log.info(self.compiled)
         return False 
 
     def write_mix(self) -> str:

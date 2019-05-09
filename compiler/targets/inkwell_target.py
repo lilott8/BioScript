@@ -14,6 +14,8 @@ from shared.bs_junk_drawer import write_graph
 from shared.components import FlowType
 from shared.components import get_component_api
 
+from compiler.data_structures.ir import *
+
 
 class InkwellTarget(BaseTarget):
 
@@ -102,7 +104,6 @@ class InkwellTarget(BaseTarget):
                   'components': [], 'connections': []}
         sequences = dict()
         component_set = dict()
-
         for root in self.program.functions:
             sequences[root] = dict()
             for bid, block in self.program.functions[root]['blocks'].items():
@@ -201,10 +202,10 @@ class InkwellTarget(BaseTarget):
                             queue.appendleft(out[1])
                     # We've now seen this
                     seen.add(current)
+                
                 if self.config.flow_type == FlowType.ACTIVE:
                     activations = self.generate_activations(output, component_set, block.dag, sinks)
-                    sequences[root][bid]['on'] = activations['on']
-                    sequences[root][bid]['off'] = activations['off']
+                    sequences[root][bid]['timing'] = activations
 
             verified = self.verify_json(output, True)
             if verified:
@@ -223,7 +224,7 @@ class InkwellTarget(BaseTarget):
     def verify_json(self, output: dict, verify: bool = False) -> bool:
         if verify:
             try:
-                self.log.info(json.dumps(output))
+                #self.log.info(json.dumps(output, indent=4, separators=(',', ':')))
                 with open('resources/parchmint_schema.json') as f:
                     schema = json.load(f)
                 validate(instance=output, schema=schema)
@@ -234,63 +235,124 @@ class InkwellTarget(BaseTarget):
                 return False
 
     def generate_activations(self, components: dict, component_set, dag, sinks) -> dict:
-        results = {"on": {}, "off": {}}
-        # Abstracted so we can change
-        # How this is computed later.
-        schedule = self.build_schedule(dag, True)
-        self.log.info(schedule)
+        '''
+        components=inkwell json.
+        component_set=dispose, mix, dispense, etc.
+        dag=multidigraph.MultiDiGraph
+        sinks=output
+        '''
 
-        # This maps the node to the
-        # extra data we store about it.
-        graph = dict(dag.nodes('data'))
-        while schedule:
-            op_to_bind = schedule.pop()
-            component_to_bind_to = None
-            earliest_time_to_bind = -1
+        def find_start(e, dispense_dict, mix_defs_dict):
+            if e in dispense_dict:
+                return dispense_dict[e]
+            else:
+                return mix_defs_dict[e]
 
-            """
-            Now we are going to find the best component
-            That can handle this operation.
-            """
-            for component in component_set[graph[op_to_bind]['op']]:
-                """
-                There are three cases:
-                1) The output of a predecessor is an input to this operation.
-                2) The output of op(m) is a fluid that is not input to o_j.
-                3) The component is ready to be used.
-                """
-                time_to_bind = -1
-                if len(list(dag.in_edges(op_to_bind))) > 0:
-                    self.log.info("We have incoming edges.")
-                    """
-                    Case 1: We have to wait until the predecessor is ready.
-                    """
+        def find_end(sinks, paths):
+            for s in sinks:
+                if s in paths:
+                    return s
 
+
+        complete = set(range(1, len(dag.nodes)))
+        mapping_names_to_graph = {} 
+        mapping_graph_to_names = {}
+        
+        for i, data in dag.nodes('data'):
+            op = data['op']
+            if op == 'DISPOSE':
+                mapping_names_to_graph[data['defs']] = i
+                mapping_graph_to_names[i] = data['defs']
+            elif op == 'MIX':
+                mapping_names_to_graph[data['defs']] = i
+                mapping_graph_to_names[i] = data['defs']
+            elif op == 'SPLIT':
+                pass
+            elif op == 'HEAT':
+                pass
+            elif op == 'DISPENSE':
+                key = None
+                for s in data['uses']:
+                    key = s
+                    break
+                mapping_graph_to_names[i] = key
+                mapping_names_to_graph[key] = i 
+            else:
+                pass
+
+
+        sink_names = set(map(lambda s : s[7:], sinks)) 
+        sink_nums  = set(map(lambda s : mapping_names_to_graph[s], sink_names))
+        timing = list() 
+        paths = {} 
+
+        #where start originates from...
+        dispense_dict = {}
+        mix_defs_dict = {}
+
+        for block in self.program.functions['main']['blocks'].values():
+            for instr in block.instructions:
+                if type(instr) == Dispose:
+                    t = {}
+                    name = instr.uses[0].name 
+                    assert(name in mapping_names_to_graph)
+                    node_num = mapping_names_to_graph[name]
+                    for path in paths.values():
+                        for pp in path.values():
+                            if node_num in pp:
+                                t['on'] = pp 
+                                t['off'] = complete - pp
+                                break
+                    assert(len(t['on']) != 0)
+                    timing.append(t)
+
+                elif type(instr) == Mix:
+                    #schedule the 1st element to be mixed.
+                    e = instr.uses[0].name
+                    start = find_start(e, dispense_dict, mix_defs_dict)
+                    end   = find_end(sink_nums, paths[start])
+                    t1 = {'on': paths[start][end], 'off': (complete - paths[start][end])}
+    
+                    #schedule closing of valves
+                    t2 = {'on': set(), 'off': complete}
+    
+                    #schedule the 2nd element to be mixed.
+                    e = instr.uses[1].name
+                    start = find_start(e, dispense_dict, mix_defs_dict) 
+                    t3 = {'on': paths[start][end], 'off': (complete - paths[start][end])}
+
+                    #append timings
+                    timing.append(t1)
+                    timing.append(t2)
+                    timing.append(t3)
+
+                    #picked an arbitary start node
+                    mix_defs_dict[instr.defs.name] = start
+
+                elif type(instr) == Split:
                     pass
-                elif 0 == 1:
-                    """
-                    Case 2: Output of op(m) is not needed for o_j
-                    """
+                elif type(instr) == Heat:
                     pass
+                elif type(instr) == Dispense:
+                    node_name = instr.uses[0].name
+                    dispense_dict[instr.defs.name] = node_name
+                    start = mapping_names_to_graph[node_name] 
+                    paths[node_name] = {}
+                    for n, path in nx.single_source_shortest_path(dag, start).items():
+                        if n not in sink_nums:
+                            continue
+                        paths[node_name][n] = set(path)
                 else:
-                    """
-                    Case 3: We can execute immediately.
-                    """
-                    pass
+                    self.log.warning('Unhandled instruction')
 
-            """
-            Now that we have the operations bound,
-            Let's schedule each operation and 
-            The respective flow path.
-            """
 
-        self.log.debug(graph)
-        self.log.info(self.components.keys())
-        for node in schedule:
-            pass
         self.log.info("Generating activation sequences")
+        for i, t in enumerate(timing):
+            t['on'] = set(map(lambda x: mapping_graph_to_names[x], t['on']))
+            t['off'] = set(map(lambda x: mapping_graph_to_names[x], t['off']))
+            self.log.info('t{}:   {}'.format(i, t))
+        return timing
 
-        return results
 
     def build_schedule(self, dag: nx.DiGraph, with_dispense: bool = False):
         schedule = list(nx.algorithms.dag.topological_sort(dag))
