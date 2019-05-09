@@ -241,10 +241,10 @@ class InkwellTarget(BaseTarget):
         dag=multidigraph.MultiDiGraph
         sinks=output
         '''
+        print(dag.nodes, dag.edges)
         complete = set(range(1, len(dag.nodes)))
         mapping_names_to_graph = {} 
         mapping_graph_to_names = {}
-        self.log.info(dag.nodes('data'))
         
         for i, data in dag.nodes('data'):
             op = data['op']
@@ -267,7 +267,7 @@ class InkwellTarget(BaseTarget):
                 mapping_names_to_graph[key] = i 
             else:
                 pass
-
+        print(mapping_names_to_graph)
 
         #TODO: need to handle multiple outputs...
         end_node_name = None
@@ -280,79 +280,79 @@ class InkwellTarget(BaseTarget):
 
         #where start originates from...
         dispense_dict = {}
-        #TODO: dag.nodes('data') is NOT the instructions, its the data associated with the ndoes
-        #TODO: could probably associate 
-        for i, data in dag.nodes('data'):
-            op = data['op']
-            if op == 'DISPOSE':
-                t = {'on':set(), 'off':set()}
+        mix_defs_dict = {}
 
-                node_num = None
-                name = None 
-                for s in data['uses']:
-                    name = s
-                    break
+        for block in self.program.functions['main']['blocks'].values():
+            for instr in block.instructions:
+                if type(instr) == Dispose:
+                     
+                    t = {'on':set(), 'off':set()}
 
-                assert(name in mapping_names_to_graph)
-                node_num = mapping_names_to_graph[name]
+                    node_num = None
+                    name = instr.uses[0].name 
 
-                #find an arbitrary path to dispose the chemical
-                for path in paths.values():
-                    #TODO: hard-coded until better solution
-                    a = False 
-                    for node in path:
-                        if node == node_num:
-                            a = True
+                    assert(name in mapping_names_to_graph)
+                    node_num = mapping_names_to_graph[name]
+
+                    #find an arbitrary path to dispose the chemical
+                    for path in paths.values():
+                        #TODO: hard-coded until better solution
+                        a = False 
+                        for node in path:
+                            if node == node_num:
+                                a = True
+                                break
+
+                        if a:
+                            t['on'] = set(path)
+                            t['off'] = set(complete - t['on'])
                             break
+                    assert(len(t['on']) != 0)
+                    timing.append(t)
 
-                    if a:
-                        t['on'] = set(path)
-                        t['off'] = set(complete - t['on'])
-                        break
-                assert(len(t['on']) != 0)
-                timing.append(t)
+                elif type(instr) == Mix:
+                    #schedule the 1st element to be mixed.
+                    e = instr.uses[0].name
+                    start = None
+                    if e in dispense_dict:
+                        start = dispense_dict[e]
+                    else:
+                        start = mix_defs_dict[e]
+                    t1 = {'on': paths[start], 'off': (complete - paths[start])}
+    
+                    #schedule closing of valves
+                    t2 = {'on': set(), 'off': complete}
+    
+                    #schedule the 2nd element to be mixed.
+                    e = instr.uses[1].name
+                    start = None
+                    if e in dispense_dict:
+                        start = dispense_dict[e]
+                    else:
+                        start = mix_defs_dict[e]
+                    t3 = {'on': paths[start], 'off': (complete - paths[start])}
 
-            elif op == 'MIX':
-                ##TODO: does the order of the mix matters????? because
-                ##obtaining the mix a with b is in an unordered set...
+                    #append timings
+                    timing.append(t1)
+                    timing.append(t2)
+                    timing.append(t3)
 
-                #schedule the 1st element to be mixed.
-                uses = list(data['uses'])
-                e = uses[0] 
-                start = dispense_dict[e]
-                t1 = {'on': set(paths[start]), 'off': (complete - set(paths[start]))}
+                    #picked an arbitary start node
+                    mix_defs_dict[instr.defs.name] = start
 
-                #schedule closing of valves
-                t2 = {'on': set(), 'off': complete}
+                elif type(instr) == Split:
+                    pass
+                elif type(instr) == Heat:
+                    pass
+                elif type(instr) == Dispense:
+                    node_name = instr.uses[0].name
+                    dispense_dict[instr.defs.name] = node_name
+                    start = mapping_names_to_graph[node_name] 
+                    paths[node_name] = set(nx.dijkstra_path(dag, start, end_node_num))
+                    #nx.single_source_shortest_path(dag, start)
+                else:
+                    self.log.warning('Unhandled instruction')
 
-                #schedule the 2nd element to be mixed.
-                e = uses[1]
-                start = dispense_dict[e]
-                t3 = {'on': set(paths[start]), 'off': (complete - set(paths[start]))}
-
-                #append timings
-                timing.append(t1)
-                timing.append(t2)
-                timing.append(t3)
-
-            elif op == 'SPLIT':
-                pass
-            elif op == 'HEAT':
-                pass
-            elif op == 'DISPENSE':
-                node_name = None
-                #get first element in set...retriving 1st element is ugly...
-                for a in data['uses']:
-                    node_name = a
-                    break
-                dispense_dict[data['defs']] = node_name
-
-                #I assume the start node for the dispense is the beginning of the DAG
-                start = mapping_names_to_graph[node_name]  
-                paths[node_name] = nx.dijkstra_path(dag, start, end_node_num )
-                print(nx.single_source_shortest_path(dag, start))
-            else:
-                self.log.warning('Unhandled instruction')
 
         self.log.info("Generating activation sequences")
         for i, t in enumerate(timing):

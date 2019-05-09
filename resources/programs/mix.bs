@@ -2,6 +2,8 @@ module mod
 stationary ccc
 manifest aaa
 manifest bbb
+manifest ccc
+manifest ddd
 
 functions:
 
@@ -9,5 +11,9 @@ instructions:
 
 a = dispense aaa
 b = dispense bbb
-c = mix a with b
-dispose c
+c = dispense ccc
+d = dispense ddd
+e = mix a with b
+f = mix c with d
+g = mix e with f
+dispose f
