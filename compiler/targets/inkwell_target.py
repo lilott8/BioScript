@@ -241,7 +241,19 @@ class InkwellTarget(BaseTarget):
         dag=multidigraph.MultiDiGraph
         sinks=output
         '''
-        print(dag.nodes, dag.edges)
+
+        def find_start(e, dispense_dict, mix_defs_dict):
+            if e in dispense_dict:
+                return dispense_dict[e]
+            else:
+                return mix_defs_dict[e]
+
+        def find_end(sinks, paths):
+            for s in sinks:
+                if s in paths:
+                    return s
+
+
         complete = set(range(1, len(dag.nodes)))
         mapping_names_to_graph = {} 
         mapping_graph_to_names = {}
@@ -267,14 +279,10 @@ class InkwellTarget(BaseTarget):
                 mapping_names_to_graph[key] = i 
             else:
                 pass
-        print(mapping_names_to_graph)
 
-        #TODO: need to handle multiple outputs...
-        end_node_name = None
-        for s in sinks:
-            end_node_name = s[7:] # cut-off "output_"
-            break
-        end_node_num = mapping_names_to_graph[end_node_name]
+
+        sink_names = set(map(lambda s : s[7:], sinks)) 
+        sink_nums  = set(map(lambda s : mapping_names_to_graph[s], sink_names))
         timing = list() 
         paths = {} 
 
@@ -285,52 +293,34 @@ class InkwellTarget(BaseTarget):
         for block in self.program.functions['main']['blocks'].values():
             for instr in block.instructions:
                 if type(instr) == Dispose:
-                     
-                    t = {'on':set(), 'off':set()}
-
-                    node_num = None
+                    t = {}
                     name = instr.uses[0].name 
-
                     assert(name in mapping_names_to_graph)
                     node_num = mapping_names_to_graph[name]
-
-                    #find an arbitrary path to dispose the chemical
                     for path in paths.values():
-                        #TODO: hard-coded until better solution
-                        a = False 
-                        for node in path:
-                            if node == node_num:
-                                a = True
+                        for pp in path.values():
+                            if node_num in pp:
+                                t['on'] = pp 
+                                t['off'] = complete - pp
                                 break
-
-                        if a:
-                            t['on'] = set(path)
-                            t['off'] = set(complete - t['on'])
-                            break
                     assert(len(t['on']) != 0)
                     timing.append(t)
 
                 elif type(instr) == Mix:
                     #schedule the 1st element to be mixed.
                     e = instr.uses[0].name
-                    start = None
-                    if e in dispense_dict:
-                        start = dispense_dict[e]
-                    else:
-                        start = mix_defs_dict[e]
-                    t1 = {'on': paths[start], 'off': (complete - paths[start])}
+                    start = find_start(e, dispense_dict, mix_defs_dict)
+                    end   = find_end(sink_nums, paths[start])
+                    #print('START', start,'END', end,'PATHS', paths)
+                    t1 = {'on': paths[start][end], 'off': (complete - paths[start][end])}
     
                     #schedule closing of valves
                     t2 = {'on': set(), 'off': complete}
     
                     #schedule the 2nd element to be mixed.
                     e = instr.uses[1].name
-                    start = None
-                    if e in dispense_dict:
-                        start = dispense_dict[e]
-                    else:
-                        start = mix_defs_dict[e]
-                    t3 = {'on': paths[start], 'off': (complete - paths[start])}
+                    start = find_start(e, dispense_dict, mix_defs_dict) 
+                    t3 = {'on': paths[start][end], 'off': (complete - paths[start][end])}
 
                     #append timings
                     timing.append(t1)
@@ -348,8 +338,11 @@ class InkwellTarget(BaseTarget):
                     node_name = instr.uses[0].name
                     dispense_dict[instr.defs.name] = node_name
                     start = mapping_names_to_graph[node_name] 
-                    paths[node_name] = set(nx.dijkstra_path(dag, start, end_node_num))
-                    #nx.single_source_shortest_path(dag, start)
+                    paths[node_name] = {}
+                    for n, path in nx.single_source_shortest_path(dag, start).items():
+                        if n not in sink_nums:
+                            continue
+                        paths[node_name][n] = set(path)
                 else:
                     self.log.warning('Unhandled instruction')
 

@@ -55,10 +55,13 @@ c4 = mix b7 with b8
 d1 = mix c1 with c2
 d2 = mix c3 with c4
 
-e = mix d1 with d2
+dispose d1
+dispose d2
+
+/*e = mix d1 with d2
 
 dispose e
-
+*/
 
 
 
