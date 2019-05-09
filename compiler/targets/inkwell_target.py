@@ -311,7 +311,6 @@ class InkwellTarget(BaseTarget):
                     e = instr.uses[0].name
                     start = find_start(e, dispense_dict, mix_defs_dict)
                     end   = find_end(sink_nums, paths[start])
-                    #print('START', start,'END', end,'PATHS', paths)
                     t1 = {'on': paths[start][end], 'off': (complete - paths[start][end])}
     
                     #schedule closing of valves
