@@ -69,10 +69,11 @@ class ClangTarget(BaseTarget):
                                             instr.uses[1].size,
                                             1000)  
             elif type(instr) == Split:
+                # Using instr.size to show the size it will be splitting into.
                         code += '  mat {} = split({}, {});\n'.format(
                                             instr.defs.name,
                                             instr.uses[0].name,
-                                            instr.uses[0].size)
+                                            instr.size)
             elif type(instr) == Detect: 
                         code += '  double {} = detect({}, {}, {});\n'.format(instr.defs.name, instr.module.name, instr.uses[0].name, instr.module.size)
             elif type(instr) == Heat: 

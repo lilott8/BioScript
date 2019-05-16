@@ -18,17 +18,18 @@ class IRInstruction(IntEnum):
     HEAT = 8
     DISPENSE = 9
     DISPOSE = 10
-    STORE = 11
+    GRADIENT = 11
+    STORE = 12
     # Control
-    JUMP = 12
-    CONDITIONAL = 13
-    LABEL = 14
-    RETURN = 15
+    JUMP = 13
+    CONDITIONAL = 14
+    LABEL = 15
+    RETURN = 16
     # Meta
-    USEBY = 16
-    EXECUTEFOR = 17
-    NOP = 18
-    PHI = 19
+    USEBY = 17
+    EXECUTEFOR = 18
+    NOP = 19
+    PHI = 20
 
 
 class BinaryOps(IntEnum):
@@ -287,6 +288,20 @@ class Dispose(Statement):
 
     def __str__(self):
         return "DISPOSE:\t dispose({})".format(self.uses[0])
+
+
+class Gradient(Statement):
+    def __init__(self, out: Temp, one: Temp, size: int):
+        super().__init__(IRInstruction.GRADIENT, out)
+        self.defs.append(out)
+        self.uses.extend(one)
+        self.size = size
+
+    def write(self, target: 'BaseTarget') -> str:
+        pass
+
+    def __str__(self):
+        return "GRADIENT:\t {} = gradient({}, {})".format(self.defs, self.uses)
 
 
 class Store(Statement):

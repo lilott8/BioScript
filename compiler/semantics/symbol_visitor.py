@@ -6,7 +6,7 @@ from compiler.data_structures.variable import Variable, Chemical, Number
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import *
 from .bs_base_visitor import BSBaseVisitor
-
+import math
 
 class SymbolTableVisitor(BSBaseVisitor):
 
@@ -113,7 +113,7 @@ class SymbolTableVisitor(BSBaseVisitor):
 
         if not types:
             types.add(ChemTypes.MAT)
-
+        # size = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__()).size
         return {'types': types, 'size': 1, 'instruction': IRInstruction.MIX, "name": IRInstruction.MIX.name}
 
     def visitDetect(self, ctx: BSParser.DetectContext):
@@ -136,7 +136,8 @@ class SymbolTableVisitor(BSBaseVisitor):
         types = {ChemTypes.MAT}
         var = self.identifier.identify(name, types, self.symbol_table.current_scope.name)
         self.symbol_table.update_symbol(name, var['types'])
-        return {'types': types, 'size': 1, 'instruction': IRInstruction.HEAT, "name": IRInstruction.HEAT.name}
+        size = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__()).size
+        return {'types': types, 'size': size, 'instruction': IRInstruction.HEAT, "name": IRInstruction.HEAT.name}
 
     def visitSplit(self, ctx: BSParser.SplitContext):
         name = ctx.IDENTIFIER().__str__()
@@ -153,14 +154,16 @@ class SymbolTableVisitor(BSBaseVisitor):
             raise InvalidOperation('Trying to dispense: "{}" which is not declared in the manifest.'.format(name))
         types = {ChemTypes.MAT}
         self.symbol_table.update_symbol(name, types)
-        return {'types': types, 'size': 1,
+        size = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__()).size
+        return {'types': types, 'size': size,
                 'instruction': IRInstruction.DISPENSE, "name": IRInstruction.DISPENSE.name}
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
         name = ctx.IDENTIFIER().__str__()
         types = {ChemTypes.MAT}
         self.symbol_table.update_symbol(name, types)
-        return {'types': types, 'size': 1, 'instruction': IRInstruction.DISPOSE, "name": IRInstruction.DISPOSE.name}
+        size = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__()).size
+        return {'types': types, 'size': size, 'instruction': IRInstruction.DISPOSE, "name": IRInstruction.DISPOSE.name}
 
     def visitGradient(self, ctx: BSParser.GradientContext):
         name = ctx.IDENTIFIER(0).__str__()
@@ -171,7 +174,7 @@ class SymbolTableVisitor(BSBaseVisitor):
             raise InvalidOperation('The interval must start between 0.0 and 100.0.'.format(start_interval))
         end_interval = float(ctx.FLOAT_LITERAL(1).__str__())
         if not (0.0 <= end_interval <= 100.0):
-            raise InvalidOperation('The interval must end between 0.0 and 100.0.'.format(endInterval))
+            raise InvalidOperation('The interval must end between 0.0 and 100.0.'.format(end_interval))
         if end_interval < start_interval:
             end_interval, start_interval = start_interval, end_interval
         increment = float(ctx.FLOAT_LITERAL(2).__str__())
@@ -179,13 +182,8 @@ class SymbolTableVisitor(BSBaseVisitor):
             raise InvalidOperation('The increment must be smaller than the interval.'.format(increment))
         if increment < 0.0:
             raise InvalidOperation('The increment must be greater than 0.0.'.format(increment))
-        count = start_interval
-        while count < end_interval:
-            dropName = 'gradient'+str(count)
-            var = self.identifier.identify(dropName, types, self.symbol_table.current_scope.name)
-            self.symbol_table.update_symbol(dropName, var['types'])
-            count += increment
-        return {'types': types, 'size': 1, 'instruction': IRInstruction.GRADIENT, "name": IRInstruction.GRADIENT.name}
+        size = math.floor((end_interval - start_interval) / increment)
+        return {'types': types, 'size': size, 'instruction': IRInstruction.GRADIENT, "name": IRInstruction.GRADIENT.name}
 
     def visitExpression(self, ctx: BSParser.ExpressionContext):
         return {"types": {ChemTypes.REAL, ChemTypes.NAT}, "size": 1,
@@ -245,7 +243,9 @@ class SymbolTableVisitor(BSBaseVisitor):
             declared_types = self.visitUnionType(ctx.unionType())
 
         operation = self.visitVariableDeclaration(ctx.variableDeclaration())
-        
+        if operation['instruction'] == IRInstruction.SPLIT:
+            self.log.info(operation)
+
         final_types = final_types.union(declared_types)
         final_types = final_types.union(operation['types'])
 
@@ -267,10 +267,14 @@ class SymbolTableVisitor(BSBaseVisitor):
 
         if final_types.issubset(ChemTypeResolver.numbers):
             variable = Number(name, final_types, self.symbol_table.current_scope.name)
+            self.symbol_table.add_local(variable)
         else:
-            variable = Chemical(name, final_types, self.symbol_table.current_scope.name, operation['size'])
-        self.symbol_table.add_local(variable)
-
+            if operation['size'] > 1:
+                self.create_simd_name(name, operation['size'], operation['name'], final_types, True)
+                self.symbol_table.add_local(
+                    Chemical(name, final_types, self.symbol_table.current_scope.name, operation['size']))
+            else:
+                self.symbol_table.add_local(Chemical(name, final_types,self.symbol_table.current_scope.name, operation['size']))
         return None
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):

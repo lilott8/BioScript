@@ -156,6 +156,23 @@ class BSBaseVisitor(BSParserVisitor):
 
             return output
 
+    def create_simd_name(self, name: str, size: int, op: str, types: frozenset, update_symbols: bool = False):
+        created_vars = []
+        for x in range(0, size):
+            var_name = "{}_{}_{}".format(name, op, x)
+            created_vars.append(var_name)
+            if update_symbols:
+                self.symbol_table.add_local(
+                    Chemical(var_name, types, self.symbol_table.current_scope.name, 1))
+        return created_vars
+
+    def get_simd_name(self, name: str, size: int, op: str):
+        created_vars = []
+        for x in range(0, size):
+            var_name = "{}_{}_{}".format(name, op, x)
+            created_vars.append(var_name)
+        return created_vars
+
     def split_number_from_unit(self, text) -> dict:
         """
         Splits the number and units: 10mL => (10, "mL").
