@@ -6,4 +6,5 @@ functions:
 
 instructions:
 
-heat aaa at 10f for 13d
+splita = split aaa into 4
+heat splita at 10f for 13d

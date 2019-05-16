@@ -6,4 +6,10 @@ functions:
 
 instructions:
 
-pass1 = split aaa into 4
+a = dispense aaa
+b = dispense bbb
+
+splita = split a into 4
+splitb = split b into 4
+done = mix splita with splitb
+dispose done

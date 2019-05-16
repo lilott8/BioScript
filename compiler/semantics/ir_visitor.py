@@ -1,6 +1,7 @@
 import importlib
 import random
 import string
+import math
 
 import networkx as nx
 
@@ -435,6 +436,7 @@ class IRVisitor(BSBaseVisitor):
 
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
         details = self.visitChildren(ctx)
+        n = ctx.IDENTIFIER().__str__()
         var = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
         # self.allocation_map[var.name] = var
         # self.current_block.add_defs(var)
@@ -455,6 +457,8 @@ class IRVisitor(BSBaseVisitor):
             ir = Call(var, details['func'], details['args'])
         elif details['op'] == IRInstruction.DETECT:
             ir = Detect(var, details['module'], details['reagents'][0])
+        elif details['op'] == IRInstruction.GRADIENT:
+            ir = Gradient(var, details['reagents'][0], details['size'])
         elif details['op'] in InstructionSet.BinaryOps:
             ir = BinaryOp(details['exp1'], details['exp2'], details['op'])
         else:
@@ -516,9 +520,29 @@ class IRVisitor(BSBaseVisitor):
             time = self.visitTimeIdentifier(ctx.timeIdentifier())
         else:
             time = (10, BSTime.SECOND)
-        ir = Heat(variable, variable)
-        self.current_block.add(ir)
-        return ir
+        # ir = Heat(variable, variable)
+        name = ctx.IDENTIFIER().__str__()
+        size = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__()).size
+
+        output = []
+        temp = self.visitTemperatureIdentifier(ctx.temperatureIdentifier())
+        types = {ChemTypes.MAT}
+        if size > 1:
+            for x in range(0, size):
+                var = self.symbol_table.get_variable(self.create_simd_name(name, size, "heat", types, True)[x], self.scope_stack[-1])
+                output.append(Heat(var, var))
+                # "{}{}[{}] = session.heat({}[{}], {}){}".format(
+                #   "\t", name, x, name, x, temp['quantity'], self.nl)
+        else:
+            output.append(Heat(variable, variable))
+        #    inputs = []
+        #   outputs = []
+
+        # return output
+        for x in range(0, size):
+            self.current_block.add(output[x])
+        # print(ir)
+        return output
 
     def visitSplit(self, ctx: BSParser.SplitContext):
         variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
@@ -537,3 +561,17 @@ class IRVisitor(BSBaseVisitor):
         ir = Dispose(variable, variable)
         self.current_block.add(ir)
         return ir
+    # always simd
+
+    def visitGradient(self, ctx:BSParser.GradientContext):
+        variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
+
+        # reagent1 = self.visitVolumeIdentifier(ctx.volumeIdentifier(0))['variable']
+        # reagent2 = self.visitVolumeIdentifier(ctx.volumeIdentifier(1))['variable']
+
+        # reagents = [reagent1, reagent2]
+        start_interval = float(ctx.FLOAT_LITERAL(0).__str__())
+        end_interval = float(ctx.FLOAT_LITERAL(1).__str__())
+        increment = float(ctx.FLOAT_LITERAL(2).__str__())
+        size = math.floor((end_interval - start_interval) / increment)
+        return {"reagents": [variable], "size": size, "op": IRInstruction.GRADIENT}
