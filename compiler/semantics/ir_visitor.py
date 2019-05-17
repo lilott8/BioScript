@@ -558,9 +558,28 @@ class IRVisitor(BSBaseVisitor):
         variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
         # self.current_block.add_uses(variable)
         # TODO: Attempt to calculate the number of disposal registers (i.e. number of ports.)
-        ir = Dispose(variable, variable)
-        self.current_block.add(ir)
-        return ir
+        size = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__()).size
+        name = ctx.IDENTIFIER().__str__()
+        output = []
+        types = {ChemTypes.MAT}
+        if size > 1:
+            for x in range(0, size):
+                var = self.symbol_table.get_variable(self.create_simd_name(name, size, "dispose", types, True)[x],
+                                                     self.scope_stack[-1])
+                output.append(Dispose(var, var))
+                # "{}{}[{}] = session.heat({}[{}], {}){}".format(
+                #   "\t", name, x, name, x, temp['quantity'], self.nl)
+        else:
+            output.append(Dispose(variable, variable))
+        #    inputs = []
+        #   outputs = []
+
+        # return output
+        for x in range(0, size):
+            self.current_block.add(output[x])
+        # print(ir)
+        return output
+        #return ir
     # always simd
 
     def visitGradient(self, ctx:BSParser.GradientContext):
