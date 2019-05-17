@@ -161,3 +161,5 @@ crashlytics.properties
 crashlytics-build.properties
 fabric.properties
 
+# Custom files/folders to ignore
+output

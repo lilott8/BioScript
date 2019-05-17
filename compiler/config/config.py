@@ -23,7 +23,8 @@ class Config(object):
         self.abstract_interaction = '/resources/abstract-interaction.txt'
         self.input = None
         self.input_file = None
-        self.output = None
+        self.output = './'
+        self.write_out = False
 
         """
         Chemical Stuff
@@ -70,6 +71,10 @@ class Config(object):
         self.debug = args.debug
         self.output = args.output
         self.path = os.path.dirname(sys.modules['__main__'].__file__)
+        if args.output:
+            self.write_out = True
+            self.output = os.path.abspath(args.output)
+
         if args.epa_defs:
             self.epa_defs = args.epa_defs
         if args.abs_int:

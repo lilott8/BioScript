@@ -1,15 +1,15 @@
 # from compiler.data_structures import Program
-from compiler.targets.base_target import BaseTarget
-from chemicals.chemtypes import ChemTypes
-from compiler.data_structures.variable import *
 from compiler.data_structures.ir import *
-
+from compiler.data_structures.program import Program
+from compiler.targets.base_target import BaseTarget
 
 
 class ClangTarget(BaseTarget):
 
-    def __init__(self, config, program: 'Program'):
-        super().__init__(config, program, "ClangTarget")
+    def __init__(self, program: Program):
+        super().__init__(program, "ClangTarget")
+        self.function_code = []
+        self.compiled = ''
         # This *should* be moved into the LLVM target...
         self.keywords = ('alignas', 'alignof', 'and', 'and_eq', 'asm', 'atomic_cancel', 'atomic_commit',
                          'atomic_noexcept', 'auto', 'bitand', 'bitor', 'bool', 'break', 'case', 'catch', 'char',
@@ -23,7 +23,6 @@ class ClangTarget(BaseTarget):
                          'switch', 'synchronized', 'template', 'this', 'thread_local', 'throw', 'true', 'try',
                          'typedef', 'typeid', 'typename', 'union', 'unsigned', 'using', 'virtual', 'void', 'volatile',
                          'wchar_t', 'while', 'xor', 'xor_eq')
-
 
     def check_identifier(self, name):
         if name in self.keywords:
@@ -52,7 +51,6 @@ class ClangTarget(BaseTarget):
             return 'None'
         else:
             return 'mat'
-
 
     def construct_basic_block_code(self, instructions):
         code = ''
@@ -104,9 +102,7 @@ class ClangTarget(BaseTarget):
                 pass
         return code
 
-
     def transform(self):
-        self.function_code = []
         self.compiled = \
         '#include <unistd.h>\n' \
         '#include <vector>\n\n' \
@@ -144,7 +140,7 @@ class ClangTarget(BaseTarget):
         'void drain(mat input) {\n\n' \
         '}\n\n'
 
-        #go through the globals and add module/manifest code.
+        # go through the globals and add module/manifest code.
         for name, v in self.program.symbol_table.globals.items():
             if ChemTypes.MAT in v.types:
                 self.compiled += '{} {};\n'.format('mat', name)
@@ -179,8 +175,11 @@ class ClangTarget(BaseTarget):
 
         for c in code_func:
             self.compiled += c
-        self.log.info(self.compiled)
-        return False 
+
+        self.write_output("cpp", self.compiled)
+        if self.config.debug and not self.config.write_out:
+            self.log.info(self.compiled)
+        return False
 
     def write_mix(self) -> str:
         pass

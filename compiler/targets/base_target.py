@@ -14,23 +14,23 @@ class Target(IntEnum):
     PUDDLE = 4
     INKWELL = 8
 
-    def get_target(self, config, program: prog.Program):
+    def get_target(self, program: prog.Program):
         if self == Target.PUDDLE:
-            return targets.PuddleTarget(config, program)
+            return targets.PuddleTarget(program)
         elif self.value == Target.INKWELL:
-            return targets.InkwellTarget(config, program)
+            return targets.InkwellTarget(program)
         elif self.value == Target.MFSIM:
-            return targets.MFSimTarget(config, program)
+            return targets.MFSimTarget(program)
         else:
-            return targets.ClangTarget(config, program)
+            return targets.ClangTarget(program)
 
 
 class BaseTarget(metaclass=abc.ABCMeta):
 
-    def __init__(self, config, program: prog.Program, name="BaseTarget"):
+    def __init__(self, program: prog.Program, name="BaseTarget"):
         self.log = colorlog.getLogger(self.__class__.__name__)
-        self.config = config
         self.program = program
+        self.config = program.config
         self.name = name
         self.dags = dict()
         self.build_dags()
@@ -87,6 +87,14 @@ class BaseTarget(metaclass=abc.ABCMeta):
         #         self.program.functions[root]['blocks'][nid].dag = graph
         #         self.dags[root][nid] = graph
         pass
+
+    def write_output(self, extension: str, content: str, name: str = 'compiled'):
+        if self.config.write_out:
+            with open("{}/{}.{}".format(self.config.output, name, extension), 'w') as out:
+                out.write(content)
+        else:
+            if self.config.debug:
+                self.log.debug(content)
 
     @staticmethod
     def get_safe_name(name: str) -> str:

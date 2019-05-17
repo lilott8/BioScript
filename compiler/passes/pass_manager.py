@@ -17,6 +17,7 @@ class PassManager(object):
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.log.debug("Initializing pass manager.")
         self.program = program
+        self.config = program.config
         self.dependencies = {'analysis': nx.DiGraph(), 'transforms': nx.DiGraph()}
         self.transforms = dict()
         self.analysis = dict()

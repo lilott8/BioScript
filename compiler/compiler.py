@@ -65,7 +65,7 @@ class BSCompiler(object):
         ir_visitor = IRVisitor(symbol_visitor.symbol_table)
         ir_visitor.visit(tree)
         # Always update the symbol table.
-        self.program = Program(functions=ir_visitor.functions, globalz=ir_visitor.globalz,
+        self.program = Program(functions=ir_visitor.functions, globalz=ir_visitor.globalz, config=self.config,
                                symbol_table=ir_visitor.symbol_table, bb_graph=ir_visitor.graph, name=filename,
                                calls=ir_visitor.calls)
 
@@ -83,7 +83,6 @@ class BSCompiler(object):
         :return:
         """
         passes = PassManager(self.program)
-        passes.config = self.config
         passes.run_analysis()
         passes.run_transformations()
         # return passes
@@ -95,7 +94,7 @@ class BSCompiler(object):
         :param program:
         :return:
         """
-        target = self.config.target.get_target(self.config, program)
+        target = self.config.target.get_target(program)
         target.transform()
         return True
 

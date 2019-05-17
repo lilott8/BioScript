@@ -8,19 +8,18 @@ from jsonschema import exceptions
 from jsonschema import validate
 
 from compiler.data_structures import Program
+from compiler.data_structures.ir import *
 from compiler.targets.base_target import BaseTarget
 from shared.bs_exceptions import UnsupportedOperation
 from shared.bs_junk_drawer import write_graph
 from shared.components import FlowType
 from shared.components import get_component_api
 
-from compiler.data_structures.ir import *
-
 
 class InkwellTarget(BaseTarget):
 
-    def __init__(self, config: 'Config', program: Program):
-        super().__init__(config, program, "InkwellTarget")
+    def __init__(self, program: Program):
+        super().__init__(program, "InkwellTarget")
         self.api = get_component_api(self.config)
         self.inputs = dict()
         # All components required for executing this program.
@@ -104,6 +103,7 @@ class InkwellTarget(BaseTarget):
                   'components': [], 'connections': []}
         sequences = dict()
         component_set = dict()
+        netlist = dict()
         for root in self.program.functions:
             sequences[root] = dict()
             for bid, block in self.program.functions[root]['blocks'].items():
@@ -209,7 +209,15 @@ class InkwellTarget(BaseTarget):
 
             verified = self.verify_json(output, True)
             if verified:
+                netlist[root] = output
+            """
+            The check happens here because this is a shared function.
+            It has no access to the config object.
+            """
+            if verified and self.config.write_out and self.config.write_cfg:
                 self.json_to_graph(output)
+        self.write_output("json", json.dumps(sequences), name="activations")
+        self.write_output("json", json.dumps(netlist), name="netlist")
 
     def json_to_graph(self, spec):
         graph = nx.DiGraph()
@@ -218,8 +226,7 @@ class InkwellTarget(BaseTarget):
         for connection in spec['connections']:
             for sink in connection['sinks']:
                 graph.add_edge(connection['source']['component'], sink['component'])
-        if self.config.write_cfg:
-            write_graph(graph, "json.dag")
+        write_graph(graph, "{}/json.dag".format(self.config.output))
 
     def verify_json(self, output: dict, verify: bool = False) -> bool:
         if verify:
@@ -234,13 +241,14 @@ class InkwellTarget(BaseTarget):
                 self.log.warning(str(e))
                 return False
 
-    def generate_activations(self, components: dict, component_set, dag, sinks) -> dict:
-        '''
-        components=inkwell json.
-        component_set=dispose, mix, dispense, etc.
-        dag=multidigraph.MultiDiGraph
-        sinks=output
-        '''
+    def generate_activations(self, components: dict, component_set, dag, sinks) -> list:
+        """
+        :param components: inkwell json.
+        :param component_set: Set of components available for selection.
+        :param dag: multidigraph.MultiDiGraph.
+        :param sinks:
+        :return: List of timesteps and their activations.
+        """
 
         def find_start(e, dispense_dict, mix_defs_dict):
             if e in dispense_dict:
@@ -252,7 +260,6 @@ class InkwellTarget(BaseTarget):
             for s in sinks:
                 if s in paths:
                     return s
-
 
         complete = set(range(1, len(dag.nodes)))
         mapping_names_to_graph = {} 
@@ -280,13 +287,12 @@ class InkwellTarget(BaseTarget):
             else:
                 pass
 
-
         sink_names = set(map(lambda s : s[7:], sinks)) 
         sink_nums  = set(map(lambda s : mapping_names_to_graph[s], sink_names))
         timing = list() 
-        paths = {} 
+        paths = {}
 
-        #where start originates from...
+        # where start originates from...
         dispense_dict = {}
         mix_defs_dict = {}
 
@@ -305,33 +311,33 @@ class InkwellTarget(BaseTarget):
                                 break
                     assert(len(t['on']) != 0)
                     timing.append(t)
-
                 elif type(instr) == Mix:
-                    #schedule the 1st element to be mixed.
+                    # schedule the 1st element to be mixed.
                     e = instr.uses[0].name
                     start = find_start(e, dispense_dict, mix_defs_dict)
-                    end   = find_end(sink_nums, paths[start])
+                    end = find_end(sink_nums, paths[start])
                     t1 = {'on': paths[start][end], 'off': (complete - paths[start][end])}
-    
-                    #schedule closing of valves
+
+                    # schedule closing of valves
                     t2 = {'on': set(), 'off': complete}
-    
-                    #schedule the 2nd element to be mixed.
+
+                    # schedule the 2nd element to be mixed.
                     e = instr.uses[1].name
                     start = find_start(e, dispense_dict, mix_defs_dict) 
                     t3 = {'on': paths[start][end], 'off': (complete - paths[start][end])}
 
-                    #append timings
+                    # append timings
                     timing.append(t1)
                     timing.append(t2)
                     timing.append(t3)
 
-                    #picked an arbitary start node
+                    # picked an arbitary start node
                     mix_defs_dict[instr.defs.name] = start
-
                 elif type(instr) == Split:
                     pass
                 elif type(instr) == Heat:
+                    pass
+                elif type(instr) == Detect:
                     pass
                 elif type(instr) == Dispense:
                     node_name = instr.uses[0].name
@@ -345,14 +351,14 @@ class InkwellTarget(BaseTarget):
                 else:
                     self.log.warning('Unhandled instruction')
 
-
         self.log.info("Generating activation sequences")
         for i, t in enumerate(timing):
             t['on'] = set(map(lambda x: mapping_graph_to_names[x], t['on']))
+            t['on'] = list(t['on'])
             t['off'] = set(map(lambda x: mapping_graph_to_names[x], t['off']))
-            self.log.info('t{}:   {}'.format(i, t))
+            t['off'] = list(t['off'])
+            # self.log.info('t{}:   {}'.format(i, t))
         return timing
-
 
     def build_schedule(self, dag: nx.DiGraph, with_dispense: bool = False):
         schedule = list(nx.algorithms.dag.topological_sort(dag))
