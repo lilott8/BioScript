@@ -7,4 +7,5 @@ functions:
 instructions:
 
 a = dispense aaa
-dispose(a)
+splita = split a into 4
+dispose splita
