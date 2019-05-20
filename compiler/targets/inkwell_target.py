@@ -86,7 +86,7 @@ class InkwellTarget(BaseTarget):
                         #     graph.add_edge(use, var_defs[instruction.defs.name])
 
                 if self.config.write_cfg:
-                    write_graph(graph, "{}_{}_dag.dot".format(root, nid))
+                    write_graph(graph, "{}/{}_{}_dag.dot".format(self.config.output, root, nid))
 
                 self.program.functions[root]['blocks'][nid].dag = graph
                 self.dags[root][nid] = graph
@@ -226,6 +226,7 @@ class InkwellTarget(BaseTarget):
         for connection in spec['connections']:
             for sink in connection['sinks']:
                 graph.add_edge(connection['source']['component'], sink['component'])
+        # This can be blindly called here because of the check that happens above.
         write_graph(graph, "{}/json.dag".format(self.config.output))
 
     def verify_json(self, output: dict, verify: bool = False) -> bool:

@@ -69,10 +69,10 @@ class BSCompiler(object):
                                symbol_table=ir_visitor.symbol_table, bb_graph=ir_visitor.graph, name=filename,
                                calls=ir_visitor.calls)
 
-        if self.config.write_cfg:
+        if self.config.write_cfg and self.config.write_out:
             pos = nx.nx_agraph.graphviz_layout(self.program.bb_graph)
             nx.draw(self.program.bb_graph, pos=pos)
-            nx.drawing.nx_pydot.write_dot(self.program.bb_graph, 'cfg.dot')
+            nx.drawing.nx_pydot.write_dot(self.program.bb_graph, '{}/cfg.dot'.format(self.config.output))
 
         return self.program
 
