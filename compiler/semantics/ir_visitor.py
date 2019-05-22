@@ -84,19 +84,19 @@ class IRVisitor(BSBaseVisitor):
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         for module in ctx.IDENTIFIER():
             name = module.__str__()
-            # self.globals[name] = Module(self.symbol_table.get_global(name))
+            # self.globalz[name] = Module(self.symbol_table.get_global(name))
             self.globalz[name] = self.symbol_table.get_global(name)
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
         for manifest in ctx.IDENTIFIER():
             name = manifest.__str__()
-            # self.globals[name] = Global(self.symbol_table.get_global(name))
+            # self.globalz[name] = Global(self.symbol_table.get_global(name))
             self.globalz[name] = self.symbol_table.get_global(name)
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
         for stationary in ctx.IDENTIFIER():
             name = stationary.__str__()
-            # self.globals[name] = Stationary(self.symbol_table.get_global(name))
+            # self.globalz[name] = Stationary(self.symbol_table.get_global(name))
             self.globalz[name] = self.symbol_table.get_global(name)
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
@@ -497,7 +497,7 @@ class IRVisitor(BSBaseVisitor):
         return {"reagents": reagents, "execute_for": time, "op": IRInstruction.MIX}
 
     def visitDetect(self, ctx: BSParser.DetectContext):
-        module = self.globals[ctx.IDENTIFIER(0).__str__()]
+        module = self.globalz[ctx.IDENTIFIER(0).__str__()]
         variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER(1).__str__()), self.scope_stack[-1])
         # self.current_block.add_uses(variable)
 
