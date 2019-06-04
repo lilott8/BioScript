@@ -233,12 +233,15 @@ class Split(Statement):
         super().__init__(IRInstruction.SPLIT, out)
         self.uses.append(one)
         self.size = size
+        print(type(out))
+        self.defs = out;
+        print("test")
 
     def write(self, target: 'BaseTarget') -> str:
         pass
 
     def __str__(self):
-        return "SPLIT:\t {} = split({}, {})".format(self.defs, self.uses)
+        return "SPLIT:\t {} = split({}, {})".format(self.defs, self.uses, self.size)
 
 
 class Detect(Statement):
@@ -293,15 +296,15 @@ class Dispose(Statement):
 class Gradient(Statement):
     def __init__(self, out: Temp, one: Temp, size: int):
         super().__init__(IRInstruction.GRADIENT, out)
-        self.defs.append(out)
-        self.uses.extend(one)
+        # self.defs.append(out)
+        # self.uses.append(one)
         self.size = size
 
     def write(self, target: 'BaseTarget') -> str:
         pass
 
     def __str__(self):
-        return "GRADIENT:\t {} = gradient({}, {})".format(self.defs, self.uses)
+        return "GRADIENT:\t {} = gradient({}, {})".format(self.defs, self.uses, self.size)
 
 
 class Store(Statement):

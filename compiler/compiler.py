@@ -98,6 +98,7 @@ class BSCompiler(object):
         # Convert the AST to the IR for further analysis.
         ir_visitor = IRVisitor(symbol_visitor.symbol_table)
         ir_visitor.visit(tree)
+        self.log.debug(ir_visitor.functions)
         # Always update the symbol table.
         self.program = Program(functions=ir_visitor.functions, globalz=ir_visitor.globalz, config=self.config,
                                symbol_table=ir_visitor.symbol_table, bb_graph=ir_visitor.graph,
