@@ -8,6 +8,8 @@ functions:
 instructions:
 
 a = dispense aaa
+splita = split a into 2
 b = dispense bbb
-c = mix a with b
+splitb = split b into 2
+c = mix splita with splitb
 dispose c

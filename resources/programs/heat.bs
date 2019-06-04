@@ -5,6 +5,7 @@ manifest bbb
 functions:
 
 instructions:
-
-splita = split aaa into 4
+a = dispense aaa
+splita = split a into 8
 heat splita at 10f for 13d
+dispose splita

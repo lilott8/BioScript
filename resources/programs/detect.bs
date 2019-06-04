@@ -5,5 +5,5 @@ manifest bbb
 functions:
 
 instructions:
-
-x = detect mod on aaa for 13d
+splita = split aaa into 8
+x = detect mod on splita for 13d

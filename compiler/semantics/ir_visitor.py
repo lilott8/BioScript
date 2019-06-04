@@ -436,10 +436,53 @@ class IRVisitor(BSBaseVisitor):
 
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
         details = self.visitChildren(ctx)
-        n = ctx.IDENTIFIER().__str__()
         var = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
         # self.allocation_map[var.name] = var
         # self.current_block.add_defs(var)
+        if(type(details) is list):
+            ir_list = []
+            for x in details:
+                details = x
+                if 'op' not in details:
+                    if self.is_number(details):
+                        ir = Store(var, float(details))
+                    else:
+                        ir = Store(var, self.symbol_table.get_local(details, self.scope_stack[-1]))
+                        # self.current_block.add_uses(self.symbol_table.get_local(details))
+                elif details['op'] == IRInstruction.MIX:
+                    ir = Mix(var, details['reagents'][0], details['reagents'][1])
+                elif details['op'] == IRInstruction.SPLIT:
+                    ir = Split(var, details['reagents'][0], details['size'])
+                elif details['op'] == IRInstruction.DISPENSE:
+                    ir = Dispense(var, details['reagents'][0])
+                elif details['op'] == IRInstruction.CALL:
+                    ir = Call(var, details['func'], details['args'])
+                elif details['op'] == IRInstruction.DETECT:
+                    ir = Detect(var, details['module'], details['reagents'][0])
+                elif details['op'] == IRInstruction.GRADIENT:
+                    ir = Gradient(var, details['reagents'][0], details['size'])
+                elif details['op'] in InstructionSet.BinaryOps:
+                    ir = BinaryOp(details['exp1'], details['exp2'], details['op'])
+                else:
+                    ir = NOP()
+                self.current_block.add(ir)
+                if ir.op == IRInstruction.CALL:
+                    # Make the call.
+                    self.bb_calls[self.scope_stack[-1]].append((self.current_block.nid, ir.function.name))
+                    # Save the block.
+                    self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+                    # We need to initialize a new block.
+                    next_block = BasicBlock()
+                    next_block.add(Label("{}_return".format(ir.function.name)))
+                    self.graph.add_node(next_block.nid, function=self.scope_stack[-1])
+                    self.graph.add_edge(self.current_block.nid, next_block.nid)
+                    # Point to the new block.
+                    self.current_block = next_block
+                    # Add the call.
+                    self.add_call(self.scope_stack[-1], ir.function.name)
+                ir_list.append(ir)
+
+            return ir_list
 
         if 'op' not in details:
             if self.is_number(details):
@@ -458,7 +501,7 @@ class IRVisitor(BSBaseVisitor):
         elif details['op'] == IRInstruction.DETECT:
             ir = Detect(var, details['module'], details['reagents'][0])
         elif details['op'] == IRInstruction.GRADIENT:
-            ir = Gradient(var, details['reagents'][0], details['size'])
+            ir = Gradient(var, details['reagents'], details['size'])
         elif details['op'] in InstructionSet.BinaryOps:
             ir = BinaryOp(details['exp1'], details['exp2'], details['op'])
         else:
@@ -493,15 +536,34 @@ class IRVisitor(BSBaseVisitor):
         else:
             time = (10, BSTime.SECOND)
 
-        reagent1 = self.visitVolumeIdentifier(ctx.volumeIdentifier(0))['variable']
-        reagent2 = self.visitVolumeIdentifier(ctx.volumeIdentifier(1))['variable']
+        reagent1 = self.visitVolumeIdentifier(ctx.volumeIdentifier(0))
+        reagent2 = self.visitVolumeIdentifier(ctx.volumeIdentifier(1))
+        # print(type(reagent2))
+        # print(reagent1['variable'].name)
+        size1 = reagent1['variable'].size
+        size2 = reagent2['variable'].size
+        types = {ChemTypes.MAT}
 
-        reagents = [reagent1, reagent2]
-
+        if size1 > 1 and size2 > 1:
+            if size1 == size2:
+                output = []
+                name1 = reagent1['variable'].name
+                name2 = reagent2['variable'].name
+                for x in range(0, size1):
+                    var1 = self.symbol_table.get_variable(self.create_simd_name(name1, size1, "mix", types, True)[x],
+                                                          self.scope_stack[-1])
+                    var2 = self.symbol_table.get_variable(self.create_simd_name(name2, size2, "mix", types, True)[x],
+                                                          self.scope_stack[-1])
+                    reagents = [var1, var2]
+                    output.append({"reagents": reagents, "execute_for": time, "op": IRInstruction.MIX})
+                # print(output)
+                return output
+        reagents = reagent1['variable'].name, reagent2['variable'].name
         return {"reagents": reagents, "execute_for": time, "op": IRInstruction.MIX}
 
     def visitDetect(self, ctx: BSParser.DetectContext):
-        module = self.globals[ctx.IDENTIFIER(0).__str__()]
+        """
+        module = self.globalz[ctx.IDENTIFIER(0).__str__()]
         variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER(1).__str__()), self.scope_stack[-1])
         # self.current_block.add_uses(variable)
 
@@ -510,6 +572,26 @@ class IRVisitor(BSBaseVisitor):
         else:
             time = (10, BSTime.SECOND)
 
+        return {"module": module, "reagents": [variable], "execute_for": time, "op": IRInstruction.DETECT}
+        """
+        module = self.globalz[ctx.IDENTIFIER(0).__str__()]
+        variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER(1).__str__()), self.scope_stack[-1])
+        # self.current_block.add_uses(variable)
+
+        if ctx.timeIdentifier():
+            time = super().visitTimeIdentifier(ctx.timeIdentifier())
+        else:
+            time = (10, BSTime.SECOND)
+        name = ctx.IDENTIFIER(1).__str__()
+        size = self.symbol_table.get_variable(ctx.IDENTIFIER(1).__str__()).size
+        output = []
+        types = {ChemTypes.MAT}
+        if size > 1:
+            for x in range(0, size):
+                var = self.symbol_table.get_variable(self.create_simd_name(name, size, "detect", types, True)[x],
+                                                     self.scope_stack[-1])
+                output.append({"module": module, "reagents": [var], "execute_for": time, "op": IRInstruction.DETECT})
+            return output
         return {"module": module, "reagents": [variable], "execute_for": time, "op": IRInstruction.DETECT}
 
     def visitHeat(self, ctx: BSParser.HeatContext):
@@ -547,9 +629,26 @@ class IRVisitor(BSBaseVisitor):
     def visitSplit(self, ctx: BSParser.SplitContext):
         variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
         # self.current_block.add_uses(variable)
+        # size = int(ctx.INTEGER_LITERAL().__str__())
+
+        name = ctx.IDENTIFIER().__str__()
+        size = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__()).size
+        output = []
+        types = {ChemTypes.MAT}
+        if size > 1:
+            for x in range(0, size):
+                var = self.symbol_table.get_variable(self.create_simd_name(name, size, "split", types, True)[x],
+                                                     self.scope_stack[-1])
+                output.append({"reagents": [var], "size": size, "op": IRInstruction.SPLIT})
+            return output
+        return {"reagents": [variable], "size": size, "op": IRInstruction.SPLIT}
+        # return {"reagents": [variable], "size": size, "op": IRInstruction.SPLIT}
+        '''
+        variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
+        # self.current_block.add_uses(variable)
         size = int(ctx.INTEGER_LITERAL().__str__())
         return {"reagents": [variable], "size": size, "op": IRInstruction.SPLIT}
-
+    '''
     def visitDispense(self, ctx: BSParser.DispenseContext):
         variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__(), self.scope_stack[-1]))
         return {"reagents": [variable], "op": IRInstruction.DISPENSE}
@@ -571,15 +670,14 @@ class IRVisitor(BSBaseVisitor):
                 #   "\t", name, x, name, x, temp['quantity'], self.nl)
         else:
             output.append(Dispose(variable, variable))
-        #    inputs = []
-        #   outputs = []
+        # inputs = []
+        # outputs = []
 
         # return output
         for x in range(0, size):
             self.current_block.add(output[x])
-        # print(ir)
         return output
-        #return ir
+        # return ir
     # always simd
 
     def visitGradient(self, ctx:BSParser.GradientContext):
@@ -593,4 +691,5 @@ class IRVisitor(BSBaseVisitor):
         end_interval = float(ctx.FLOAT_LITERAL(1).__str__())
         increment = float(ctx.FLOAT_LITERAL(2).__str__())
         size = math.floor((end_interval - start_interval) / increment)
+
         return {"reagents": [variable], "size": size, "op": IRInstruction.GRADIENT}

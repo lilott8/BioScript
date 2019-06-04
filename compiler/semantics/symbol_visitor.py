@@ -113,8 +113,13 @@ class SymbolTableVisitor(BSBaseVisitor):
 
         if not types:
             types.add(ChemTypes.MAT)
-        # size = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__()).size
-        return {'types': types, 'size': 1, 'instruction': IRInstruction.MIX, "name": IRInstruction.MIX.name}
+        name1 = self.visitVolumeIdentifier(ctx.volumeIdentifier(0)).name
+        size1 = self.symbol_table.get_variable(name1).size
+        name2 = self.visitVolumeIdentifier(ctx.volumeIdentifier(1)).name
+        size2 = self.symbol_table.get_variable(name2).size
+        if size1 != size2:
+            raise InvalidOperation("Trying to mix {} and {} which are of unequal size.".format(name1, name2))
+        return {'types': types, 'size': size1, 'instruction': IRInstruction.MIX, "name": IRInstruction.MIX.name}
 
     def visitDetect(self, ctx: BSParser.DetectContext):
         types = {ChemTypes.REAL}
@@ -143,8 +148,8 @@ class SymbolTableVisitor(BSBaseVisitor):
         name = ctx.IDENTIFIER().__str__()
         types = {ChemTypes.MAT}
         self.symbol_table.update_symbol(name, types)
-        size = int(ctx.INTEGER_LITERAL().__str__())
-        if not SymbolTableVisitor.isPower(2, size):
+        size = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__()).size * int(ctx.INTEGER_LITERAL().__str__())
+        if not SymbolTableVisitor.isPower(2, int(ctx.INTEGER_LITERAL().__str__())):
             raise InvalidOperation("Split 2^x-ways is supported; split {}-ways is not supported".format(size))
         return {'types': types, 'size': size, 'instruction': IRInstruction.SPLIT, "name": IRInstruction.SPLIT.name}
 
@@ -171,17 +176,17 @@ class SymbolTableVisitor(BSBaseVisitor):
         self.symbol_table.update_symbol(name, types)
         start_interval = float(ctx.FLOAT_LITERAL(0).__str__())
         if not (0.0 <= start_interval <= 100.0):
-            raise InvalidOperation('The interval must start between 0.0 and 100.0.'.format(start_interval))
+            raise InvalidOperation('The interval must start between 0.0 and 100.0.')
         end_interval = float(ctx.FLOAT_LITERAL(1).__str__())
         if not (0.0 <= end_interval <= 100.0):
-            raise InvalidOperation('The interval must end between 0.0 and 100.0.'.format(end_interval))
+            raise InvalidOperation('The interval must end between 0.0 and 100.0.')
         if end_interval < start_interval:
             end_interval, start_interval = start_interval, end_interval
         increment = float(ctx.FLOAT_LITERAL(2).__str__())
         if increment > (end_interval - start_interval):
-            raise InvalidOperation('The increment must be smaller than the interval.'.format(increment))
+            raise InvalidOperation('The increment must be smaller than the interval.')
         if increment < 0.0:
-            raise InvalidOperation('The increment must be greater than 0.0.'.format(increment))
+            raise InvalidOperation('The increment must be greater than 0.0.')
         size = math.floor((end_interval - start_interval) / increment)
         return {'types': types, 'size': size, 'instruction': IRInstruction.GRADIENT, "name": IRInstruction.GRADIENT.name}
 
