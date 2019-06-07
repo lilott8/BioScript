@@ -396,11 +396,11 @@ class InkwellTarget(BaseTarget):
         """
         if op == 'DISPENSE':
             out = self.api.build_component({'taxonomy': 'input', 'uuid': layer, 'name': name, 'splits': splits,
-                                            'flow': self.program.config.flow_type.name})
+                                            'flow': self.program.config.flow_type})
             self.inputs[name] = out
         else:
             out = self.api.build_component({'taxonomy': op, 'uuid': layer, 'name': name, 'splits': splits,
-                                            'flow': self.program.config.flow_type.name})
+                                            'flow': self.program.config.flow_type})
         self.connections[name] = set(n['label'] for n in out['ports'])
         return out
 
