@@ -98,9 +98,12 @@ class InkwellTarget(BaseTarget):
         :return:
         """
         uid = uuid.uuid5(uuid.NAMESPACE_OID, self.program.name)
+
         output = {'name': self.program.name.replace('/', '_').replace('.', '_'),
-                  'layers': [{"id": str(uid), "name": "flow"}, {"id": "x", "name": "control"}],
+                  'layers': [{"id": "flow", "name": "flow"}],
                   'components': [], 'connections': []}
+        if self.program.config.flow_type == FlowType.ACTIVE:
+            output['layers'].append({'id': 'control', 'name': 'control'})
         sequences = dict()
         component_set = dict()
         netlist = dict()
@@ -154,7 +157,8 @@ class InkwellTarget(BaseTarget):
                         # Then we need to create it.  This happens twice
                         # because the global may alter things.
                         if var.name not in self.components:
-                            destination = self.build_component(var.name, "flow", graph[current]['op'], splits=var.size)
+                            destination = self.build_component(var.name, output['layers'][0]['id'],
+                                                               graph[current]['op'], splits=var.size)
                             destination_name = "{}_{}".format(destination['entity'], var.name)
                             if graph[current]['op'] in {'DISPOSE', 'OUTPUT'}:
                                 sinks.add(destination_name)
@@ -179,7 +183,8 @@ class InkwellTarget(BaseTarget):
                         if incoming.name in globalz:
                             incoming = globalz[incoming.name]
                         if incoming.name not in self.components:
-                            source = self.build_component(incoming.name, "flow", op=graph[incoming.name],
+                            source = self.build_component(incoming.name, output['layers'][0]['id'],
+                                                          op=graph[incoming.name],
                                                           splits=incoming.size)
                             output['components'].append(source)
                             self.components[incoming.name] = source
@@ -191,7 +196,8 @@ class InkwellTarget(BaseTarget):
                         connection_name = "{}_{}".format(incoming.name, var.name)
                         if connection_name not in connections:
                             output['connections'].append(
-                                self.build_connection(source, destination, connection_name, "flow", incoming.is_global))
+                                self.build_connection(source, destination, connection_name, output['layers'][0]['id'],
+                                                      incoming.is_global))
                             connections.add(connection_name)
 
                     # Gather all the edges that leave this node and
@@ -216,8 +222,11 @@ class InkwellTarget(BaseTarget):
             """
             if verified and self.config.write_out and self.config.write_cfg:
                 self.json_to_graph(output)
-        self.write_output("json", json.dumps(sequences), name="activations")
-        self.write_output("json", json.dumps(netlist), name="netlist")
+        if self.config.flow_type == FlowType.ACTIVE:
+            self.write_output("json", json.dumps(sequences, sort_keys=True, indent=4), name="activations")
+        for root in netlist:
+            self.write_output("json", json.dumps(netlist[root], sort_keys=True, indent=4),
+                              name="netlist_{}".format(root))
 
     def json_to_graph(self, spec):
         graph = nx.DiGraph()
@@ -386,10 +395,12 @@ class InkwellTarget(BaseTarget):
         :return: The created component.
         """
         if op == 'DISPENSE':
-            out = self.api.build_component({'taxonomy': 'input', 'uuid': layer, 'name': name, 'splits': splits})
+            out = self.api.build_component({'taxonomy': 'input', 'uuid': layer, 'name': name, 'splits': splits,
+                                            'flow': self.program.config.flow_type.name})
             self.inputs[name] = out
         else:
-            out = self.api.build_component({'taxonomy': op, 'uuid': layer, 'name': name, 'splits': splits})
+            out = self.api.build_component({'taxonomy': op, 'uuid': layer, 'name': name, 'splits': splits,
+                                            'flow': self.program.config.flow_type.name})
         self.connections[name] = set(n['label'] for n in out['ports'])
         return out
 

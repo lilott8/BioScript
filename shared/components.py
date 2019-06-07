@@ -86,6 +86,9 @@ class NaiveAPI(ComponentAPI):
         component = copy.deepcopy(self.components[taxonomy])
         component['name'] = attr['name']
         component['id'] = attr['name'] + "_id"
+        for port in component['ports']:
+            if attr['flow'].upper() == 'PASSIVE':
+                port['layer'] = attr['uuid']
 
         return component
 
