@@ -748,13 +748,25 @@
             "label": "input_1",
             "layer": "flow",
             "x": 0,
-            "y": 52
+            "y": 70
           },
           {
             "label": "output_1",
             "layer": "flow",
+            "x": 70,
+            "y": 0
+          },
+          {
+            "label": "input_2",
+            "layer": "flow",
             "x": 140,
-            "y": 30
+            "y": 70
+          },
+          {
+            "label": "output_2",
+            "layer": "flow",
+            "x": 70,
+            "y": 140
           }
         ]
       }
