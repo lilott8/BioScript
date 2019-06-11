@@ -1,29 +1,27 @@
 manifest aaa
 manifest bbb
-manifest ccc
-manifest ddd
 
 functions:
 
 instructions:
 
-a = dispense aaa
-b = dispense bbb
-c = dispense ccc
-d = dispense ddd
-e = dispense aaa
-f = dispense bbb
-g = dispense ccc
-h = dispense ddd
+m1 = dispense aaa
+m2 = dispense bbb
+m3 = dispense aaa
+m4 = dispense bbb
+m5 = dispense aaa
+m6 = dispense bbb
+m7 = dispense aaa
+m8 = dispense bbb
 
-i = mix a with b
-j = mix c with d
-k = mix e with f
-l = mix g with h
+f1 = mix m1 with m2
+f2 = mix m3 with m4
+f3 = mix m5 with m6
+f4 = mix m7 with m8
 
-m = mix i with j
-n = mix k with l
+t1 = mix f1 with f2
+t2 = mix f3 with f4
 
-o = mix m with n
+final = mix t1 with t2
 
-dispose o
+dispose final

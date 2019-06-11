@@ -1,0 +1,46 @@
+manifest aaa
+manifest bbb
+manifest ccc
+manifest ddd
+
+functions:
+
+instructions:
+
+m1 = dispense aaa
+m2 = dispense bbb
+m3 = dispense ccc
+m4 = dispense ddd
+m5 = dispense aaa
+m6 = dispense bbb
+m7 = dispense ccc
+m8 = dispense ddd
+m9 = dispense aaa
+m10 = dispense bbb
+m11 = dispense ccc
+m12 = dispense ddd
+m13 = dispense aaa
+m14 = dispense bbb
+m15 = dispense ccc
+m16 = dispense ddd
+
+e1 = mix m1 with m2
+e2 = mix m3 with m4
+e3 = mix m5 with m6
+e4 = mix m7 with m8
+e5 = mix m9 with m10
+e6 = mix m11 with m12
+e7 = mix m13 with m14
+e8 = mix m15 with m16
+
+f1 = mix e1 with e2
+f2 = mix e3 with e4
+f3 = mix e5 with e6
+f4 = mix e7 with e8
+
+t1 = mix f1 with f2
+t2 = mix f3 with f4
+
+final = mix t1 with t2
+
+dispose final
