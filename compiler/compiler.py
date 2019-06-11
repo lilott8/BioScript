@@ -1,3 +1,5 @@
+from timeit import default_timer as timer
+
 import colorlog
 import networkx as nx
 from antlr4 import *
@@ -29,9 +31,28 @@ class BSCompiler(object):
         self.program = None
 
     def compile(self):
+        times = {"sa": 0, "opts": 0, "target": 0}
+
+        start = timer()
         ir = self.translate(self.config.input)
+        times['sa'] = timer() - start
+
+        start = timer()
         prog = self.optimizations(self.program)
+        times['opts'] = timer() - start
+
+        start = timer()
         target = self.target(ir)
+        times['target'] = timer() - start
+
+        if self.config.print_stats:
+            stats = "\n"
+            stats += "Semantic Analysis:\t{}\n".format(round(times['sa'], 4))
+            stats += "Optimizations:\t\t{}\n".format(round(times['opts']), 4)
+            stats += "Target Gen:\t\t\t{}\n".format(round(times['target'], 4))
+            stats += "Total:\t\t\t\t{}".format(round(sum(times.values()), 4))
+            self.log.debug(stats)
+
         self.log.critical("You aren't doing anything with the results of the compile function.")
 
     def translate(self, filename: str) -> Program:
@@ -66,13 +87,14 @@ class BSCompiler(object):
         ir_visitor.visit(tree)
         # Always update the symbol table.
         self.program = Program(functions=ir_visitor.functions, globalz=ir_visitor.globalz, config=self.config,
-                               symbol_table=ir_visitor.symbol_table, bb_graph=ir_visitor.graph, name=filename,
-                               calls=ir_visitor.calls)
+                               symbol_table=ir_visitor.symbol_table, bb_graph=ir_visitor.graph,
+                               name=self.config.input_file, calls=ir_visitor.calls)
 
         if self.config.write_cfg and self.config.write_out:
             pos = nx.nx_agraph.graphviz_layout(self.program.bb_graph)
             nx.draw(self.program.bb_graph, pos=pos)
-            nx.drawing.nx_pydot.write_dot(self.program.bb_graph, '{}/cfg.dot'.format(self.config.output))
+            nx.drawing.nx_pydot.write_dot(self.program.bb_graph, '{}/{}_cfg.dot'.format(self.config.output,
+                                                                                        self.config.input_file))
 
         return self.program
 

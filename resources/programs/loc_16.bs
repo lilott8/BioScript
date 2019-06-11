@@ -1,0 +1,29 @@
+manifest aaa
+manifest bbb
+manifest ccc
+manifest ddd
+
+functions:
+
+instructions:
+
+a = dispense aaa
+b = dispense bbb
+c = dispense ccc
+d = dispense ddd
+e = dispense aaa
+f = dispense bbb
+g = dispense ccc
+h = dispense ddd
+
+i = mix a with b
+j = mix c with d
+k = mix e with f
+l = mix g with h
+
+m = mix i with j
+n = mix k with l
+
+o = mix m with n
+
+dispose o

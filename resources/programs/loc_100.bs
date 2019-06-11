@@ -1,0 +1,122 @@
+manifest manifest_a
+manifest manifest_b
+manifest manifest_c
+manifest manifest_d
+manifest manifest_e
+manifest manifest_f
+manifest manifest_g
+manifest manifest_h
+
+functions:
+
+instructions:
+
+four1 = dispense manifest_a
+four2 = dispense manifest_b
+mix_four_1 = mix four1 with four2
+dispose mix_four_1
+
+sixa = dispense manifest_a
+sixb = dispense manifest_b
+sixc = dispense manifest_c
+sixd = dispense manifest_d
+sixe = dispense manifest_e
+sixf = dispense manifest_f
+sixg = dispense manifest_g
+sixh = dispense manifest_h
+sixi = dispense manifest_a
+sixj = dispense manifest_b
+sixk = dispense manifest_c
+sixl = dispense manifest_d
+sixm = dispense manifest_e
+sixn = dispense manifest_f
+sixo = dispense manifest_g
+sixp = dispense manifest_h
+ms1 = mix sixa with sixb
+ms2 = mix sixc with sixd
+ms3 = mix sixe with sixf
+ms4 = mix sixg with sixh
+ms5 = mix sixi with sixj
+ms6 = mix sixk with sixl
+ms7 = mix sixm with sixn
+ms8 = mix sixo with sixp
+mso1 = mix ms1 with ms2
+mso2 = mix ms3 with ms4
+mso3 = mix ms5 with ms6
+mso4 = mix ms7 with ms8
+mso5 = mix mso1 with mso2
+mso6 = mix mso3 with mso4
+mso7 = mix mso5 with mso6
+dispose mso7
+
+threea = dispense manifest_a
+threeb = dispense manifest_b
+threec = dispense manifest_c
+threed = dispense manifest_d
+threee = dispense manifest_e
+threef = dispense manifest_f
+threeg = dispense manifest_g
+threeh = dispense manifest_h
+threei = dispense manifest_a
+threej = dispense manifest_b
+threek = dispense manifest_c
+threel = dispense manifest_d
+threem = dispense manifest_e
+threen = dispense manifest_f
+threeo = dispense manifest_g
+threep = dispense manifest_h
+
+threeaa = dispense manifest_a
+threebb = dispense manifest_b
+threecc = dispense manifest_c
+threedd = dispense manifest_d
+threeee = dispense manifest_e
+threeff = dispense manifest_f
+threegg = dispense manifest_g
+threehh = dispense manifest_h
+threeii = dispense manifest_a
+threejj = dispense manifest_b
+threekk = dispense manifest_c
+threell = dispense manifest_d
+threemm = dispense manifest_e
+threenn = dispense manifest_f
+threeoo = dispense manifest_g
+threepp = dispense manifest_h
+
+ms1 = mix threea with threeb
+ms2 = mix threec with threed
+ms3 = mix threee with threef
+ms4 = mix threeg with threeh
+ms5 = mix threei with threej
+ms6 = mix threek with threel
+ms7 = mix threem with threen
+ms8 = mix threeo with threep
+
+ms9 = mix threeaa with threebb
+ms10 = mix threecc with threedd
+ms11 = mix threeee with threeff
+ms12 = mix threegg with threehh
+ms13 = mix threeii with threejj
+ms14 = mix threekk with threell
+ms15 = mix threemm with threenn
+ms16 = mix threeoo with threepp
+
+mso1 = mix ms1 with ms2
+mso2 = mix ms3 with ms4
+mso3 = mix ms5 with ms6
+mso4 = mix ms7 with ms8
+mso5 = mix ms9 with ms10
+mso6 = mix ms11 with ms12
+mso7 = mix ms13 with ms14
+mso8 = mix ms15 with ms16
+
+mso9 = mix mso1 with mso2
+mso10 = mix mso3 with mso4
+mso11 = mix mso5 with mso6
+mso12 = mix mso8 with mso8
+
+mso13 = mix mso9 with mso10
+mso14 = mix mso11 with mso12
+
+mso15 = mix mso13 with mso14
+dispose mso15

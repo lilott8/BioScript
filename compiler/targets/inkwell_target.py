@@ -86,7 +86,7 @@ class InkwellTarget(BaseTarget):
                         #     graph.add_edge(use, var_defs[instruction.defs.name])
 
                 if self.config.write_cfg:
-                    write_graph(graph, "{}/{}_{}_dag.dot".format(self.config.output, root, nid))
+                    write_graph(graph, "{}/{}_{}_{}_dag.dot".format(self.config.output, self.program.name, root, nid))
 
                 self.program.functions[root]['blocks'][nid].dag = graph
                 self.dags[root][nid] = graph
@@ -221,14 +221,15 @@ class InkwellTarget(BaseTarget):
             It has no access to the config object.
             """
             if verified and self.config.write_out and self.config.write_cfg:
-                self.json_to_graph(output)
+                self.json_to_graph(output, root)
         if self.config.flow_type == FlowType.ACTIVE:
-            self.write_output("json", json.dumps(sequences, sort_keys=True, indent=4), name="activations")
+            self.write_output("json", json.dumps(sequences, sort_keys=True, indent=4),
+                              name="{}_activations".format(self.program.name))
         for root in netlist:
             self.write_output("json", json.dumps(netlist[root], sort_keys=True, indent=4),
-                              name="netlist_{}".format(root))
+                              name="{}_netlist_{}".format(self.program.name, root))
 
-    def json_to_graph(self, spec):
+    def json_to_graph(self, spec, function_name):
         graph = nx.DiGraph()
         for component in spec['components']:
             graph.add_node(component['id'])
@@ -236,7 +237,7 @@ class InkwellTarget(BaseTarget):
             for sink in connection['sinks']:
                 graph.add_edge(connection['source']['component'], sink['component'])
         # This can be blindly called here because of the check that happens above.
-        write_graph(graph, "{}/json.dag".format(self.config.output))
+        write_graph(graph, "{}/{}_{}_json.dag".format(self.config.output, self.program.name, function_name))
 
     def verify_json(self, output: dict, verify: bool = False) -> bool:
         if verify:

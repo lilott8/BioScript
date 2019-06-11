@@ -1,0 +1,86 @@
+manifest aaa
+manifest bbb
+manifest ccc
+manifest ddd
+manifest eee
+manifest fff
+manifest ggg
+manifest hhh
+
+manifest iii
+manifest jjj
+manifest kkk
+manifest lll
+manifest mmm
+manifest nnn
+manifest ooo
+manifest ppp
+
+functions:
+
+instructions:
+
+a = dispense aaa
+b = dispense bbb
+c = dispense ccc
+d = dispense ddd
+e = dispense eee
+f = dispense fff
+g = dispense ggg
+h = dispense hhh
+i = dispense iii
+j = dispense jjj
+k = dispense kkk
+l = dispense lll
+m = dispense mmm
+n = dispense nnn
+o = dispense ooo
+p = dispense ppp
+
+q = dispense aaa
+r = dispense bbb
+s = dispense ccc
+t = dispense ddd
+u = dispense eee
+v = dispense fff
+w = dispense ggg
+x = dispense hhh
+y = dispense iii
+z = dispense jjj
+
+ma = mix a with b
+mb = mix c with d
+mc = mix e with f
+md = mix g with h
+me = mix i with j
+mf = mix k with l
+mg = mix m with n
+mh = mix o with p
+mi = mix q with r
+mj = mix s with t
+mk = mix u with v
+ml = mix w with x
+mm = mix y with z
+
+z1 = mix ma with mb
+z2 = mix mc with md
+z3 = mix me with mf
+z4 = mix mg with mh
+z5 = mix mi with mj
+z6 = mix mk with ml
+
+q1 = mix z1 with z2
+q2 = mix z3 with z4
+q3 = mix z5 with z6
+a1 = mix q1 with q2
+
+dispose a1
+dispose q3
+dispose mm
+
+
+
+
+
+
+

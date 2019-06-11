@@ -25,6 +25,7 @@ class Config(object):
         self.input_file = None
         self.output = './'
         self.write_out = False
+        self.print_stats = False
 
         """
         Chemical Stuff
@@ -70,6 +71,7 @@ class Config(object):
         # self.log.warning(args)
         self.debug = args.debug
         self.output = args.output
+        self.print_stats = args.stats
         self.path = os.path.dirname(sys.modules['__main__'].__file__)
         if args.output:
             self.write_out = True
