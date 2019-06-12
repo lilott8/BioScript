@@ -32,7 +32,7 @@ class ClangTarget(BaseTarget):
             return name
 
     @staticmethod
-    def get_type_string(types : ChemTypes):
+    def get_type_string(types: ChemTypes):
         '''
         Go through all the types in the set of return types,
         and determine the C++ equivalent of those types
@@ -180,9 +180,6 @@ class ClangTarget(BaseTarget):
         self.program.write[self.program.name] = Writable(self.program.name,
                                                          "{}/{}.cpp".format(self.config.output, self.program.name),
                                                          self.compiled)
-        self.write_output("cpp", self.compiled)
-        if self.config.debug and not self.config.write_out:
-            self.log.info(self.compiled)
         return False
 
     def write_mix(self) -> str:
