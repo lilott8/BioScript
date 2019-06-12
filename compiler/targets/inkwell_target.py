@@ -9,9 +9,9 @@ from jsonschema import validate
 
 from compiler.data_structures import Program
 from compiler.data_structures.ir import *
+from compiler.data_structures.writable import Writable, WritableType
 from compiler.targets.base_target import BaseTarget
 from shared.bs_exceptions import UnsupportedOperation
-from shared.bs_junk_drawer import write_graph
 from shared.components import FlowType
 from shared.components import get_component_api
 
@@ -86,7 +86,10 @@ class InkwellTarget(BaseTarget):
                         #     graph.add_edge(use, var_defs[instruction.defs.name])
 
                 if self.config.write_cfg:
-                    write_graph(graph, "{}/{}_{}_dag.dot".format(self.config.output, root, nid))
+                    self.program.write['cfg'] = Writable(self.program.name,
+                                                         "{}/{}_{}_{}_dag.dot".format(self.config.output,
+                                                                                      self.program.name, root, nid),
+                                                         graph, WritableType.GRAPH)
 
                 self.program.functions[root]['blocks'][nid].dag = graph
                 self.dags[root][nid] = graph
@@ -98,9 +101,12 @@ class InkwellTarget(BaseTarget):
         :return:
         """
         uid = uuid.uuid5(uuid.NAMESPACE_OID, self.program.name)
+
         output = {'name': self.program.name.replace('/', '_').replace('.', '_'),
-                  'layers': [{"id": str(uid), "name": "flow"}, {"id": "x", "name": "control"}],
+                  'layers': [{"id": "flow", "name": "flow"}],
                   'components': [], 'connections': []}
+        if self.program.config.flow_type == FlowType.ACTIVE:
+            output['layers'].append({'id': 'control', 'name': 'control'})
         sequences = dict()
         component_set = dict()
         netlist = dict()
@@ -154,7 +160,8 @@ class InkwellTarget(BaseTarget):
                         # Then we need to create it.  This happens twice
                         # because the global may alter things.
                         if var.name not in self.components:
-                            destination = self.build_component(var.name, "flow", graph[current]['op'], splits=var.size)
+                            destination = self.build_component(var.name, output['layers'][0]['id'],
+                                                               graph[current]['op'], splits=var.size)
                             destination_name = "{}_{}".format(destination['entity'], var.name)
                             if graph[current]['op'] in {'DISPOSE', 'OUTPUT'}:
                                 sinks.add(destination_name)
@@ -179,7 +186,8 @@ class InkwellTarget(BaseTarget):
                         if incoming.name in globalz:
                             incoming = globalz[incoming.name]
                         if incoming.name not in self.components:
-                            source = self.build_component(incoming.name, "flow", op=graph[incoming.name],
+                            source = self.build_component(incoming.name, output['layers'][0]['id'],
+                                                          op=graph[incoming.name],
                                                           splits=incoming.size)
                             output['components'].append(source)
                             self.components[incoming.name] = source
@@ -191,7 +199,8 @@ class InkwellTarget(BaseTarget):
                         connection_name = "{}_{}".format(incoming.name, var.name)
                         if connection_name not in connections:
                             output['connections'].append(
-                                self.build_connection(source, destination, connection_name, "flow", incoming.is_global))
+                                self.build_connection(source, destination, connection_name, output['layers'][0]['id'],
+                                                      incoming.is_global))
                             connections.add(connection_name)
 
                     # Gather all the edges that leave this node and
@@ -215,24 +224,34 @@ class InkwellTarget(BaseTarget):
             It has no access to the config object.
             """
             if verified and self.config.write_out and self.config.write_cfg:
-                self.json_to_graph(output)
-        self.write_output("json", json.dumps(sequences), name="activations")
-        self.write_output("json", json.dumps(netlist), name="netlist")
+                json_dag_name = "{}_{}_dag_from_json".format(self.program.name, root)
+                self.program.write["json_graph"] = Writable(json_dag_name,
+                                                            "{}/{}.dot".format(self.config.output, json_dag_name),
+                                                            self.json_to_graph(output, root), WritableType.GRAPH)
+                # self.json_to_graph(output, root)
+        if self.config.flow_type == FlowType.ACTIVE:
+            self.program.write['activations'] = Writable("{}_activations".format(self.program.name),
+                                                         "{}/{}_activations.json".format(self.config.output,
+                                                                                         self.program.name),
+                                                         sequences, WritableType.JSON)
+        for root in netlist:
+            netlist_name = "{}_netlist_{}".format(self.program.name, root)
+            self.program.write['{}_netlist_{}'] = Writable(netlist_name,
+                                                           "{}/{}.json".format(self.config.output, netlist_name),
+                                                           netlist[root], WritableType.JSON)
 
-    def json_to_graph(self, spec):
+    def json_to_graph(self, spec, function_name):
         graph = nx.DiGraph()
         for component in spec['components']:
             graph.add_node(component['id'])
         for connection in spec['connections']:
             for sink in connection['sinks']:
                 graph.add_edge(connection['source']['component'], sink['component'])
-        # This can be blindly called here because of the check that happens above.
-        write_graph(graph, "{}/json.dag".format(self.config.output))
+        return graph
 
     def verify_json(self, output: dict, verify: bool = False) -> bool:
         if verify:
             try:
-                #self.log.info(json.dumps(output, indent=4, separators=(',', ':')))
                 with open('resources/parchmint_schema.json') as f:
                     schema = json.load(f)
                 validate(instance=output, schema=schema)
@@ -386,10 +405,12 @@ class InkwellTarget(BaseTarget):
         :return: The created component.
         """
         if op == 'DISPENSE':
-            out = self.api.build_component({'taxonomy': 'input', 'uuid': layer, 'name': name, 'splits': splits})
+            out = self.api.build_component({'taxonomy': 'input', 'uuid': layer, 'name': name, 'splits': splits,
+                                            'flow': self.program.config.flow_type})
             self.inputs[name] = out
         else:
-            out = self.api.build_component({'taxonomy': op, 'uuid': layer, 'name': name, 'splits': splits})
+            out = self.api.build_component({'taxonomy': op, 'uuid': layer, 'name': name, 'splits': splits,
+                                            'flow': self.program.config.flow_type})
         self.connections[name] = set(n['label'] for n in out['ports'])
         return out
 

@@ -21,6 +21,8 @@ class CompilerCLI(BaseCLI):
                                  help="Write the CFG to dot file", default=False, action='store_true')
         self.parser.add_argument('-inline', '--inline', help="Inline all, non-recursive functions", default=False,
                                  action='store_true')
+        self.parser.add_argument('-stats', '--stats', help="Print the stats", default=False,
+                                 action='store_true')
 
         chemistry = self.parser.add_argument_group('chemistry', 'Chemistry specific arguments')
         chemistry.add_argument('-sim', '--simulate', help='Simulate chemistry.', default=False,

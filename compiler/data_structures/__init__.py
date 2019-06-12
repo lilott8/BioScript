@@ -4,3 +4,4 @@ from compiler.data_structures.program import Program
 from compiler.data_structures.registers import *
 from compiler.data_structures.scope import *
 from compiler.data_structures.symbol_table import SymbolTable
+from compiler.data_structures.writable import *

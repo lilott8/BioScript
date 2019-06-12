@@ -5,8 +5,7 @@
         "entity": "serpentine-mixer",
         "id": "",
         "layers": [
-          "flow",
-          "control"
+          "flow"
         ],
         "name": "",
         "x-span": 150,
@@ -227,8 +226,7 @@
         "entity": "line-detector",
         "id": "",
         "layers": [
-          "flow",
-          "control"
+          "flow"
         ],
         "name": "",
         "x-span": 150,
@@ -364,8 +362,7 @@
         "entity": "line-detector",
         "id": "",
         "layers": [
-          "flow",
-          "control"
+          "flow"
         ],
         "name": "",
         "x-span": 150,
@@ -501,8 +498,7 @@
         "entity": "2-split",
         "id": "",
         "layers": [
-          "flow",
-          "control"
+          "flow"
         ],
         "name": "",
         "x-span": 150,
@@ -739,42 +735,53 @@
   "input": {
     "passive": [
       {
-        "entity": "input",
+        "entity": "Input-port",
         "id": "",
         "layers": [
-          "flow",
-          "control"
+          "flow"
         ],
         "name": "",
-        "x-span": 150,
-        "y-span": 30,
+        "x-span": 140,
+        "y-span": 140,
         "ports": [
           {
             "label": "input_1",
             "layer": "flow",
             "x": 0,
-            "y": 52
+            "y": 70
           },
           {
             "label": "output_1",
             "layer": "flow",
-            "x": 150,
-            "y": 30
+            "x": 70,
+            "y": 0
+          },
+          {
+            "label": "input_2",
+            "layer": "flow",
+            "x": 140,
+            "y": 70
+          },
+          {
+            "label": "output_2",
+            "layer": "flow",
+            "x": 70,
+            "y": 140
           }
         ]
       }
     ],
     "active": [
       {
-        "entity": "input",
+        "entity": "Input-port",
         "id": "",
         "layers": [
           "flow",
           "control"
         ],
         "name": "",
-        "x-span": 150,
-        "y-span": 30,
+        "x-span": 140,
+        "y-span": 140,
         "ports": [
           {
             "label": "input_1",
@@ -785,7 +792,7 @@
           {
             "label": "output_1",
             "layer": "flow",
-            "x": 150,
+            "x": 140,
             "y": 30
           },
           {
@@ -878,42 +885,53 @@
   "output": {
     "passive": [
       {
-        "entity": "output",
+        "entity": "Output-port",
         "id": "",
         "layers": [
-          "flow",
-          "control"
+          "flow"
         ],
         "name": "",
-        "x-span": 150,
-        "y-span": 30,
+        "x-span": 140,
+        "y-span": 140,
         "ports": [
           {
             "label": "input_1",
             "layer": "flow",
             "x": 0,
-            "y": 52
+            "y": 70
           },
           {
             "label": "output_1",
             "layer": "flow",
-            "x": 150,
-            "y": 30
+            "x": 70,
+            "y": 0
+          },
+          {
+            "label": "input_2",
+            "layer": "flow",
+            "x": 140,
+            "y": 70
+          },
+          {
+            "label": "output_2",
+            "layer": "flow",
+            "x": 70,
+            "y": 140
           }
         ]
       }
     ],
     "active": [
       {
-        "entity": "output",
+        "entity": "Output-port",
         "id": "",
         "layers": [
           "flow",
           "control"
         ],
         "name": "",
-        "x-span": 150,
-        "y-span": 30,
+        "x-span": 140,
+        "y-span": 140,
         "ports": [
           {
             "label": "input_1",
@@ -924,7 +942,7 @@
           {
             "label": "output_1",
             "layer": "flow",
-            "x": 150,
+            "x": 140,
             "y": 30
           },
           {

@@ -30,6 +30,8 @@ class Program(object):
         self.calls = calls
         # The config object
         self.config = config
+        # The data that needs writing.
+        self.write = dict()
         # for source, destinations in calls.items():
         #     for destination in destinations:
         #         self.bb_graph.add_edge(self.functions[source]['entry'], self.functions[destination]['entry'])
