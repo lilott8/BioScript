@@ -45,11 +45,24 @@ class BSCompiler(object):
         target = self.target(ir)
         times['target'] = timer() - start
 
+        times['write'] = 0
+        if self.config.write_out:
+            start = timer()
+            for key, writable in self.program.write.items():
+                writable.write()
+            times['write'] = timer() - start
+        else:
+            self.log.warning("Not writing any output to disk.")
+            if self.log.debug:
+                for key, writable in self.program.write.items():
+                    self.log.info(writable.content)
+
         if self.config.print_stats:
             stats = "\n"
             stats += "Semantic Analysis:\t{}\n".format(round(times['sa'], 4))
             stats += "Optimizations:\t\t{}\n".format(round(times['opts']), 4)
             stats += "Target Gen:\t\t\t{}\n".format(round(times['target'], 4))
+            stats += "Writing to disk:\t{}\n".format(round(times['write'], 4))
             stats += "Total:\t\t\t\t{}".format(round(sum(times.values()), 4))
             self.log.debug(stats)
 

@@ -1,4 +1,5 @@
 from compiler.data_structures.ir import *
+from compiler.data_structures.writable import Writable
 from compiler.targets.base_target import BaseTarget
 
 
@@ -88,7 +89,9 @@ class PuddleTarget(BaseTarget):
                 self.compiled += self.construct_basic_block_code(block.instructions, is_main=is_main)
             self.compiled += '\n\n'
 
-        self.write_output("py", self.compiled)
+        self.program.write[self.program.name] = Writable(self.program.name,
+                                                         "{}/{}.py".format(self.config.output, self.program.name),
+                                                         self.compiled)
         if self.config.debug and not self.config.write_out:
             self.log.info(self.compiled)
 

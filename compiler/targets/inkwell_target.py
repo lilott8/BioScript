@@ -9,9 +9,9 @@ from jsonschema import validate
 
 from compiler.data_structures import Program
 from compiler.data_structures.ir import *
+from compiler.data_structures.writable import Writable, WritableType
 from compiler.targets.base_target import BaseTarget
 from shared.bs_exceptions import UnsupportedOperation
-from shared.bs_junk_drawer import write_graph
 from shared.components import FlowType
 from shared.components import get_component_api
 
@@ -86,7 +86,10 @@ class InkwellTarget(BaseTarget):
                         #     graph.add_edge(use, var_defs[instruction.defs.name])
 
                 if self.config.write_cfg:
-                    write_graph(graph, "{}/{}_{}_{}_dag.dot".format(self.config.output, self.program.name, root, nid))
+                    self.program.write['cfg'] = Writable(self.program.name,
+                                                         "{}/{}_{}_{}_dag.dot".format(self.config.output,
+                                                                                      self.program.name, root, nid),
+                                                         graph, WritableType.GRAPH)
 
                 self.program.functions[root]['blocks'][nid].dag = graph
                 self.dags[root][nid] = graph
@@ -221,13 +224,21 @@ class InkwellTarget(BaseTarget):
             It has no access to the config object.
             """
             if verified and self.config.write_out and self.config.write_cfg:
-                self.json_to_graph(output, root)
+                json_dag_name = "{}_{}_dag_from_json".format(self.program.name, root)
+                self.program.write["json_graph"] = Writable(json_dag_name,
+                                                            "{}/{}.dot".format(self.config.output, json_dag_name),
+                                                            self.json_to_graph(output, root), WritableType.GRAPH)
+                # self.json_to_graph(output, root)
         if self.config.flow_type == FlowType.ACTIVE:
-            self.write_output("json", json.dumps(sequences, sort_keys=True, indent=4),
-                              name="{}_activations".format(self.program.name))
+            self.program.write['activations'] = Writable("{}_activations".format(self.program.name),
+                                                         "{}/{}_activations.json".format(self.config.output,
+                                                                                         self.program.name),
+                                                         sequences, WritableType.JSON)
         for root in netlist:
-            self.write_output("json", json.dumps(netlist[root], sort_keys=True, indent=4),
-                              name="{}_netlist_{}".format(self.program.name, root))
+            netlist_name = "{}_netlist_{}".format(self.program.name, root)
+            self.program.write['{}_netlist_{}'] = Writable(netlist_name,
+                                                           "{}/{}.json".format(self.config.output, netlist_name),
+                                                           netlist[root], WritableType.JSON)
 
     def json_to_graph(self, spec, function_name):
         graph = nx.DiGraph()
@@ -236,13 +247,11 @@ class InkwellTarget(BaseTarget):
         for connection in spec['connections']:
             for sink in connection['sinks']:
                 graph.add_edge(connection['source']['component'], sink['component'])
-        # This can be blindly called here because of the check that happens above.
-        write_graph(graph, "{}/{}_{}_json.dag".format(self.config.output, self.program.name, function_name))
+        return graph
 
     def verify_json(self, output: dict, verify: bool = False) -> bool:
         if verify:
             try:
-                #self.log.info(json.dumps(output, indent=4, separators=(',', ':')))
                 with open('resources/parchmint_schema.json') as f:
                     schema = json.load(f)
                 validate(instance=output, schema=schema)
