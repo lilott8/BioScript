@@ -7,15 +7,15 @@ A simple type-safe Domain Specific Language (DSL) for chemistry and biology.
 ## Usage
 usage: 
 ``` 
- main.py 
-    [-h] -i INPUT [-d] [-t {inkwell,p,puddle,llvm,mfsim,l,m,i}]
-    [-wd WORKING_DIRECTORY] [-sim {False,True}]
-    [-id {0,1,2,32,4,8,16}] [-nf] [-smarts SMARTS]
-    [-tcl {error,warn,none}] [-tc] [-tcu {simple,c,complex,s}]
-    [-epa EPA_DEFS] [-abs ABS_INT] [--dbname DBNAME]
-    [--dbuser DBUSER] [--dbpass DBPASS] [--dbaddr DBADDR]
-    [--dbdriver {mysql,odbc}]
-
+main.py
+    [-h] -i INPUT [-d] [-wd WORKING_DIRECTORY] [-o OUTPUT]
+    [-t {p,i,l,m,mfsim,llvm,puddle,inkwell}] [-cfg] [-inline]
+    [-stats] [-sim {False,True}] [-id {0,1,2,32,4,8,16}] [-nf]
+    [-smarts SMARTS] [-tcl {none,error,warn}] [-tc]
+    [-tcu {complex,c,simple,s}] [-epa EPA_DEFS] [-abs ABS_INT]
+    [--dbname DBNAME] [--dbuser DBUSER] [--dbpass DBPASS]
+    [--dbaddr DBADDR] [--dbdriver {odbc,mysql}] [-lib LIBRARY]
+    [-flow {p,a,passive,active}] [--cdb CDB]
 ```
 ### Optional Arguments:
 
@@ -25,7 +25,11 @@ usage:
 | -i                | --input               | path/to/input.bs                      | Location of input file                                |
 | -d                | --debug               |                                       | Enable debugging.                                     |
 | -t                | --target              | {i,inkwell,p,puddle,m,mfsim,l,llvm}   | What platform do you wish to target?                  |
+| -o                | --output              | path/to/output/dir                    | Enable writing output. Must be set to write anything  |
 | -wd               | --working-directory   | path/to/directory                     | Directory from where you wish to work                 |
+| -cfg              | --write-cfg           |                                       | Write the CFG to a dot file                           |
+| -inline           | --inline              |                                       | Inline all non-recursive functions                    |
+| -stats            | --stats               |                                       | Print the stats to std out                            |
 
 ### Chemistry:
 **Chemistry specific arguments**
@@ -58,6 +62,15 @@ usage:
 | --dbpass          | str           | Database password for user.               |
 | --dbaddr          | {IP, Host}    | Address of database.                      |
 | --dbdriver        | {mysql,odbc}  | Database driver.                          |
+
+### Inkwell:
+**Inkwell specific (`-t inkwell`) flags**
+
+| Short             | Long                  | Flag                              | Purpose                                               |
+| ------------------|-----------------------|-----------------------------------|-------------------------------------------------------|
+| -lib              | --library             | path/to/json/component/lib        | The path to the component library                     |
+| -flow             | --flow                | {p, a, passive, active}           | Which type of flow-based device are you targeting     |
+| -cdb              |                       | database                          | Name of component database (not supported)            |
                         
 ### Setup
 
