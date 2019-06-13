@@ -2,9 +2,10 @@ import re
 
 #import colorlog
 
-from shared.enums.config_flags import IdentifyLevel
-from shared.variable import Variable
-
+#from shared.enums.config_flags import IdentifyLevel
+#from shared.variable import Variable
+#  Daniel??? don't know if this is right...
+from compiler.data_structures import Variable
 
 class Identifier(object):
     smiles_string = '^({0}+|\({0}+\)[0-9]*)({1}{0}+|\({1}{0}+\)[0-9]*|{1}\({0}+\)[0-9]*)*$'.format(
@@ -16,7 +17,7 @@ class Identifier(object):
     smiles_regex = re.compile(smiles_string)
     inchi_key_regex = re.compile('^InChI\=1S?\/[A-Za-z0-9]+(\+[0-9]+)?(\/[cnpbtmshi][A-Za-z0-9\-\+\(\)\,\/]+)*$')
 
-    def __init__(self, level: IdentifyLevel):
+    def __init__(self, level):
         self.level = level
         self.log = colorlog.getLogger(__name__)
         pass

@@ -1,21 +1,10 @@
 import unittest
-<<<<<<< HEAD
-
-from chemicals.chemtypes import ChemTypes
-from chemicals.chemtypes import Consequence
-from chemicals.epa_manager import EpaManager
-from chemicals.identifier import Identifier
-from shared.io.database import Database
-
-=======
 import time
 from chemicals.epa_manager import EpaManager
 from chemicals.identification.identifier import Identifier
-from shared.enums.chemtypes import ChemTypes
-from shared.enums.chemtypes import Consequence
-#from shared.io.database import Database
+from chemicals.chemtypes import ChemTypes
+from chemicals.chemtypes import Consequence
 from solvers.z3_solver import Z3Solver
->>>>>>> f2b792a24da5b0acd7b6af6f1330853c3ff8d655
 
 class TestEPAIdentifiers(unittest.TestCase):
 
