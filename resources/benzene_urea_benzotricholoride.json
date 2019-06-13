@@ -1,0 +1,31 @@
+{
+    "problem": "storage", 
+    "comment": "based on that one paper...",
+    "storage": [
+        {
+            "name": "Cabinet1",
+            "chemicals": [
+                {
+                    "chemical": "Benzene",
+                    "reactive_groups": [16],
+                    "current_volume": 100,
+                    "total_volume": 100
+                },
+                {
+                    "chemical": "Urea",
+                    "reactive_groups": [6],
+                    "current_volume": 50,
+                    "total_volume": 50
+                }
+            ],
+            "volume_left":100
+        }
+    ],
+    "manifest": [
+        {
+            "chemical": "Benzotrichloride",
+            "reactive_groups": [66],
+            "volume": 100
+        } 
+    ]
+}

@@ -6,4 +6,5 @@ functions:
 
 instructions:
 
+heat aaa at 10f for 13d
 x = detect mod on aaa for 13d

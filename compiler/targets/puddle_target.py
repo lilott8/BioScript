@@ -25,6 +25,7 @@ class PuddleTarget(BaseTarget):
             elif type(instr) == Detect: 
                 code += '{}{} = session.detect({}, {})\n'.format(tabs, instr.defs.name, instr.module.name, instr.uses[0].name)
             elif type(instr) == Heat: 
+                print(instr)
                 code += '{}{} = session.heat({}, temp={}, seconds={})\n'.format(tabs, instr.defs.name, instr.uses[0].name, instr.uses[0].size, instr.uses[0].size) 
             elif type(instr) == Dispense:
                 code += '{}{} = session.input({}, location=(), volume=1000000.0, dimensions=(1,1))\n'.format(tabs, instr.defs.name, instr.uses[0].name)
