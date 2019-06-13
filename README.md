@@ -92,9 +92,9 @@ Note: you may need to use `pip3 install` if python3/pip3 is not your default pyt
 
 ### Example Usages:
 
-Enable debug (-d), compile a file (-i ...), and target inkwell (-t ...):
+Enable debug (-d), compile a file (-i ...), target inkwell (-t ...), and place the output files in the specified location:
 
-```python main.py -d -i resources/programs/mix.bs -t inkwell```
+```python main.py -d -i resources/programs/mix.bs -t inkwell -o ./output```
 
 Your output should be a `dag.dot` file and a `json.dag` file.  
 
