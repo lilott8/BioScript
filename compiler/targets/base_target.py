@@ -88,14 +88,6 @@ class BaseTarget(metaclass=abc.ABCMeta):
         #         self.dags[root][nid] = graph
         pass
 
-    def write_output(self, extension: str, content: str, name: str = 'compiled'):
-        if self.config.write_out:
-            with open("{}/{}.{}".format(self.config.output, name, extension), 'w') as out:
-                out.write(content)
-        else:
-            if self.config.debug:
-                self.log.debug(content)
-
     @staticmethod
     def get_safe_name(name: str) -> str:
         """

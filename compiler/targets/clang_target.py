@@ -1,6 +1,7 @@
 # from compiler.data_structures import Program
 from compiler.data_structures.ir import *
 from compiler.data_structures.program import Program
+from compiler.data_structures.writable import Writable
 from compiler.targets.base_target import BaseTarget
 
 
@@ -31,7 +32,7 @@ class ClangTarget(BaseTarget):
             return name
 
     @staticmethod
-    def get_type_string(types : ChemTypes):
+    def get_type_string(types: ChemTypes):
         '''
         Go through all the types in the set of return types,
         and determine the C++ equivalent of those types
@@ -176,9 +177,9 @@ class ClangTarget(BaseTarget):
         for c in code_func:
             self.compiled += c
 
-        self.write_output("cpp", self.compiled)
-        if self.config.debug and not self.config.write_out:
-            self.log.info(self.compiled)
+        self.program.write[self.program.name] = Writable(self.program.name,
+                                                         "{}/{}.cpp".format(self.config.output, self.program.name),
+                                                         self.compiled)
         return False
 
     def write_mix(self) -> str:

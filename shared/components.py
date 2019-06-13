@@ -86,7 +86,12 @@ class NaiveAPI(ComponentAPI):
         component = copy.deepcopy(self.components[taxonomy])
         component['name'] = attr['name']
         component['id'] = attr['name'] + "_id"
-
+        for port in component['ports']:
+            if attr['flow'] == FlowType.PASSIVE:
+                port['layer'] = attr['uuid']
+            else:
+                self.log.fatal(
+                    "You didn't implement the active flow portion.  You need to append to the appropriate layers.")
         return component
 
     def build_connection(self, a: dict, b: dict) -> dict:

@@ -1,0 +1,156 @@
+manifest aaa
+manifest bbb
+manifest ccc
+manifest ddd
+manifest eee
+manifest fff
+manifest ggg
+manifest hhh
+manifest iii
+manifest jjj
+manifest kkk
+manifest lll
+manifest mmm
+manifest nnn
+manifest ooo
+manifest ppp
+
+functions:
+
+instructions:
+
+m1 = dispense aaa
+m2 = dispense bbb
+m3 = dispense ccc
+m4 = dispense ddd
+m5 = dispense eee
+m6 = dispense fff
+m7 = dispense ggg
+m8 = dispense hhh
+m9 = dispense iii
+m10 = dispense jjj
+m11 = dispense kkk
+m12 = dispense lll
+m13 = dispense mmm
+m14 = dispense nnn
+m15 = dispense ooo
+m16 = dispense ppp
+m17 = dispense aaa
+m18 = dispense bbb
+m19 = dispense ccc
+m20 = dispense ddd
+m21 = dispense eee
+m22 = dispense fff
+m23 = dispense ggg
+m24 = dispense hhh
+m25 = dispense iii
+m26 = dispense jjj
+m27 = dispense kkk
+m28 = dispense lll
+m29 = dispense mmm
+m30 = dispense nnn
+m31 = dispense ooo
+m32 = dispense ppp
+m33 = dispense aaa
+m34 = dispense bbb
+m35 = dispense ccc
+m36 = dispense ddd
+m37 = dispense eee
+m38 = dispense fff
+m39 = dispense ggg
+m40 = dispense hhh
+m41 = dispense iii
+m42 = dispense jjj
+m43 = dispense kkk
+m44 = dispense lll
+m45 = dispense mmm
+m46 = dispense nnn
+m47 = dispense ooo
+m48 = dispense ppp
+m49 = dispense aaa
+m50 = dispense bbb
+m51 = dispense ccc
+m52 = dispense ddd
+m53 = dispense eee
+m54 = dispense fff
+m55 = dispense ggg
+m56 = dispense hhh
+m57 = dispense iii
+m58 = dispense jjj
+m59 = dispense kkk
+m60 = dispense lll
+m61 = dispense mmm
+m62 = dispense nnn
+m63 = dispense ooo
+m64 = dispense ppp
+
+t1 = mix m1 with m2
+t2 = mix m3 with m4
+t3 = mix m5 with m6
+t4 = mix m7 with m8
+t5 = mix m9 with m10
+t6 = mix m11 with m12
+t7 = mix m13 with m14
+t8 = mix m15 with m16
+t9 = mix m17 with m18
+t10 = mix m19 with m20
+t11 = mix m21 with m22
+t12 = mix m23 with m24
+t13 = mix m25 with m26
+t14 = mix m27 with m28
+t15 = mix m29 with m30
+t16 = mix m31 with m32
+t17 = mix m33 with m34
+t18 = mix m35 with m36
+t19 = mix m37 with m38
+t20 = mix m39 with m40
+t21 = mix m41 with m42
+t22 = mix m43 with m44
+t23 = mix m45 with m46
+t24 = mix m47 with m48
+t25 = mix m49 with m50
+t26 = mix m51 with m52
+t27 = mix m53 with m54
+t28 = mix m55 with m56
+t29 = mix m57 with m58
+t30 = mix m59 with m60
+t31 = mix m61 with m62
+t32 = mix m63 with m64
+
+s1 = mix t1 with t2
+s2 = mix t3 with t4
+s3 = mix t5 with t6
+s4 = mix t7 with t8
+s5 = mix t9 with t10
+s6 = mix t11 with t12
+s7 = mix t13 with t14
+s8 = mix t15 with t16
+s9 = mix t17 with t18
+s10 = mix t19 with t20
+s11 = mix t21 with t22
+s12 = mix t23 with t24
+s13 = mix t25 with t26
+s14 = mix t27 with t28
+s15 = mix t29 with t30
+s16 = mix t31 with t32
+
+e1 = mix s1 with s2
+e2 = mix s3 with s4
+e3 = mix s5 with s6
+e4 = mix s7 with s8
+e5 = mix s9 with s10
+e6 = mix s11 with s12
+e7 = mix s13 with s14
+e8 = mix s15 with s16
+
+f1 = mix e1 with e2
+f2 = mix e3 with e4
+f3 = mix e5 with e6
+f4 = mix e7 with e8
+
+a1 = mix f1 with f2
+a2 = mix f3 with f4
+
+final = mix a1 with a2
+
+dispose final
