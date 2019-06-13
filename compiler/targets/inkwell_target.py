@@ -232,7 +232,8 @@ class InkwellTarget(BaseTarget):
     def verify_json(self, output: dict, verify: bool = False) -> bool:
         if verify:
             try:
-                #self.log.info(json.dumps(output, indent=4, separators=(',', ':')))
+                with open('MIX2.json', 'w') as file:
+                    file.write(json.dumps(output, indent=4, separators=(',', ':')))
                 with open('resources/parchmint_schema.json') as f:
                     schema = json.load(f)
                 validate(instance=output, schema=schema)
@@ -265,7 +266,7 @@ class InkwellTarget(BaseTarget):
         complete = set(range(1, len(dag.nodes)))
         mapping_names_to_graph = {} 
         mapping_graph_to_names = {}
-        
+        print(dag.nodes, dag.edges)
         for i, data in dag.nodes('data'):
             op = data['op']
             if op == 'DISPOSE':
@@ -286,8 +287,10 @@ class InkwellTarget(BaseTarget):
                 mapping_graph_to_names[i] = key
                 mapping_names_to_graph[key] = i 
             else:
+                print('hello',data)
                 pass
-
+        print('hey')
+        print(dag.nodes, dag.edges)
         sink_names = set(map(lambda s : s[7:], sinks)) 
         sink_nums  = set(map(lambda s : mapping_names_to_graph[s], sink_names))
         timing = list() 

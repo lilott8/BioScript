@@ -1,8 +1,6 @@
+import colorlog
 import logging
 import sys
-
-import colorlog
-
 from compiler.compiler import BSCompiler
 from compiler.config.compiler_cli import CompilerCLI
 

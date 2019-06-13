@@ -1,0 +1,25 @@
+{
+    "problem": "storage",
+    "comment": "based on that one paper...",
+    "storage": [
+        {
+            "name": "Cabinet1",
+            "chemicals": [
+                {
+                    "chemical": "Methanol",
+                    "reactive_groups": [4],
+                    "current_volume": 50,
+                    "total_volume": 50
+                }
+            ],
+            "volume_left":50
+        }
+    ],
+    "manifest": [
+        {
+            "chemical": "Nitric_Acid",
+            "reactive_groups": [2],
+            "volume": 100
+        }
+    ]
+}
