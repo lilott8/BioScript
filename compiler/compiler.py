@@ -1,12 +1,12 @@
 from timeit import default_timer as timer
 
 import colorlog
-import networkx as nx
 from antlr4 import *
 
 import compiler.config.config as config
 from compiler.data_structures.program import Program
 from compiler.data_structures.symbol_table import SymbolTable
+from compiler.data_structures.writable import Writable, WritableType
 from compiler.passes.pass_manager import PassManager
 from compiler.semantics.global_visitor import GlobalVariableVisitor
 from compiler.semantics.ir_visitor import IRVisitor
@@ -103,11 +103,14 @@ class BSCompiler(object):
                                symbol_table=ir_visitor.symbol_table, bb_graph=ir_visitor.graph,
                                name=self.config.input_file, calls=ir_visitor.calls)
 
-        if self.config.write_cfg and self.config.write_out:
-            pos = nx.nx_agraph.graphviz_layout(self.program.bb_graph)
-            nx.draw(self.program.bb_graph, pos=pos)
-            nx.drawing.nx_pydot.write_dot(self.program.bb_graph, '{}/{}_cfg.dot'.format(self.config.output,
-                                                                                        self.config.input_file))
+        if self.config.write_cfg:
+            for root in self.program.functions:
+                self.program.write['{}_basic_block_graph'.format(root)] = Writable(self.program.name,
+                                                                                   "{}/{}_{}_basic_blocks.dot".format(
+                                                                                       self.config.output,
+                                                                                       self.program.name, root),
+                                                                                   self.program.functions[root][
+                                                                                       'graph'], WritableType.GRAPH)
 
         return self.program
 

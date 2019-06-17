@@ -65,12 +65,19 @@ class BasicBlock(object):
             if self.label:
                 self.log.warning("Trying to add a label to an already labeled block.")
             self.label = instruction
-        elif instruction.op == IRInstruction.JUMP or \
-                instruction.op == IRInstruction.RETURN or \
-                instruction.op == IRInstruction.CALL:
-            self.jumps.append(instruction)
+        elif instruction.op == IRInstruction.JUMP:
+            self.jumps.append(instruction.jumps)
             self.instructions.append(instruction)
         elif instruction.op == IRInstruction.CONDITIONAL:
+            self.jumps.append(instruction.true_branch)
+            self.jumps.append(instruction.false_branch)
+            self.instructions.append(instruction)
+        elif instruction.op == IRInstruction.CALL:
+            self.jumps.append(instruction.function.name)
+            self.instructions.append(instruction)
+        elif instruction.op == IRInstruction.RETURN:
+            self.jumps.append(instruction.return_to)
+            self.jumps.append(instruction.name)
             self.instructions.append(instruction)
         else:
             self.instructions.append(instruction)
@@ -86,7 +93,7 @@ class BasicBlock(object):
 
     def __str__(self):
         dag = "True" if self.dag is not None else "False"
-        output = "\nID: {}\t Has DAG: {}\n".format(self.nid, dag)
+        output = "\nID: {}\nHas DAG: {}\n".format(self.nid, dag)
         output += "{}\n".format(self.label)
         jumps = "Jumps: "
         in_jumps = False

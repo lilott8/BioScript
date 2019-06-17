@@ -73,7 +73,7 @@ class IRVisitor(BSBaseVisitor):
         self.current_block = BasicBlock()
         self.graph.add_node(self.current_block.nid, function=self.scope_stack[-1])
 
-        self.functions['main'] = {'blocks': dict(), 'entry': self.current_block.nid}
+        self.functions['main'] = {'blocks': dict(), 'entry': self.current_block.nid, 'graph': self.graph}
 
         # Add all the subsequent instructions to the B.B.
         for i in ctx.statements():
@@ -110,7 +110,7 @@ class IRVisitor(BSBaseVisitor):
         self.symbol_table.current_scope = self.symbol_table.scope_map[name]
 
         self.current_block = BasicBlock()
-        self.functions[name] = {"blocks": dict(), "entry": self.current_block.nid}
+        self.functions[name] = {"blocks": dict(), "entry": self.current_block.nid, 'graph': None}
         label = Label("{}_entry".format(name))
         self.labels[label.name] = self.current_block.nid
         self.current_block.add(label)
@@ -122,6 +122,7 @@ class IRVisitor(BSBaseVisitor):
         ret_statement = self.visitReturnStatement(ctx.returnStatement())
         self.current_block.add(ret_statement)
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+        self.functions[name]['graph'] = self.graph
 
         self.scope_stack.pop()
         return None
