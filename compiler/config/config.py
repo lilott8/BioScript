@@ -7,7 +7,7 @@ import chemicals.chemtypes as ct
 import chemicals.combiner as combiner
 import chemicals.identifier as identifier
 import compiler.semantics.type_visitor as tv
-import compiler.targets.base_target as targets
+import compiler.targets.target_selector as targets
 from shared.components import FlowType
 
 
@@ -45,7 +45,7 @@ class Config(object):
         Compiler Stuff
         """
         # What is the target?
-        self.target = targets.Target.INKWELL
+        self.target = targets.TargetSelector.INKWELL
         self.supports_functions = False
         self.supports_recursion = False
         self.supports_nesting = False
@@ -123,19 +123,19 @@ class Config(object):
             """
             target = args.target.lower()
             if target == "m" or target == "mfsim":
-                self.target = targets.Target.MFSIM
+                self.target = targets.TargetSelector.MFSIM
                 self.supports_functions = True
                 self.supports_nesting = True
             elif target == 'i' or target == 'inkwell':
-                self.target = targets.Target.INKWELL
+                self.target = targets.TargetSelector.INKWELL
                 self.supports_functions = True
             elif target == "p" or target == "puddle":
-                self.target = targets.Target.PUDDLE
+                self.target = targets.TargetSelector.PUDDLE
                 self.supports_functions = True
                 self.supports_recursion = True
                 self.supports_nesting = True
             else:
-                self.target = targets.Target.LLVM_IR
+                self.target = targets.TargetSelector.LLVM_IR
                 self.supports_functions = True
                 self.supports_recursion = True
                 self.supports_nesting = True

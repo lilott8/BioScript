@@ -1,28 +1,9 @@
 import abc
-from enum import IntEnum
 
 import colorlog
 
 import compiler.data_structures.program as prog
-import compiler.targets as targets
 from shared.bs_exceptions import UnInitializedError
-
-
-class Target(IntEnum):
-    LLVM_IR = 1
-    MFSIM = 2
-    PUDDLE = 4
-    INKWELL = 8
-
-    def get_target(self, program: prog.Program):
-        if self == Target.PUDDLE:
-            return targets.PuddleTarget(program)
-        elif self.value == Target.INKWELL:
-            return targets.InkwellTarget(program)
-        elif self.value == Target.MFSIM:
-            return targets.MFSimTarget(program)
-        else:
-            return targets.ClangTarget(program)
 
 
 class BaseTarget(metaclass=abc.ABCMeta):
