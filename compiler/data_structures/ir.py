@@ -291,7 +291,7 @@ class Dispose(Statement):
 class Store(Statement):
     def __init__(self, out: Temp, value: Expression):
         super().__init__(IRInstruction.STORE, out)
-        if value.op == IRInstruction.CALL:
+        if not isinstance(value, float) and value.op == IRInstruction.CALL:
             self.uses.extend(value.uses)
         self.defs = out
 

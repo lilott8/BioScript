@@ -120,9 +120,11 @@ class SSA(BSTransform):
         :return: None.
         """
         for instruction in block.instructions:
-            if instruction.op is not IRInstruction.PHI:
+            if instruction.op is not IRInstruction.PHI and instruction.op is not IRInstruction.JUMP:
                 for x in range(0, len(instruction.uses)):
                     current_var = instruction.uses[x]
+                    if isinstance(current_var, str):
+                        continue
                     # We don't care about constants or globals.
                     if not current_var.is_constant and not current_var.is_global:
                         new_name = "{}{}".format(current_var.name,
@@ -133,7 +135,7 @@ class SSA(BSTransform):
                         if current_var.name in block.uses:
                             block.uses.remove(current_var.name)
                             block.uses.add(renamed.name)
-            if instruction.defs:
+            if instruction.op is not IRInstruction.JUMP and instruction.defs:
                 version = self.bookkeeper[instruction.defs.name]['count']
                 self.bookkeeper[instruction.defs.name]['count'] += 1
                 self.bookkeeper[instruction.defs.name]['stack'].append(version)
@@ -169,6 +171,8 @@ class SSA(BSTransform):
         for instruction in block.instructions:
             # We aren't concerned with instructions that don't have defs
             # Or are constant values.  They don't impact renaming.
-            if instruction.op is not IRInstruction.CONSTANT and instruction.defs:
+            if instruction.op is not IRInstruction.CONSTANT and \
+                    instruction.op is not IRInstruction.JUMP and \
+                    instruction.defs:
                 if self.bookkeeper[instruction.defs.points_to]['stack']:
                     self.bookkeeper[instruction.defs.points_to]['stack'].pop()

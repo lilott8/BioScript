@@ -196,6 +196,8 @@ class BSBaseVisitor(BSParserVisitor):
         :return: Boolean determining if a string is a number.
         """
         try:
+            if isinstance(num, Number):
+                return False
             float(num)
             return True
         except ValueError:

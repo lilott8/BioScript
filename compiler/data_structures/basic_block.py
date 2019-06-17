@@ -58,7 +58,8 @@ class BasicBlock(object):
                 self.defs.add(instruction.defs.name)
         if hasattr(instruction, 'uses'):
             for use in instruction.uses:
-                self.uses.add(use.name)
+                if isinstance(use, Variable):
+                    self.uses.add(use.name)
 
         if instruction.op == IRInstruction.LABEL:
             if self.label:

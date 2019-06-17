@@ -258,13 +258,13 @@ class IRVisitor(BSBaseVisitor):
                           self.scope_stack[-1], value=float(par_expression['exp1']), is_constant=True)
             self.symbol_table.add_local(exp1, self.scope_stack[-1])
         else:
-            exp1 = self.allocation_map[par_expression['exp1']]
+            exp1 = par_expression['exp1']
         if BSBaseVisitor.is_number(par_expression['exp2']):
             exp2 = Number("Constant_{}".format(par_expression['exp2']), {ChemTypes.NAT, ChemTypes.REAL},
                           self.scope_stack[-1], value=float(par_expression['exp2']), is_constant=True)
             self.symbol_table.add_local(exp2, self.scope_stack[-1])
         else:
-            exp2 = self.allocation_map[par_expression['exp2']]
+            exp2 = par_expression['exp2']
 
         pre_condition_label_string = "bsbbw_{}_l".format(self.current_block.nid)
         pre_condition_label = Label(pre_condition_label_string)
