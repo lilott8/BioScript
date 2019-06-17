@@ -1,5 +1,7 @@
 import colorlog
-import compiler.data_structures.ir as ir
+
+# import compiler.data_structures.ir as ir
+from compiler.data_structures.ir import *
 
 
 # import compiler.data_structures.variable as variable
@@ -33,23 +35,23 @@ class BasicBlock(object):
     def get_jump(self):
         jumps = list()
         for jump in self.jumps:
-            if jump.op == ir.IRInstruction.JUMP:
+            if jump.op == IRInstruction.JUMP:
                 jumps.append(jump)
         return jumps
 
     def get_returns(self):
         for jump in self.jumps:
-            if jump.op == ir.IRInstruction.RETURN:
+            if jump.op == IRInstruction.RETURN:
                 return jump
         return None
 
     def get_call(self):
         for jump in self.jumps:
-            if jump.op == ir.IRInstruction.CALL:
+            if jump.op == IRInstruction.CALL:
                 return jump
         return None
 
-    def add(self, instruction: ir.IR):
+    def add(self, instruction: IR):
         # All statements have def/uses.
         if hasattr(instruction, 'defs'):
             if instruction.defs is not None:
@@ -58,16 +60,16 @@ class BasicBlock(object):
             for use in instruction.uses:
                 self.uses.add(use.name)
 
-        if instruction.op == ir.IRInstruction.LABEL:
+        if instruction.op == IRInstruction.LABEL:
             if self.label:
                 self.log.warning("Trying to add a label to an already labeled block.")
             self.label = instruction
-        elif instruction.op == ir.IRInstruction.JUMP or \
-                instruction.op == ir.IRInstruction.RETURN or \
-                instruction.op == ir.IRInstruction.CALL:
+        elif instruction.op == IRInstruction.JUMP or \
+                instruction.op == IRInstruction.RETURN or \
+                instruction.op == IRInstruction.CALL:
             self.jumps.append(instruction)
             self.instructions.append(instruction)
-        elif instruction.op == ir.IRInstruction.CONDITIONAL:
+        elif instruction.op == IRInstruction.CONDITIONAL:
             self.instructions.append(instruction)
         else:
             self.instructions.append(instruction)

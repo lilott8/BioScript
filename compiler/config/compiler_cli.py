@@ -1,4 +1,5 @@
-import compiler.config.config as config
+# import compiler.config.config as config
+from compiler.config.config import Config
 from shared.base_cli import BaseCLI
 
 
@@ -59,7 +60,7 @@ class CompilerCLI(BaseCLI):
 
         self.args = self.parser.parse_args(args)
         # This should always be the first instantiation of a Config.
-        self.config = config.Config(self.args)
+        self.config = Config(self.args)
         self.validate_config()
 
         self.log.warning(self.config.input)
