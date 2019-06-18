@@ -61,6 +61,20 @@ class LoopUnroll(BSTransform):
 				constant = 8
 				jump.jumps = label.false_branch
 				base_instructions = program.functions[root]['blocks'][child].instructions.copy()
+
+
+				#Edge Cases:
+				# Multiply Oscillate
+				# DIvide Oscillate
+				# Multiply to Limit
+				# Divide to Limit
+				# Increment to max
+				# Decrement to Min
+
+
+
+
+
 				while constant > 1:
 					program.functions[root]['blocks'][child].instructions.extend(base_instructions)
 					constant -= 1
