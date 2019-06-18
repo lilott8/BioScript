@@ -5,6 +5,7 @@ from compiler.data_structures.program import Program
 from compiler.passes.analyses.call_graph import CallGraph
 from compiler.passes.analyses.def_use import DefUseChains
 from compiler.passes.transforms.inline import Inline
+from compiler.passes.transforms.loop_unroll import LoopUnroll
 from compiler.passes.transforms.split_edges import SplitEdges
 from compiler.passes.transforms.ssa import SSA
 from shared.bs_exceptions import UnInitializedError
@@ -58,4 +59,5 @@ class PassManager(object):
         if self.config.inline:
             self.transforms['inline'] = Inline()
         self.transforms['split_edges'] = SplitEdges()
+        self.transforms['loop_unroll'] = LoopUnroll()
         self.dependencies['transforms'].add_node('split_edges')
