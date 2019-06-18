@@ -60,12 +60,15 @@ class LoopUnroll(BSTransform):
 				#constant = label.right
 				constant = 8
 				jump.jumps = label.false_branch
-				old = program.functions[root]['blocks'][child].instructions[0]
-				while constant > 0:
-					program.functions[root]['blocks'][child].instructions.append(old)
+				base_instructions = program.functions[root]['blocks'][child].instructions.copy()
+				while constant > 1:
+					program.functions[root]['blocks'][child].instructions.extend(base_instructions)
 					constant -= 1
+				#Clean-Up : Pops Parent, adds jump, redoes the labels.
 				program.functions[root]['blocks'][child].instructions.append(jump)
 				program.functions[root]['blocks'].pop(parent)
+				program.functions[root]['blocks'][child].label = label.true_branch
+				program.functions[root]['blocks'][child].jumps.pop()
 
 
 
@@ -95,6 +98,12 @@ class LoopUnroll(BSTransform):
 
 #Entry Point
 	def transform(self, program: Program) -> Program:
+		for root in program.functions:
+			for block in program.functions[root]['blocks']:
+				self.log.warn(program.functions[root]['blocks'][block])
+
+
+
 		self.unroll(program)
 
 		return program
