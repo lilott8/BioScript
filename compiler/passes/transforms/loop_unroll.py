@@ -1,124 +1,131 @@
-from compiler.data_structures import BinaryOps
+from compiler.data_structures import *
 from compiler.data_structures.program import Program
 from compiler.passes.transforms.bs_transform import BSTransform
 import networkx as nx
+
 
 
 class LoopUnroll(BSTransform):
 
 	def __init__(self):
 		super().__init__("LoopUnravel")
-		self.log.warn("Hello World")
+		self.log.warn("Starting Loop Unrolling.....")
 
-	#Function:
-	#1) Assign - Use Cycle to find parent, child, end
-	#2) Identify - Find Multiplicity in Parent(The number of times we run the loop)
-	#3) Execute
-	#	ex: while(x < Parent.Multiplicity)
-	#			Child += Child
-	#		x + = 1
-	#		Child+=End
-	#) Clean-Up
-	#		Child.incomingEdges += Parent.incoming edges (Loop-through,external to the cycle ofc)
-	#		Remove Parent
-	#		Child.outgoing += End.outgoing ( Loop through ,external to the cycle)
-	#		Remove End
-	# Just assumes second item is the reverse edge
-	def unroll(self, program: Program):
+
+	def unroll(self, program: Program) -> Program:
+			global jump
 			for root in program.functions:
-				self.log.warn(program.functions[root]['graph'])
 				try:
 					glist = list(nx.find_cycle(program.functions[root]['graph']))
 				except:
-					self.log.warn("No Cycles Found")
+					self.log.warn("No Loops Found. No need to unroll")
+					return program #No Cycles to unroll!
 
-				child = int(glist[1][0])
-				parent = glist[1][1]
-				#root[child] = root[child] + root[child]
-				#del(root[parent])
-				#Remove the jumps from the child to the parent
-				#Find the multiplier in the parent
-				#"Multiply" the instruction in the child
-				# Edge Cases
-				# 1) variable to constant, variable doesn't change
-				# 2) variable to variable ,neither change
-				# 3) variable to constant, wrong direction
-				###################################################33
 
-				# Pops Jump
-				jump = program.functions[root]['blocks'][child].instructions.pop(2)
-				BO = program.functions[root]['blocks'][child].instructions.pop(1)
-				if 	BinaryOps.SUBTRACT == BO.op :
-					pass
+				child = glist[1][0]
+				parent =glist[1][1]
+
+				# Loop Unroll Algorithm
+				# Find Variables in  Block 1
+				# Detect Usage in Block 2 (Instruction with a BinaryOP on variable)
+				# Detect if BinaryOp follows protocol
+				# If so, unroll loop nicely
+
+				# TODO : Get Left variable on jump condition
+				# TODO:  Better Jump Detect Algorithm, find variable from parent in child
+
+				# This label is the conditional on the parent....
+				# We loop through all conditionals, find the last (that will be the last argument anyway)
+				# Search that conditional for a variable, store the variable as an object
+				#Remove the last condition (loop header)
+
+				##IDENTIFY
+				#PARENT MODIFICATIONS
+				#label = None
+				for items in program.functions[root]['blocks'][parent].instructions:
+					if type(items) == Conditional:
+						self.log.warn("Success")
+						label = program.functions[root]['blocks'][parent].instructions.pop(
+							program.functions[root]['blocks'][parent].instructions.index(items))
+						l_left = label.left
+						l_right = label.right
+					else:
+						self.log.warn(type(items))
+				# Remove Jumps
+				self.log.warn(label )
+				#CHILD MODIFICATIONS
+				jump = program.functions[root]['blocks'][child].instructions.pop(-1)
+				for items2 in program.functions[root]['blocks'][child].instructions:
+
+					if type(items2) == BinaryOp:
+						self.log.warn("Success")
+						BO = program.functions[root]['blocks'][child].instructions.pop(
+							program.functions[root]['blocks'][child].instructions.index(items2))
+					else:
+						self.log.warn(items2)
+						self.log.warn(type(items2))
+			#	self.log.warn(jump + "Henlo" )
+				self.log.warn(BO)
+
+				#EXECUTE
+				if BinaryOps.SUBTRACT == BO.op:
+
+					reducer = BO.right
+
+					#Find the constant and find the false-jump
+
+					# TODO: Better Jump Condition Detect
+					#constant = label.right
+					constant = 8
+					base_instructions = program.functions[root]['blocks'][child].instructions.copy()
+					while constant > 1:
+						program.functions[root]['blocks'][child].instructions.extend(base_instructions)
+						constant -= 1
+				elif  BinaryOps.ADD == BO.op:
+					reducer = BO.right
+
+					# Find the constant and find the false-jump
+
+					# TODO: Better Jump Condition Detect
+					# TODO: FIX NUMBER CITIZENSHIP
+					# constant = label.right
+					constant = 1
+
+					base_instructions = program.functions[root]['blocks'][child].instructions.copy()
+					while constant < 7:
+						program.functions[root]['blocks'][child].instructions.extend(base_instructions)
+						constant += 1
+				elif BinaryOps.MULTIPLE == BO.op:
+						pass
+				elif BinaryOps.DIVIDE == BO.op:
+						pass
 				else:
-					return
-				reducer = BO.right
+					self.log.warn("Control Logic Detected... Aborting Unroll")
 
-				#Find the constant and find the false-jump
-
-				label = program.functions[root]['blocks'][parent].instructions.pop(1)
-				#constant = label.right
-				constant = 8
+				#CLEANUP: Pops Parent, adds jump, redoes the labels.
 				jump.jumps = label.false_branch
-				base_instructions = program.functions[root]['blocks'][child].instructions.copy()
-
-
-				#Edge Cases:
-				# Multiply Oscillate
-				# DIvide Oscillate
-				# Multiply to Limit
-				# Divide to Limit
-				# Increment to max
-				# Decrement to Min
-
-
-
-
-
-				while constant > 1:
-					program.functions[root]['blocks'][child].instructions.extend(base_instructions)
-					constant -= 1
-				#Clean-Up : Pops Parent, adds jump, redoes the labels.
 				program.functions[root]['blocks'][child].instructions.append(jump)
 				program.functions[root]['blocks'].pop(parent)
 				program.functions[root]['blocks'][child].label = label.true_branch
 				program.functions[root]['blocks'][child].jumps.pop()
 
 
-
-
-
-
-				# Pops the X Modifer instruction
-				#Str_Value =	" " + program.functions[root]['blocks'][child].instructions.pop(1)
-				#Gets X Modifer
-				#value_list = Str_Value.split()
-				#reducer = value_list[-1]
-				#self.log.warn(reducer)
-
-
-				#self.log.warn(program.functions[root]['blocks'][child])
-
-
-
+			#Test code showing program post unroll
 			for root in program.functions:
 				for block in program.functions[root]['blocks']:
 							self.log.warn(program.functions[root]['blocks'][block])
-
-
+			self.log.warn("Loop Unrolling Completed")
+			return program
 
 
 
 
 #Entry Point
 	def transform(self, program: Program) -> Program:
+		#Test Print to show pre-unroll
 		for root in program.functions:
 			for block in program.functions[root]['blocks']:
 				self.log.warn(program.functions[root]['blocks'][block])
-
-
-
-		self.unroll(program)
-
-		return program
+		#Test function
+		return self.unroll(program)
 
