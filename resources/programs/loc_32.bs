@@ -2,6 +2,18 @@ manifest aaa
 manifest bbb
 manifest ccc
 manifest ddd
+manifest eee
+manifest fff
+manifest ggg
+manifest hhh
+manifest iii
+manifest jjj
+manifest kkk
+manifest lll
+manifest mmm
+manifest nnn
+manifest ooo
+manifest ppp
 
 functions:
 
@@ -11,18 +23,18 @@ m1 = dispense aaa
 m2 = dispense bbb
 m3 = dispense ccc
 m4 = dispense ddd
-m5 = dispense aaa
-m6 = dispense bbb
-m7 = dispense ccc
-m8 = dispense ddd
-m9 = dispense aaa
-m10 = dispense bbb
-m11 = dispense ccc
-m12 = dispense ddd
-m13 = dispense aaa
-m14 = dispense bbb
-m15 = dispense ccc
-m16 = dispense ddd
+m5 = dispense eee
+m6 = dispense fff
+m7 = dispense ggg
+m8 = dispense hhh
+m9 = dispense iii
+m10 = dispense jjj
+m11 = dispense kkk
+m12 = dispense lll
+m13 = dispense mmm
+m14 = dispense nnn
+m15 = dispense ooo
+m16 = dispense ppp
 
 e1 = mix m1 with m2
 e2 = mix m3 with m4

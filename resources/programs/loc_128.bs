@@ -1,88 +1,136 @@
-manifest aaa
-manifest bbb
-manifest ccc
-manifest ddd
-manifest eee
-manifest fff
-manifest ggg
-manifest hhh
-manifest iii
-manifest jjj
-manifest kkk
-manifest lll
-manifest mmm
-manifest nnn
-manifest ooo
-manifest ppp
+manifest a1
+manifest a2
+manifest a3
+manifest a4
+manifest a5
+manifest a6
+manifest a7
+manifest a8
+manifest a9
+manifest a10
+manifest a11
+manifest a12
+manifest a13
+manifest a14
+manifest a15
+manifest a16
+manifest a17
+manifest a18
+manifest a19
+manifest a20
+manifest a21
+manifest a22
+manifest a23
+manifest a24
+manifest a25
+manifest a26
+manifest a27
+manifest a28
+manifest a29
+manifest a30
+manifest a31
+manifest a32
+manifest a33
+manifest a34
+manifest a35
+manifest a36
+manifest a37
+manifest a38
+manifest a39
+manifest a40
+manifest a41
+manifest a42
+manifest a43
+manifest a44
+manifest a45
+manifest a46
+manifest a47
+manifest a48
+manifest a49
+manifest a50
+manifest a51
+manifest a52
+manifest a53
+manifest a54
+manifest a55
+manifest a56
+manifest a57
+manifest a58
+manifest a59
+manifest a60
+manifest a61
+manifest a62
+manifest a63
+manifest a64
 
 functions:
 
 instructions:
 
-m1 = dispense aaa
-m2 = dispense bbb
-m3 = dispense ccc
-m4 = dispense ddd
-m5 = dispense eee
-m6 = dispense fff
-m7 = dispense ggg
-m8 = dispense hhh
-m9 = dispense iii
-m10 = dispense jjj
-m11 = dispense kkk
-m12 = dispense lll
-m13 = dispense mmm
-m14 = dispense nnn
-m15 = dispense ooo
-m16 = dispense ppp
-m17 = dispense aaa
-m18 = dispense bbb
-m19 = dispense ccc
-m20 = dispense ddd
-m21 = dispense eee
-m22 = dispense fff
-m23 = dispense ggg
-m24 = dispense hhh
-m25 = dispense iii
-m26 = dispense jjj
-m27 = dispense kkk
-m28 = dispense lll
-m29 = dispense mmm
-m30 = dispense nnn
-m31 = dispense ooo
-m32 = dispense ppp
-m33 = dispense aaa
-m34 = dispense bbb
-m35 = dispense ccc
-m36 = dispense ddd
-m37 = dispense eee
-m38 = dispense fff
-m39 = dispense ggg
-m40 = dispense hhh
-m41 = dispense iii
-m42 = dispense jjj
-m43 = dispense kkk
-m44 = dispense lll
-m45 = dispense mmm
-m46 = dispense nnn
-m47 = dispense ooo
-m48 = dispense ppp
-m49 = dispense aaa
-m50 = dispense bbb
-m51 = dispense ccc
-m52 = dispense ddd
-m53 = dispense eee
-m54 = dispense fff
-m55 = dispense ggg
-m56 = dispense hhh
-m57 = dispense iii
-m58 = dispense jjj
-m59 = dispense kkk
-m60 = dispense lll
-m61 = dispense mmm
-m62 = dispense nnn
-m63 = dispense ooo
-m64 = dispense ppp
+m1 = dispense a1
+m2 = dispense a2
+m3 = dispense a3
+m4 = dispense a4
+m5 = dispense a5
+m6 = dispense a6
+m7 = dispense a7
+m8 = dispense a8
+m9 = dispense a9
+m10 = dispense a10
+m11 = dispense a11
+m12 = dispense a12
+m13 = dispense a13
+m14 = dispense a14
+m15 = dispense a15
+m16 = dispense a16
+m17 = dispense a17
+m18 = dispense a18
+m19 = dispense a19
+m20 = dispense a20
+m21 = dispense a21
+m22 = dispense a22
+m23 = dispense a23
+m24 = dispense a24
+m25 = dispense a25
+m26 = dispense a26
+m27 = dispense a27
+m28 = dispense a28
+m29 = dispense a29
+m30 = dispense a30
+m31 = dispense a31
+m32 = dispense a32
+m33 = dispense a33
+m34 = dispense a34
+m35 = dispense a35
+m36 = dispense a36
+m37 = dispense a37
+m38 = dispense a38
+m39 = dispense a39
+m40 = dispense a40
+m41 = dispense a41
+m42 = dispense a42
+m43 = dispense a43
+m44 = dispense a44
+m45 = dispense a45
+m46 = dispense a46
+m47 = dispense a47
+m48 = dispense a48
+m49 = dispense a49
+m50 = dispense a50
+m51 = dispense a51
+m52 = dispense a52
+m53 = dispense a53
+m54 = dispense a54
+m55 = dispense a55
+m56 = dispense a56
+m57 = dispense a57
+m58 = dispense a58
+m59 = dispense a59
+m60 = dispense a60
+m61 = dispense a61
+m62 = dispense a62
+m63 = dispense a63
+m64 = dispense a64
 
 t1 = mix m1 with m2
 t2 = mix m3 with m4
@@ -148,9 +196,9 @@ f2 = mix e3 with e4
 f3 = mix e5 with e6
 f4 = mix e7 with e8
 
-a1 = mix f1 with f2
-a2 = mix f3 with f4
+finish1 = mix f1 with f2
+finish2 = mix f3 with f4
 
-final = mix a1 with a2
+final = mix finish1 with finish2
 
 dispose final
