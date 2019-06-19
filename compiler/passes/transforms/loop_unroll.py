@@ -20,10 +20,8 @@ class LoopUnroll(BSTransform):
 				except:
 					self.log.warn("No Loops Found. No need to unroll")
 					return program #No Cycles to unroll!
-
-
 				child = glist[1][0]
-				parent =glist[1][1]
+				parent = glist[1][1]
 
 				# Loop Unroll Algorithm
 				# Find Variables in  Block 1
@@ -31,7 +29,7 @@ class LoopUnroll(BSTransform):
 				# Detect if BinaryOp follows protocol
 				# If so, unroll loop nicely
 
-				# TODO : Get Left variable on jump condition
+				# TODO : Get Left variable on jump condition			jump.jumps = label.false_branch
 				# TODO:  Better Jump Detect Algorithm, find variable from parent in child
 
 				# This label is the conditional on the parent....
@@ -39,9 +37,18 @@ class LoopUnroll(BSTransform):
 				# Search that conditional for a variable, store the variable as an object
 				#Remove the last condition (loop header)
 
+
+				# Var Detect Algo
+				# Check if any match of the label condition
+				# matches any leaf in BinaryOps in the stack
+				#
+
 				##IDENTIFY
 				#PARENT MODIFICATIONS
 				#label = None
+				label = None
+				BO = None
+				jump = None
 				for items in program.functions[root]['blocks'][parent].instructions:
 					if type(items) == Conditional:
 						self.log.warn("Success")
@@ -50,7 +57,7 @@ class LoopUnroll(BSTransform):
 						l_left = label.left
 						l_right = label.right
 					else:
-						self.log.warn(type(items))
+						pass
 				# Remove Jumps
 				self.log.warn(label )
 				#CHILD MODIFICATIONS
@@ -59,23 +66,19 @@ class LoopUnroll(BSTransform):
 
 					if type(items2) == BinaryOp:
 						self.log.warn("Success")
+						#TODO:  Better BinaryOp Chec
+						# 4 Cases:
 						BO = program.functions[root]['blocks'][child].instructions.pop(
 							program.functions[root]['blocks'][child].instructions.index(items2))
 					else:
-						self.log.warn(items2)
-						self.log.warn(type(items2))
+						pass
 			#	self.log.warn(jump + "Henlo" )
-				self.log.warn(BO)
-
+				if jump is None or label is None or BO is None:
+					self.log.warn("Bad or Infinite Loop Detected... aborting unroll")
+					return program
 				#EXECUTE
 				if BinaryOps.SUBTRACT == BO.op:
-
-					reducer = BO.right
-
-					#Find the constant and find the false-jump
-
-					# TODO: Better Jump Condition Detect
-					#constant = label.right
+					#constant = BO.right
 					constant = 8
 					base_instructions = program.functions[root]['blocks'][child].instructions.copy()
 					while constant > 1:
@@ -100,7 +103,7 @@ class LoopUnroll(BSTransform):
 				elif BinaryOps.DIVIDE == BO.op:
 						pass
 				else:
-					self.log.warn("Control Logic Detected... Aborting Unroll")
+					pass
 
 				#CLEANUP: Pops Parent, adds jump, redoes the labels.
 				jump.jumps = label.false_branch
