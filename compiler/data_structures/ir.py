@@ -66,7 +66,7 @@ class RelationalOps(IntEnum):
 
 class InstructionSet(object):
     instructions = {IRInstruction.MIX, IRInstruction.SPLIT, IRInstruction.DETECT, IRInstruction.DISPENSE,
-                    IRInstruction.DISPOSE, IRInstruction.HEAT, IRInstruction.CALL, IRInstruction.BINARYOP}
+                    IRInstruction.DISPOSE, IRInstruction.GRADIENT, IRInstruction.HEAT, IRInstruction.CALL, IRInstruction.BINARYOP}
 
     BinaryOps = {BinaryOps.AND, BinaryOps.ADD, BinaryOps.DIVIDE, BinaryOps.MULTIPLE, BinaryOps.OR, BinaryOps.SUBTRACT}
 
@@ -219,6 +219,7 @@ class Mix(Statement):
     def __init__(self, out: Temp, one: Temp, two: Temp):
         super().__init__(IRInstruction.MIX, out)
         self.uses.extend([one, two])
+        self.defs = out
 
     def write(self, target: 'BaseTarget') -> str:
         return target.write_mix(self)
@@ -232,9 +233,7 @@ class Split(Statement):
         super().__init__(IRInstruction.SPLIT, out)
         self.uses.append(one)
         self.size = size
-        print(type(out))
-        self.defs = out;
-        print("test")
+        self.defs = out
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -293,10 +292,10 @@ class Dispose(Statement):
 
 
 class Gradient(Statement):
-    def __init__(self, out: Temp, one: Temp, size: int):
+    def __init__(self, out: Temp, reagent: Temp, size: int):
         super().__init__(IRInstruction.GRADIENT, out)
-        # self.defs.append(out)
-        # self.uses.append(one)
+        self.defs.append(out)
+        self.uses.append(reagent)
         self.size = size
 
     def write(self, target: 'BaseTarget') -> str:
