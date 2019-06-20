@@ -171,6 +171,7 @@ class Call(Expression):
         self.function = func
         self.args = self.function.args
         self.name = self.function.name
+        # This is already a list!
         self.uses = arguments
         self.defs = [out]
 
@@ -426,7 +427,7 @@ class Phi(Meta):
     def __init__(self, left: Expression, right: list):
         super().__init__(IRInstruction.PHI)
         self.defs = [left]
-        self.uses = right
+        self.uses = [right]
 
     def write(self, target: 'BaseTarget') -> str:
         pass
