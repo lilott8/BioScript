@@ -54,8 +54,9 @@ class InkwellTarget(BaseTarget):
                     instruction_uses[instruction.iid] = set()
 
                     if instruction.defs:
-                        instruction_defs[instruction.iid].add(instruction.defs.name)
-                        var_defs[instruction.defs.name] = instruction.iid
+                        for d in instruction.defs:
+                            instruction_defs[instruction.iid].add(d.name)
+                            var_defs[d.name] = instruction.iid
                     else:
                         raise UnsupportedOperation("Inkwell target does not support arithmetic math.")
 
@@ -65,9 +66,10 @@ class InkwellTarget(BaseTarget):
                         instruction_uses[instruction.iid].add(uses.name)
                         var_uses[uses.name].append(instruction.iid)
 
-                    data = {'op': instruction.op.name, 'defs': instruction.defs.name,
-                            'uses': instruction_uses[instruction.iid]}
-                    graph.add_node(instruction.iid, data=data)
+                    for d in instruction.defs:
+                        data = {'op': instruction.op.name, 'defs': d.name,
+                                'uses': instruction_uses[instruction.iid]}
+                        graph.add_node(instruction.iid, data=data)
 
                     for use in instruction_uses[instruction.iid]:
                         if not self.program.symbol_table.is_global(use):

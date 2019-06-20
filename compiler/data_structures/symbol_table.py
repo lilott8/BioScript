@@ -97,6 +97,7 @@ class SymbolTable(object):
             return scope.get_locals()[variable]
         else:
             self.log.fatal("No variable found: {} in {}".format(variable, scope.name))
+            raise Exception("...")
             return False
 
     def __repr__(self):

@@ -134,17 +134,18 @@ class SSA(BSTransform):
                             block.uses.remove(current_var.name)
                             block.uses.add(renamed.name)
             if instruction.defs:
-                version = self.bookkeeper[instruction.defs.name]['count']
-                self.bookkeeper[instruction.defs.name]['count'] += 1
-                self.bookkeeper[instruction.defs.name]['stack'].append(version)
-                original = instruction.defs
-                renamed = RenamedVar("{}{}".format(original.name, version), original)
-                instruction.defs = renamed
-                if not self.program.symbol_table.get_local(renamed, root):
-                    self.program.symbol_table.add_local(renamed, root)
-                if original.name in block.defs:
-                    block.defs.remove(original.name)
-                    block.defs.add(renamed.name)
+                for d in range(0, len(instruction.defs)):
+                    version = self.bookkeeper[instruction.defs[d].name]['count']
+                    self.bookkeeper[instruction.defs[d].name]['count'] += 1
+                    self.bookkeeper[instruction.defs[d].name]['stack'].append(version)
+                    original = instruction.defs[d]
+                    renamed = RenamedVar("{}{}".format(original.name, version), original)
+                    instruction.defs[d] = renamed
+                    if not self.program.symbol_table.get_local(renamed, root):
+                        self.program.symbol_table.add_local(renamed, root)
+                    if original.name in block.defs:
+                        block.defs.remove(original.name)
+                        block.defs.add(renamed.name)
         # Look at the successors of this block
         if block.nid in self.dominator_tree[root]:
             for sid in self.dominator_tree[root][block.nid]:
@@ -170,5 +171,6 @@ class SSA(BSTransform):
             # We aren't concerned with instructions that don't have defs
             # Or are constant values.  They don't impact renaming.
             if instruction.op is not IRInstruction.CONSTANT and instruction.defs:
-                if self.bookkeeper[instruction.defs.points_to]['stack']:
-                    self.bookkeeper[instruction.defs.points_to]['stack'].pop()
+                for d in range(0, len(instruction.defs)):
+                    if self.bookkeeper[instruction.defs[d].points_to]['stack']:
+                        self.bookkeeper[instruction.defs[d].points_to]['stack'].pop()

@@ -1,7 +1,6 @@
-from compiler.targets.base_target import BaseTarget
-from chemicals.chemtypes import ChemTypes
-from compiler.data_structures.variable import *
 from compiler.data_structures.ir import *
+from compiler.targets.base_target import BaseTarget
+
 
 class PuddleTarget(BaseTarget):
 
@@ -90,7 +89,6 @@ class PuddleTarget(BaseTarget):
                 is_main = func_name == 'main' 
                 self.compiled += self.construct_basic_block_code(block.instructions, is_main=is_main)
             self.compiled += '\n\n'
-        print(self.compiled)
         return False
 
     def write_mix(self) -> str:

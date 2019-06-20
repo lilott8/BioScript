@@ -1,4 +1,5 @@
 import colorlog
+
 import compiler.data_structures.ir as ir
 
 
@@ -55,7 +56,9 @@ class BasicBlock(object):
             if instruction.defs is not None:
                 if instruction.defs is True or instruction.defs is False:
                     x = 1
-                self.defs.add(instruction.defs.name)
+                for d in instruction.defs:
+                    self.defs.add(d.name)
+                # self.defs.add(instruction.defs.name)
         if hasattr(instruction, 'uses'):
             for use in instruction.uses:
                 self.uses.add(use.name)
