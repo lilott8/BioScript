@@ -49,6 +49,12 @@ class LoopUnroll(BSTransform):
 				label = None
 				BO = None
 				jump = None
+
+				#remove end char from each item in set.
+				#compare to binaryOp item
+				variables = program.functions[root]['blocks'][parent].uses
+
+				self.log.warn(variables)
 				for items in program.functions[root]['blocks'][parent].instructions:
 					if type(items) == Conditional:
 						self.log.warn("Success")
