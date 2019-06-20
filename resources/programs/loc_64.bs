@@ -6,6 +6,30 @@ manifest eee
 manifest fff
 manifest ggg
 manifest hhh
+manifest iii
+manifest jjj
+manifest kkk
+manifest lll
+manifest mmm
+manifest nnn
+manifest ooo
+manifest ppp
+manifest qqq
+manifest rrr
+manifest sss
+manifest ttt
+manifest uuu
+manifest vvv
+manifest www
+manifest xxx
+manifest yyy
+manifest zzz
+manifest aaaaaa
+manifest bbbbbb
+manifest cccccc
+manifest dddddd
+manifest eeeeee
+manifest ffffff
 
 functions:
 
@@ -19,30 +43,30 @@ m5 = dispense eee
 m6 = dispense fff
 m7 = dispense ggg
 m8 = dispense hhh
-m9 = dispense aaa
-m10 = dispense bbb
-m11 = dispense ccc
-m12 = dispense ddd
-m13 = dispense eee
-m14 = dispense fff
-m15 = dispense ggg
-m16 = dispense hhh
-m17 = dispense aaa
-m18 = dispense bbb
-m19 = dispense ccc
-m20 = dispense ddd
-m21 = dispense eee
-m22 = dispense fff
-m23 = dispense ggg
-m24 = dispense hhh
-m25 = dispense aaa
-m26 = dispense bbb
-m27 = dispense ccc
-m28 = dispense ddd
-m29 = dispense eee
-m30 = dispense fff
-m31 = dispense ggg
-m32 = dispense hhh
+m9 = dispense iii
+m10 = dispense jjj
+m11 = dispense kkk
+m12 = dispense lll
+m13 = dispense mmm
+m14 = dispense nnn
+m15 = dispense ooo
+m16 = dispense ppp
+m17 = dispense qqq
+m18 = dispense rrr
+m19 = dispense sss
+m20 = dispense ttt
+m21 = dispense uuu
+m22 = dispense vvv
+m23 = dispense www
+m24 = dispense xxx
+m25 = dispense yyy
+m26 = dispense zzz
+m27 = dispense aaaaaa
+m28 = dispense bbbbbb
+m29 = dispense cccccc
+m30 = dispense dddddd
+m31 = dispense eeeeee
+m32 = dispense ffffff
 
 s1 = mix m1 with m2
 s2 = mix m3 with m4

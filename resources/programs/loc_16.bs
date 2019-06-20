@@ -1,5 +1,11 @@
 manifest aaa
 manifest bbb
+manifest ccc
+manifest ddd
+manifest eee
+manifest fff
+manifest ggg
+manifest hhh
 
 functions:
 
@@ -7,12 +13,12 @@ instructions:
 
 m1 = dispense aaa
 m2 = dispense bbb
-m3 = dispense aaa
-m4 = dispense bbb
-m5 = dispense aaa
-m6 = dispense bbb
-m7 = dispense aaa
-m8 = dispense bbb
+m3 = dispense ccc
+m4 = dispense ddd
+m5 = dispense eee
+m6 = dispense fff
+m7 = dispense ggg
+m8 = dispense hhh
 
 f1 = mix m1 with m2
 f2 = mix m3 with m4
