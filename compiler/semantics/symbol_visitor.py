@@ -279,7 +279,7 @@ class SymbolTableVisitor(BSBaseVisitor):
                 self.symbol_table.add_local(
                     Chemical(name, final_types, self.symbol_table.current_scope.name, operation['size']))
             else:
-                self.symbol_table.add_local(Chemical(name, final_types,self.symbol_table.current_scope.name, operation['size']))
+                self.symbol_table.add_local(Chemical(name, final_types, self.symbol_table.current_scope.name, operation['size']))
         return None
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
