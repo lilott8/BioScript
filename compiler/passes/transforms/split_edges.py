@@ -8,4 +8,4 @@ class SplitEdges(BSTransform):
         super().__init__("Split Edges")
 
     def transform(self, program: Program) -> Program:
-        pass
+        return program
