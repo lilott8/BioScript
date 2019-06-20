@@ -568,7 +568,7 @@ class IRVisitor(BSBaseVisitor):
                     output.append({"reagents": reagents, "execute_for": time, "op": IRInstruction.MIX})
                 return output
         else:
-            reagents = reagent1['variable'].name, reagent2['variable'].name
+            reagents = reagent1['variable'], reagent2['variable']
             return {"reagents": reagents, "execute_for": time, "op": IRInstruction.MIX}
 
     def visitDetect(self, ctx: BSParser.DetectContext):

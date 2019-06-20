@@ -172,6 +172,7 @@ class Call(Expression):
         self.function = func
         self.args = self.function.args
         self.name = self.function.name
+        # This is already a list!
         self.uses = arguments
         self.defs = out
 
