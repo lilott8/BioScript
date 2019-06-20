@@ -149,19 +149,20 @@ class Temp(Expression):
 
 
 class BinaryOp(Expression):
-    def __init__(self, left: Expression, right: Expression, op: BinaryOps):
+    def __init__(self, left: Expression, right: Expression, op: BinaryOps, out: Temp):
         super().__init__(IRInstruction.BINARYOP)
         self.left = left
         self.right = right
         self.op = op
-        self.uses = [left, right]
-        self.defs = None
+        self.uses = [out ,left, right]
+        self.defs = out
+
 
     def write(self, target: 'BaseTarget') -> str:
         pass
 
     def __str__(self):
-        return "BINARYOP {} {} {}".format(self.op, self.left, self.right)
+        return "BINARYOP {} {} {} {}".format(self.defs, self.op, self.left, self.right)
 
 
 class Call(Expression):
