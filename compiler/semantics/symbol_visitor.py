@@ -1,3 +1,5 @@
+import math
+
 from chemicals.chemtypes import *
 from chemicals.identifier import Identifier
 from compiler.data_structures.ir import IRInstruction
@@ -6,7 +8,7 @@ from compiler.data_structures.variable import Variable, Chemical, Number
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import *
 from .bs_base_visitor import BSBaseVisitor
-import math
+
 
 class SymbolTableVisitor(BSBaseVisitor):
 
@@ -248,8 +250,6 @@ class SymbolTableVisitor(BSBaseVisitor):
             declared_types = self.visitUnionType(ctx.unionType())
 
         operation = self.visitVariableDeclaration(ctx.variableDeclaration())
-        if operation['instruction'] == IRInstruction.SPLIT:
-            self.log.info(operation)
 
         final_types = final_types.union(declared_types)
         final_types = final_types.union(operation['types'])
@@ -274,12 +274,10 @@ class SymbolTableVisitor(BSBaseVisitor):
             variable = Number(name, final_types, self.symbol_table.current_scope.name)
             self.symbol_table.add_local(variable)
         else:
-            if operation['size'] > 1:
-                self.create_simd_name(name, operation['size'], operation['name'], final_types, True)
-                self.symbol_table.add_local(
-                    Chemical(name, final_types, self.symbol_table.current_scope.name, operation['size']))
-            else:
-                self.symbol_table.add_local(Chemical(name, final_types, self.symbol_table.current_scope.name, operation['size']))
+            self.symbol_table.add_local(
+                Chemical(name, final_types, self.symbol_table.current_scope.name, operation['size']))
+            self.symbol_table.add_local(
+                Chemical(name, final_types, self.symbol_table.current_scope.name, operation['size']))
         return None
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
