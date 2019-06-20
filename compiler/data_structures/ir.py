@@ -100,7 +100,7 @@ class NOP(IR):
     def __init__(self):
         super().__init__(IRInstruction.NOP)
         self.uses = []
-        self.defs = None
+        self.defs = list()
 
     def write(self, target: 'BaseTarget') -> str:
         return ""
@@ -156,7 +156,7 @@ class BinaryOp(Expression):
         self.right = right
         self.op = op
         self.uses = [left, right]
-        self.defs = None
+        self.defs = list()
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -172,7 +172,7 @@ class Call(Expression):
         self.args = self.function.args
         self.name = self.function.name
         self.uses = arguments
-        self.defs = out
+        self.defs = [out]
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -206,7 +206,7 @@ class Statement(IR, metaclass=abc.ABCMeta):
     def __init__(self, op: IRInstruction, out):
         super().__init__(op)
         self.uses = []
-        self.defs = out
+        self.defs = [out]
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -219,7 +219,6 @@ class Mix(Statement):
     def __init__(self, out: Temp, one: Temp, two: Temp):
         super().__init__(IRInstruction.MIX, out)
         self.uses.extend([one, two])
-        self.defs = out
 
     def write(self, target: 'BaseTarget') -> str:
         return target.write_mix(self)
@@ -233,7 +232,6 @@ class Split(Statement):
         super().__init__(IRInstruction.SPLIT, out)
         self.uses.append(one)
         self.size = size
-        self.defs = out
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -310,7 +308,7 @@ class Store(Statement):
         super().__init__(IRInstruction.STORE, out)
         if value.op == IRInstruction.CALL:
             self.uses.extend(value.uses)
-        self.defs = out
+        self.defs = [out]
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -378,7 +376,7 @@ class Conditional(Control):
         self.left = left
         self.right = right
         self.uses = [right, left]
-        self.defs = None
+        self.defs = list()
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -399,7 +397,7 @@ class Return(Control):
         self.return_value = return_value
         self.return_to = return_value
         self.uses = [return_value]
-        self.defs = return_value
+        self.defs = [return_value]
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -427,7 +425,7 @@ class Meta(IR):
 class Phi(Meta):
     def __init__(self, left: Expression, right: list):
         super().__init__(IRInstruction.PHI)
-        self.defs = left
+        self.defs = [left]
         self.uses = right
 
     def write(self, target: 'BaseTarget') -> str:
