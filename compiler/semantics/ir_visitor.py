@@ -457,7 +457,8 @@ class IRVisitor(BSBaseVisitor):
         elif details['op'] == IRInstruction.DETECT:
             ir = Detect(var, details['module'], details['reagents'][0])
         elif details['op'] in InstructionSet.BinaryOps:
-            ir = BinaryOp(details['exp1'], details['exp2'], details['op'])
+            ir = BinaryOp(details['exp1'], details['exp2'], details['op'],var)
+            self.log.warn(ir)
         else:
             ir = NOP()
 
