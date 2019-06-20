@@ -100,7 +100,7 @@ class NOP(IR):
     def __init__(self):
         super().__init__(IRInstruction.NOP)
         self.uses = []
-        self.defs = None
+        self.defs = list()
 
     def write(self, target: 'BaseTarget') -> str:
         return ""
@@ -379,7 +379,7 @@ class Conditional(Control):
         self.left = left
         self.right = right
         self.uses = [right, left]
-        self.defs = None
+        self.defs = list()
 
     def write(self, target: 'BaseTarget') -> str:
         pass
