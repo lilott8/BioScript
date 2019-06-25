@@ -92,9 +92,20 @@ class LoopUnroll(BSTransform):
                             self.log.warn(BO.right)
 
                             base_instructions = program.functions[root]['blocks'][child].instructions.copy()
-                            while constant < label.right.value:
-                                program.functions[root]['blocks'][child].instructions.extend(base_instructions)
-                                constant += int(BO.right)
+                            keep_looping = True
+
+                            while keep_looping:
+                                if label.relop.value == 4:
+
+                                    if  constant < label.right.value - 1:
+                                        program.functions[root]['blocks'][child].instructions.extend(base_instructions)
+                                        constant += int(BO.right)
+                                    else:
+                                        keep_looping = False
+                                else:
+                                    keep_looping = False
+
+
                         elif BinaryOps.MULTIPLE == BO.op:
                             pass
                         elif BinaryOps.DIVIDE == BO.op:
