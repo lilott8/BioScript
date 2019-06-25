@@ -28,6 +28,8 @@ class LoopUnroll(BSTransform):
                         # compare to binaryOp item
                         variables = program.functions[root]['blocks'][parent].uses
                         labels = []
+
+
                         #check to se
 
                         self.log.warn(variables)
@@ -72,7 +74,7 @@ class LoopUnroll(BSTransform):
                         # check variable in l_left or l_right is in bo_defs
                         # EXECUTE
                         if BinaryOps.SUBTRACT == BO.op:
-                            # constant = BO.right
+
                             constant = 8
                             base_instructions = program.functions[root]['blocks'][child].instructions.copy()
                             while constant > 1:
@@ -86,12 +88,13 @@ class LoopUnroll(BSTransform):
                             # TODO: Better Jump Condition Detect
                             # TODO: FIX NUMBER CITIZENSHIP
                             # constant = label.right
-                            constant = 1
+                            constant = 0
+                            self.log.warn(BO.right)
 
                             base_instructions = program.functions[root]['blocks'][child].instructions.copy()
-                            while constant < 7:
+                            while constant < label.right.value:
                                 program.functions[root]['blocks'][child].instructions.extend(base_instructions)
-                                constant += 1
+                                constant += int(BO.right)
                         elif BinaryOps.MULTIPLE == BO.op:
                             pass
                         elif BinaryOps.DIVIDE == BO.op:
@@ -108,6 +111,10 @@ class LoopUnroll(BSTransform):
 
                 #except:
                         self.log.warn("No Loops Found in Function")
+        for root in program.functions:
+            for block in program.functions[root]['blocks']:
+                self.log.warn(program.functions[root]['blocks'][block])
+        self.log.warn("Loop Unrolling Completed")
         # Test code showing program post unroll
 
 
