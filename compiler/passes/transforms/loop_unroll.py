@@ -69,44 +69,56 @@ class LoopUnroll(BSTransform):
                             self.log.warn("Bad or Infinite Loop Detected... aborting unroll")
                             continue
 
-
-
+                        keep_looping = True
                         # check variable in l_left or l_right is in bo_defs
                         # EXECUTE
                         if BinaryOps.SUBTRACT == BO.op:
-
                             constant = 8
                             base_instructions = program.functions[root]['blocks'][child].instructions.copy()
                             while constant > 1:
                                 program.functions[root]['blocks'][child].instructions.extend(base_instructions)
                                 constant -= 1
                         elif BinaryOps.ADD == BO.op:
-                            reducer = BO.right
-
-                            # Find the constant and find the false-jump
-
-                            # TODO: Better Jump Condition Detect
-                            # TODO: FIX NUMBER CITIZENSHIP
-                            # constant = label.right
-                            constant = 0
-                            self.log.warn(BO.right)
-
+                            constant = 1
                             base_instructions = program.functions[root]['blocks'][child].instructions.copy()
-                            keep_looping = True
+
 
                             while keep_looping:
                                 if label.relop.value == 4:
 
-                                    if  constant < label.right.value - 1:
+                                    if  constant < label.right.value:
+                                        program.functions[root]['blocks'][child].instructions.extend(base_instructions)
+                                        constant += int(BO.right)
+                                    else:
+                                        keep_looping = False
+                                elif label.relop.value == 0:
+                                    if  constant == label.right.value:
                                         program.functions[root]['blocks'][child].instructions.extend(base_instructions)
                                         constant += int(BO.right)
                                     else:
                                         keep_looping = False
                                 else:
                                     keep_looping = False
-
-
                         elif BinaryOps.MULTIPLE == BO.op:
+                            constant = 1
+                            base_instructions = program.functions[root]['blocks'][child].instructions.copy()
+
+                            while keep_looping:
+                                if label.relop.value == 4:
+
+                                    if constant < label.right.value :
+                                        program.functions[root]['blocks'][child].instructions.extend(base_instructions)
+                                        constant *= int(BO.right)
+                                    else:
+                                        keep_looping = False
+                                elif label.relop.value == 0:
+                                    if constant == label.right.value:
+                                        program.functions[root]['blocks'][child].instructions.extend(base_instructions)
+                                        constant *= int(BO.right)
+                                    else:
+                                        keep_looping = False
+                                else:
+                                    keep_looping = False
                             pass
                         elif BinaryOps.DIVIDE == BO.op:
                             pass
