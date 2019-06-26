@@ -57,12 +57,17 @@ class LoopUnroll(BSTransform):
         global jump
         for root in program.functions:
             tlist = list(nx.simple_cycles(program.functions[root]['graph']))
+            self.log.warn(tlist)
             for item in tlist:
+                if len(item) > 2:
+                    continue
                 child = item[1]
                 parent = item[0]
 
                 pure_child_ins = copy.deepcopy(program.functions[root]['blocks'][child].instructions)
                 pure_parent_ins = copy.deepcopy(program.functions[root]['blocks'][parent].instructions)
+                c_label = program.functions[root]['blocks'][child].label
+
                 label = None
                 binary_operation = None
                 jump = None
@@ -72,17 +77,21 @@ class LoopUnroll(BSTransform):
                 # Parent Instructions
                 for p_instructions in program.functions[root]['blocks'][parent].instructions:
                     if type(p_instructions) == Conditional:
-                        self.log.warn("Success")
-                        label = program.functions[root]['blocks'][parent].instructions.pop(
-                            program.functions[root]['blocks'][parent].instructions.index(p_instructions))
-                        labels.append(label)
-                        l_left = label.left
-                        l_right = label.right
+                        if c_label == p_instructions.true_branch:
+
+                            self.log.warn("Success")
+                            label = program.functions[root]['blocks'][parent].instructions.pop(
+                                program.functions[root]['blocks'][parent].instructions.index(p_instructions))
+                            labels.append(label)
+                            l_left = label.left
+                            l_right = label.right
                     else:
                         pass
+
+
+                bad_loop = True
                 # Child Instructions
                 jump = program.functions[root]['blocks'][child].instructions.pop(-1)
-                badloop = True
                 for c_instructions in program.functions[root]['blocks'][child].instructions:
                     if type(c_instructions) == BinaryOp:
                         self.log.warn("Success")
@@ -90,18 +99,20 @@ class LoopUnroll(BSTransform):
                         binary_operation = program.functions[root]['blocks'][child].instructions.pop(
                             program.functions[root]['blocks'][child].instructions.index(c_instructions))
                         if binary_operation.defs.name[:-1] == l_left.name:
-                            badloop = False
+                            bad_loop = False
                         elif binary_operation.defs.name[:-1] == l_right.name:
-                            badloop = False
+                            bad_loop = False
                     else:
                         pass
                 if jump is None or label is None or binary_operation is None:
-                    badloop = True
+                    bad_loop = True
 
                 # EXECUTE
-                # Warning 0: This Code Works assuming the right is the constant
+                # Warning 0: This Code Works as
+                #IDENTyOp Chec
+                        # 4 Cases:suming the right is the constant
                 # Warning 1: This Code is not fully functional: it cannot find the original x value
-                if badloop is False:
+                if bad_loop is False:
                     constant = 1
                     base_instructions = program.functions[root]['blocks'][child].instructions.copy()
                     is_finite = self.finite_loop(binary_operation, constant, int(binary_operation.right),
@@ -117,14 +128,12 @@ class LoopUnroll(BSTransform):
                     program.functions[root]['blocks'][child].label = label.true_branch
                     program.functions[root]['blocks'][child].jumps.pop()
                 else:
-                    badloop = True
+                    bad_loop = True
 
-                if badloop:
+                if bad_loop:
                     program.functions[root]['blocks'][parent].instructions = pure_parent_ins
                     program.functions[root]['blocks'][child].instructions = pure_child_ins
                     self.log.warn("Found Unrollable Loop... resetting instructions..")
-
-
         for root in program.functions:
             for block in program.functions[root]['blocks']:
                 self.log.warn(program.functions[root]['blocks'][block])
@@ -133,6 +142,8 @@ class LoopUnroll(BSTransform):
         return program
 
     # Entry Point
+
+
     def transform(self, program: Program) -> Program:
         for root in program.functions:
             for block in program.functions[root]['blocks']:
