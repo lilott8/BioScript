@@ -2,6 +2,7 @@ from compiler.data_structures import *
 from compiler.data_structures.program import Program
 from compiler.passes.transforms.bs_transform import BSTransform
 import networkx as nx
+import copy
 
 
 class LoopUnroll(BSTransform):
@@ -47,7 +48,7 @@ class LoopUnroll(BSTransform):
         k_delta = k - z
         zx_delta = x - z
         zk_delta = abs(zx_delta) - abs(k_delta)
-        if inductive_step : i_step = self.finite_loop(bin_op, k, y, z, False)
+        if inductive_step: i_step = self.finite_loop(bin_op, k, y, z, False)
         else: i_step = True
 
         return True if zk_delta > 0 and i_step else False
@@ -59,6 +60,9 @@ class LoopUnroll(BSTransform):
             for item in tlist:
                 child = item[1]
                 parent = item[0]
+
+                pure_child_ins = copy.deepcopy(program.functions[root]['blocks'][child].instructions)
+                pure_parent_ins = copy.deepcopy(program.functions[root]['blocks'][parent].instructions)
                 label = None
                 binary_operation = None
                 jump = None
@@ -96,21 +100,29 @@ class LoopUnroll(BSTransform):
                 if jump is None or label is None or binary_operation is None or badloop:
                     self.log.warn("Bad or Infinite Loop Detected... aborting unroll")
                     continue
+
                 # EXECUTE
                 # Warning 0: This Code Works assuming the right is the constant
                 # Warning 1: This Code is not fully functional: it cannot find the original x value
                 constant = 1
                 base_instructions = program.functions[root]['blocks'][child].instructions.copy()
-                while self.finite_loop(binary_operation,constant,int(binary_operation.right),label.right.value) \
-                        and self.loop_condition(label.relop.value, constant, label.right.value):
+                is_finite = self.finite_loop(binary_operation, constant, int(binary_operation.right), label.right.value)
+                while is_finite & self.loop_condition(label.relop.value, constant, label.right.value):
                     program.functions[root]['blocks'][child].instructions.extend(base_instructions)
                     constant = self.reevaluate(binary_operation, constant, int(binary_operation.right))
+
                 # CLEANUP: Pops Parent, adds jump, redoes the labels.
-                jump.jumps = label.false_branch
-                program.functions[root]['blocks'][child].instructions.append(jump)
-                program.functions[root]['blocks'].pop(parent)
-                program.functions[root]['blocks'][child].label = label.true_branch
-                program.functions[root]['blocks'][child].jumps.pop()
+
+                if is_finite:
+                    jump.jumps = label.false_branch
+                    program.functions[root]['blocks'][child].instructions.append(jump)
+                    program.functions[root]['blocks'].pop(parent)
+                    program.functions[root]['blocks'][child].label = label.true_branch
+                    program.functions[root]['blocks'][child].jumps.pop()
+                else:
+                    program.functions[root]['blocks'][parent].instructions = pure_parent_ins
+                    program.functions[root]['blocks'][child].instructions = pure_child_ins
+
 
         for root in program.functions:
             for block in program.functions[root]['blocks']:
