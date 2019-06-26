@@ -10,137 +10,102 @@ class LoopUnroll(BSTransform):
         super().__init__("LoopUnravel")
         self.log.warn("Starting Loop Unrolling.....")
 
+    def getCondition(self, RO, x, y):
+        if RO == RelationalOps.EQUALITY:
+            return True if x == y else False
+        elif RO == RelationalOps.NE:
+            return True if x != y else False
+        elif RO == RelationalOps.LT:
+            return True if x < y else False
+        elif RO == RelationalOps.LTE:
+            return True if x <= y else False
+        elif RO == RelationalOps.GT:
+            return True if x > y else False
+        elif RO == RelationalOps.GTE:
+            return True if x >= y else False
+        else:
+            return False
+
+    def calculateNewValue(self, BO: BinaryOp, x, y):
+        if BO.op == BinaryOps.SUBTRACT:
+            x = x - y
+        elif BO.op == BinaryOps.ADD:
+            x = x + y
+        elif BO.op == BinaryOps.MULTIPLE:
+            x = x * y
+        elif BO.op == BinaryOps.DIVIDE:
+            x = x / y
+        elif BO.op == BinaryOps.AND:
+            x = x & y
+        elif BO.op == BinaryOps.OR:
+            x = x | y
+        return x
+
+    # TODO: Use "Induction" to determine finite loops
+    def inductionProof(self, BO, RO, x, y):
+        return False
+
     def unroll(self, program: Program) -> Program:
         global jump
         for root in program.functions:
-                #try:
-                    glist = list(nx.find_cycle(program.functions[root]['graph']))
-                    tlist = list(nx.simple_cycles(program.functions[root]['graph']))
-                    for item in tlist:
-                        child = item[1]
-                        parent = item[0]
-                        self.log.warn(child)
-                        label = None
-                        BO = None
-                        jump = None
+            tlist = list(nx.simple_cycles(program.functions[root]['graph']))
+            for item in tlist:
+                child = item[1]
+                parent = item[0]
+                label = None
+                binary_operation = None
+                jump = None
+                labels = []
+                # IDENTIFY
+                # TODO: Better Identification of Conditionals
+                # Parent Instructions
+                for p_instructions in program.functions[root]['blocks'][parent].instructions:
+                    if type(p_instructions) == Conditional:
+                        self.log.warn("Success")
+                        label = program.functions[root]['blocks'][parent].instructions.pop(
+                            program.functions[root]['blocks'][parent].instructions.index(p_instructions))
+                        labels.append(label)
+                        l_left = label.left
+                        l_right = label.right
+                    else:
+                        pass
+                # Child Instructions
+                jump = program.functions[root]['blocks'][child].instructions.pop(-1)
+                badloop = True
+                for c_instructions in program.functions[root]['blocks'][child].instructions:
+                    if type(c_instructions) == BinaryOp:
+                        self.log.warn("Success")
+                        # TODO:  Better BinaryOp Chec
+                        # 4 Cases:
+                        binary_operation = program.functions[root]['blocks'][child].instructions.pop(
+                            program.functions[root]['blocks'][child].instructions.index(c_instructions))
+                        if binary_operation.defs.name[:-1] == l_left.name:
+                            badloop = False
+                        elif binary_operation.defs.name[:-1] == l_right.name:
+                            badloop = False
+                    else:
+                        pass
+                if jump is None or label is None or binary_operation is None or badloop:
+                    self.log.warn("Bad or Infinite Loop Detected... aborting unroll")
+                    continue
+                # EXECUTE
+                constant = 1
+                base_instructions = program.functions[root]['blocks'][child].instructions.copy()
+                while self.getCondition(label.relop.value, constant, label.right.value):
+                    program.functions[root]['blocks'][child].instructions.extend(base_instructions)
+                    constant = self.calculateNewValue(binary_operation, constant, int(binary_operation.right))
+                # CLEANUP: Pops Parent, adds jump, redoes the labels.
+                jump.jumps = label.false_branch
+                program.functions[root]['blocks'][child].instructions.append(jump)
+                program.functions[root]['blocks'].pop(parent)
+                program.functions[root]['blocks'][child].label = label.true_branch
+                program.functions[root]['blocks'][child].jumps.pop()
 
-                        # remove end char from each item in set.
-                        # compare to binaryOp item
-                        variables = program.functions[root]['blocks'][parent].uses
-                        labels = []
-
-
-                        #check to se
-
-                        self.log.warn(variables)
-                        for items in program.functions[root]['blocks'][parent].instructions:
-                            if type(items) == Conditional:
-                                self.log.warn("Success")
-                                label = program.functions[root]['blocks'][parent].instructions.pop(
-                                    program.functions[root]['blocks'][parent].instructions.index(items))
-                                labels.append(label)
-                                l_left = label.left
-                                l_right = label.right
-                            else:
-                                pass
-                        # Remove Jumps
-                        self.log.warn(labels)
-                        # CHILD MODIFICATIONS
-                        jump = program.functions[root]['blocks'][child].instructions.pop(-1)
-                        BadLoop = True
-                        for items2 in program.functions[root]['blocks'][child].instructions:
-
-                            if type(items2) == BinaryOp:
-                                self.log.warn("Success")
-                                # TODO:  Better BinaryOp Chec
-                                # 4 Cases:
-                                BO = program.functions[root]['blocks'][child].instructions.pop(
-                                    program.functions[root]['blocks'][child].instructions.index(items2))
-                                if BO.defs.name[:-1] == l_left.name:
-                                    BadLoop = False
-                                elif  BO.defs.name[:-1] == l_right.name:
-                                    BadLoop = False
-
-                            else:
-                                pass
-                        #	self.log.warn(jump + "Henlo" )
-                        if jump is None or label is None or BO is None or BadLoop:
-                            self.log.warn(BadLoop)
-                            self.log.warn("Bad or Infinite Loop Detected... aborting unroll")
-                            continue
-
-                        keep_looping = True
-                        # check variable in l_left or l_right is in bo_defs
-                        # EXECUTE
-                        if BinaryOps.SUBTRACT == BO.op:
-                            constant = 8
-                            base_instructions = program.functions[root]['blocks'][child].instructions.copy()
-                            while constant > 1:
-                                program.functions[root]['blocks'][child].instructions.extend(base_instructions)
-                                constant -= 1
-                        elif BinaryOps.ADD == BO.op:
-                            constant = 1
-                            base_instructions = program.functions[root]['blocks'][child].instructions.copy()
-
-
-                            while keep_looping:
-                                if label.relop.value == 4:
-
-                                    if  constant < label.right.value:
-                                        program.functions[root]['blocks'][child].instructions.extend(base_instructions)
-                                        constant += int(BO.right)
-                                    else:
-                                        keep_looping = False
-                                elif label.relop.value == 0:
-                                    if  constant == label.right.value:
-                                        program.functions[root]['blocks'][child].instructions.extend(base_instructions)
-                                        constant += int(BO.right)
-                                    else:
-                                        keep_looping = False
-                                else:
-                                    keep_looping = False
-                        elif BinaryOps.MULTIPLE == BO.op:
-                            constant = 1
-                            base_instructions = program.functions[root]['blocks'][child].instructions.copy()
-
-                            while keep_looping:
-                                if label.relop.value == 4:
-
-                                    if constant < label.right.value :
-                                        program.functions[root]['blocks'][child].instructions.extend(base_instructions)
-                                        constant *= int(BO.right)
-                                    else:
-                                        keep_looping = False
-                                elif label.relop.value == 0:
-                                    if constant == label.right.value:
-                                        program.functions[root]['blocks'][child].instructions.extend(base_instructions)
-                                        constant *= int(BO.right)
-                                    else:
-                                        keep_looping = False
-                                else:
-                                    keep_looping = False
-                            pass
-                        elif BinaryOps.DIVIDE == BO.op:
-                            pass
-                        else:
-                            pass
-
-                        # CLEANUP: Pops Parent, adds jump, redoes the labels.
-                        jump.jumps = label.false_branch
-                        program.functions[root]['blocks'][child].instructions.append(jump)
-                        program.functions[root]['blocks'].pop(parent)
-                        program.functions[root]['blocks'][child].label = label.true_branch
-                        program.functions[root]['blocks'][child].jumps.pop()
-
-                #except:
-                        self.log.warn("No Loops Found in Function")
         for root in program.functions:
             for block in program.functions[root]['blocks']:
                 self.log.warn(program.functions[root]['blocks'][block])
         self.log.warn("Loop Unrolling Completed")
         # Test code showing program post unroll
-
-
         return program
 
     # Entry Point
