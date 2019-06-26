@@ -42,7 +42,6 @@ class LoopUnroll(BSTransform):
             x = x | y
         return x
 
-    # TODO: Use "Induction" to determine finite loops
     def finite_loop(self, bin_op, x, y, z, inductive_step=True):
         k = self.reevaluate(bin_op, x, y)
         k_delta = k - z
@@ -57,14 +56,11 @@ class LoopUnroll(BSTransform):
         global jump
         for root in program.functions:
             tlist = list(nx.simple_cycles(program.functions[root]['graph']))
-            self.log.warn(tlist)
             for item in tlist:
                 if len(item) > 2:
                     continue
                 child = item[1]
                 parent = item[0]
-                self.log.warn(child)
-                self.log.warn(program.functions[root]['blocks'][1])
                 pure_child_ins = copy.deepcopy(program.functions[root]['blocks'][child].instructions)
                 pure_parent_ins = copy.deepcopy(program.functions[root]['blocks'][parent].instructions)
                 c_label = program.functions[root]['blocks'][child].label
@@ -74,7 +70,7 @@ class LoopUnroll(BSTransform):
                 jump = None
                 labels = []
                 # IDENTIFY
-                # TODO: Better Identification of Conditionals
+
                 # Parent Instructions
                 l_left = l_right = None
                 for p_instructions in program.functions[root]['blocks'][parent].instructions:
@@ -144,8 +140,6 @@ class LoopUnroll(BSTransform):
         return program
 
     # Entry Point
-
-
     def transform(self, program: Program) -> Program:
         for root in program.functions:
             for block in program.functions[root]['blocks']:
