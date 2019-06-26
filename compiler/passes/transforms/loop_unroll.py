@@ -63,7 +63,8 @@ class LoopUnroll(BSTransform):
                     continue
                 child = item[1]
                 parent = item[0]
-
+                self.log.warn(child)
+                self.log.warn(program.functions[root]['blocks'][1])
                 pure_child_ins = copy.deepcopy(program.functions[root]['blocks'][child].instructions)
                 pure_parent_ins = copy.deepcopy(program.functions[root]['blocks'][parent].instructions)
                 c_label = program.functions[root]['blocks'][child].label
@@ -75,6 +76,7 @@ class LoopUnroll(BSTransform):
                 # IDENTIFY
                 # TODO: Better Identification of Conditionals
                 # Parent Instructions
+                l_left = l_right = None
                 for p_instructions in program.functions[root]['blocks'][parent].instructions:
                     if type(p_instructions) == Conditional:
                         if c_label == p_instructions.true_branch:
@@ -87,10 +89,9 @@ class LoopUnroll(BSTransform):
                             l_right = label.right
                     else:
                         pass
-
-
                 bad_loop = True
                 # Child Instructions
+
                 jump = program.functions[root]['blocks'][child].instructions.pop(-1)
                 for c_instructions in program.functions[root]['blocks'][child].instructions:
                     if type(c_instructions) == BinaryOp:
@@ -98,9 +99,9 @@ class LoopUnroll(BSTransform):
                         # TODO:  Better Binary Detection
                         binary_operation = program.functions[root]['blocks'][child].instructions.pop(
                             program.functions[root]['blocks'][child].instructions.index(c_instructions))
-                        if binary_operation.defs.name[:-1] == l_left.name:
+                        if l_left != None and binary_operation.defs.name[:-1] == l_left.name:
                             bad_loop = False
-                        elif binary_operation.defs.name[:-1] == l_right.name:
+                        elif l_right != None and binary_operation.defs.name[:-1] == l_right.name:
                             bad_loop = False
                     else:
                         pass
@@ -112,6 +113,7 @@ class LoopUnroll(BSTransform):
                 #IDENTyOp Chec
                         # 4 Cases:suming the right is the constant
                 # Warning 1: This Code is not fully functional: it cannot find the original x value
+                is_finite = False
                 if bad_loop is False:
                     constant = 1
                     base_instructions = program.functions[root]['blocks'][child].instructions.copy()
