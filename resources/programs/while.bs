@@ -8,6 +8,9 @@ instructions:
 
 x = 7
 while (x > 0) {
+    if (x == 3) {
+        y = 9
+    }
     a = dispense aaa
     x = x - 1
 }

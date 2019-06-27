@@ -1,7 +1,7 @@
 import importlib
+import math
 import random
 import string
-import math
 
 import networkx as nx
 

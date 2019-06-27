@@ -218,5 +218,5 @@ class BSBaseVisitor(BSParserVisitor):
                 return False
             float(num)
             return True
-        except ValueError:
+        except Exception:
             return False
