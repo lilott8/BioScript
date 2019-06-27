@@ -62,7 +62,8 @@ class BasicBlock(object):
         if hasattr(instruction, 'uses'):
             for use in instruction.uses:
                 self.log.info(use)
-                self.uses.add(use.name)
+                if isinstance(use, ir.IR):
+                    self.uses.add(use.name)
 
         if instruction.op == ir.IRInstruction.LABEL:
             if self.label:
