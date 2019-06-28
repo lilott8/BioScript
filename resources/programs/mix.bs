@@ -9,5 +9,7 @@ instructions:
 
 a = dispense aaa
 b = dispense bbb
-c = mix a with b
+splita = split a into 2
+splitb = split b into 2
+c = mix splita with splitb
 dispose c
