@@ -62,7 +62,7 @@ class ClangTarget(BaseTarget):
                 code += '  {} = {};\n'.format(instr.defs.name, instr.uses)
             elif type(instr) == Mix:
                 code += '  mat {} = mix({}, {}, {}, {}, {});\n'.format(
-                                            instr.defs[0].name,
+                                            instr.defs.name,
                                             instr.uses[0].name, 
                                             instr.uses[0].size, 
                                             instr.uses[1].name, 
@@ -71,16 +71,16 @@ class ClangTarget(BaseTarget):
             elif type(instr) == Split:
                 # Using instr.size to show the size it will be splitting into.
                         code += '  mat {} = split({}, {});\n'.format(
-                                            instr.defs[0].name,
+                                            instr.defs.name,
                                             instr.uses[0].name,
                                             instr.size)
             elif type(instr) == Detect: 
-                        code += '  double {} = detect({}, {}, {});\n'.format(instr.defs[0].name, instr.module.name, instr.uses[0].name, instr.module.size)
+                        code += '  double {} = detect({}, {}, {});\n'.format(instr.defs.name, instr.module.name, instr.uses[0].name, instr.module.size)
             elif type(instr) == Heat: 
                 #(Daniel) I don't know what to fill in for temp or time...
-                code += '  mat {} = heat({}, {}, {});\n'.format(instr.defs[0].name, instr.uses[0].name, instr.uses[0].size, instr.uses[0].size)
+                code += '  mat {} = heat({}, {}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size, instr.uses[0].size)
             elif type(instr) == Dispense:
-                        code += '  mat {} = dispense({}, {});\n'.format(instr.defs[0].name, instr.uses[0].name, instr.uses[0].size)
+                        code += '  mat {} = dispense({}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size)
             elif type(instr) == Return:
             
                 if type(instr.return_value) == Chemical:

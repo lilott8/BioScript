@@ -60,8 +60,8 @@ class BasicBlock(object):
             if instruction.defs is not None:
                 if instruction.defs is True or instruction.defs is False:
                     x = 1
-                for d in instruction.defs:
-                    self.defs.add(d.name)
+                #for d in instruction.defs:
+                self.defs.add(instruction.defs.name)
                 # self.defs.add(instruction.defs.name)
         if hasattr(instruction, 'uses'):
             for use in instruction.uses:
