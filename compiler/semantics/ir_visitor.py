@@ -74,7 +74,7 @@ class IRVisitor(BSBaseVisitor):
         self.current_block = BasicBlock()
         self.graph.add_node(self.current_block.nid, function=self.scope_stack[-1])
 
-        self.functions['main'] = {'blocks': dict(), 'entry': self.current_block.nid, 'graph': self.graph}
+        self.functions['main'] = {'blocks': dict(), 'entry': self.current_block.nid}
 
         # Add all the subsequent instructions to the B.B.
         for i in ctx.statements():
@@ -85,19 +85,19 @@ class IRVisitor(BSBaseVisitor):
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         for module in ctx.IDENTIFIER():
             name = module.__str__()
-            # self.globalz[name] = Module(self.symbol_table.get_global(name))
+            # self.globals[name] = Module(self.symbol_table.get_global(name))
             self.globalz[name] = self.symbol_table.get_global(name)
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
         for manifest in ctx.IDENTIFIER():
             name = manifest.__str__()
-            # self.globalz[name] = Global(self.symbol_table.get_global(name))
+            # self.globals[name] = Global(self.symbol_table.get_global(name))
             self.globalz[name] = self.symbol_table.get_global(name)
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
         for stationary in ctx.IDENTIFIER():
             name = stationary.__str__()
-            # self.globalz[name] = Stationary(self.symbol_table.get_global(name))
+            # self.globals[name] = Stationary(self.symbol_table.get_global(name))
             self.globalz[name] = self.symbol_table.get_global(name)
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
@@ -111,7 +111,7 @@ class IRVisitor(BSBaseVisitor):
         self.symbol_table.current_scope = self.symbol_table.scope_map[name]
 
         self.current_block = BasicBlock()
-        self.functions[name] = {"blocks": dict(), "entry": self.current_block.nid, 'graph': None}
+        self.functions[name] = {"blocks": dict(), "entry": self.current_block.nid}
         label = Label("{}_entry".format(name))
         self.labels[label.name] = self.current_block.nid
         self.current_block.add(label)
@@ -123,7 +123,6 @@ class IRVisitor(BSBaseVisitor):
         ret_statement = self.visitReturnStatement(ctx.returnStatement())
         self.current_block.add(ret_statement)
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
-        self.functions[name]['graph'] = self.graph
 
         self.scope_stack.pop()
         return None
@@ -150,7 +149,8 @@ class IRVisitor(BSBaseVisitor):
                           self.scope_stack[-1], value=float(par_expression['exp1']), is_constant=True)
             self.symbol_table.add_local(exp1, self.scope_stack[-1])
         else:
-            exp1 = self.allocation_map[par_expression['exp1']]
+            # exp1 = self.allocation_map[par_expression['exp1']]
+            exp1 = par_expression['exp1']
             self.symbol_table.add_local(exp1, self.scope_stack[-1])
         if BSBaseVisitor.is_number(par_expression['exp2']):
             exp2 = Number("Constant_{}".format(par_expression['exp2']), {ChemTypes.NAT, ChemTypes.REAL},
@@ -261,12 +261,13 @@ class IRVisitor(BSBaseVisitor):
             self.symbol_table.add_local(exp1, self.scope_stack[-1])
         else:
             exp1 = par_expression['exp1']
+            # exp1 = self.allocation_map[par_expression['exp1']]
         if BSBaseVisitor.is_number(par_expression['exp2']):
             exp2 = Number("Constant_{}".format(par_expression['exp2']), {ChemTypes.NAT, ChemTypes.REAL},
                           self.scope_stack[-1], value=float(par_expression['exp2']), is_constant=True)
             self.symbol_table.add_local(exp2, self.scope_stack[-1])
         else:
-            exp2 = par_expression['exp2']
+            exp2 = self.allocation_map[par_expression['exp2']]
 
         pre_condition_label_string = "bsbbw_{}_l".format(self.current_block.nid)
         pre_condition_label = Label(pre_condition_label_string)
@@ -437,7 +438,7 @@ class IRVisitor(BSBaseVisitor):
 
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
         details = self.visitChildren(ctx)
-        n = ctx.IDENTIFIER().__str__()
+        # The variable being defined.
         var = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
         # self.allocation_map[var.name] = var
         # self.current_block.add_defs(var)
@@ -627,8 +628,8 @@ class IRVisitor(BSBaseVisitor):
                 #   "\t", name, x, name, x, temp['quantity'], self.nl)
         else:
             output.append(Heat(variable, variable))
-        # inputs = []
-        # outputs = []
+        #    inputs = []
+        #   outputs = []
 
         # return output
         for x in range(0, size):
@@ -650,10 +651,8 @@ class IRVisitor(BSBaseVisitor):
                 var = self.symbol_table.get_variable(self.create_simd_name(name, size, "split", types, True)[x],
                                                      self.scope_stack[-1])
                 output.append({"reagents": [var], "size": size, "op": IRInstruction.SPLIT})
-            # return output
-        else:
-            output.append({"reagents": [variable], "size": size, "op": IRInstruction.SPLIT})
-        return output
+            return output
+        return {"reagents": [variable], "size": size, "op": IRInstruction.SPLIT}
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
         variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__(), self.scope_stack[-1]))
@@ -689,12 +688,13 @@ class IRVisitor(BSBaseVisitor):
     def visitGradient(self, ctx: BSParser.GradientContext):
         variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
 
-        reagent1 = self.symbol_table.get_local(self.rename_var(ctx.FLOAT_LITERAL(0).__str__()), self.scope_stack[-1])
-        reagent2 = self.symbol_table.get_local(self.rename_var(ctx.FLOAT_LITERAL(1).__str__()), self.scope_stack[-1])
+        # reagent1 = self.visitVolumeIdentifier(ctx.volumeIdentifier(0))['variable']
+        # reagent2 = self.visitVolumeIdentifier(ctx.volumeIdentifier(1))['variable']
 
-        reagents = [reagent1, reagent2]
+        # reagents = [reagent1, reagent2]
         start_interval = float(ctx.FLOAT_LITERAL(0).__str__())
         end_interval = float(ctx.FLOAT_LITERAL(1).__str__())
         increment = float(ctx.FLOAT_LITERAL(2).__str__())
         size = math.floor((end_interval - start_interval) / increment)
+
         return {"reagents": [variable], "size": size, "op": IRInstruction.GRADIENT}

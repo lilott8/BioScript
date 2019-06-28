@@ -1,16 +1,15 @@
 # from compiler.data_structures import Program
-from compiler.data_structures.ir import *
-from compiler.data_structures.program import Program
-from compiler.data_structures.writable import Writable
 from compiler.targets.base_target import BaseTarget
+from chemicals.chemtypes import ChemTypes
+from compiler.data_structures.variable import *
+from compiler.data_structures.ir import *
+
 
 
 class ClangTarget(BaseTarget):
 
-    def __init__(self, program: Program):
-        super().__init__(program, "ClangTarget")
-        self.function_code = []
-        self.compiled = ''
+    def __init__(self, config, program: 'Program'):
+        super().__init__(config, program, "ClangTarget")
         # This *should* be moved into the LLVM target...
         self.keywords = ('alignas', 'alignof', 'and', 'and_eq', 'asm', 'atomic_cancel', 'atomic_commit',
                          'atomic_noexcept', 'auto', 'bitand', 'bitor', 'bool', 'break', 'case', 'catch', 'char',
@@ -25,6 +24,7 @@ class ClangTarget(BaseTarget):
                          'typedef', 'typeid', 'typename', 'union', 'unsigned', 'using', 'virtual', 'void', 'volatile',
                          'wchar_t', 'while', 'xor', 'xor_eq')
 
+
     def check_identifier(self, name):
         if name in self.keywords:
             return '{}{}'.format(name, name)
@@ -32,7 +32,7 @@ class ClangTarget(BaseTarget):
             return name
 
     @staticmethod
-    def get_type_string(types: ChemTypes):
+    def get_type_string(types : ChemTypes):
         '''
         Go through all the types in the set of return types,
         and determine the C++ equivalent of those types
@@ -53,16 +53,19 @@ class ClangTarget(BaseTarget):
         else:
             return 'mat'
 
+
     def construct_basic_block_code(self, instructions):
         code = ''
         for instr in instructions:
             if type(instr) == Dispose:
                 code += '  dispose({});\n'.format(instr.uses[0].name)
             elif type(instr) == Store:
+                #print(instr)
+                
                 code += '  {} = {};\n'.format(instr.defs.name, instr.uses)
             elif type(instr) == Mix:
                 code += '  mat {} = mix({}, {}, {}, {}, {});\n'.format(
-                                            instr.defs.name,
+                                            instr.defs[0].name,
                                             instr.uses[0].name, 
                                             instr.uses[0].size, 
                                             instr.uses[1].name, 
@@ -71,16 +74,16 @@ class ClangTarget(BaseTarget):
             elif type(instr) == Split:
                 # Using instr.size to show the size it will be splitting into.
                         code += '  mat {} = split({}, {});\n'.format(
-                                            instr.defs.name,
+                                            instr.defs[0].name,
                                             instr.uses[0].name,
                                             instr.size)
             elif type(instr) == Detect: 
-                        code += '  double {} = detect({}, {}, {});\n'.format(instr.defs.name, instr.module.name, instr.uses[0].name, instr.module.size)
+                        code += '  double {} = detect({}, {}, {});\n'.format(instr.defs[0].name, instr.module.name, instr.uses[0].name, instr.module.size)
             elif type(instr) == Heat: 
                 #(Daniel) I don't know what to fill in for temp or time...
-                code += '  mat {} = heat({}, {}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size, instr.uses[0].size)
+                code += '  mat {} = heat({}, {}, {});\n'.format(instr.defs[0].name, instr.uses[0].name, instr.uses[0].size, instr.uses[0].size)
             elif type(instr) == Dispense:
-                        code += '  mat {} = dispense({}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size)
+                        code += '  mat {} = dispense({}, {});\n'.format(instr.defs[0].name, instr.uses[0].name, instr.uses[0].size)
             elif type(instr) == Return:
             
                 if type(instr.return_value) == Chemical:
@@ -104,7 +107,9 @@ class ClangTarget(BaseTarget):
                 pass
         return code
 
+
     def transform(self):
+        self.function_code = []
         self.compiled = \
         '#include <unistd.h>\n' \
         '#include <vector>\n\n' \
@@ -142,7 +147,7 @@ class ClangTarget(BaseTarget):
         'void drain(mat input) {\n\n' \
         '}\n\n'
 
-        # go through the globals and add module/manifest code.
+        #go through the globals and add module/manifest code.
         for name, v in self.program.symbol_table.globals.items():
             if ChemTypes.MAT in v.types:
                 self.compiled += '{} {};\n'.format('mat', name)
@@ -177,11 +182,8 @@ class ClangTarget(BaseTarget):
 
         for c in code_func:
             self.compiled += c
-
-        self.program.write[self.program.name] = Writable(self.program.name,
-                                                         "{}/{}.cpp".format(self.config.output, self.program.name),
-                                                         self.compiled)
-        return False
+        # print(self.compiled)
+        return False 
 
     def write_mix(self) -> str:
         pass

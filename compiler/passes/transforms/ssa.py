@@ -120,11 +120,9 @@ class SSA(BSTransform):
         :return: None.
         """
         for instruction in block.instructions:
-            if instruction.op is not IRInstruction.PHI and instruction.op is not IRInstruction.JUMP:
+            if instruction.op not in (IRInstruction.PHI, IRInstruction.JUMP):
                 for x in range(0, len(instruction.uses)):
                     current_var = instruction.uses[x]
-                    if isinstance(current_var, str):
-                        continue
                     # We don't care about constants or globals.
                     if not current_var.is_constant and not current_var.is_global:
                         new_name = "{}{}".format(current_var.name,
@@ -136,17 +134,18 @@ class SSA(BSTransform):
                             block.uses.remove(current_var.name)
                             block.uses.add(renamed.name)
             if instruction.op is not IRInstruction.JUMP and instruction.defs:
-                version = self.bookkeeper[instruction.defs.name]['count']
-                self.bookkeeper[instruction.defs.name]['count'] += 1
-                self.bookkeeper[instruction.defs.name]['stack'].append(version)
-                original = instruction.defs
-                renamed = RenamedVar("{}{}".format(original.name, version), original)
-                instruction.defs = renamed
-                if not self.program.symbol_table.get_local(renamed, root):
-                    self.program.symbol_table.add_local(renamed, root)
-                if original.name in block.defs:
-                    block.defs.remove(original.name)
-                    block.defs.add(renamed.name)
+                for d in range(0, len(instruction.defs)):
+                    version = self.bookkeeper[instruction.defs[d].name]['count']
+                    self.bookkeeper[instruction.defs[d].name]['count'] += 1
+                    self.bookkeeper[instruction.defs[d].name]['stack'].append(version)
+                    original = instruction.defs[d]
+                    renamed = RenamedVar("{}{}".format(original.name, version), original)
+                    instruction.defs[d] = renamed
+                    if not self.program.symbol_table.get_local(renamed, root):
+                        self.program.symbol_table.add_local(renamed, root)
+                    if original.name in block.defs:
+                        block.defs.remove(original.name)
+                        block.defs.add(renamed.name)
         # Look at the successors of this block
         if block.nid in self.dominator_tree[root]:
             for sid in self.dominator_tree[root][block.nid]:
@@ -171,8 +170,7 @@ class SSA(BSTransform):
         for instruction in block.instructions:
             # We aren't concerned with instructions that don't have defs
             # Or are constant values.  They don't impact renaming.
-            if instruction.op is not IRInstruction.CONSTANT and \
-                    instruction.op is not IRInstruction.JUMP and \
-                    instruction.defs:
-                if self.bookkeeper[instruction.defs.points_to]['stack']:
-                    self.bookkeeper[instruction.defs.points_to]['stack'].pop()
+            if instruction.op not in (IRInstruction.CONSTANT, IRInstruction.JUMP) and instruction.defs:
+                for d in range(0, len(instruction.defs)):
+                    if self.bookkeeper[instruction.defs[d].points_to]['stack']:
+                        self.bookkeeper[instruction.defs[d].points_to]['stack'].pop()

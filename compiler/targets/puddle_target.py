@@ -1,12 +1,12 @@
 from compiler.data_structures.ir import *
-from compiler.data_structures.writable import Writable
 from compiler.targets.base_target import BaseTarget
 
 
 class PuddleTarget(BaseTarget):
 
-    def __init__(self, program):
-        super().__init__(program, "PuddleTarget")
+    def __init__(self, program, config):
+        super().__init__(config, program, "PuddleTarget")
+
 
     def construct_basic_block_code(self, instructions, is_main=False):
         tabs = '  ' if is_main==True else '    '
@@ -25,7 +25,6 @@ class PuddleTarget(BaseTarget):
             elif type(instr) == Detect: 
                 code += '{}{} = session.detect({}, {})\n'.format(tabs, instr.defs.name, instr.module.name, instr.uses[0].name)
             elif type(instr) == Heat: 
-                print(instr)
                 code += '{}{} = session.heat({}, temp={}, seconds={})\n'.format(tabs, instr.defs.name, instr.uses[0].name, instr.uses[0].size, instr.uses[0].size) 
             elif type(instr) == Dispense:
                 code += '{}{} = session.input({}, location=(), volume=1000000.0, dimensions=(1,1))\n'.format(tabs, instr.defs.name, instr.uses[0].name)
@@ -52,7 +51,8 @@ class PuddleTarget(BaseTarget):
                 pass
             else:
                 pass
-        return code
+        return code 
+
 
     def transform(self):
         file_name = 'cool_looking_json_file.json'
@@ -89,13 +89,6 @@ class PuddleTarget(BaseTarget):
                 is_main = func_name == 'main' 
                 self.compiled += self.construct_basic_block_code(block.instructions, is_main=is_main)
             self.compiled += '\n\n'
-
-        self.program.write[self.program.name] = Writable(self.program.name,
-                                                         "{}/{}.py".format(self.config.output, self.program.name),
-                                                         self.compiled)
-        if self.config.debug and not self.config.write_out:
-            self.log.info(self.compiled)
-
         return False
 
     def write_mix(self) -> str:

@@ -150,20 +150,19 @@ class Temp(Expression):
 
 
 class BinaryOp(Expression):
-    def __init__(self, left: Expression, right: Expression, op: BinaryOps, out: Temp):
+    def __init__(self, left: Expression, right: Expression, op: BinaryOps):
         super().__init__(IRInstruction.BINARYOP)
         self.left = left
         self.right = right
         self.op = op
-        self.uses = [out ,left, right]
-        self.defs = out
-
+        self.uses = [left, right]
+        self.defs = list()
 
     def write(self, target: 'BaseTarget') -> str:
         pass
 
     def __str__(self):
-        return "BINARYOP {} {} {} {}".format(self.defs, self.op, self.left, self.right)
+        return "BINARYOP {} {} {}".format(self.op, self.left, self.right)
 
 
 class Call(Expression):
@@ -174,7 +173,7 @@ class Call(Expression):
         self.name = self.function.name
         # This is already a list!
         self.uses = arguments
-        self.defs = out
+        self.defs = [out]
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -208,7 +207,7 @@ class Statement(IR, metaclass=abc.ABCMeta):
     def __init__(self, op: IRInstruction, out):
         super().__init__(op)
         self.uses = []
-        self.defs = out
+        self.defs = [out]
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -221,7 +220,6 @@ class Mix(Statement):
     def __init__(self, out: Temp, one: Temp, two: Temp):
         super().__init__(IRInstruction.MIX, out)
         self.uses.extend([one, two])
-        self.defs = out
 
     def write(self, target: 'BaseTarget') -> str:
         return target.write_mix(self)
@@ -235,7 +233,6 @@ class Split(Statement):
         super().__init__(IRInstruction.SPLIT, out)
         self.uses.append(one)
         self.size = size
-        self.defs = out
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -310,9 +307,11 @@ class Gradient(Statement):
 class Store(Statement):
     def __init__(self, out: Temp, value: Expression):
         super().__init__(IRInstruction.STORE, out)
-        if not isinstance(value, float) and value.op == IRInstruction.CALL:
+        if type(float) in (int, float):
             self.uses.extend(value.uses)
-        self.defs = out
+        # if value.op == IRInstruction.CALL:
+        #     self.uses.extend(value.uses)
+        self.defs = [out]
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -401,7 +400,7 @@ class Return(Control):
         self.return_value = return_value
         self.return_to = return_value
         self.uses = [return_value]
-        self.defs = return_value
+        self.defs = [return_value]
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -429,8 +428,8 @@ class Meta(IR):
 class Phi(Meta):
     def __init__(self, left: Expression, right: list):
         super().__init__(IRInstruction.PHI)
-        self.defs = left
-        self.uses = right
+        self.defs = [left]
+        self.uses = [right]
 
     def write(self, target: 'BaseTarget') -> str:
         pass

@@ -4,7 +4,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-*.swp
 # C extensions
 *.so
 *.c
@@ -162,5 +161,4 @@ crashlytics.properties
 crashlytics-build.properties
 fabric.properties
 
-# Custom files/folders to ignore
-output
+output/

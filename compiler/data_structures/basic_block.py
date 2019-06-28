@@ -2,10 +2,6 @@ import colorlog
 
 import compiler.data_structures.ir as ir
 
-# import compiler.data_structures.ir as ir
-
-from compiler.data_structures.ir import *
-
 
 # import compiler.data_structures.variable as variable
 
@@ -38,53 +34,47 @@ class BasicBlock(object):
     def get_jump(self):
         jumps = list()
         for jump in self.jumps:
-            if jump.op == IRInstruction.JUMP:
+            if jump.op == ir.IRInstruction.JUMP:
                 jumps.append(jump)
         return jumps
 
     def get_returns(self):
         for jump in self.jumps:
-            if jump.op == IRInstruction.RETURN:
+            if jump.op == ir.IRInstruction.RETURN:
                 return jump
         return None
 
     def get_call(self):
         for jump in self.jumps:
-            if jump.op == IRInstruction.CALL:
+            if jump.op == ir.IRInstruction.CALL:
                 return jump
         return None
 
-    def add(self, instruction: IR):
+    def add(self, instruction: ir.IR):
         # All statements have def/uses.
         if hasattr(instruction, 'defs'):
             if instruction.defs is not None:
                 if instruction.defs is True or instruction.defs is False:
                     x = 1
-                #for d in instruction.defs:
-                self.defs.add(instruction.defs.name)
+                for d in instruction.defs:
+                    self.defs.add(d.name)
                 # self.defs.add(instruction.defs.name)
         if hasattr(instruction, 'uses'):
             for use in instruction.uses:
-                if isinstance(use, Variable):
+                self.log.info(use)
+                if isinstance(use, ir.IR):
                     self.uses.add(use.name)
 
-        if instruction.op == IRInstruction.LABEL:
+        if instruction.op == ir.IRInstruction.LABEL:
             if self.label:
                 self.log.warning("Trying to add a label to an already labeled block.")
             self.label = instruction
-        elif instruction.op == IRInstruction.JUMP:
-            self.jumps.append(instruction.jumps)
+        elif instruction.op == ir.IRInstruction.JUMP or \
+                instruction.op == ir.IRInstruction.RETURN or \
+                instruction.op == ir.IRInstruction.CALL:
+            self.jumps.append(instruction)
             self.instructions.append(instruction)
-        elif instruction.op == IRInstruction.CONDITIONAL:
-            self.jumps.append(instruction.true_branch)
-            self.jumps.append(instruction.false_branch)
-            self.instructions.append(instruction)
-        elif instruction.op == IRInstruction.CALL:
-            self.jumps.append(instruction.function.name)
-            self.instructions.append(instruction)
-        elif instruction.op == IRInstruction.RETURN:
-            self.jumps.append(instruction.return_to)
-            self.jumps.append(instruction.name)
+        elif instruction.op == ir.IRInstruction.CONDITIONAL:
             self.instructions.append(instruction)
         else:
             self.instructions.append(instruction)
@@ -100,7 +90,7 @@ class BasicBlock(object):
 
     def __str__(self):
         dag = "True" if self.dag is not None else "False"
-        output = "\nID: {}\nHas DAG: {}\n".format(self.nid, dag)
+        output = "\nID: {}\t Has DAG: {}\n".format(self.nid, dag)
         output += "{}\n".format(self.label)
         jumps = "Jumps: "
         in_jumps = False
