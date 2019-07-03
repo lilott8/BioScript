@@ -52,15 +52,6 @@ class LoopUnroll(BSTransform):
         else: i_step = True
 
         return True if zk_delta > 0 and i_step else False
-    def give_loop_order(self,node_list):
-        # Algorithm Steps
-        # Detect:
-        # Get Immediate Dominators for every node
-        # Detect back-edges on each node
-        # Construct loop using intersection of ancestors of body and descendents of h
-        # Put loop set into list.
-        # Order loop list by non-containing nested first.
-        return node_list
 
     def unroll(self, program: Program) -> Program:
         global jump
@@ -76,11 +67,6 @@ class LoopUnroll(BSTransform):
                     for edge in edge_list:
                         if edge in sorted_doms:
                             tlist.append(edge)
-
-
-            # Step 1: Get cycle
-            # Step 2: Analyze Cycle
-            # This helps us verify condition 3: No outsinde inc edges
 
             for item in tlist:
                 if len(item) > 2:
@@ -103,8 +89,6 @@ class LoopUnroll(BSTransform):
                 for p_instructions in program.functions[root]['blocks'][parent].instructions:
                     if type(p_instructions) == Conditional:
                         if c_label == p_instructions.true_branch:
-
-
                             label = program.functions[root]['blocks'][parent].instructions.pop(
                                 program.functions[root]['blocks'][parent].instructions.index(p_instructions))
                             labels.append(label)
@@ -114,7 +98,6 @@ class LoopUnroll(BSTransform):
                         pass
                 bad_loop = True
                 # Child Instructions
-
                 jump = program.functions[root]['blocks'][child].instructions.pop(-1)
                 for c_instructions in program.functions[root]['blocks'][child].instructions:
                     if type(c_instructions) == BinaryOp:
@@ -132,13 +115,14 @@ class LoopUnroll(BSTransform):
 
                 # EXECUTE
                 # Warning 0: This Code Works as
-                #IDENTyOp Chec
-                        # 4 Cases:suming the right is the constant
+                # IDENTyOp Chec
+                # 4 Cases:suming the right is the constant
                 # Warning 1: This Code is not fully functional: it cannot find the original x value
                 is_finite = False
                 if bad_loop is False:
-                    constant = 1  # Can't get current variable value, assume 1 because we already have 1 "set"
-                                    # of instructions
+                    constant = 1
+                    # Can't get current variable value, assume 1 because we already have 1 "set"
+                    # of instructions
                     base_instructions = program.functions[root]['blocks'][child].instructions.copy()
                     is_finite = self.finite_loop(binary_operation, constant, int(binary_operation.right),
                                              label.right.value)
@@ -149,7 +133,7 @@ class LoopUnroll(BSTransform):
                     # CLEANUP: Pops Parent, adds jump, redoes the labels.
                     jump.jumps = label.false_branch
                     program.functions[root]['blocks'][child].instructions.append(jump)
-                    jumpy =  Jump(label.true_branch)
+                    jumpy = Jump(label.true_branch)
                     program.functions[root]['blocks'][parent].instructions.append(jumpy)
                     program.functions[root]['blocks'][child].label = label.true_branch
                     program.functions[root]['blocks'][child].jumps.pop()
