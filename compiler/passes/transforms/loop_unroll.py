@@ -5,6 +5,7 @@ import networkx as nx
 import copy
 
 
+
 class LoopUnroll(BSTransform):
 
     def __init__(self):
@@ -51,15 +52,19 @@ class LoopUnroll(BSTransform):
         else: i_step = True
 
         return True if zk_delta > 0 and i_step else False
-    def give_graph_loop(self,tlist):
+    def give_graph_loop(self,node_list):
         # Algorithm Steps
-        # Let s be a set of nodes including header node h
-        # 1) for every node in s there is a path to h
-        # 2) from h there is a path to every node in s
-        # 3) there is no edge from any node outside S to any node in S other than h
-        
-        l_list = []
-        return l_list
+        # Given a list of cycles
+        # 1) for each item ,determine if the cycle is a loop
+        # 2) if all nodes of a loop are contained within another loop,
+        #    put the smaller loop in front of the bigger loop in the order
+        #
+        for node in node_list:
+                # node_item =
+            # node_incoming =
+
+
+            return True
 
     def unroll(self, program: Program) -> Program:
         global jump
@@ -142,7 +147,8 @@ class LoopUnroll(BSTransform):
                     # CLEANUP: Pops Parent, adds jump, redoes the labels.
                     jump.jumps = label.false_branch
                     program.functions[root]['blocks'][child].instructions.append(jump)
-                    program.functions[root]['blocks'].pop(parent)
+                    jumpy =  Jump(label.true_branch)
+                    program.functions[root]['blocks'][parent].instructions.append(jumpy)
                     program.functions[root]['blocks'][child].label = label.true_branch
                     program.functions[root]['blocks'][child].jumps.pop()
                 else:
