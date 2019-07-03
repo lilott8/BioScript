@@ -52,38 +52,41 @@ class LoopUnroll(BSTransform):
         else: i_step = True
 
         return True if zk_delta > 0 and i_step else False
-    def give_graph_loop(self,node_list):
+    def give_loop_order(self,node_list):
         # Algorithm Steps
-        # Given a list of cycles
-        # 1) for each item ,determine if the cycle is a loop
-        # 2) if all nodes of a loop are contained within another loop,
-        #    put the smaller loop in front of the bigger loop in the order
-        #
-        for node in node_list:
-                # node_item =
-            # node_incoming =
-
-
-            return True
+        # Detect:
+        # Get Immediate Dominators for every node
+        # Detect back-edges on each node
+        # Construct loop using intersection of ancestors of body and descendents of h
+        # Put loop set into list.
+        # Order loop list by non-containing nested first.
+        return node_list
 
     def unroll(self, program: Program) -> Program:
         global jump
         for root in program.functions:
 
-            tlist = list(nx.simple_cycles(program.functions[root]['graph']))
+            tlist = []
             node_one = list(nx.nodes(program.functions[root]['graph']))
+            dominators = (nx.immediate_dominators(program.functions[root]['graph'],1))
+            sorted_doms = sorted(dominators.items())
+            for item in dominators:
+                edge_list = list(program.functions[root]['graph'].out_edges(item))
+                if len(edge_list) > 0:
+                    for edge in edge_list:
+                        if edge in sorted_doms:
+                            tlist.append(edge)
+
+
             # Step 1: Get cycle
             # Step 2: Analyze Cycle
             # This helps us verify condition 3: No outsinde inc edges
-            glist = program.functions[root]['graph'].in_edges(node_one[1])
 
-            self.log.warn(glist)
-            self.log.warn(tlist)
             for item in tlist:
                 if len(item) > 2:
                     continue
-                child = item[1]
-                parent = item[0]
+                child = item[0]
+                parent = item[1]
 
                 pure_child_ins = copy.deepcopy(program.functions[root]['blocks'][child].instructions)
                 pure_parent_ins = copy.deepcopy(program.functions[root]['blocks'][parent].instructions)
@@ -101,7 +104,7 @@ class LoopUnroll(BSTransform):
                     if type(p_instructions) == Conditional:
                         if c_label == p_instructions.true_branch:
 
-                            self.log.warn("Success")
+
                             label = program.functions[root]['blocks'][parent].instructions.pop(
                                 program.functions[root]['blocks'][parent].instructions.index(p_instructions))
                             labels.append(label)
@@ -115,7 +118,6 @@ class LoopUnroll(BSTransform):
                 jump = program.functions[root]['blocks'][child].instructions.pop(-1)
                 for c_instructions in program.functions[root]['blocks'][child].instructions:
                     if type(c_instructions) == BinaryOp:
-                        self.log.warn("Success")
                         # TODO:  Better Binary Detection
                         binary_operation = program.functions[root]['blocks'][child].instructions.pop(
                             program.functions[root]['blocks'][child].instructions.index(c_instructions))
