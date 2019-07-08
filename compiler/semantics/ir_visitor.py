@@ -329,36 +329,25 @@ class IRVisitor(BSBaseVisitor):
         return NOP()
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
-        # ir = LoopIR()
-        new_var = Number(''.join(random.choices(string.ascii_uppercase + string.digits, k=8)),
-                         {ChemTypes.REAL}, self.scope_stack[-1], value=float(ctx.INTEGER_LITERAL().__str__()))
-        self.symbol_table.add_local(new_var, self.scope_stack[-1])
-
-        par_expression = self.visitParExpression(ctx.parExpression())
-
-        if BSBaseVisitor.is_number(par_expression['exp1']):
-            exp1 = Number("Constant_{}".format(par_expression['exp1']), {ChemTypes.NAT, ChemTypes.REAL},
-                          self.scope_stack[-1], value=float(par_expression['exp1']))
-            self.symbol_table.add_local(exp1, self.scope_stack[-1])
+        # get the (statically defined) repeat value
+        if ctx.IDENTIFIER() is not None:
+            exp = self.symbol_table.get_local(ctx.IDENTIFIER().__str__())
         else:
-            exp1 = self.allocation_map[par_expression['exp1']]
-        if BSBaseVisitor.is_number(par_expression['exp2']):
-            exp2 = Number("Constant_{}".format(par_expression['exp2']), {ChemTypes.NAT, ChemTypes.REAL},
-                          self.scope_stack[-1], value=float(par_expression['exp2']))
-            self.symbol_table.add_local(exp2, self.scope_stack[-1])
-        else:
-            exp2 = self.allocation_map[par_expression['exp2']]
+            exp = Number("Constant_{}".format(ctx.INTEGER_LITERAL().__str__()), {ChemTypes.NAT, ChemTypes.REAL},
+                          self.scope_stack[-1], value=float(ctx.INTEGER_LITERAL().__str__()), is_constant=True)
+        self.symbol_table.add_local(exp, self.scope_stack[-1])
 
         pre_condition_label_string = "bsbbw_{}_l".format(self.current_block.nid)
         pre_condition_label = Label(pre_condition_label_string)
         self.labels[pre_condition_label.name] = self.current_block.nid
         self.current_block.add(pre_condition_label)
 
-        condition = Conditional(RelationalOps.GT, new_var, Constant(0))
+        end = Number("Constant_{}".format("0"), {ChemTypes.NAT}, self.scope_stack[-1], value=int(0), is_constant=True)
+
+        condition = Conditional(RelationalOps.GT, exp, Number(Constant(0), is_constant=True))
         self.current_block.add(condition)
 
         # Condition is added to self.current_block.
-        condition = Conditional(par_expression['op'], exp1, exp2)
         true_block = BasicBlock()
         self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
         true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
@@ -380,6 +369,10 @@ class IRVisitor(BSBaseVisitor):
         self.current_block = true_block
 
         self.visitBlockStatement(ctx.blockStatement())
+
+        # repeat is translated to a while loops as: while (exp > 0);
+        # hence, we update exp by decrementing.
+        self.current_block.add(BinaryOp(exp, Number(Constant(1), is_constant=True), BinaryOps.SUBTRACT, exp))
         self.current_block.add(Jump(pre_condition_label))
 
         parent_block = self.control_stack.pop()

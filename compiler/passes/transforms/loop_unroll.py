@@ -72,12 +72,12 @@ class LoopUnroll(BSTransform):
                         # check variable in l_left or l_right is in bo_defs
                         # EXECUTE
                         if BinaryOps.SUBTRACT == BO.op:
-                            # constant = BO.right
-                            constant = 8
+                            var = BO.left.value-1
+                            # constant = 8
                             base_instructions = program.functions[root]['blocks'][child].instructions.copy()
-                            while constant > 1:
+                            while var > BO.right.value:
                                 program.functions[root]['blocks'][child].instructions.extend(base_instructions)
-                                constant -= 1
+                                var -= 1
                         elif BinaryOps.ADD == BO.op:
                             reducer = BO.right
 

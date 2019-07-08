@@ -51,6 +51,7 @@ class Config(object):
         self.supports_nesting = False
         self.write_cfg = args.write_cfg
         self.inline = False
+        self.loopunroll = False
         """
         Necessary for identify
         """
@@ -94,6 +95,9 @@ class Config(object):
         self.smarts_length = args.smarts
         self.filters = not args.no_filters
         self.identify = identifier.IdentifyLevel(args.identify)
+
+        if args.loopunroll:
+            self.loopunroll = True
 
         if args.typechecklevel.lower() == "none":
             self.error_level = ct.ReportingLevel.NONE

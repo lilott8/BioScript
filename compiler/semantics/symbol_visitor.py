@@ -220,7 +220,7 @@ class SymbolTableVisitor(BSBaseVisitor):
             declared_types = self.visitUnionType(ctx.unionType())
 
         operation = self.visitVariableDeclaration(ctx.variableDeclaration())
-        
+
         final_types = final_types.union(declared_types)
         final_types = final_types.union(operation['types'])
 
@@ -240,8 +240,9 @@ class SymbolTableVisitor(BSBaseVisitor):
             if ctx.INTEGER_LITERAL() and int(ctx.INTEGER_LITERAL().__str__()) != operation['size']:
                 raise InvalidOperation("Array size doesn't match method return size.")
 
+        # the value=float(cts.stop.text) is a total hack to extract the numeric value
         if final_types.issubset(ChemTypeResolver.numbers):
-            variable = Number(name, final_types, self.symbol_table.current_scope.name)
+            variable = Number(name, final_types, self.symbol_table.current_scope.name, value=float(ctx.stop.text))
         else:
             variable = Chemical(name, final_types, self.symbol_table.current_scope.name, operation['size'])
         self.symbol_table.add_local(variable)
