@@ -265,7 +265,7 @@ class IRVisitor(BSBaseVisitor):
                           self.scope_stack[-1], value=float(par_expression['exp2']), is_constant=True)
             self.symbol_table.add_local(exp2, self.scope_stack[-1])
         else:
-            exp2 = par_expression['exp2']
+            exp2 = self.allocation_map[par_expression['exp2']]
 
         pre_condition_label_string = "bsbbw_{}_l".format(self.current_block.nid)
         pre_condition_label = Label(pre_condition_label_string)
@@ -276,7 +276,7 @@ class IRVisitor(BSBaseVisitor):
         condition = Conditional(par_expression['op'], exp1, exp2)
         true_block = BasicBlock()
         self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
-        true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
+        true_label = Label("bsbbw_{}_l".format(true_block.nid))
         self.labels[true_label.name] = true_block.nid
         true_block.add(true_label)
 
@@ -361,7 +361,7 @@ class IRVisitor(BSBaseVisitor):
         condition = Conditional(par_expression['op'], exp1, exp2)
         true_block = BasicBlock()
         self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
-        true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
+        true_label = Label("bsbbw_{}_l".format(true_block.nid))
         self.labels[true_label.name] = true_block.nid
         true_block.add(true_label)
 
