@@ -88,29 +88,40 @@ class LoopUnroll(BSTransform):
                 l_left = l_right = None
                 for p_instructions in program.functions[root]['blocks'][parent].instructions:
                     if type(p_instructions) == Conditional:
-                        if c_label == p_instructions.true_branch:
+                        if c_label.label == p_instructions.true_branch.label:
                             label = program.functions[root]['blocks'][parent].instructions.pop(
                                 program.functions[root]['blocks'][parent].instructions.index(p_instructions))
+                            self.log.warn(label)
                             labels.append(label)
                             l_left = label.left
+
                             l_right = label.right
+                        else:
+                            self.log.warn(p_instructions.true_branch)
+                            self.log.warn(c_label)
+                            self.log.warn(p_instructions.true_branch == c_label)
                     else:
                         pass
                 bad_loop = True
                 # Child Instructions
-                jump = program.functions[root]['blocks'][child].instructions.pop(-1)
+                # TODO: Fix Child end Jump Detection
+                if program.functions[root]['blocks'][child].instructions[-1] == Jump:
+                    jump = program.functions[root]['blocks'][child].instructions.pop(-1)
+                else:
+                    jump = None
                 for c_instructions in program.functions[root]['blocks'][child].instructions:
                     if type(c_instructions) == BinaryOp:
-                        # TODO:  Better Binary Detection
-                        binary_operation = program.functions[root]['blocks'][child].instructions.pop(
-                            program.functions[root]['blocks'][child].instructions.index(c_instructions))
+                        binary_operation = c_instructions
                         if l_left != None and binary_operation.defs.name[:-1] == l_left.name:
+                            program.functions[root]['blocks'][child].instructions.pop(program.functions[root]['blocks'][child].instructions.index(c_instructions))
                             bad_loop = False
                         elif l_right != None and binary_operation.defs.name[:-1] == l_right.name:
+                            program.functions[root]['blocks'][child].instructions.pop(program.functions[root]['blocks'][child].instructions.index(c_instructions))
                             bad_loop = False
                     else:
                         pass
-                if jump is None or label is None or binary_operation is None:
+                if label is None or binary_operation is None:
+                    self.log.warn("I fail on the initial bad loop!")
                     bad_loop = True
 
                 # EXECUTE
@@ -120,6 +131,7 @@ class LoopUnroll(BSTransform):
                 # Warning 1: This Code is not fully functional: it cannot find the original x value
                 is_finite = False
                 if bad_loop is False:
+                    self.log.warn("I fail on the binaryop check!")
                     constant = 1
                     # Can't get current variable value, assume 1 because we already have 1 "set"
                     # of instructions
@@ -131,13 +143,18 @@ class LoopUnroll(BSTransform):
                         program.functions[root]['blocks'][child].instructions.extend(base_instructions)
                         constant = self.reevaluate(binary_operation, constant, int(binary_operation.right))
                     # CLEANUP: Pops Parent, adds jump, redoes the labels.
-                    jump.jumps = label.false_branch
-                    program.functions[root]['blocks'][child].instructions.append(jump)
+
+                    if jump is not None:
+                        jump.jumps = label.false_branch
+                        program.functions[root]['blocks'][child].instructions.append(jump)
+
                     jumpy = Jump(label.true_branch)
                     program.functions[root]['blocks'][parent].instructions.append(jumpy)
                     program.functions[root]['blocks'][child].label = label.true_branch
+
                     program.functions[root]['blocks'][child].jumps.pop()
                 else:
+                    self.log.warn("I fail on the finite check!")
                     bad_loop = True
 
                 if bad_loop:
