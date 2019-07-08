@@ -130,24 +130,26 @@ class LoopUnroll(BSTransform):
                     constant = 1
                     # Can't get current variable value, assume 1 because we already have 1 "set"
                     # of instructions
-                    base_instructions = program.functions[root]['blocks'][child].instructions.copy()
+                    base_instructions_unf = program.functions[root]['blocks'][child].instructions.copy()
+                    base_instructions = list(filter(lambda i : not(type(i) is Jump), base_instructions_unf))
+                    program.functions[root]['blocks'][child].instructions = base_instructions.copy()
                     is_finite = self.finite_loop(binary_operation, constant, int(binary_operation.right),
                                              label.right.value)
                 if is_finite:
                     while self.loop_condition(label.relop.value, constant, label.right.value*nested_multiplier):
-                        program.functions[root]['blocks'][child].instructions.extend(base_instructions)
+                        program.functions[root]['blocks'][child].instructions +=base_instructions
                         constant = self.reevaluate(binary_operation, constant, int(binary_operation.right))
                     # CLEANUP: Pops Parent, adds jump, redoes the labels.
-
                     if jump is not None:
                         jump.jumps = label.false_branch
-                        program.functions[root]['blocks'][child].instructions.append(jump)
+                        program.functions[root]['blocks'][child].instructions.extend(jump)
 
                     jumpy = Jump(label.true_branch)
                     program.functions[root]['blocks'][parent].instructions.append(jumpy)
                     program.functions[root]['blocks'][child].label = label.true_branch
 
                     program.functions[root]['blocks'][child].jumps.pop()
+                    program.functions[root]['blocks'][child].instructions.append(Jump(program.functions[root]['blocks'][child+1].label))
                 else:
                     bad_loop = True
 
