@@ -240,9 +240,42 @@ class SymbolTableVisitor(BSBaseVisitor):
             if ctx.INTEGER_LITERAL() and int(ctx.INTEGER_LITERAL().__str__()) != operation['size']:
                 raise InvalidOperation("Array size doesn't match method return size.")
 
-        # the value=float(cts.stop.text) is a total hack to extract the numeric value
-        if final_types.issubset(ChemTypeResolver.numbers):
-            variable = Number(name, final_types, self.symbol_table.current_scope.name, value=float(ctx.stop.text))
+        # quick hack for int, float, and time.  easily add volume, etc when we have x = literal
+        if final_types.issubset(ChemTypeResolver.numbers):  # assigning a numeric type
+            if ctx.variableDeclaration().expression():  # expression
+                if ctx.variableDeclaration().expression().primary(): # primary [ can be paren, literal, or variable ]
+                    if ctx.variableDeclaration().expression().primary().literal():
+                        if ctx.stop.type is 34 or ctx.stop.type is 35:  # 35 = integer literal, 36 = float literal
+                            num = ctx.stop.text
+                            unit = 1
+                        elif ctx.stop.type is 36:  # 36 = TIME number
+                            num = ctx.stop.text
+                            unit = num[-1:]
+                            num = num[:-1]
+                            if unit is 'ns':
+                                unit = 0.000000001
+                            elif unit is 'ms':
+                                unit = 0.001
+                            elif unit is 's':
+                                unit = 1
+                            elif unit is 'm':
+                                unit = 60
+                            elif unit is 'h':
+                                unit = 3600
+                            elif unit is 'd':
+                                unit = 86400
+                            else:
+                                unit = 1
+                        else:
+                            num = 1
+                            unit = 1
+                        variable = Number(name, final_types, self.symbol_table.current_scope.name, value=float(num * unit))
+                else:
+                    variable = Number(name, final_types, self.symbol_table.current_scope.name, value=float(-1))
+                    self.log.warn("%s not properly defined in symbol table" % name)
+            else:
+                variable = Number(name, final_types, self.symbol_table.current_scope.name, value=float(-1))
+                self.log.warn("%s not properly defined in symbol table" % name)
         else:
             variable = Chemical(name, final_types, self.symbol_table.current_scope.name, operation['size'])
         self.symbol_table.add_local(variable)

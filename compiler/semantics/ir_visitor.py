@@ -267,36 +267,44 @@ class IRVisitor(BSBaseVisitor):
         else:
             exp2 = par_expression['exp2']
 
-        pre_condition_label_string = "bsbbw_{}_l".format(self.current_block.nid)
-        pre_condition_label = Label(pre_condition_label_string)
-        self.labels[pre_condition_label.name] = self.current_block.nid
-        self.current_block.add(pre_condition_label)
+        # insert header block for the conditional
+        header_block = BasicBlock()
+        header_label = Label("bsbbw_{}_h".format(self.current_block.nid))
+        self.labels[header_label.name] = header_block.nid
+        header_block.add(header_label)
+        self.graph.add_node(header_block.nid, function=self.scope_stack[-1])
 
-        # Condition is added to self.current_block.
+        # the condition goes in the header
         condition = Conditional(par_expression['op'], exp1, exp2)
+        header_block.add(condition)
+        self.functions[self.scope_stack[-1]]['blocks'][header_block.nid] = header_block
+
+        # set up true block
         true_block = BasicBlock()
         self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
         true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
         self.labels[true_label.name] = true_block.nid
         true_block.add(true_label)
 
-        # self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
+        # we have a directed edge from current block to the header
+        self.graph.add_edge(self.current_block.nid, header_block.nid)
+        self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+
+        self.current_block = header_block
         self.functions[self.scope_stack[-1]]['blocks'][true_block.nid] = true_block
 
         condition.true_branch = true_label
 
-        self.current_block.add(condition)
         # If condition evaluates true.
         self.graph.add_cycle([true_block.nid, self.current_block.nid])
         self.control_stack.append(self.current_block)
 
-        # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
 
         self.current_block = true_block
 
         self.visitBlockStatement(ctx.blockStatement())
-        self.current_block.add(Jump(pre_condition_label))
+        #self.current_block.add(Jump(header_label))
 
         parent_block = self.control_stack.pop()
 
@@ -329,32 +337,38 @@ class IRVisitor(BSBaseVisitor):
         return NOP()
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
-        # get the (statically defined) repeat value
+        # get the (statically defined!) repeat value
         if ctx.IDENTIFIER() is not None:
             exp = self.symbol_table.get_local(ctx.IDENTIFIER().__str__())
         else:
-            exp = Number("Constant_{}".format(ctx.INTEGER_LITERAL().__str__()), {ChemTypes.NAT, ChemTypes.REAL},
+            exp = Number("REPEAT_{}".format(ctx.INTEGER_LITERAL().__str__()), {ChemTypes.NAT, ChemTypes.REAL},
                           self.scope_stack[-1], value=float(ctx.INTEGER_LITERAL().__str__()), is_constant=True)
         self.symbol_table.add_local(exp, self.scope_stack[-1])
 
-        pre_condition_label_string = "bsbbw_{}_l".format(self.current_block.nid)
-        pre_condition_label = Label(pre_condition_label_string)
-        self.labels[pre_condition_label.name] = self.current_block.nid
-        self.current_block.add(pre_condition_label)
+        # insert header block for the conditional
+        header_block = BasicBlock()
+        header_label = Label("bsbbw_{}_h".format(self.current_block.nid))
+        self.labels[header_label.name] = header_block.nid
+        header_block.add(header_label)
+        self.graph.add_node(header_block.nid, function=self.scope_stack[-1])
 
-        end = Number("Constant_{}".format("0"), {ChemTypes.NAT}, self.scope_stack[-1], value=int(0), is_constant=True)
-
+        # the condition goes in the header
         condition = Conditional(RelationalOps.GT, exp, Number(Constant(0), is_constant=True))
-        self.current_block.add(condition)
+        header_block.add(condition)
+        self.functions[self.scope_stack[-1]]['blocks'][header_block.nid] = header_block
 
-        # Condition is added to self.current_block.
+        # set up the true block
         true_block = BasicBlock()
         self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
         true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
         self.labels[true_label.name] = true_block.nid
         true_block.add(true_label)
 
-        # self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
+        # we have a directed edge from current block to the header
+        self.graph.add_edge(self.current_block.nid, header_block.nid)
+        self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+
+        self.current_block = header_block
         self.functions[self.scope_stack[-1]]['blocks'][true_block.nid] = true_block
 
         condition.true_branch = true_label
@@ -363,17 +377,16 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_cycle([true_block.nid, self.current_block.nid])
         self.control_stack.append(self.current_block)
 
-        # self.basic_blocks[self.scope_stack[-1]][self.current_block] = self.current_block
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
 
         self.current_block = true_block
 
         self.visitBlockStatement(ctx.blockStatement())
 
-        # repeat is translated to a while loops as: while (exp > 0);
+        # repeat is translated to a while loop as: while (exp > 0);
         # hence, we update exp by decrementing.
         self.current_block.add(BinaryOp(exp, Number(Constant(1), is_constant=True), BinaryOps.SUBTRACT, exp))
-        self.current_block.add(Jump(pre_condition_label))
+        #self.current_block.add(Jump(header_label))
 
         parent_block = self.control_stack.pop()
 
@@ -394,9 +407,7 @@ class IRVisitor(BSBaseVisitor):
             self.graph.add_edge(parent_block.nid, false_block.nid)
             # We are done, so we need to handle the book keeping for
             # next basic block generation.
-            # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
             self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
-
             self.current_block = false_block
             pass
         else:

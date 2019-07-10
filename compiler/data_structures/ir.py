@@ -154,7 +154,8 @@ class BinaryOp(Expression):
         self.left = left
         self.right = right
         self.op = op
-        self.uses = [out ,left, right]
+        self.uses = [x for x in [left, right] if isinstance(x, Variable)]
+        #self.uses = [out ,left, right]
         self.defs = out
 
 
@@ -361,7 +362,7 @@ class Conditional(Control):
         self.relop = relop
         self.left = left
         self.right = right
-        self.uses = [right, left]
+        self.uses = [x for x in [right, left] if isinstance(x, Variable)]
         self.defs = None
 
     def write(self, target: 'BaseTarget') -> str:

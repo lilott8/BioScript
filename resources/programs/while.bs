@@ -6,8 +6,10 @@ functions:
 
 instructions:
 
-x = 7
+a = dispense aaa
+x = detect mod on a
 while (x > 0) {
-    a = dispense aaa
-    x = x - 1
+    heat a at 90f for 10s
+    x = detect mod on a
 }
+dispose a

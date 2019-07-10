@@ -6,6 +6,8 @@ functions:
 
 instructions:
 
+a = dispense aaa
 repeat 7 times {
-    a = dispense aaa
+    heat a at 90f
 }
+dispose a

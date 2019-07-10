@@ -8,9 +8,9 @@ class LoopUnroll(BSTransform):
 
     def __init__(self):
         super().__init__("LoopUnravel")
-        self.log.warn("Starting Loop Unrolling.....")
 
     def unroll(self, program: Program) -> Program:
+        self.log.warn("Starting Loop Unrolling.....")
         global jump
         for root in program.functions:
                 #try:
