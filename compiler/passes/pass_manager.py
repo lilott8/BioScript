@@ -39,6 +39,8 @@ class PassManager(object):
         # TODO: This should be handled through decorator.
         # TODO: Make this handle dependencies correctly.
         for key, value in self.transforms.items():
+            if key is 'loop_unroll' and not self.config.loopunroll:
+                continue
             self.program = value.transform(self.program)
 
     def run_analysis(self):

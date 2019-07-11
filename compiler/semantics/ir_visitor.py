@@ -149,14 +149,13 @@ class IRVisitor(BSBaseVisitor):
                           self.scope_stack[-1], value=float(par_expression['exp1']), is_constant=True)
             self.symbol_table.add_local(exp1, self.scope_stack[-1])
         else:
-            exp1 = self.allocation_map[par_expression['exp1']]
-            self.symbol_table.add_local(exp1, self.scope_stack[-1])
+            exp1 = par_expression['exp1']
         if BSBaseVisitor.is_number(par_expression['exp2']):
             exp2 = Number("Constant_{}".format(par_expression['exp2']), {ChemTypes.NAT, ChemTypes.REAL},
                           self.scope_stack[-1], value=float(par_expression['exp2']), is_constant=True)
             self.symbol_table.add_local(exp2, self.scope_stack[-1])
         else:
-            exp2 = self.allocation_map[par_expression['exp2']]
+            exp2 = par_expression['exp2']
 
         # Build the IR Conditional
         condition = Conditional(par_expression['op'], exp1, exp2)
@@ -183,7 +182,7 @@ class IRVisitor(BSBaseVisitor):
         condition.false_branch = false_label
 
         # self.basic_blocks[self.scope_stack[-1]][false_block.nid] = false_block
-        self.functions[self.scope_stack[-1]]['blocks'][false_block.nid] = true_block
+        self.functions[self.scope_stack[-1]]['blocks'][false_block.nid] = false_block
 
         if not ctx.ELSE():
             join_block = false_block
@@ -213,10 +212,10 @@ class IRVisitor(BSBaseVisitor):
         # This check guarantees that a true block will not jump to a join
         # while dealing with nested conditionals.
         if self.control_stack and len(self.graph.edges(true_block.nid)) == 0:
-            true_block.add(Jump(join_block.label))
+            #true_block.add(Jump(join_block.label))
             self.graph.add_edge(true_block.nid, join_block.nid)
         elif len(self.control_stack) == 0 and len(self.graph.edges(true_block.nid)) == 0:
-            true_block.add(Jump(join_block.label))
+            #true_block.add(Jump(join_block.label))
             self.graph.add_edge(true_block.nid, join_block.nid)
 
         if ctx.ELSE():
@@ -232,15 +231,15 @@ class IRVisitor(BSBaseVisitor):
             # This check guarantees that a false block will not jump to a join
             # while dealing with nested conditionals.
             if self.control_stack and len(self.graph.edges(false_block.nid)) == 0:
-                false_block.add(Jump(join_block.label))
+                #false_block.add(Jump(join_block.label))
                 self.graph.add_edge(false_block.nid, join_block.nid)
             elif len(self.control_stack) == 0 and len(self.graph.edges(false_block.nid)) == 0:
-                false_block.add(Jump(join_block.label))
+                #false_block.add(Jump(join_block.label))
                 self.graph.add_edge(false_block.nid, join_block.nid)
 
         # Add the current join to the parent join.
         if self.control_stack:
-            join_block.add(Jump(self.control_stack[-1].label))
+            #join_block.add(Jump(self.control_stack[-1].label))
             self.graph.add_edge(join_block.nid, self.control_stack[-1].nid)
             pass
 
@@ -264,151 +263,149 @@ class IRVisitor(BSBaseVisitor):
             exp2 = Number("Constant_{}".format(par_expression['exp2']), {ChemTypes.NAT, ChemTypes.REAL},
                           self.scope_stack[-1], value=float(par_expression['exp2']), is_constant=True)
             self.symbol_table.add_local(exp2, self.scope_stack[-1])
+        elif self.symbol_table.get_local(par_expression['exp2']):
+            exp2 = self.symbol_table.get_local(par_expression['exp2'])
         else:
             exp2 = par_expression['exp2']
 
-        pre_condition_label_string = "bsbbw_{}_l".format(self.current_block.nid)
-        pre_condition_label = Label(pre_condition_label_string)
-        self.labels[pre_condition_label.name] = self.current_block.nid
-        self.current_block.add(pre_condition_label)
+        # finished with this block
+        # pre_loop_label = Label("bsbbw_{}_p".format(self.current_block.nid))
+        # self.labels[pre_loop_label.name] = self.current_block.nid
+        # self.current_block.add(pre_loop_label)
+        self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
 
-        # Condition is added to self.current_block.
+        # insert header block for the conditional
+        header_block = BasicBlock()
+        header_label = Label("bsbbw_{}_h".format(header_block.nid))
+        self.labels[header_label.name] = header_block.nid
+        header_block.add(header_label)
+        self.graph.add_node(header_block.nid, function=self.scope_stack[-1])
+        self.functions[self.scope_stack[-1]]['blocks'][header_block.nid] = header_block
+
+        # we have a directed edge from current block to the header
+        self.graph.add_edge(self.current_block.nid, header_block.nid)
+
+        # the condition goes in the header
         condition = Conditional(par_expression['op'], exp1, exp2)
+        header_block.add(condition)
+
+        self.control_stack.append(header_block)
+
+        # set up true block
         true_block = BasicBlock()
-        self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
-        true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
+        true_label = Label("bsbbw_{}_t".format(true_block.nid))
         self.labels[true_label.name] = true_block.nid
         true_block.add(true_label)
-
-        # self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
+        self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
         self.functions[self.scope_stack[-1]]['blocks'][true_block.nid] = true_block
-
         condition.true_branch = true_label
 
-        self.current_block.add(condition)
-        # If condition evaluates true.
-        self.graph.add_cycle([true_block.nid, self.current_block.nid])
-        self.control_stack.append(self.current_block)
-
-        # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
-        self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+        # we have a directed edge from header to true block
+        self.graph.add_edge(header_block.nid, true_block.nid)
 
         self.current_block = true_block
 
         self.visitBlockStatement(ctx.blockStatement())
-        self.current_block.add(Jump(pre_condition_label))
 
+        # the block statement may contain nested conditionals
+        # If so, the current block is the last false block created for the inner-most conditional
+        #    otherwise, the current block is the true_block created above
+        # Either way, we can pop the control stack to find where to place the back edge
+        #   and immediately make the back edge (from 'current block') to the parent
         parent_block = self.control_stack.pop()
+        self.graph.add_edge(self.current_block.nid, parent_block.nid)
 
-        # This is dealing with the false branch. If it's false
-        # and we are nested, then the false branch needs an edge
-        # to the parent conditional block, not the false block.
-        # If the stack is empty, then we move onto the false branch.
-        if not self.control_stack:
-            # If condition evaluates false.
-            false_block = BasicBlock()
-            # false_block.add("bsbbw_{}_f".format(false_block.nid))
-            self.graph.add_node(false_block.nid, function=self.scope_stack[-1])
-            false_label = Label("bsbbw_{}_f".format(false_block.nid))
-            self.labels[false_label.name] = false_block.nid
-            false_block.add(false_label)
-            condition.false_branch = false_label
-            # Create the edge.
-            self.graph.add_edge(parent_block.nid, false_block.nid)
+        # we now deal with the false branch
+        false_block = BasicBlock()
 
-            # We are done, so we need to handle the book keeping for
-            # next basic block generation.
-            self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+        false_label = Label("bsbbw_{}_f".format(false_block.nid))
+        self.labels[false_label.name] = false_block.nid
+        false_block.add(false_label)
+        condition.false_branch = false_label
+        self.graph.add_edge(header_block.nid, false_block.nid)
+        # We are done, so we need to handle the book keeping for
+        # next basic block generation.
+        self.graph.add_node(false_block.nid, function=self.scope_stack[-1])
+        self.functions[self.scope_stack[-1]]['blocks'][false_block.nid] = false_block
 
-            self.current_block = false_block
-            pass
-        else:
-            self.graph.add_edge(parent_block.nid, self.control_stack[-1].nid)
-            pass
+        self.current_block = false_block
 
         return NOP()
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
-        # ir = LoopIR()
-        new_var = Number(''.join(random.choices(string.ascii_uppercase + string.digits, k=8)),
-                         {ChemTypes.REAL}, self.scope_stack[-1], value=float(ctx.INTEGER_LITERAL().__str__()))
-        self.symbol_table.add_local(new_var, self.scope_stack[-1])
-
-        par_expression = self.visitParExpression(ctx.parExpression())
-
-        if BSBaseVisitor.is_number(par_expression['exp1']):
-            exp1 = Number("Constant_{}".format(par_expression['exp1']), {ChemTypes.NAT, ChemTypes.REAL},
-                          self.scope_stack[-1], value=float(par_expression['exp1']))
-            self.symbol_table.add_local(exp1, self.scope_stack[-1])
+        # get the (statically defined!) repeat value
+        if ctx.IDENTIFIER() is not None:
+            exp = self.symbol_table.get_local(ctx.IDENTIFIER().__str__())
         else:
-            exp1 = self.allocation_map[par_expression['exp1']]
-        if BSBaseVisitor.is_number(par_expression['exp2']):
-            exp2 = Number("Constant_{}".format(par_expression['exp2']), {ChemTypes.NAT, ChemTypes.REAL},
-                          self.scope_stack[-1], value=float(par_expression['exp2']))
-            self.symbol_table.add_local(exp2, self.scope_stack[-1])
-        else:
-            exp2 = self.allocation_map[par_expression['exp2']]
+            exp = Number("REPEAT_{}".format(ctx.INTEGER_LITERAL().__str__()), {ChemTypes.NAT, ChemTypes.REAL},
+                          self.scope_stack[-1], value=float(ctx.INTEGER_LITERAL().__str__()), is_constant=True)
+        self.symbol_table.add_local(exp, self.scope_stack[-1])
 
-        pre_condition_label_string = "bsbbw_{}_l".format(self.current_block.nid)
-        pre_condition_label = Label(pre_condition_label_string)
-        self.labels[pre_condition_label.name] = self.current_block.nid
-        self.current_block.add(pre_condition_label)
+        # finished with this block
+        # pre_loop_label = Label("bsbbw_{}_p".format(self.current_block.nid))
+        # self.labels[pre_loop_label.name] = self.current_block.nid
+        # self.current_block.add(pre_loop_label)
+        self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
 
-        condition = Conditional(RelationalOps.GT, new_var, Constant(0))
-        self.current_block.add(condition)
+        # insert header block for the conditional
+        header_block = BasicBlock()
+        header_label = Label("bsbbr_{}_h".format(header_block.nid))
+        self.labels[header_label.name] = header_block.nid
+        header_block.add(header_label)
+        self.graph.add_node(header_block.nid, function=self.scope_stack[-1])
+        self.functions[self.scope_stack[-1]]['blocks'][header_block.nid] = header_block
 
-        # Condition is added to self.current_block.
-        condition = Conditional(par_expression['op'], exp1, exp2)
+        # we have a directed edge from current block to the header
+        self.graph.add_edge(self.current_block.nid, header_block.nid)
+
+        # the condition goes in the header
+        condition = Conditional(RelationalOps.GT, exp, Number(Constant(0), is_constant=True))
+        header_block.add(condition)
+
+        self.control_stack.append(header_block)
+
+        # set up the true block
         true_block = BasicBlock()
-        self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
-        true_label = Label("bsbbw_{}_t".format(self.current_block.nid))
+        true_label = Label("bsbbr_{}_t".format(true_block.nid))
         self.labels[true_label.name] = true_block.nid
         true_block.add(true_label)
-
-        # self.basic_blocks[self.scope_stack[-1]][true_block.nid] = true_block
+        self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
         self.functions[self.scope_stack[-1]]['blocks'][true_block.nid] = true_block
-
         condition.true_branch = true_label
 
-        # If condition evaluates true.
-        self.graph.add_cycle([true_block.nid, self.current_block.nid])
-        self.control_stack.append(self.current_block)
-
-        # self.basic_blocks[self.scope_stack[-1]][self.current_block] = self.current_block
-        self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+        # we have a directed edge from header to true block
+        self.graph.add_edge(header_block.nid, true_block.nid)
 
         self.current_block = true_block
 
         self.visitBlockStatement(ctx.blockStatement())
-        self.current_block.add(Jump(pre_condition_label))
 
+        # repeat is translated to a while loop as: while (exp > 0);
+        # hence, we update exp by decrementing.
+        self.current_block.add(BinaryOp(exp, Number(Constant(1), is_constant=True), BinaryOps.SUBTRACT, exp))
+
+        # the block statement may contain nested loops
+        # If so, the current block is the last false block created for the inner-most loop
+        #    otherwise, the current block is the true_block created above
+        # Either way, we can pop the control stack to find where to place the back edge
+        #   and immediately make the back edge (from 'current block' to the parent
         parent_block = self.control_stack.pop()
+        self.graph.add_edge(self.current_block.nid, parent_block.nid)
 
-        # This is dealing with the false branch. If it's false
-        # and we are nested, then the false branch needs an edge
-        # to the parent conditional block, not the false block.
-        # If the stack is empty, then we move onto the false branch.
-        if not self.control_stack:
-            # If condition evaluates false.
-            false_block = BasicBlock()
-            # false_block.add("bsbbw_{}_f".format(false_block.nid))
-            self.graph.add_node(false_block.nid, function=self.scope_stack[-1])
-            false_label = Label("bsbbw_{}_f".format(false_block.nid))
-            self.labels[false_label.name] = false_block.nid
-            false_block.add(false_label)
-            condition.false_branch = false_label
-            # Create the edge.
-            self.graph.add_edge(parent_block.nid, false_block.nid)
-            # We are done, so we need to handle the book keeping for
-            # next basic block generation.
-            # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
-            self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+        # we now deal with the false branch
+        false_block = BasicBlock()
 
-            self.current_block = false_block
-            pass
-        else:
-            self.graph.add_edge(parent_block.nid, self.control_stack[-1].nid)
-            pass
+        false_label = Label("bsbbr_{}_f".format(false_block.nid))
+        self.labels[false_label.name] = false_block.nid
+        false_block.add(false_label)
+        condition.false_branch = false_label
+        self.graph.add_edge(header_block.nid, false_block.nid)
+        # We are done, so we need to handle the book keeping for
+        # next basic block generation.
+        self.graph.add_node(false_block.nid, function=self.scope_stack[-1])
+        self.functions[self.scope_stack[-1]]['blocks'][false_block.nid] = false_block
+
+        self.current_block = false_block
 
         return NOP()
 

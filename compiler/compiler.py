@@ -24,7 +24,7 @@ class BSCompiler(object):
         self.config = configuration
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.log.warning(self.config.input)
-        # The symbol is built is phases,
+        # The symbol table is built in phases,
         # And used in many place, hence it's globalness.
         self.symbol_table = None
         # This is the representation of an input program.
@@ -66,7 +66,8 @@ class BSCompiler(object):
             stats += "Total:\t\t\t\t{}".format(round(sum(times.values()), 4))
             self.log.debug(stats)
 
-        self.log.critical("You aren't doing anything with the results of the compile function.")
+        if not target:
+            self.log.critical("You aren't doing anything with the results of the compile function.")
 
     def translate(self, filename: str) -> Program:
         """
@@ -133,8 +134,7 @@ class BSCompiler(object):
         :return:
         """
         target = self.config.target.get_target(program)
-        target.transform()
-        return True
+        return target.transform()
 
     def visit_type_check(self, tree, symbol_table: SymbolTable):
         """
