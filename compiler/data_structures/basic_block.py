@@ -51,6 +51,10 @@ class BasicBlock(object):
                 return jump
         return None
 
+    def add_binop(self, bo: BinaryOp):
+        self.instructions.append(bo)
+
+
     def add(self, instruction: IR):
         # All statements have def/uses.
         if hasattr(instruction, 'defs'):

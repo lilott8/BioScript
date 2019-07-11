@@ -69,6 +69,7 @@ class BaseTarget(metaclass=abc.ABCMeta):
         #         self.dags[root][nid] = graph
         pass
 
+
     @staticmethod
     def get_safe_name(name: str) -> str:
         """
