@@ -107,9 +107,12 @@ class MFSimTarget(BaseTarget):
                 # This gets all the nodes with no incoming edges
                 # These are the source nodes of a graph.
                 # This is an initialization step.
-                for node in block.dag.nodes:
-                    if len(block.dag.in_edges(node)) == 0:
-                        queue.append(node)
+                if block.dag is not None:
+                    for node in block.dag.nodes:
+                        if len(block.dag.in_edges(node)) == 0:
+                            queue.append(node)
+                else:
+                    continue
 
                 # A dictionary of the nodes and their associated data.
                 graph = dict(block.dag.nodes('data'))
