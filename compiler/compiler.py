@@ -42,7 +42,7 @@ class BSCompiler(object):
         times['opts'] = timer() - start
 
         start = timer()
-        target = self.target(ir)
+        # target = self.target(self.program)
         times['target'] = timer() - start
 
         times['write'] = 0
