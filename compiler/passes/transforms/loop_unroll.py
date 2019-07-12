@@ -56,7 +56,7 @@ class LoopUnroll(BSTransform):
     def unroll(self, program: Program) -> Program:
         global jump_from_loop_body
         for root in program.functions:
-
+            self.log.warn("Test")
             loop_list = []
             dominators = (nx.immediate_dominators(program.functions[root]['graph'],1))
             sorted_doms = sorted(dominators.items())
@@ -151,17 +151,17 @@ class LoopUnroll(BSTransform):
                     program.functions[root]['blocks'][head].instructions = pure_parent_ins
                     program.functions[root]['blocks'][loop_body].instructions = pure_child_ins
                     self.log.warn("Found Unrollable Loop... resetting instructions..")
-        # for root in program.functions:
-        #     for block in program.functions[root]['blocks']:
-        #         self.log.warn(program.functions[root]['blocks'][block])
-        # self.log.warn("Loop Unrolling Completed")
-        # I know the muffin man
+        for root in program.functions:
+            for block in program.functions[root]['blocks']:
+                self.log.warn(program.functions[root]['blocks'][block])
+        self.log.warn("Loop Unrolling Completed")
         return program
 
     # Entry Point
     def transform(self, program: Program) -> Program:
-        # for root in program.functions:
-        #     for block in program.functions[root]['blocks']:
-        #         self.log.warn(program.functions[root]['blocks'][block])
-        # self.log.warn("Loop Unrolling Completed")
+        for root in program.functions:
+            for block in program.functions[root]['blocks']:
+                self.log.warn("I exist! i matter! ")
+                self.log.warn(program.functions[root]['blocks'][block])
+        self.log.warn("Loop Unrolling Completed")
         return self.unroll(program)
