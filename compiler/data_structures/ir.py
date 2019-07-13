@@ -244,6 +244,7 @@ class Split(Statement):
 class Detect(Statement):
     def __init__(self, out: Temp, module: Temp, one: Temp):
         super().__init__(IRInstruction.DETECT, out)
+        self.time = -1
         self.module = module
         self.uses.append(one)
 
@@ -251,7 +252,7 @@ class Detect(Statement):
         pass
 
     def __str__(self):
-        return "DETECT:\t {} = detect({}, {})".format(self.defs, self.module, self.uses[0])
+        return "DETECT:\t {} = detect({}, {}, {})".format(self.defs, self.module, self.uses[0], self.time)
 
 
 class Heat(Statement):
@@ -353,7 +354,7 @@ class Jump(Control):
 
 class Conditional(Control):
 
-    def __init__(self, relop: RelationalOps, left: Expression, right: Expression,
+    def __init__(self, relop: RelationalOps, left: Expression, right: Expression, cond_type: str,
                  t_branch: Label = None, f_branch: Label = None):
         super().__init__(IRInstruction.CONDITIONAL)
         # first is true, last is else
@@ -364,6 +365,7 @@ class Conditional(Control):
         self.right = right
         self.uses = [x for x in [right, left] if isinstance(x, Variable)]
         self.defs = None
+        self.cond_type = cond_type
 
     def write(self, target: 'BaseTarget') -> str:
         pass

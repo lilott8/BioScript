@@ -96,7 +96,7 @@ class PuddleTarget(BaseTarget):
         if self.config.debug and not self.config.write_out:
             self.log.info(self.compiled)
 
-        return False
+        return True
 
     def write_mix(self) -> str:
         pass

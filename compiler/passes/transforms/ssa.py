@@ -135,6 +135,8 @@ class SSA(BSTransform):
                         if current_var.name in block.uses:
                             block.uses.remove(current_var.name)
                             block.uses.add(renamed.name)
+                        else:
+                            block.uses.add(renamed.name)
             if instruction.op is not IRInstruction.JUMP and instruction.defs:
                 version = self.bookkeeper[instruction.defs.name]['count']
                 self.bookkeeper[instruction.defs.name]['count'] += 1
@@ -146,6 +148,8 @@ class SSA(BSTransform):
                     self.program.symbol_table.add_local(renamed, root)
                 if original.name in block.defs:
                     block.defs.remove(original.name)
+                    block.defs.add(renamed.name)
+                else:
                     block.defs.add(renamed.name)
         # Look at the successors of this block
         if block.nid in self.dominator_tree[root]:

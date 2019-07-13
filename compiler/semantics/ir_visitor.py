@@ -158,7 +158,7 @@ class IRVisitor(BSBaseVisitor):
             exp2 = par_expression['exp2']
 
         # Build the IR Conditional
-        condition = Conditional(par_expression['op'], exp1, exp2)
+        condition = Conditional(par_expression['op'], exp1, exp2, 'if')
         self.current_block.add(condition)
         # Build the true block of this statement.
         true_block = BasicBlock()
@@ -286,7 +286,7 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_edge(self.current_block.nid, header_block.nid)
 
         # the condition goes in the header
-        condition = Conditional(par_expression['op'], exp1, exp2)
+        condition = Conditional(par_expression['op'], exp1, exp2, 'while')
         header_block.add(condition)
 
         self.control_stack.append(header_block)
@@ -359,8 +359,11 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_edge(self.current_block.nid, header_block.nid)
 
         # the condition goes in the header
-        condition = Conditional(RelationalOps.GT, exp, Number(Constant(0), is_constant=True))
+        condition = Conditional(RelationalOps.GT, exp, right=Number(Constant(0), is_constant=True), cond_type='repeat')
         header_block.add(condition)
+        # repeat is translated to a while loop as: while (exp > 0);
+        # hence, we update exp by decrementing.
+        header_block.add(BinaryOp(exp, Number(Constant(1), is_constant=True), BinaryOps.SUBTRACT, exp))
 
         self.control_stack.append(header_block)
 
@@ -379,10 +382,6 @@ class IRVisitor(BSBaseVisitor):
         self.current_block = true_block
 
         self.visitBlockStatement(ctx.blockStatement())
-
-        # repeat is translated to a while loop as: while (exp > 0);
-        # hence, we update exp by decrementing.
-        self.current_block.add(BinaryOp(exp, Number(Constant(1), is_constant=True), BinaryOps.SUBTRACT, exp))
 
         # the block statement may contain nested loops
         # If so, the current block is the last false block created for the inner-most loop
