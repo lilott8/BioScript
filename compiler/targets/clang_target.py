@@ -182,7 +182,7 @@ class ClangTarget(BaseTarget):
         self.program.write[self.program.name] = Writable(self.program.name,
                                                          "{}/{}.cpp".format(self.config.output, self.program.name),
                                                          self.compiled)
-        return False
+        return True
 
     def write_mix(self) -> str:
         pass
