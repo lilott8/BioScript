@@ -293,7 +293,10 @@ class IRVisitor(BSBaseVisitor):
 
         # set up true block
         true_block = BasicBlock()
-        true_label = Label("bsbbw_{}_t".format(true_block.nid))
+
+        self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
+        true_label = Label("bsbbw_{}_l".format(true_block.nid))
+
         self.labels[true_label.name] = true_block.nid
         true_block.add(true_label)
         self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
@@ -366,7 +369,9 @@ class IRVisitor(BSBaseVisitor):
 
         # set up the true block
         true_block = BasicBlock()
-        true_label = Label("bsbbr_{}_t".format(true_block.nid))
+        self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
+        true_label = Label("bsbbw_{}_l".format(true_block.nid))
+
         self.labels[true_label.name] = true_block.nid
         true_block.add(true_label)
         self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
