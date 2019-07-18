@@ -272,10 +272,10 @@ class SymbolTableVisitor(BSBaseVisitor):
                         variable = Number(name, final_types, self.symbol_table.current_scope.name, value=float(num * unit))
                 else:
                     variable = Number(name, final_types, self.symbol_table.current_scope.name, value=float(-1))
-                    self.log.warn("%s not properly defined in symbol table" % name)
+                    self.log.debug("%s (used in an expression) has a property not properly defined in the symbol table" % name)
             else:
                 variable = Number(name, final_types, self.symbol_table.current_scope.name, value=float(-1))
-                self.log.warn("%s not properly defined in symbol table" % name)
+                self.log.debug("%s has a property not properly defined in symbol table. Need to take care of VariableDefinitions with numeric values." % name)
         else:
             variable = Chemical(name, final_types, self.symbol_table.current_scope.name, operation['size'])
         self.symbol_table.add_local(variable)

@@ -32,7 +32,8 @@ class MFSimTarget(BaseTarget):
         self.block_transfers = dict()
         self.loop_headers = dict()
         # start transfer nodes from id 100.
-        self.log.warn("Statically starting transfer IDs from 100. This could be an issue for very large assays.")
+        if self.config.debug:
+            self.log.warn("Statically starting transfer IDs from 100. This could be an issue for very large assays.")
         self.tid = 100
 
     def build_cfg(self):
@@ -59,6 +60,7 @@ class MFSimTarget(BaseTarget):
                 write = True
                 dag = nx.DiGraph()
                 for instruction in block.instructions:
+                    # if self.config.debug:
                     # self.log.info(instruction)
 
                     # deal with conditionals
@@ -95,7 +97,8 @@ class MFSimTarget(BaseTarget):
                             curr[instruction.iid]['repeat'] = instruction.left.value
                         else:  # could be nested conditional
                             curr[instruction.iid]['c'] = instruction.relop
-                            self.log.warn("TEST non-repeat CONDITIONALS")
+                            if self.config.debug:
+                                self.log.warn("TEST non-repeat CONDITIONALS")
                     #  non-conditionals
                     elif hasattr(instruction, 'uses'):
                         # Case x = op y (dispense, heat, dispose, store)
@@ -130,7 +133,8 @@ class MFSimTarget(BaseTarget):
                                 dag.add_edge(leaf, var_def)
 
                     else: # what instruction is being missed
-                        self.log.info(instruction)
+                        if self.config.debug:
+                            self.log.info(instruction)
 
                     # if a material is disposed, it should not define a new material for later use
                     if instruction.op is IRInstruction.DISPOSE:
@@ -172,7 +176,8 @@ class MFSimTarget(BaseTarget):
     def write_edge(self, _from, _to) -> str:
         # should not be trying to write an edge
         if self.cblock.dag is None:
-            self.log.warn("write edge returning without writing an edge")
+            if self.config.debug:
+                self.log.warn("write edge returning without writing an edge")
             pass
         return "EDGE (%s, %s)\n" % (_from, _to)
 
@@ -186,7 +191,8 @@ class MFSimTarget(BaseTarget):
     def write_mix(self, instr) -> str:
         _ret = "NODE (%s, MIX, " % str(self.opid)
 
-        self.log.warn("Using default time and mixType values -- these should be IRInstruction attributes discovered"
+        if self.config.debug:
+            self.log.warn("Using default time and mixType values -- these should be IRInstruction attributes discovered"
                       "during parsing")
         time = 10
         mixType = 'Mix'
@@ -216,14 +222,16 @@ class MFSimTarget(BaseTarget):
     def write_split(self, instr) -> str:
         _ret = "NODE (%s, SPLIT, " % str(self.opid)
 
-        self.log.warn("Using default numDrops and time value for SPLIT; at least numDrops should be a Split "
+        if self.config.debug:
+            self.log.warn("Using default numDrops and time value for SPLIT; at least numDrops should be a Split "
                       "instruction attribute discovered during parsing")
         numDrops = 2
         time = 2
 
         _ret += "%s, %s, SPLIT)\n" % (str(numDrops), str(time))
 
-        self.log.warn("Verify split instruction semantics for MFSim target. Not all out edges are correctly built as"
+        if self.config.debug:
+            self.log.warn("Verify split instruction semantics for MFSim target. Not all out edges are correctly built as"
                       "the split does not maintain addressibility to created droplets")
 
         # TODO: when splits correctly build an array, this must be updated to build edges to proper successors
@@ -244,7 +252,8 @@ class MFSimTarget(BaseTarget):
     def write_detect(self, instr) -> str:
         _ret = "NODE (%s, DETECT, 1, " % str(self.opid)
 
-        self.log.warn("Using default time for DETECT; time should be an IRInstruction attribute discovered "
+        if self.config.debug:
+            self.log.warn("Using default time for DETECT; time should be an IRInstruction attribute discovered "
                       "during parsing")
         time = 10
 
@@ -254,17 +263,19 @@ class MFSimTarget(BaseTarget):
         # if self.cblock.dag.nodes[instr.uses[0].name]:
         #     _ret += self.write_edge(self.opid, self.cblock.dag.nodes[instr.uses[0].name]['iid'])
 
-        to = self.cblock.dag.successors(instr.uses[0].name)
+        # detects use materials, but do not alter them directly.
+        to = [x for x in instr.uses]
         for key in to:
             # if this is the result of the detect
             if key is instr.defs.name:
                 continue
-            to_instr = [x for x in self.cblock.instructions if key in x.uses and x is not instr]
+            to_instr = [y for y in self.cblock.instructions for x in y.uses if x.name == key.name and y is not instr]
             if to_instr:
                 for ti in to_instr:
                     _ret += self.write_edge(self.opid, ti.iid)
             else:
-                self.log.warn("writing transfer out from detect here")
+                if self.config.debug:
+                    self.log.warn("writing transfer out from detect here")
                 _ret += self.write_edge(instr.iid, self.tid)
                 _ret += self.write_transfer(self.tid, instr.uses[0].points_to, True)
                 tn = TransferNode(self.tid, self.cblock.nid, instr.uses[0].points_to, 'out')
@@ -288,7 +299,8 @@ class MFSimTarget(BaseTarget):
     def write_heat(self, instr) -> str:
         _ret = "NODE (%s, HEAT, " % str(self.opid)
 
-        self.log.warn("Using default time for HEAT; time should be an IRInstruction attribute discovered "
+        if self.config.debug:
+            self.log.warn("Using default time for HEAT; time should be an IRInstruction attribute discovered "
                       "during parsing")
         time = 10
 
@@ -318,7 +330,8 @@ class MFSimTarget(BaseTarget):
     def write_dispose(self, instr) -> str:
         _ret = "NODE (%s, OUTPUT, null, drain)\n" % str(self.opid)
 
-        self.log.warn("DISPOSE for mfsim requires to sinkname and type (drain, save, etc).  Using default for now.")
+        if self.config.debug:
+            self.log.warn("DISPOSE for mfsim requires to sinkname and type (drain, save, etc).  Using default for now.")
         return _ret
 
     """
@@ -330,7 +343,8 @@ class MFSimTarget(BaseTarget):
     def write_dispense(self, instr) -> str:
         _ret = "NODE (%s, DISPENSE, " % str(self.opid)
 
-        self.log.warn("Using default volume for DISPENSE; this should be an IRInstruction attribute discovered "
+        if self.config.debug:
+            self.log.warn("Using default volume for DISPENSE; this should be an IRInstruction attribute discovered "
                       "during parsing")
         volume = 10
 
@@ -402,7 +416,8 @@ class MFSimTarget(BaseTarget):
                 if cond_var.name in self.cblock.defs:
                     depDag = from_dag
                 else:
-                    self.log.warn("need to find block where condition variable is")
+                    if self.config.debug:
+                        self.log.warn("need to find block where condition variable is")
                     exit(-1)
 
                 dep_node_id = -1
@@ -452,6 +467,7 @@ class MFSimTarget(BaseTarget):
 
     def transform(self):
         self.build_cfg()
+        # if self.config.debug:
         # self.log.debug("MFSimTarget not yet implemented!")
         for root in self.program.functions:
             self.root = root
@@ -548,7 +564,8 @@ class MFSimTarget(BaseTarget):
                     elif node.op is IRInstruction.PHI or node.op is IRInstruction.CONDITIONAL:
                         continue
                     else:
-                        self.log.warn("Unrecognized/unsupported instruction type: %s" % node.name)
+                        if self.config.debug:
+                            self.log.warn("Unrecognized/unsupported instruction type: %s" % node.name)
 
                 # this is a bit of a hack, because SSA renaming is not working properly atm.
                 # TODO: update transfer_out discovery when SSA renaming is fixed -- will simplify this a lot
@@ -607,7 +624,8 @@ class MFSimTarget(BaseTarget):
                     else:
                         transferred = True
                     if not transferred:  # need to dispose
-                        print("need to dispose %s" % rdef)
+                        if self.config.debug:
+                            self.log.debug("need to dispose {}".format(rdef))
                     if tn is not None:
                         if bid in self.block_transfers:
                             self.block_transfers[bid].add(tn)
