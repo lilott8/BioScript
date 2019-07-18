@@ -140,7 +140,6 @@ class MFSimTarget(BaseTarget):
                         defined = instruction.defs.name
                         #instruction.defs.name = 'gone!'
                         block.defs.remove(defined)
-                        #dag.remove_node(defined)
                         #predecessors = list(dag.predecessors(defined))
                         #for pred in predecessors:
                         #    dag.remove_edge(pred, defined)
