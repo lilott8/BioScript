@@ -3,7 +3,6 @@ from compiler.data_structures import IRInstruction
 from compiler.data_structures.ir import Conditional
 from compiler.data_structures import RenamedVar
 from compiler.data_structures import RelationalOps
-from compiler.data_structures.writable import Writable, WritableType
 from collections import deque
 import networkx as nx
 
