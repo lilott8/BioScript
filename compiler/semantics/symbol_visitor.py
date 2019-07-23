@@ -2,7 +2,7 @@ from chemicals.chemtypes import *
 from chemicals.identifier import Identifier
 from compiler.data_structures.ir import IRInstruction
 from compiler.data_structures.properties import BSVolume
-from compiler.data_structures.variable import Variable, Chemical, Number
+from compiler.data_structures.variable import Movable, Number
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import *
 from .bs_base_visitor import BSBaseVisitor
@@ -149,7 +149,7 @@ class SymbolTableVisitor(BSBaseVisitor):
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
         name = ctx.IDENTIFIER().__str__()
-        if not self.symbol_table.get_variable(name).is_global:
+        if not self.symbol_table.get_global(name):
             raise InvalidOperation('Trying to dispense: "{}" which is not declared in the manifest.'.format(name))
         types = {ChemTypes.MAT}
         self.symbol_table.update_symbol(name, types)
@@ -277,7 +277,7 @@ class SymbolTableVisitor(BSBaseVisitor):
                 variable = Number(name, final_types, self.symbol_table.current_scope.name, value=float(-1))
                 self.log.warn("%s not properly defined in symbol table" % name)
         else:
-            variable = Chemical(name, final_types, self.symbol_table.current_scope.name, operation['size'])
+            variable = Movable(name, final_types, self.symbol_table.current_scope.name, operation['size'])
         self.symbol_table.add_local(variable)
 
         return None
@@ -322,7 +322,7 @@ class SymbolTableVisitor(BSBaseVisitor):
             quantity = units.normalize(x['quantity'])
 
         var = self.identifier.identify(name, types, self.symbol_table.current_scope.name)
-        variable = Variable(var['name'], var['types'], var['scope'])
+        variable = Movable(var['name'], var['types'], var['scope'], volume=quantity, units=units)
 
         variable.volume = quantity
         variable.unit = units

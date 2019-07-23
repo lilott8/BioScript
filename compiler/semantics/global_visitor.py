@@ -16,18 +16,15 @@ class GlobalVariableVisitor(BSBaseVisitor):
         self.visitStationaryDeclaration(ctx.stationaryDeclaration())
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
-        types = {ChemTypes.MODULE}
         for name in ctx.IDENTIFIER():
-            var = self.identifier.identify(name.__str__(), types=types, scope=self.global_scope)
-            variable = Chemical(var['name'], var['types'], var['scope'])
-            variable.is_global = True
+            variable = Module(name.__str__())
             self.symbol_table.add_global(variable)
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
         types = {ChemTypes.MAT}
         for name in ctx.IDENTIFIER():
             var = self.identifier.identify(name.__str__(), types=types, scope=self.global_scope)
-            variable = Chemical(var['name'], var['types'], var['scope'])
+            variable = Movable(var['name'], var['types'], var['scope'], volume=float("inf"), units=BSVolume.DECILITRE)
             variable.is_global = True
             self.symbol_table.add_global(variable)
 
@@ -35,7 +32,5 @@ class GlobalVariableVisitor(BSBaseVisitor):
         types = {ChemTypes.MAT}
         for name in ctx.IDENTIFIER():
             var = self.identifier.identify(name.__str__(), types=types, scope=self.global_scope)
-            variable = Chemical(var['name'], var['types'], var['scope'])
-            variable.is_stationary = True
-            variable.is_global = True
+            variable = Stationary(var['name'], var['types'])
             self.symbol_table.add_global(variable)
