@@ -167,6 +167,26 @@ class MFSimTarget(BaseTarget):
 
         return False
 
+
+    """
+       when a droplet has multiple successors in the DAG, and is not a split, then there is a use that does not consume
+       the droplet.  In this case, we must find the successor that uses the droplet without consuming.  this is the
+       instruction that should receive the edge
+    """
+    def get_dependent_instr(self, instr, uses):
+        _ret = list()
+        check = instr.defs.points_to
+        for i in self.cblock.instructions:
+            if i.defs.name in uses: # this instruction is one of the uses
+                if i.defs.points_to != check:
+                    _ret.append(i.defs.name)
+
+        if len(_ret) < 1:
+            # should not reach here!
+            self.log.fatal("A non-split instruction has multiple successors!")
+            exit(-1)
+        return _ret
+
     @staticmethod
     def write_transfer(id, name, out=False) -> str:
         return "NODE (%s, %s, %s)\n" % (str(id), "TRANSFER_OUT" if out else "TRANSFER_IN", name)
@@ -193,15 +213,18 @@ class MFSimTarget(BaseTarget):
             self.log.warn("Using default time and mixType values -- these should be IRInstruction attributes discovered"
                       "during parsing")
         time = 10
-        mixType = 'Mix'
+        mixType = '_'.join([x.name for x in instr.uses])
 
         # MFSim supports >= 2 input droplets, but BS requires distinct mix operations for every 2 droplets,
         #  hence, we can safely assume every mix has exactly 2 inputs
         _ret += "2, %s, %s)\n" % (str(time), mixType)
 
         # _ret += self.write_edge(self.opid, self.cblock.dag.nodes[instr.defs.name]['iid'])
-        to = self.cblock.dag.successors(instr.defs.name)
+        to = list(self.cblock.dag.successors(instr.defs.name))
         # _succ[instr.defs.name]
+
+        if len(to) > 1:
+            to = self.get_dependent_instr(instr, to)
 
         for key in to:
             to_instr = [x for x in self.cblock.instructions if x.defs.name is key]
@@ -309,8 +332,11 @@ class MFSimTarget(BaseTarget):
         # else:
         #    _ret += "transfer out heat"
 
-        to = self.cblock.dag.successors(instr.defs.name)
+        to = list(self.cblock.dag.successors(instr.defs.name))
         # _succ[instr.defs.name]
+
+        if len(to) > 1:
+            to = self.get_dependent_instr(instr, to)
 
         for key in to:
             to_instr = [x for x in self.cblock.instructions if x.defs.name is key]
@@ -348,7 +374,10 @@ class MFSimTarget(BaseTarget):
 
         _ret += "%s, %s, %s)\n" % (instr.uses[0].name, str(volume), instr.defs.points_to)
 
-        to = self.cblock.dag._succ[instr.defs.name]
+        to = list(self.cblock.dag._succ[instr.defs.name])
+
+        if len(to) > 1:
+            to = self.get_dependent_instr(instr, to)
 
         for key in to:
             to_instr = [x for x in self.cblock.instructions if x.defs is not None and x.defs.name is key]
