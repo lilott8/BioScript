@@ -3,7 +3,7 @@ stationary ccc
 manifest aaa
 manifest bbb
 
-functions:
+
 
 instructions:
 

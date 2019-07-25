@@ -1,0 +1,4 @@
+mix unequal arrays -> error
+mix equal arrays -> two inputs should have 0 volume and output should be sum of inputs
+mix single variables -> two inputs should have 0 volume and output should be sum of inputs
+mix array out of bounds -> error

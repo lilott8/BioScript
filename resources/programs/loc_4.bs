@@ -1,7 +1,7 @@
 manifest aaa
 manifest bbb
 
-functions:
+
 
 instructions:
 

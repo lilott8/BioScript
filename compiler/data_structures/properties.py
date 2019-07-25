@@ -108,7 +108,13 @@ class BSVolume(Enum):
     LITRE = 8
     DECALITRE = 16
 
-    def normalize(self, quantity: float):
+    def normalize(self, quantity: float) -> float:
+        """
+        Normalize the quantity to be that of
+        a microlitre.
+        :param quantity: float volume of fluid
+        :return: The normalized fluidic volume.
+        """
         if self == BSVolume.NANOLITRE:
             return quantity / 10.0
         elif self == BSVolume.MICROLITRE:

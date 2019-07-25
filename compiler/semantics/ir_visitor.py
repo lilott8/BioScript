@@ -1,6 +1,4 @@
 import importlib
-import random
-import string
 
 import networkx as nx
 
@@ -476,8 +474,8 @@ class IRVisitor(BSBaseVisitor):
 
         return ir
 
-    def visitVariableDeclaration(self, ctx: BSParser.VariableDeclarationContext):
-        return self.visitChildren(ctx)
+    # def visitVariableDeclaration(self, ctx: BSParser.VariableDeclarationContext):
+    #     return self.visitChildren(ctx)
 
     def visitMix(self, ctx: BSParser.MixContext):
 

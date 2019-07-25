@@ -2,7 +2,7 @@ module mod
 manifest aaa
 manifest bbb
 
-functions:
+
 
 instructions:
 

@@ -1,7 +1,6 @@
 from chemicals.chemtypes import *
 from chemicals.identifier import Identifier
 from compiler.data_structures.ir import IRInstruction
-from compiler.data_structures.properties import BSVolume
 from compiler.data_structures.variable import Movable, Number
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import *
@@ -114,7 +113,7 @@ class SymbolTableVisitor(BSBaseVisitor):
         if not types:
             types.add(ChemTypes.MAT)
 
-        return {'types': types, 'size': 1, 'instruction': IRInstruction.MIX, "name": IRInstruction.MIX.name}
+        return {'types': types, 'size': 1, 'instruction': IRInstruction.MIX}
 
     def visitDetect(self, ctx: BSParser.DetectContext):
         types = {ChemTypes.REAL}
@@ -129,14 +128,14 @@ class SymbolTableVisitor(BSBaseVisitor):
         material_types = {ChemTypes.MAT}
         var = self.identifier.identify(material_name, material_types, self.symbol_table.current_scope.name)
         self.symbol_table.update_symbol(material_name, var['types'])
-        return {'types': types, 'size': 1, 'instruction': IRInstruction.DETECT, "name": IRInstruction.DETECT.name}
+        return {'types': types, 'size': 1, 'instruction': IRInstruction.DETECT}
 
     def visitHeat(self, ctx: BSParser.HeatContext):
         name = ctx.IDENTIFIER().__str__()
         types = {ChemTypes.MAT}
         var = self.identifier.identify(name, types, self.symbol_table.current_scope.name)
         self.symbol_table.update_symbol(name, var['types'])
-        return {'types': types, 'size': 1, 'instruction': IRInstruction.HEAT, "name": IRInstruction.HEAT.name}
+        return {'types': types, 'size': 1, 'instruction': IRInstruction.HEAT}
 
     def visitSplit(self, ctx: BSParser.SplitContext):
         name = ctx.IDENTIFIER().__str__()
@@ -145,7 +144,7 @@ class SymbolTableVisitor(BSBaseVisitor):
         size = int(ctx.INTEGER_LITERAL().__str__())
         if not SymbolTableVisitor.isPower(2, size):
             raise InvalidOperation("Split 2^x-ways is supported; split {}-ways is not supported".format(size))
-        return {'types': types, 'size': size, 'instruction': IRInstruction.SPLIT, "name": IRInstruction.SPLIT.name}
+        return {'types': types, 'size': size, 'instruction': IRInstruction.SPLIT}
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
         name = ctx.IDENTIFIER().__str__()
@@ -154,17 +153,17 @@ class SymbolTableVisitor(BSBaseVisitor):
         types = {ChemTypes.MAT}
         self.symbol_table.update_symbol(name, types)
         return {'types': types, 'size': 1,
-                'instruction': IRInstruction.DISPENSE, "name": IRInstruction.DISPENSE.name}
+                'instruction': IRInstruction.DISPENSE}
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
         name = ctx.IDENTIFIER().__str__()
         types = {ChemTypes.MAT}
-        self.symbol_table.update_symbol(name, types)
-        return {'types': types, 'size': 1, 'instruction': IRInstruction.DISPOSE, "name": IRInstruction.DISPOSE.name}
+        var = self.symbol_table.update_symbol(name, types)
+        return {'types': types, 'size': 1, 'instruction': IRInstruction.DISPOSE}
 
-    def visitExpression(self, ctx: BSParser.ExpressionContext):
-        return {"types": {ChemTypes.REAL, ChemTypes.NAT}, "size": 1,
-                'instruction': IRInstruction.BINARYOP, "name": IRInstruction.BINARYOP.name}
+    # def visitExpression(self, ctx: BSParser.ExpressionContext):
+    #     return {"types": {ChemTypes.REAL, ChemTypes.NAT}, "size": 1,
+    #             'instruction': IRInstruction.BINARYOP}
 
     def visitParExpression(self, ctx: BSParser.ParExpressionContext):
         return super().visitParExpression(ctx)
@@ -207,11 +206,45 @@ class SymbolTableVisitor(BSBaseVisitor):
             types.add(self.visitTypeType(t))
         return types
 
-    def visitVariableDeclaration(self, ctx: BSParser.VariableDeclarationContext):
-        return self.visitChildren(ctx)
+    # def visitVariableDeclaration(self, ctx: BSParser.VariableDeclarationContext):
+    #     return self.visitChildren(ctx)
+
+    def visitVariableDefinition_new(self, ctx: BSParser.VariableDefinitionContext):
+        name = ctx.IDENTIFIER().__str__()
+
+        # Get the index to be referenced.
+        size = int(ctx.INTEGER_LITERAL().__str__()) if ctx.INTEGER_LITERAL() else 1
+
+        declared_types = set()
+        final_types = set()
+
+        if ctx.unionType():
+            declared_types = self.visitUnionType(ctx.unionType())
+
+        operation = self.visitVariableDeclaration(ctx.variableDeclaration())
+
+        final_types = final_types.union(declared_types)
+        final_types = final_types.union(operation['types'])
+
+        # This forces the size of the declared variable to
+        # be that of the output of the operation.
+        # This case exists because global variables have a size
+        # of float("inf"), and the sizes will never match.
+        if size != operation['size'] and operation['instruction'] != IRInstruction.DISPENSE:
+            operation['size'] = size
+
+        # We need to guarantee that the size of a method call is the same
+        # size of that of whatever variable is being operated upon.
+        if operation['instruction'] == IRInstruction.CALL:
+            operation['size'] = self.symbol_table.functions[operation['name']].return_size
+            if ctx.INTEGER_LITERAL() and int(ctx.INTEGER_LITERAL().__str__()) != operation['size']:
+                raise InvalidOperation("Array size doesn't match method return size.")
+
+        variable = Movable(name, final_types, self.symbol_table.current_scope.name, operation['size'])
+        self.symbol_table.add_local(variable)
 
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
-        name = self.rename_var(ctx.IDENTIFIER().__str__(), True)
+        name = ctx.IDENTIFIER().__str__()
 
         declared_types = set()
         final_types = set()
@@ -305,28 +338,6 @@ class SymbolTableVisitor(BSBaseVisitor):
         else:
             self.log.warning("A custom type has been discovered.")
             return ChemTypes.UNKNOWN
-
-    def visitVolumeIdentifier(self, ctx: BSParser.VolumeIdentifierContext):
-        """
-        Get the variable name from the input.
-        :param ctx:
-        :return: Variable
-        """
-        name = self.rename_var(ctx.IDENTIFIER().__str__())
-        types = {ChemTypes.MAT}
-        quantity = 10.0
-        units = BSVolume.MICROLITRE
-        if ctx.VOLUME_NUMBER():
-            x = self.split_number_from_unit(ctx.VOLUME_NUMBER().__str__())
-            units = BSVolume.get_from_string(x['units'])
-            quantity = units.normalize(x['quantity'])
-
-        var = self.identifier.identify(name, types, self.symbol_table.current_scope.name)
-        variable = Movable(var['name'], var['types'], var['scope'], volume=quantity, units=units)
-
-        variable.volume = quantity
-        variable.unit = units
-        return variable
 
     def visitTimeIdentifier(self, ctx: BSParser.TimeIdentifierContext):
         return super().visitTimeIdentifier(ctx)

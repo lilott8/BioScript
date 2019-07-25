@@ -511,7 +511,7 @@ manifest a510
 manifest a511
 manifest a512
 
-functions:
+
 
 instructions:
 

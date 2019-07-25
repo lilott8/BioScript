@@ -7,7 +7,7 @@ manifest fff
 manifest ggg
 manifest hhh
 
-functions:
+
 
 instructions:
 

@@ -5,7 +5,7 @@ manifest bbb
 manifest ccc
 manifest ddd
 
-functions:
+
 
 instructions:
 

@@ -31,7 +31,7 @@ manifest dddddd
 manifest eeeeee
 manifest ffffff
 
-functions:
+
 
 instructions:
 

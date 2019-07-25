@@ -12,6 +12,7 @@ from compiler.semantics.global_visitor import GlobalVariableVisitor
 from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
+from compiler.semantics.symbol_visitor_v2 import SymbolTableVisitorV2
 from compiler.semantics.type_visitor import TypeCheckVisitor
 from grammar.parsers.python.BSLexer import BSLexer
 from grammar.parsers.python.BSParser import BSParser
@@ -34,7 +35,9 @@ class BSCompiler(object):
         times = {"sa": 0, "opts": 0, "target": 0}
 
         start = timer()
-        ir = self.translate(self.config.input)
+        # ir = self.translate(self.config.input)
+        self.log.error("Using translate v2")
+        ir = self.translate2(self.config.input)
         times['sa'] = timer() - start
 
         start = timer()
@@ -68,6 +71,35 @@ class BSCompiler(object):
 
         if not target:
             self.log.critical("You aren't doing anything with the results of the compile function.")
+
+    def translate2(self, filename: str) -> Program:
+        """
+        Translates the program from the AST into the corresponding IR.
+        :param filename: name of file to parse.
+        :return:
+        """
+        self.log.error("You are exiting with a 147, anything other is an error")
+        file_stream = FileStream(filename)
+        lexer = BSLexer(file_stream)
+        stream = CommonTokenStream(lexer)
+        parser = BSParser(stream)
+        tree = parser.program()
+
+        # This gets run first, gathering all the globals.
+        global_visitor = GlobalVariableVisitor(SymbolTable(), self.config.identify.get_identifier())
+        global_visitor.visit(tree)
+
+        # Build the functions and their symbols next.
+        self.log.error("Not parsing functions yet...")
+        # method_visitor = MethodVisitor(global_visitor.symbol_table)
+        # method_visitor.visit(tree)
+
+        # Finish building the symbol table.
+        self.log.error("Using global_visitor's symbolt table.")
+        symbol_visitor = SymbolTableVisitorV2(global_visitor.symbol_table, self.config.identify.get_identifier())
+        symbol_visitor.visit(tree)
+
+        exit(147)
 
     def translate(self, filename: str) -> Program:
         """

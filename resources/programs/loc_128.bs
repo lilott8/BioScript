@@ -63,7 +63,7 @@ manifest a62
 manifest a63
 manifest a64
 
-functions:
+
 
 instructions:
 
