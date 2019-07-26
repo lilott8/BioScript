@@ -99,6 +99,8 @@ class BSCompiler(object):
         symbol_visitor = SymbolTableVisitorV2(global_visitor.symbol_table, self.config.identify.get_identifier())
         symbol_visitor.visit(tree)
 
+        self.log.info(symbol_visitor.symbol_table)
+
         exit(147)
 
     def translate(self, filename: str) -> Program:

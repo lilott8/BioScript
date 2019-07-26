@@ -24,7 +24,7 @@ class GlobalVariableVisitor(BSBaseVisitor):
         types = {ChemTypes.MAT}
         for name in ctx.IDENTIFIER():
             var = self.identifier.identify(name.__str__(), types=types, scope=self.global_scope)
-            variable = Movable(var['name'], var['types'], var['scope'], volume=float("inf"), units=BSVolume.DECILITRE)
+            variable = Movable(var['name'], var['types'], var['scope'], volume=float("inf"), units=BSVolume.MICROLITRE)
             variable.is_global = True
             self.symbol_table.add_global(variable)
 
@@ -33,4 +33,5 @@ class GlobalVariableVisitor(BSBaseVisitor):
         for name in ctx.IDENTIFIER():
             var = self.identifier.identify(name.__str__(), types=types, scope=self.global_scope)
             variable = Stationary(var['name'], var['types'])
+            variable.is_global = True
             self.symbol_table.add_global(variable)

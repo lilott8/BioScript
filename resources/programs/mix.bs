@@ -1,14 +1,12 @@
 module mod
-stationary ccc
+stationary stat
 manifest aaa
 manifest bbb
 manifest ccc
 manifest ddd
 
-
-
 instructions:
 
-a[2] = dispense aaa
-b[2] = dispense bbb
-e = mix a[1] with b[0]
+a = dispense aaa
+b = dispense bbb
+e = mix a with b

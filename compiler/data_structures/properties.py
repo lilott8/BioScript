@@ -1,5 +1,6 @@
 from enum import Enum
 from enum import IntEnum
+from typing import Dict
 
 
 class BSTime(IntEnum):
@@ -148,3 +149,60 @@ class BSVolume(Enum):
             return BSVolume.DECALITRE
         else:
             return BSVolume.MICROLITRE
+
+
+class FluidProperties(object):
+
+    def __init__(self, volume: float = 10.0, vol_units: BSVolume = BSVolume.MICROLITRE,
+                 temp: float = 10.0, temp_units: BSTemperature = BSTemperature.CELSIUS):
+        self._volume = volume
+        self._volume_units = vol_units
+        self._temperature = temp
+        self._temperature_units = temp_units
+
+    @property
+    def volume(self):
+        return {'quantity': self._volume, 'units': self._volume_units}
+
+    @volume.setter
+    def volume(self, vol: Dict):
+        """
+        Upon entering in here, we can recalculate any other
+        members that are dependent upon this property.
+
+        The form of the dict can be in 4 forms:
+        "op" can be: {mix | split | use | heat}
+        The [index] can only be an int and it *must* reference
+        a valid index within the variables value array.
+        Mix:
+            {'op': 'mix'',
+                'values': { [index]: {'input_x': {'quantity': [float], 'units': [BSVolume]}}}}
+        Use:
+            {'op': 'use', 'values': { [index]: {'quantity': [float], 'units': [BSVolume]}}}
+
+        :param vol: volume attributes.
+        :return: None.
+        """
+        if vol['op'] == 'mix':
+            total = 0
+            for k, v in vol['values'].items():
+                total += v['units'].normalize(v['quantity'])
+            self._volume = total
+            self._volume_units = BSVolume.MICROLITRE
+        elif vol['op'] == 'use':
+            self._volume -= vol['values']['units'].normalize(vol['values']['quantity'])
+
+    @property
+    def temperature(self):
+        return {'quantity': self._volume, 'units': self._volume_units}
+
+    @temperature.setter
+    def temperature(self, temp: Dict):
+        """
+        Heat:
+            {'op': 'heat', 'values': { [index]: {'quantity': [float], 'units': [BSTemperature]}}}
+        :param temp:
+        :return:
+        """
+        self._temperature = temp['values']['units'].normalize(temp['values']['quantity'])
+        self._volume_units = BSTemperature.CELSIUS

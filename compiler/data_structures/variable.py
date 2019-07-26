@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Set, Dict, Any
+from typing import Set, Any
 
 import colorlog
 
@@ -96,19 +96,14 @@ class RenamedVar(Variable):
             return len(self._value)
 
 
-class Fluid(Variable):
+class Reagent(Variable, metaclass=ABCMeta):
 
-    def __init__(self, name: str, types: Set[ChemTypes] = {ChemTypes.MAT}, scope: str = "main", size: int = 1,
-                 volume: float = 10.0, units: BSVolume = BSVolume.MICROLITRE):
+    def __init__(self, name: str, types: Set[ChemTypes], scope: str, size: int, volume: float, units: BSVolume):
         super().__init__(name, types, scope)
-        self.ph = -1.0
-        self.concentration = -1.0
-        self.viscocity = -1.0
-        self.density = -1.0
-        # Ensure everything is in Microlitres.
-        self._value = list()
+        self._value = dict()
         for x in range(size):
-            self._value.append({'quantity': units.normalize(volume), 'units': BSVolume.MICROLITRE})
+            self._value[x] = FluidProperties(volume=units.normalize(volume), vol_units=BSVolume.MICROLITRE)
+            # self._value[x] = {'quantity': units.normalize(volume), 'units': BSVolume.MICROLITRE}
 
     @property
     def size(self):
@@ -122,11 +117,11 @@ class Fluid(Variable):
         :return: Dict of volume information.
         """
         total = 0
-        for x in self._value:
-            if x['units'] != BSVolume.MICROLITRE:
-                total += x['units'].normalize(x['quantity'])
+        for k, v in self._value.items():
+            if v.volume['units'] != BSVolume.MICROLITRE:
+                total += v.volume['units'].normalize(v.volume['quantity'])
             else:
-                total += x['quantity']
+                total += v.volume['quantity']
         return {"quantity": total, "units": BSVolume.MICROLITRE}
 
     @property
@@ -138,58 +133,37 @@ class Fluid(Variable):
         """
         Changes the value of this variable.
         This is where volume, concentration,
-        viscocity, density, etc will be
+        viscosity, density, etc will be
         manipulated. As the volume changes,
         some of the dependent attributes will
         change in suite as well.  This property
         is the place to manage this.
 
-        The form of the dict can be in 3 forms:
-        "op" can be: {mix | split | use}
+        The form of the dict can be in 4 forms:
+        "op" can be: {mix | split | use | heat}
         The [index] can only be an int and it *must* reference
-        a valid index within the variables value array.
-        Mix:
-            {'op': 'mix'', 'values': { [index]: {'input_x': {'quantity': [float], 'units': [BSVolume]}}}}
-        Split:
+        a valid index within the variable's value array.
+
+        mix:
+            see @compiler.data_structures.properties.FluidProperties.volume
+        use:
+            see @compiler.data_structures.properties.FluidProperties.volume
+        split:
             {'op': 'split', 'values': {'size': [int]}}
-        Use:
-            {'op': 'use', 'values': { [index]: {'quantity': [float], 'units': [BSVolume]}}}
+        heat:
+            see @compiler.data_structures.properties.FluidProperties.temperature
+
         :param val: Dict of indexes to use volume.
         :return: None.
         """
-        if val['op'] == 'mix':
-            # Reset the volume of this droplet.
+        if val['op'] == 'mix' or val['op'] == 'use':
             for k, v in val['values'].items():
-                total = 0
-                if v['input_1']['units'] != v['input_2']['units']:
-                    total += v['input_1']['units'].normalize(v['input_1']['quantity'])
-                    total += v['input_2']['units'].normalize(v['input_2']['quantity'])
-                else:
-                    total = v['input_1']['quantity'] + v['input_2']['quantity']
-                    if v['input_1']['units'] != BSVolume.MICROLITRE:
-                        total = v['input_1']['units'].normalize(total)
-                self._value[k] = {'quantity': total, 'units': BSVolume.MICROLITRE}
+                self._value[k].volume = {'op': val['op'], 'values': v}
         elif val['op'] == 'split':
             pass
-        elif val['op'] == 'use':
+        elif val['op'] == 'heat':
             for k, v in val['values'].items():
-                if v['units'] == self._value[k]['units']:
-                    self._value[k]['quantity'] = self._value[k]['quantity'] - v['quantity']
-                else:
-                    self._value[k]['quantity'] -= v['units'].normalize(v['quantity'])
-            # x = 0
-            # while x < len(val['values']):
-            #     if val['values'][x]['units'] == self._value[x]['units']:
-            #         self._value[x]['quantity'] = self._value[x]['quantity'] - val['values'][x]['quantity']
-            #     else:
-            #         self._value[x]['quantity'] -= val['values'][x]['units'].normalize(val['values'][x]['quantity'])
-            #     x += 1
-            # for index in range(len(val['values'])):
-            # # for k, v in val['values'].items():
-            #     if val['values'][index]['units'] == self._value[index]['units']:
-            #         self._value[index]['quantity'] = self._value[index]['quantity'] - val['values'][index]['quantity']
-            #     else:
-            #         self._value[index]['quantity'] -= val['values'][index]['units'].normalize(val['values'][index]['quantity'])
+                self._value[k].temperature = {'op': val['op'], 'values': v}
 
     def __repr__(self):
         output = "Chemical: "
@@ -201,19 +175,19 @@ class Fluid(Variable):
         return self.__repr__()
 
 
-class Movable(Fluid):
+class Movable(Reagent):
 
     def __init__(self, name: str, types: Set[ChemTypes] = {ChemTypes.MAT}, scope: str = "main",
-                 size: int = 1, volume: float = 10.0, units: BSVolume = BSVolume.MICROLITRE):
+                 size: int = 1, volume: float = 0, units: BSVolume = BSVolume.MICROLITRE):
         super().__init__(name, types, scope, size=size, volume=volume, units=units)
 
 
-class Stationary(Fluid):
+class Stationary(Reagent):
 
     def __init__(self, name: str, scope: str = "global", types: Set[ChemTypes] = {ChemTypes.MAT}):
         super().__init__(name, types, scope, size=1, volume=float("inf"), units=BSVolume.DECILITRE)
         # TODO: Delete this.
-        self.is_global = False
+        self.is_global = True
 
 
 class Module(Variable):
