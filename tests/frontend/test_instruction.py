@@ -133,8 +133,8 @@ class TestMix(InstructionBase):
 
         assert output.size == 1
         assert output.volume['quantity'] == 20.0 and output.volume['units'] == BSVolume.MICROLITRE
-        assert input_1.volume['quantity'] == 10.0 and input_1.size == 2
-        assert input_2.volume['quantity'] == 10.0 and input_2.size == 2
+        assert input_1.volume['quantity'] == 10.0 and input_1.size == 2 and input_1.value[1].volume['quantity'] == 0.00
+        assert input_2.volume['quantity'] == 10.0 and input_2.size == 2 and input_2.value[0].volume['quantity'] == 0.00
 
     def test_sisd_no_index(self, get_visitor):
         file = "test_cases/mix/sisd_no_index.bs"
