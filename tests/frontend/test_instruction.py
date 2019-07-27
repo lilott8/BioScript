@@ -145,10 +145,10 @@ class TestMix(InstructionBase):
         output = st.get_local('c', 'main')
 
         assert output.size == 1
-        # assert input_1.size == 1 and input_1.volume['quantity'] == 0.00 and \
-        #        input_1.volume['units'] == BSVolume.MICROLITRE
-        # assert input_2.size == 1 and input_2.volume['quantity'] == 0.00 and \
-        #        input_2.volume['units'] == BSVolume.MICROLITRE
+        assert input_1.size == 1 and input_1.volume['quantity'] == 0.00 and \
+               input_1.volume['units'] == BSVolume.MICROLITRE
+        assert input_2.size == 1 and input_2.volume['quantity'] == 0.00 and \
+               input_2.volume['units'] == BSVolume.MICROLITRE
 
     def test_mix_simd_unequal(self, get_visitor):
         with pytest.raises(UnsupportedOperation):
