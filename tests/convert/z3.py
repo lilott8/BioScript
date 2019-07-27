@@ -1,10 +1,10 @@
-import unittest
-import functools
-from solvers.z3_solver import Z3Solver
-
-class Z3Tests(unittest.TestCase):
+import pytest
 
 
+@pytest.mark.skip
+class Z3Tests(object):
+
+    @pytest.mark.skip
     @staticmethod
     def build_interaction_table(file_name: str) -> dict:
         """
@@ -31,7 +31,7 @@ class Z3Tests(unittest.TestCase):
                 result[row][column] = output
         return result
 
-
+    @pytest.mark.skip
     def validate(table, t1, t2) -> bool:
         """
         Checks for a valid interaction.
@@ -49,7 +49,7 @@ class Z3Tests(unittest.TestCase):
                 return False
         return True
 
-
+    @pytest.mark.skip
     def test_z3solver(self):
         table = Z3Tests.build_interaction_table('resources/abstract-interaction.txt')
         safe = functools.partial(Z3Tests.validate, table)

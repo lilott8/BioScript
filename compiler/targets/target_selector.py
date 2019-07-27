@@ -5,6 +5,7 @@ import compiler.targets as targets
 
 
 class TargetSelector(IntEnum):
+    DISABLED = 0
     LLVM_IR = 1
     MFSIM = 2
     PUDDLE = 4

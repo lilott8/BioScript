@@ -101,9 +101,8 @@ class Reagent(Variable, metaclass=ABCMeta):
     def __init__(self, name: str, types: Set[ChemTypes], scope: str, size: int, volume: float, units: BSVolume):
         super().__init__(name, types, scope)
         self._value = dict()
-        for x in range(size):
+        for x in range(0, size):
             self._value[x] = FluidProperties(volume=units.normalize(volume), vol_units=BSVolume.MICROLITRE)
-            # self._value[x] = {'quantity': units.normalize(volume), 'units': BSVolume.MICROLITRE}
 
     @property
     def size(self):
@@ -168,7 +167,7 @@ class Reagent(Variable, metaclass=ABCMeta):
     def __repr__(self):
         output = "Chemical: "
         output += super().__repr__() + "\t"
-        output += "{}".format(self.volume)
+        output += "size: {}\t{}".format(self.size, self.volume)
         return output
 
     def __str__(self):

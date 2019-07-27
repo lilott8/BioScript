@@ -1,0 +1,9 @@
+manifest aaa
+manifest bbb
+
+instructions:
+
+a[2] = dispense aaa
+b[3] = dispense bbb
+
+c = mix a with b

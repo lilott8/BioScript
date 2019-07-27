@@ -1,12 +1,9 @@
-module mod
-stationary stat
 manifest aaa
 manifest bbb
-manifest ccc
-manifest ddd
 
 instructions:
 
 a = dispense aaa
 b = dispense bbb
+
 c = mix a with b

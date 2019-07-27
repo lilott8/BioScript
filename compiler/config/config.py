@@ -45,7 +45,7 @@ class Config(object):
         Compiler Stuff
         """
         # What is the target?
-        self.target = targets.TargetSelector.INKWELL
+        self.target = targets.TargetSelector.DISABLED
         self.supports_functions = False
         self.supports_recursion = False
         self.supports_nesting = False

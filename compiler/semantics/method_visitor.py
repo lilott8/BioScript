@@ -18,9 +18,13 @@ class MethodVisitor(BSBaseVisitor):
         super().__init__(symbol_table, "Method Visitor")
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
+        if ctx.functions():
+            self.visitFunctions(ctx.functions())
+        pass
+
+    def visitFunctions(self, ctx: BSParser.FunctionsContext):
         for func in ctx.functionDeclaration():
             self.visitFunctionDeclaration(func)
-        pass
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
         """

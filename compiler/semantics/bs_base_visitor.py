@@ -154,6 +154,10 @@ class BSBaseVisitor(BSParserVisitor):
         else:
             return self.symbol_table.scope_map[name]
 
+    def check_bounds(self, var: Variable, index: int) -> bool:
+        if index >= 0:
+            return var.value[index]
+
     @staticmethod
     def is_number(num):
         """

@@ -167,7 +167,8 @@ class BSCompiler(object):
         :param program:
         :return:
         """
-        target = self.config.target.get_target(program)
+        if self.config.target != TargetSelector.DISABLED:
+            target = self.config.target.get_target(program)
         return target.transform()
 
     def visit_type_check(self, tree, symbol_table: SymbolTable):

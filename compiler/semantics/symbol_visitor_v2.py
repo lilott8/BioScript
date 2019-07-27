@@ -73,9 +73,11 @@ class SymbolTableVisitorV2(BSBaseVisitor):
         uses = list()
         for fluid in ctx.variable():
             temp = self.visitVariable(fluid)
-            uses.append({"var": self.symbol_table.get_local(temp['name']), "index": temp['index']})
-
-        deff['index'] = 0 if uses[0]['index'] != -1 and uses[1]['index'] != -1 else deff['index']
+            # This must be get variable, because we don't know if
+            # it is a global var or not.
+            var = self.symbol_table.get_local(temp['name'])
+            self.check_bounds(var, temp['index'])
+            uses.append({"var": var, "index": temp['index']})
 
         # If it is -1 we use the size of the variable, because we are
         # issuing a SIMD instruction.  Otherwise, we just grab the
@@ -94,6 +96,17 @@ class SymbolTableVisitorV2(BSBaseVisitor):
 
         # We arbitrarily pick a size, because they should be the same.
         variable = Movable(deff['name'], types, self.symbol_table.current_scope.name, size=use_a)
+
+        # If this is a SISD instruction, the index of the uses
+        # must point to the correct offset.  If there is an offset
+        # on the uses, then it's still a SISD instruction, and the index
+        # for the deff must be correctly set.
+        if uses[0]['index'] == -1 and uses[1]['index'] == -1:
+            uses[0]['index'] = 0
+            uses[1]['index'] = 0
+            deff['index'] = 0
+        elif uses[0]['index'] != -1 and uses[1]['index'] != -1:
+            deff['index'] = 0
 
         # These are the intermediate containers for notifying
         # the variable's value property things have changed.
@@ -152,6 +165,9 @@ class SymbolTableVisitorV2(BSBaseVisitor):
         if not self.symbol_table.get_global(ctx.IDENTIFIER().__str__()):
             self.log.fatal("{} isn't declared in the manifest".format(ctx.IDENTIFIER().__str__()))
             raise UndefinedException("{} isn't declared in the manifest".format(ctx.IDENTIFIER().__str__()))
+
+        # make sure the size is 1 if it's a single variable operation.
+        var['index'] = 1 if var['index'] == -1 else var['index']
 
         variable = Movable(var['name'], self.symbol_table.get_global(ctx.IDENTIFIER().__str__()).types,
                            self.symbol_table.current_scope.name, size=var['index'], volume=10.0)

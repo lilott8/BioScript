@@ -1,0 +1,5 @@
+manifest aaa
+
+instructions:
+
+a[10] = dispense aaa
