@@ -95,7 +95,7 @@ class BSCompiler(object):
         # method_visitor.visit(tree)
 
         # Finish building the symbol table.
-        self.log.error("Using global_visitor's symbolt table.")
+        self.log.error("Using global_visitor's symbol table.")
         symbol_visitor = SymbolTableVisitorV2(global_visitor.symbol_table, self.config.identify.get_identifier())
         symbol_visitor.visit(tree)
 

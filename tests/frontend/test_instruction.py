@@ -1,3 +1,5 @@
+import math
+
 import pytest
 
 from chemicals.identifier import NaiveIdentifier
@@ -64,7 +66,7 @@ class InstructionBase(metaclass=ABCMeta):
 class TestDispense(InstructionBase):
 
     def test_dispense_simd(self, get_visitor):
-        file = "test_cases/dispense/simd_pass.bs"
+        file = "test_cases/dispense/sisd_index_pass.bs"
         st = self.get_symbols(get_visitor(file))
 
         output = st.get_local('a', 'main')
@@ -74,7 +76,7 @@ class TestDispense(InstructionBase):
         assert output.volume['quantity'] == 100.00
 
     def test_dispense_sisd(self, get_visitor):
-        file = "test_cases/dispense/sisd_pass.bs"
+        file = "test_cases/dispense/sisd_no_index_pass.bs"
         st = self.get_symbols(get_visitor(file))
 
         output = st.get_local('a', 'main')
@@ -106,7 +108,7 @@ class TestMix(InstructionBase):
         pass
 
     def test_simd_equal(self, get_visitor):
-        file = "test_cases/mix/simd_pass.bs"
+        file = "test_cases/mix/sisd_index_pass.bs"
         st = self.get_symbols(get_visitor(file))
 
         input_1 = st.get_local('a', 'main')
@@ -118,12 +120,12 @@ class TestMix(InstructionBase):
         assert input_1.volume['quantity'] == 0 and input_1.volume['units'] == BSVolume.MICROLITRE
         assert input_2.volume['quantity'] == 0 and input_2.volume['units'] == BSVolume.MICROLITRE
 
-    def test_mix_sisd_out_of_bounds(self, get_visitor):
+    def test_sisd_out_of_bounds(self, get_visitor):
         with pytest.raises(KeyError):
             file = "test_cases/mix/sisd_index_fail.bs"
             st = self.get_symbols(get_visitor(file))
 
-    def test_mix_sisd_index_in_bounds(self, get_visitor):
+    def test_sisd_index_in_bounds(self, get_visitor):
         file = "test_cases/mix/sisd_index_pass.bs"
         st = self.get_symbols(get_visitor(file))
 
@@ -137,7 +139,7 @@ class TestMix(InstructionBase):
         assert input_2.volume['quantity'] == 10.0 and input_2.size == 2 and input_2.value[0].volume['quantity'] == 0.00
 
     def test_sisd_no_index(self, get_visitor):
-        file = "test_cases/mix/sisd_no_index.bs"
+        file = "test_cases/mix/sisd_no_index_pass.bs"
         st = self.get_symbols(get_visitor(file))
 
         input_1 = st.get_local('a', 'main')
@@ -150,11 +152,52 @@ class TestMix(InstructionBase):
         assert input_2.size == 1 and input_2.volume['quantity'] == 0.00 and \
                input_2.volume['units'] == BSVolume.MICROLITRE
 
-    def test_mix_simd_unequal(self, get_visitor):
+    def test_simd_unequal(self, get_visitor):
         with pytest.raises(UnsupportedOperation):
             file = "test_cases/mix/simd_fail.bs"
             st = self.get_symbols(get_visitor(file))
 
+
+@pytest.mark.frontend
+@pytest.mark.instructions
+@pytest.mark.detect
+class TestDetect(InstructionBase):
+
+    def test_simd(self, get_visitor):
+        file = "test_cases/detect/simd_pass.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('b', 'main')
+
+        assert isinstance(output, Number)
+        assert output.size == 2
+        for k, v in output.value.items():
+            assert math.isnan(v)
+
+    def test_sisd_index_out_of_bounds(self, get_visitor):
+        with pytest.raises(KeyError):
+            file = "test_cases/detect/sisd_index_fail.bs"
+            st = self.get_symbols(get_visitor(file))
+
+        # Testing that an exception is thrown is the test.
+
+    def test_sisd_index_in_bounds(self, get_visitor):
+        file = "test_cases/detect/sisd_index_pass.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('b', 'main')
+        assert isinstance(output, Number)
+        assert output.size == 1
+        assert math.isnan(output.value[0])
+
+    def test_sisd_no_index(self, get_visitor):
+        file = "test_cases/detect/sisd_no_index_pass.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('b', 'main')
+        assert isinstance(output, Number)
+        assert output.size == 1
+        assert math.isnan(output.value[0])
 
 @pytest.mark.frontend
 @pytest.mark.instructions

@@ -1,5 +1,5 @@
 from chemicals.identifier import Identifier
-from compiler.data_structures.variable import Movable
+from compiler.data_structures.variable import Movable, Number
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import *
 from .bs_base_visitor import BSBaseVisitor
@@ -15,13 +15,16 @@ class SymbolTableVisitorV2(BSBaseVisitor):
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         # Visiting globals is done in global_visitor.
+        # Add main first, it is the root.
+        self.symbol_table.new_scope("main")
+        self.scope_stack.append('main')
 
         if ctx.functions():
             self.visitChildren(ctx.functions())
 
         # We set current_scope equal to main for because the statements
         # hereafter are main's statements.
-        # self.symbol_table.current = self.symbol_table.local["main"]
+        self.symbol_table.current_scope = self.symbol_table.scope_map['main']
         for statement in ctx.statements():
             self.visitStatements(statement)
 
@@ -29,7 +32,11 @@ class SymbolTableVisitorV2(BSBaseVisitor):
         return super().visitFunctions(ctx)
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
-        return super().visitFunctionDeclaration(ctx)
+        self.scope_stack.append(ctx.IDENTIFIER().__str__())
+        self.symbol_table.new_scope(self.scope_stack[-1])
+        super().visitFunctionDeclaration(ctx)
+        self.scope_stack.pop()
+        return None
 
     def visitFormalParameters(self, ctx: BSParser.FormalParametersContext):
         return super().visitFormalParameters(ctx)
@@ -95,7 +102,7 @@ class SymbolTableVisitorV2(BSBaseVisitor):
         types.union(uses[1]['var'].types)
 
         # We arbitrarily pick a size, because they should be the same.
-        variable = Movable(deff['name'], types, self.symbol_table.current_scope.name, size=use_a)
+        variable = Movable(deff['name'], types, self.scope_stack[-1], size=use_a)
 
         # If this is a SISD instruction, the index of the uses
         # must point to the correct offset.  If there is an offset
@@ -154,7 +161,32 @@ class SymbolTableVisitorV2(BSBaseVisitor):
         return None
 
     def visitDetect(self, ctx: BSParser.DetectContext):
-        return super().visitDetect(ctx)
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+
+        # It doesn't matter that we do anything with the module here, we
+        # are only collecting symbols. IR is where the module is used
+        # mod = self.symbol_table.get_global(ctx.IDENTIFIER().__str__())
+        use = self.visitVariable(ctx.variable())
+        use_var = self.symbol_table.get_local(use['name'])
+        self.check_bounds(use_var, use['index'])
+
+        # Disallow creation of an array on detect if this isn't a SIMD operation.
+        if deff['index'] != -1:
+            raise UnsupportedOperation("Attempting to create an invalid array.")
+
+        # Validate bounding.
+        if use['index'] > use_var.size:
+            raise UnsupportedOperation("Attempting to access an invalid offset: sizeof({})={}, attempting to access: {}"
+                                       .format(use_var.name, use_var.size, use['index']))
+
+        # The deff_size is 1 if there is an offset on
+        # the use, otherwise it is the size of the use_var.
+        deff_size = 1 if use['index'] != -1 else use_var.size
+
+        var = Number(deff['name'], scope=self.scope_stack[-1], value=float("nan"), size=deff_size)
+        self.symbol_table.add_local(var)
+
+        return None
 
     def visitSplit(self, ctx: BSParser.SplitContext):
         return super().visitSplit(ctx)

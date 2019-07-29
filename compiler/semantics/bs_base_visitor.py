@@ -41,6 +41,14 @@ class BSBaseVisitor(BSParserVisitor):
         return self.visitVariable(ctx.variable())
 
     def visitVariable(self, ctx: BSParser.VariableContext):
+        """
+        Gets the variable to which the statement will be assigned.
+        If it's -1, the statement uses the whole array.  Which means
+        there must be a check to see if the size of the input arrays
+        are equal.
+        :param ctx: context of the visitor.
+        :return: Dictionary that holds the index and the name of the variable to be assigned.
+        """
         # If it's -1, it means there wasn't anything given,
         # so use all the elements of the variable available.
         index = -1 if not ctx.INTEGER_LITERAL() else int(ctx.INTEGER_LITERAL().__str__())

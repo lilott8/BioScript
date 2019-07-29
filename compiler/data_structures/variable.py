@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Set, Any
+from typing import Set, Any, Tuple
 
 import colorlog
 
@@ -212,8 +212,12 @@ class Module(Variable):
 
 class Number(Variable):
 
-    def __init__(self, name: str, types: Set[ChemTypes] = {ChemTypes.REAL}, scope: str = "main", value: float = 0):
+    def __init__(self, name: str, types: Set[ChemTypes] = {ChemTypes.REAL}, scope: str = "main",
+                 value: float = 0, size: int = 1):
         super().__init__(name, types, scope)
+        self._value = dict()
+        for x in range(size):
+            self._value[x] = value
 
     def __repr__(self):
         output = "Number: {}\t".format(super().__repr__())
@@ -225,12 +229,14 @@ class Number(Variable):
         return self._value
 
     @value.setter
-    def value(self, val: float):
-        self._value = val
+    def value(self, val: Tuple):
+        self._value[val[0]] = val[1]
 
     @property
     def size(self):
-        return 1
+        return len(self._value)
 
     def __str__(self):
-        return self.__repr__()
+        output = self.__repr__()
+        output += "\tsize: {}".format(self.size)
+        return output

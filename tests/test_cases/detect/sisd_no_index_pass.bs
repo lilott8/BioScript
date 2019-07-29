@@ -1,0 +1,7 @@
+module mod
+manifest aaa
+
+instructions:
+
+a = dispense aaa
+b = detect mod on a
