@@ -154,7 +154,7 @@ class BSVolume(Enum):
 class FluidProperties(object):
 
     def __init__(self, volume: float = 10.0, vol_units: BSVolume = BSVolume.MICROLITRE,
-                 temp: float = 10.0, temp_units: BSTemperature = BSTemperature.CELSIUS):
+                 temp: float = 23.0, temp_units: BSTemperature = BSTemperature.CELSIUS):
         self._volume = volume
         self._volume_units = vol_units
         self._temperature = temp
@@ -194,7 +194,7 @@ class FluidProperties(object):
 
     @property
     def temperature(self):
-        return {'quantity': self._volume, 'units': self._volume_units}
+        return {'quantity': self._temperature, 'units': self._temperature_units}
 
     @temperature.setter
     def temperature(self, temp: Dict):
@@ -205,4 +205,4 @@ class FluidProperties(object):
         :return:
         """
         self._temperature = temp['values']['units'].normalize(temp['values']['quantity'])
-        self._volume_units = BSTemperature.CELSIUS
+        self._temperature_units = BSTemperature.CELSIUS

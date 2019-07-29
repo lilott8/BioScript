@@ -163,6 +163,15 @@ class BSBaseVisitor(BSParserVisitor):
             return self.symbol_table.scope_map[name]
 
     def check_bounds(self, var: Variable, index: int) -> bool:
+        """
+        Check to see if we have a valid offset for a variable.
+        :param var: Variable to bound check.
+        :param index: int offset.
+        :return: bool: key is in the object.
+        :raises:
+            KeyError: if the key doesn't exist in the object,
+                this will throw an error.
+        """
         if index >= 0:
             return var.value[index]
 

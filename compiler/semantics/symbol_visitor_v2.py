@@ -69,7 +69,24 @@ class SymbolTableVisitorV2(BSBaseVisitor):
         return super().visitRepeat(ctx)
 
     def visitHeat(self, ctx: BSParser.HeatContext):
-        return super().visitHeat(ctx)
+        use = self.visitVariable(ctx.variable())
+        use_var = self.symbol_table.get_local(use['name'])
+
+        # Get the temperature information.
+        heat_to = super().visitTemperatureIdentifier(ctx.temperatureIdentifier())
+
+        # Build the temperature object used to modify the variable
+        temp = {'op': 'heat', 'values': {'quantity': heat_to['quantity'], 'units': heat_to['units']}}
+
+        # Modify the variable or its offset.
+        if use['index'] == -1:
+            for key, value in use_var.value.items():
+                value.temperature = temp
+        else:
+            self.check_bounds(use_var, use['index'])
+            use_var.value[use['index']].temperature = temp
+
+        return None
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
         return super().visitDispose(ctx)

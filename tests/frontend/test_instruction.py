@@ -199,6 +199,44 @@ class TestDetect(InstructionBase):
         assert output.size == 1
         assert math.isnan(output.value[0])
 
+
+@pytest.mark.frontend
+@pytest.mark.instructions
+@pytest.mark.heat
+class TestHeat(InstructionBase):
+
+    def test_simd(self, get_visitor):
+        file = "test_cases/heat/simd_pass.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('a', 'main').value
+        for key, value in output.items():
+            assert value.temperature['units'] == BSTemperature.CELSIUS and value.temperature['quantity'] == 100
+
+    def test_sisd_index_out_of_bounds(self, get_visitor):
+        with pytest.raises(KeyError):
+            file = "test_cases/heat/sisd_index_fail.bs"
+            st = self.get_symbols(get_visitor(file))
+
+    def test_sisd_index_in_bounds(self, get_visitor):
+        file = "test_cases/heat/sisd_index_pass.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('a', 'main').value
+
+        assert output[1].temperature['quantity'] == 100 and output[1].temperature['units'] == BSTemperature.CELSIUS
+        for key, value in output.items():
+            if key != 1:
+                assert value.temperature['quantity'] == 23.0
+
+    def test_sisd_no_index(self, get_visitor):
+        file = "test_cases/heat/sisd_no_index_pass.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('a', 'main').value[0].temperature
+
+        assert output['quantity'] == 100 and output['units'] == BSTemperature.CELSIUS
+
 @pytest.mark.frontend
 @pytest.mark.instructions
 @pytest.mark.split
