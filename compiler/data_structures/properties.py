@@ -206,3 +206,6 @@ class FluidProperties(object):
         """
         self._temperature = temp['values']['units'].normalize(temp['values']['quantity'])
         self._temperature_units = BSTemperature.CELSIUS
+
+    def __repr__(self):
+        return "{{{} @ {}}}".format(self._volume, self._volume_units)

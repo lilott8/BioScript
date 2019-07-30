@@ -29,7 +29,7 @@ def test_manifests(get_visitor):
     assert stat.size == 1
     assert stat.volume['quantity'] == float("inf") and stat.volume['units'] == BSVolume.MICROLITRE
 
-    assert isinstance(mani, Movable)
+    assert isinstance(mani, Dispensable)
     assert mani.size == 1
     assert mani.volume['quantity'] == float("inf") and mani.volume['units'] == BSVolume.MICROLITRE
 
@@ -108,7 +108,7 @@ class TestMix(InstructionBase):
         pass
 
     def test_simd_equal(self, get_visitor):
-        file = "test_cases/mix/sisd_index_pass.bs"
+        file = "test_cases/mix/simd_pass.bs"
         st = self.get_symbols(get_visitor(file))
 
         input_1 = st.get_local('a', 'main')
@@ -237,8 +237,30 @@ class TestHeat(InstructionBase):
 
         assert output['quantity'] == 100 and output['units'] == BSTemperature.CELSIUS
 
+
 @pytest.mark.frontend
 @pytest.mark.instructions
 @pytest.mark.split
-class TestSplit(object):
-    pass
+class TestSplit(InstructionBase):
+
+    def test_split_array(self, get_visitor):
+        file = "test_cases/split/split_array_further.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('b', 'main')
+
+        assert math.isclose(output.volume['quantity'], 30.0, rel_tol=0.005)
+        assert output.size == 6
+        for key, value in output.value.items():
+            assert math.isclose(value.volume['quantity'], 5.0, rel_tol=0.005)
+
+    def test_sisd_no_index_pass(self, get_visitor):
+        file = "test_cases/split/sisd_no_index_pass.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('b', 'main')
+
+        assert math.isclose(output.volume['quantity'], 10.0, rel_tol=0.005)
+        assert output.size == 5
+        for key, value in output.value.items():
+            assert math.isclose(value.volume['quantity'], 2.0)

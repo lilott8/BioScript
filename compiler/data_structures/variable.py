@@ -176,8 +176,15 @@ class Reagent(Variable, metaclass=ABCMeta):
 
 class Movable(Reagent):
 
+    def __init__(self, name: str, types: Set[ChemTypes] = {ChemTypes.MAT}, scope: str = "main", size: int = 1,
+                 volume: float = 10.0, units: BSVolume = BSVolume.MICROLITRE):
+        super().__init__(name, types, scope, size=size, volume=volume, units=units)
+
+
+class Dispensable(Reagent):
+
     def __init__(self, name: str, types: Set[ChemTypes] = {ChemTypes.MAT}, scope: str = "main",
-                 size: int = 1, volume: float = 0, units: BSVolume = BSVolume.MICROLITRE):
+                 size: int = 1, volume=0.0, units=BSVolume.MICROLITRE):
         super().__init__(name, types, scope, size=size, volume=volume, units=units)
 
 

@@ -1,4 +1,7 @@
+import copy
+
 from chemicals.identifier import Identifier
+from compiler.data_structures.properties import FluidProperties
 from compiler.data_structures.variable import Movable, Number
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import *
@@ -206,7 +209,28 @@ class SymbolTableVisitorV2(BSBaseVisitor):
         return None
 
     def visitSplit(self, ctx: BSParser.SplitContext):
-        return super().visitSplit(ctx)
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+
+        use = self.visitVariable(ctx.variable())
+        use_var = self.symbol_table.get_local(use['name'])
+        self.check_bounds(use_var, use['index'])
+
+        split_num = int(ctx.INTEGER_LITERAL().__str__())
+
+        total_splits = split_num * use_var.size
+
+        var = Movable(deff['name'], use_var.types, self.scope_stack[-1], total_splits)
+        offset = 0
+
+        for key, value in use_var.value.items():
+            fp = FluidProperties(volume=value.volume['quantity'] / split_num, vol_units=value.volume['units'])
+            for x in range(split_num):
+                var.value[offset] = copy.deepcopy(fp)
+                offset += 1
+
+        self.symbol_table.add_local(var)
+        x = 1
+        return None
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
         var = self.visitVariableDefinition(ctx.variableDefinition())
