@@ -66,7 +66,7 @@ class InstructionBase(metaclass=ABCMeta):
 class TestDispense(InstructionBase):
 
     def test_dispense_simd(self, get_visitor):
-        file = "test_cases/dispense/sisd_index_pass.bs"
+        file = "test_cases/dispense/simd_pass.bs"
         st = self.get_symbols(get_visitor(file))
 
         output = st.get_local('a', 'main')
