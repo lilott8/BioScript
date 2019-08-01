@@ -2,8 +2,6 @@
 
 A simple type-safe Domain Specific Language (DSL) for chemistry and biology.
 
-
-
 ## Usage
 usage: 
 ``` 
@@ -78,7 +76,11 @@ You'll need Python3 `(apt-get install python3)`, and GraphViz installed `(apt-ge
 
 If on macOS, install brew, then `brew install python3` and `brew install graphviz`.
 
-To get the necessary grammar files, follow the instructions at https://github.com/lilott8/BioScriptGrammar, and copy the `BioScriptGrammar/parsers` directory to the `BioScript/grammar/` directory.  This should be done at any time that the grammar to the language is changed.
+BioScript's [grammar](https://github.com/lilott8/BioScriptGrammar "BioScript's Grammar") is attached as a submodule.  Hence, if cloning this repo, make sure to include the `--recursive` tag:
+
+`git clone --recursive https://github.com/lilott8/BioScript`
+
+Also, if [BioScriptGrammar](https://github.com/tlove004/BioScriptGrammar "BioScript's Grammar") is updated, you'll need to run `git submodule update --init --recursive` if your version of git does not do this automatically for you.
 
 Install required python modules: ```pip install -r requirements.txt```
 
