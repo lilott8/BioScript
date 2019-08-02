@@ -80,7 +80,7 @@ BioScript's [grammar](https://github.com/lilott8/BioScriptGrammar "BioScript's G
 
 `git clone --recursive https://github.com/lilott8/BioScript`
 
-Also, if [BioScriptGrammar](https://github.com/tlove004/BioScriptGrammar "BioScript's Grammar") is updated, you'll need to run `git submodule update --init --recursive` if your version of git does not do this automatically for you.
+Also, if [BioScriptGrammar](https://github.com/tlove004/BioScriptGrammar "BioScript's Grammar") is updated (or any other submodule), you'll need to run `git submodule foreach git pull origin master` if your version of git does not do this automatically for you.
 
 Install required python modules: ```pip install -r requirements.txt```
 
