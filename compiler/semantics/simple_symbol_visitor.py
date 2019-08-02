@@ -33,10 +33,24 @@ class SimpleSymbolVisitor(BSBaseVisitor):
         return super().visitFormalParameter(ctx)
 
     def visitHeat(self, ctx: BSParser.HeatContext):
-        return super().visitHeat(ctx)
+        name = self.visitVariable(ctx.variable())['name']
+        use = self.symbol_table.get_local(name)
+        if not use:
+            raise UndefinedVariable("{} is not defined.".format(name))
+        if not ChemTypeResolver.is_mat_in_set(use.types):
+            use.types.add(ChemTypes.MAT)
+            self.symbol_table.update_symbol(use)
+        return None
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
-        return super().visitDispose(ctx)
+        name = self.visitVariable(ctx.variable())['name']
+        use = self.symbol_table.get_local(name)
+        if not use:
+            raise UndefinedVariable("{} is not defined.".format(name))
+        if not ChemTypeResolver.is_mat_in_set(use.types):
+            use.types.add(ChemTypes.MAT)
+            self.symbol_table.update_symbol(use)
+        return None
 
     def visitMix(self, ctx: BSParser.MixContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
@@ -65,6 +79,18 @@ class SimpleSymbolVisitor(BSBaseVisitor):
     def visitDetect(self, ctx: BSParser.DetectContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
         self.symbol_table.add_local(Symbol(deff['name'], self.scope_stack[-1], ChemTypeResolver.numbers()))
+        use = self.visitVariable(ctx.variable())
+        var = self.symbol_table.get_local(use['name'])
+        if not var:
+            raise UndefinedVariable("{} is not defined.".format(use['name']))
+        module = self.symbol_table.get_global(ctx.IDENTIFIER().__str__())
+        if not module:
+            raise UndefinedVariable("{} isn't declared in the manifest.".format(ctx.IDENTIFIER().__str__()))
+        if ChemTypes.MODULE not in module.types:
+            raise UndefinedVariable("There is no module named {} declared in the manifest.".format(module.name))
+        if not ChemTypeResolver.is_mat_in_set(var.types):
+            var.types.add(ChemTypes.MAT)
+            self.symbol_table.update_symbol(var)
         return None
 
     def visitSplit(self, ctx: BSParser.SplitContext):
@@ -101,9 +127,11 @@ class SimpleSymbolVisitor(BSBaseVisitor):
     def visitStore(self, ctx: BSParser.StoreContext):
         use = self.visitVariable(ctx.variable())
         symbol = self.symbol_table.get_local(use['name'])
+        if not symbol:
+            raise UndefinedVariable("{} is not defined.".format(use['name']))
         if not ChemTypeResolver.is_mat_in_set(symbol.types):
-            symbol.types.update(ChemTypes.MAT)
-        self.symbol_table.update_symbol(symbol)
+            symbol.types.add(ChemTypes.MAT)
+            self.symbol_table.update_symbol(symbol)
         return None
 
     def visitMath(self, ctx: BSParser.MathContext):

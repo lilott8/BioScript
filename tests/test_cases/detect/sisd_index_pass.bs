@@ -1,7 +1,0 @@
-module mod
-manifest aaa
-
-instructions:
-
-a[2] = dispense aaa
-b = detect mod on a[1]

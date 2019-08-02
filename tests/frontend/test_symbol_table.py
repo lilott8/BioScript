@@ -38,6 +38,7 @@ class InstructionBase(metaclass=ABCMeta):
 
 
 @pytest.mark.frontend
+@pytest.mark.symbol_table
 class TestHeader(InstructionBase):
 
     def test_manifests(self, get_visitor):
@@ -70,18 +71,19 @@ class TestHeader(InstructionBase):
 
 
 @pytest.mark.frontend
+@pytest.mark.symbol_table
 @pytest.mark.instructions
 @pytest.mark.dispense
 class TestDispense(InstructionBase):
 
-    def test_symbol_table_undefined_manifest(self, get_visitor):
+    def test_undefined_manifest(self, get_visitor):
         with pytest.raises(UndefinedVariable):
             file = "test_cases/dispense/symbol_table_undefined.bs"
             st = self.get_symbols(get_visitor(file))
 
             output = st.get_local('a', 'main')
 
-    def test_symbol_table_defined_manifest(self, get_visitor):
+    def test_defined_manifest(self, get_visitor):
         file = "test_cases/dispense/symbol_table_defined.bs"
         st = self.get_symbols(get_visitor(file))
 
@@ -92,6 +94,7 @@ class TestDispense(InstructionBase):
 
 
 @pytest.mark.frontend
+@pytest.mark.symbol_table
 @pytest.mark.instructions
 @pytest.mark.mix
 class TestMix(InstructionBase):
@@ -112,21 +115,19 @@ class TestMix(InstructionBase):
         # Called as the class is being destroyed
         pass
 
-    def test_symbol_table_mix_with_global(self, get_visitor):
+    def test_mix_with_global(self, get_visitor):
         with pytest.raises(UndefinedVariable):
             file = "test_cases/mix/symbol_table_mat_global.bs"
             st = self.get_symbols(get_visitor(file))
+            # Testing that an exception is thrown is the test.
 
-    def test_symbol_table_mix_mat_with_nat(self, get_visitor):
+    def test_mix_mat_with_nat(self, get_visitor):
         file = "test_cases/mix/symbol_table_mat_nat.bs"
         st = self.get_symbols(get_visitor(file))
 
         input_1 = st.get_local('a', 'main')
         input_2 = st.get_local('b', 'main')
         output = st.get_local('c', 'main')
-
-        x = ChemTypeResolver.is_number_in_set(input_1.types)
-        y = ChemTypeResolver.numbers
 
         assert ChemTypeResolver.is_mat_in_set(input_1.types) and not ChemTypeResolver.is_number_in_set(input_1.types)
         assert ChemTypeResolver.is_number_in_set(input_2.types) and ChemTypeResolver.is_number_in_set(input_2.types)
@@ -135,7 +136,7 @@ class TestMix(InstructionBase):
         assert input_2.scope == 'main'
         assert output.scope == 'main'
 
-    def test_symbol_table_mix_two_mats(self, get_visitor):
+    def test_mix_two_mats(self, get_visitor):
         file = "test_cases/mix/symbol_table_two_mats.bs"
         st = self.get_symbols(get_visitor(file))
 
@@ -150,103 +151,150 @@ class TestMix(InstructionBase):
         assert input_2.scope == 'main'
         assert output.scope == 'main'
 
-    def test_symbol_table_mix_one_undefined(self, get_visitor):
+    def test_mix_one_undefined(self, get_visitor):
         with pytest.raises(UndefinedVariable):
             file = "test_cases/mix/symbol_table_mat_global.bs"
             st = self.get_symbols(get_visitor(file))
+            # Testing that an exception is thrown is the test.
 
 
-# @pytest.mark.frontend
-# @pytest.mark.instructions
-# @pytest.mark.detect
-# class TestDetect(InstructionBase):
-#
-#     def test_simd(self, get_visitor):
-#         file = "test_cases/detect/simd_pass.bs"
-#         st = self.get_symbols(get_visitor(file))
-#
-#         output = st.get_local('b', 'main')
-#
-#         assert isinstance(output, Number)
-#         assert output.size == 2
-#         for k, v in output.value.items():
-#             assert math.isnan(v)
-#
-#     def test_sisd_index_out_of_bounds(self, get_visitor):
-#         with pytest.raises(KeyError):
-#             file = "test_cases/detect/sisd_index_fail.bs"
-#             st = self.get_symbols(get_visitor(file))
-#
-#         # Testing that an exception is thrown is the test.
-#
-#     def test_sisd_index_in_bounds(self, get_visitor):
-#         file = "test_cases/detect/sisd_index_pass.bs"
-#         st = self.get_symbols(get_visitor(file))
-#
-#         output = st.get_local('b', 'main')
-#         assert isinstance(output, Number)
-#         assert output.size == 1
-#         assert math.isnan(output.value[0])
-#
-#     def test_sisd_no_index(self, get_visitor):
-#         file = "test_cases/detect/symbol_table_two_mats.bs"
-#         st = self.get_symbols(get_visitor(file))
-#
-#         output = st.get_local('b', 'main')
-#         assert isinstance(output, Number)
-#         assert output.size == 1
-#         assert math.isnan(output.value[0])
-#
-#
-# @pytest.mark.frontend
-# @pytest.mark.instructions
-# @pytest.mark.heat
-# class TestHeat(InstructionBase):
-#
-#     def test_simd(self, get_visitor):
-#         file = "test_cases/heat/simd_pass.bs"
-#         st = self.get_symbols(get_visitor(file))
-#
-#         output = st.get_local('a', 'main').value
-#         for key, value in output.items():
-#             assert value.temperature['units'] == BSTemperature.CELSIUS and value.temperature['quantity'] == 100
-#
-#     def test_sisd_index_out_of_bounds(self, get_visitor):
-#         with pytest.raises(KeyError):
-#             file = "test_cases/heat/sisd_index_fail.bs"
-#             st = self.get_symbols(get_visitor(file))
-#
-#     def test_sisd_index_in_bounds(self, get_visitor):
-#         file = "test_cases/heat/sisd_index_pass.bs"
-#         st = self.get_symbols(get_visitor(file))
-#
-#         output = st.get_local('a', 'main').value
-#
-#         assert output[1].temperature['quantity'] == 100 and output[1].temperature['units'] == BSTemperature.CELSIUS
-#         for key, value in output.items():
-#             if key != 1:
-#                 assert value.temperature['quantity'] == 23.0
-#
-#     def test_sisd_no_index(self, get_visitor):
-#         file = "test_cases/heat/symbol_table_two_mats.bs"
-#         st = self.get_symbols(get_visitor(file))
-#
-#         output = st.get_local('a', 'main').value[0].temperature
-#
-#         assert output['quantity'] == 100 and output['units'] == BSTemperature.CELSIUS
-#
-#
 @pytest.mark.frontend
+@pytest.mark.symbol_table
+@pytest.mark.instructions
+@pytest.mark.detect
+class TestDetect(InstructionBase):
+
+    def test_mat(self, get_visitor):
+        file = "test_cases/detect/symbol_table_mat.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        input_1 = st.get_local('a', 'main')
+        mod = st.get_global('mod')
+        output = st.get_local('b', 'main')
+
+        assert ChemTypeResolver.is_mat_in_set(input_1.types) and not ChemTypeResolver.is_number_in_set(input_1.types)
+        assert ChemTypes.MODULE in mod.types and len(mod.types) == 1
+        assert not ChemTypeResolver.is_mat_in_set(output.types) and ChemTypeResolver.is_number_in_set(output.types)
+
+    def test_nat(self, get_visitor):
+        file = "test_cases/detect/symbol_table_nat.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        input_1 = st.get_local('a', 'main')
+        mod = st.get_global('mod')
+        output = st.get_local('b', 'main')
+
+        assert ChemTypeResolver.is_mat_in_set(input_1.types) and ChemTypeResolver.is_number_in_set(input_1.types)
+        assert ChemTypes.MODULE in mod.types and len(mod.types) == 1
+        assert ChemTypeResolver.is_number_in_set(output.types)
+
+    def test_not_mod(self, get_visitor):
+        with pytest.raises(UndefinedVariable):
+            file = "test_cases/detect/symbol_table_not_mod.bs"
+            st = self.get_symbols(get_visitor(file))
+            # Testing that an exception is thrown is the test.
+
+    def test_undefined(self, get_visitor):
+        with pytest.raises(UndefinedVariable):
+            file = "test_cases/detect/symbol_table_undefined.bs"
+            st = self.get_symbols(get_visitor(file))
+            # Testing that an exception is thrown is the test.
+
+
+@pytest.mark.frontend
+@pytest.mark.symbol_table
+@pytest.mark.instructions
+@pytest.mark.heat
+class TestHeat(InstructionBase):
+
+    def test_mat(self, get_visitor):
+        file = "test_cases/heat/symbol_table_mat.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('a', 'main')
+        assert ChemTypeResolver.is_mat_in_set(output.types) and not ChemTypeResolver.is_number_in_set(output.types)
+
+    def test_nat(self, get_visitor):
+        file = "test_cases/heat/symbol_table_nat.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('a', 'main')
+        assert ChemTypeResolver.is_number_in_set(output.types) and ChemTypeResolver.is_mat_in_set(output.types)
+
+    def test_undefined(self, get_visitor):
+        with pytest.raises(UndefinedVariable):
+            file = "test_cases/heat/symbol_table_undefined.bs"
+            st = self.get_symbols(get_visitor(file))
+            # Testing that an exception is thrown is the test.
+
+
+@pytest.mark.frontend
+@pytest.mark.symbol_table
+@pytest.mark.instructions
+@pytest.mark.dispose
+class TestDispose(InstructionBase):
+
+    def test_mat(self, get_visitor):
+        file = "test_cases/dispose/symbol_table_mat.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('a', 'main')
+
+        assert ChemTypeResolver.is_mat_in_set(output.types) and not ChemTypeResolver.is_number_in_set(output.types)
+
+    def test_nat(self, get_visitor):
+        file = "test_cases/dispose/symbol_table_nat.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('a', 'main')
+
+        assert ChemTypeResolver.is_number_in_set(output.types) and ChemTypeResolver.is_mat_in_set(output.types)
+
+    def test_undefined(self, get_visitor):
+        with pytest.raises(UndefinedVariable):
+            file = "test_cases/dispose/symbol_table_undefined.bs"
+            st = self.get_symbols(get_visitor(file))
+
+
+@pytest.mark.frontend
+@pytest.mark.symbol_table
+@pytest.mark.instructions
+class TestStore(InstructionBase):
+
+    def test_mat(self, get_visitor):
+        file = "test_cases/store/symbol_table_mat.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('a', 'main')
+
+        assert ChemTypeResolver.is_mat_in_set(output.types) and not ChemTypeResolver.is_number_in_set(output.types)
+
+    def test_nat(self, get_visitor):
+        file = "test_cases/store/symbol_table_nat.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('a', 'main')
+
+        assert ChemTypeResolver.is_number_in_set(output.types) and ChemTypeResolver.is_mat_in_set(output.types)
+
+    def test_undefined(self, get_visitor):
+        with pytest.raises(UndefinedVariable):
+            file = "test_cases/store/symbol_table_undefined.bs"
+            st = self.get_symbols(get_visitor(file))
+
+
+@pytest.mark.frontend
+@pytest.mark.symbol_table
 @pytest.mark.instructions
 @pytest.mark.split
 class TestSplit(InstructionBase):
 
-    def test_symbol_table_global(self, get_visitor):
+    def test_global(self, get_visitor):
         with pytest.raises(UndefinedVariable):
             file = "test_cases/split/symbol_table_global.bs"
             st = self.get_symbols(get_visitor(file))
 
-    def test_symbol_table_mat(self, get_visitor):
+    def test_mat(self, get_visitor):
         file = "test_cases/split/symbol_table_mat.bs"
         st = self.get_symbols(get_visitor(file))
 
@@ -258,7 +306,7 @@ class TestSplit(InstructionBase):
         assert input_1.scope == 'main'
         assert output.scope == 'main'
 
-    def test_symbol_table_nat(self, get_visitor):
+    def test_nat(self, get_visitor):
         file = "test_cases/split/symbol_table_nat.bs"
         st = self.get_symbols(get_visitor(file))
 
@@ -270,7 +318,8 @@ class TestSplit(InstructionBase):
         assert input_1.scope == 'main'
         assert output.scope == 'main'
 
-    def test_symbol_table_undefined(self, get_visitor):
+    def test_undefined(self, get_visitor):
         with pytest.raises(UndefinedVariable):
             file = "test_cases/split/symbol_table_undefined.bs"
             st = self.get_symbols(get_visitor(file))
+            # Testing that an exception is thrown is the test.

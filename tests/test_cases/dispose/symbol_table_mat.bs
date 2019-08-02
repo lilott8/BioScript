@@ -1,0 +1,7 @@
+manifest aaa
+
+instructions:
+
+a = dispense aaa
+
+dispose a

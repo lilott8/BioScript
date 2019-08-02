@@ -1,0 +1,7 @@
+module mod
+manifest aaa
+
+instructions:
+
+a = 7 + 7
+b = detect mod on a

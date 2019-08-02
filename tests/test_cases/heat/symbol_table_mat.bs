@@ -1,0 +1,7 @@
+module mod
+manifest aaa
+
+instructions:
+
+a = dispense aaa
+heat a at 30f

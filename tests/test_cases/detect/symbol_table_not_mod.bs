@@ -1,7 +1,7 @@
+module mod
 manifest aaa
 
 instructions:
 
 a = dispense aaa
-
-heat a at 100c
+b = detect aaa on a
