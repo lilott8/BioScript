@@ -1,6 +1,8 @@
 manifest aaa
+manifest bbb
 
 instructions:
 
 a = dispense aaa
-b = split a into 5
+
+c = mix a with bbb

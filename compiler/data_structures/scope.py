@@ -1,4 +1,4 @@
-from compiler.data_structures.variable import Variable
+from compiler.data_structures.variable import Symbol
 
 
 class Scope(object):
@@ -15,7 +15,7 @@ class Scope(object):
         self.name = name
         self.locals = dict()
 
-    def add_local(self, local: Variable):
+    def add_local(self, local: Symbol):
         """
         Adds a local variable to the scope.
         :param local: Variable that belongs to this scope.

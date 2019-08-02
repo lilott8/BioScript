@@ -1,0 +1,2 @@
+class FunctionBase(object):
+    pass

@@ -2,4 +2,4 @@ manifest aaa
 
 instructions:
 
-a[10] = dispense aaa
+b = split aaa into 2

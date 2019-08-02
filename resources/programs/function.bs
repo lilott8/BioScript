@@ -8,7 +8,7 @@ function foo(a, b) {
   cat = mix a with b
   aa = mix b with a
   cc = mix cat with aa
-  return cc 
+  return cc
 }
 
 instructions:

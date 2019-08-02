@@ -7,6 +7,22 @@ from chemicals.chemtypes import ChemTypes
 from compiler.data_structures.properties import *
 
 
+class Symbol(object):
+    """
+    Used for populating the symbol table.
+    We don't require a lot information at
+    this point, so we only take what we need.
+    """
+
+    def __init__(self, name: str, scope: str, types: Set[ChemTypes]):
+        self.name = name
+        self.scope = scope
+        self.types = types
+
+    def __repr__(self):
+        return "[{}]\t{}\t{}".format(self.scope, self.name, self.types)
+
+
 class Variable(metaclass=ABCMeta):
 
     def __init__(self, name: str, types: set = None, scope: str = "unknown"):
@@ -165,7 +181,7 @@ class Reagent(Variable, metaclass=ABCMeta):
                 self._value[k].temperature = {'op': val['op'], 'values': v}
 
     def __repr__(self):
-        output = "Chemical: "
+        output = "Reagent: "
         output += super().__repr__() + "\t"
         output += "size: {}\t{}".format(self.size, self.volume)
         return output

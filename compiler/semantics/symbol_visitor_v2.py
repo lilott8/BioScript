@@ -1,7 +1,8 @@
 import copy
 
+from chemicals.chemtypes import ChemTypes
 from chemicals.identifier import Identifier
-from compiler.data_structures.properties import FluidProperties
+from compiler.data_structures.properties import FluidProperties, BSVolume
 from compiler.data_structures.variable import Movable, Number
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import *
@@ -22,14 +23,14 @@ class SymbolTableVisitorV2(BSBaseVisitor):
         self.symbol_table.new_scope("main")
         self.scope_stack.append('main')
 
-        if ctx.functions():
-            self.visitChildren(ctx.functions())
-
         # We set current_scope equal to main for because the statements
         # hereafter are main's statements.
         self.symbol_table.current_scope = self.symbol_table.scope_map['main']
         for statement in ctx.statements():
             self.visitStatements(statement)
+
+        if ctx.functions():
+            self.visitChildren(ctx.functions())
 
     def visitFunctions(self, ctx: BSParser.FunctionsContext):
         return super().visitFunctions(ctx)
@@ -55,21 +56,6 @@ class SymbolTableVisitorV2(BSBaseVisitor):
 
     def visitReturnStatement(self, ctx: BSParser.ReturnStatementContext):
         return super().visitReturnStatement(ctx)
-
-    def visitBlockStatement(self, ctx: BSParser.BlockStatementContext):
-        return super().visitBlockStatement(ctx)
-
-    def visitStatements(self, ctx: BSParser.StatementsContext):
-        return super().visitStatements(ctx)
-
-    def visitIfStatement(self, ctx: BSParser.IfStatementContext):
-        return super().visitIfStatement(ctx)
-
-    def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
-        return super().visitWhileStatement(ctx)
-
-    def visitRepeat(self, ctx: BSParser.RepeatContext):
-        return super().visitRepeat(ctx)
 
     def visitHeat(self, ctx: BSParser.HeatContext):
         use = self.visitVariable(ctx.variable())
@@ -254,7 +240,14 @@ class SymbolTableVisitorV2(BSBaseVisitor):
         return super().visitStore(ctx)
 
     def visitMath(self, ctx: BSParser.MathContext):
-        return super().visitMath(ctx)
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        # this handles array creation.
+        deff['index'] = 1 if deff['index'] == -1 else deff['index']
+
+        var = Number(deff['name'], scope=self.scope_stack[-1], size=deff['index'])
+        self.symbol_table.add_local(var)
+
+        return None
 
     def visitBinops(self, ctx: BSParser.BinopsContext):
         return super().visitBinops(ctx)
@@ -263,10 +256,50 @@ class SymbolTableVisitorV2(BSBaseVisitor):
         return super().visitParExpression(ctx)
 
     def visitMethodCall(self, ctx: BSParser.MethodCallContext):
-        return super().visitMethodCall(ctx)
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        deff['index'] = 1 if deff['index'] == -1 else deff['index']
+
+        function = self.symbol_table.functions[ctx.IDENTIFIER().__str__()]
+
+        # Update the args for the function.  Because it's impossible
+        # To create the variables for the args before hand, it must
+        # happen during invocation.
+        if ctx.expressionList():
+            args = self.visitExpressionList(ctx.expressionList())
+            if not function.args and args:
+                for arg in args:
+                    function.args = arg
+                    self.symbol_table.add_local_to_scope(arg['var'], function.name)
+
+        var_types = set()
+        if ChemTypes.NAT in function.types or ChemTypes.REAL in function.types:
+            var_types.add(ChemTypes.NAT)
+            var_types.add(ChemTypes.REAL)
+            var = Number(deff['name'], var_types, self.scope_stack[-1], size=deff['index'])
+        else:
+            var_types.update(function.types)
+            size = -1 if not function.size else function.size
+            vol = 10.0 if not function.return_var else function.return_var.volume['quantity']
+            var = Movable(deff['name'], var_types, self.scope_stack[-1], size=size,
+                          volume=vol, units=BSVolume.MICROLITRE)
+
+        self.symbol_table.add_local(var)
+        return None
 
     def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
-        return super().visitExpressionList(ctx)
+        args = list()
+
+        for arg in ctx.primary():
+            temp = self.visitPrimary(arg)
+            var = self.symbol_table.get_local(temp['name'])
+            if temp['index'] == -1:
+                temp['index'] = var.size
+            else:
+                self.check_bounds(var, temp['index'])
+            temp['index'] = 1 if temp['index'] == -1 else temp['index']
+            args.append({'var': var, 'index': temp['index']})
+
+        return args
 
     def visitTypeType(self, ctx: BSParser.TypeTypeContext):
         return super().visitTypeType(ctx)
@@ -277,20 +310,8 @@ class SymbolTableVisitorV2(BSBaseVisitor):
     def visitTypesList(self, ctx: BSParser.TypesListContext):
         return super().visitTypesList(ctx)
 
-    def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
-        return super().visitVariableDefinition(ctx)
-
-    def visitVariable(self, ctx: BSParser.VariableContext):
-        return super().visitVariable(ctx)
-
     def visitPrimitiveType(self, ctx: BSParser.PrimitiveTypeContext):
         return super().visitPrimitiveType(ctx)
-
-    def visitTimeIdentifier(self, ctx: BSParser.TimeIdentifierContext):
-        return super().visitTimeIdentifier(ctx)
-
-    def visitTemperatureIdentifier(self, ctx: BSParser.TemperatureIdentifierContext):
-        return super().visitTemperatureIdentifier(ctx)
 
     @staticmethod
     def isPower(x, y):

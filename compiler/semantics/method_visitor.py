@@ -16,6 +16,12 @@ class MethodVisitor(BSBaseVisitor):
 
     def __init__(self, symbol_table):
         super().__init__(symbol_table, "Method Visitor")
+        # This holds all the unresolved functions -- functions
+        # that return a function.  This is required because
+        # if you have a(b(c())), you'll never know what c()
+        # or b() return without looking back after they've
+        # been constructed.
+        self.unresolved = set()
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         if ctx.functions():
@@ -36,7 +42,7 @@ class MethodVisitor(BSBaseVisitor):
         """
         name = ctx.IDENTIFIER().__str__()
 
-        self.symbol_table.add_new_scope(name)
+        self.symbol_table.new_scope(name)
         types = set()
 
         if ctx.functionTyping():
@@ -46,28 +52,26 @@ class MethodVisitor(BSBaseVisitor):
         if ctx.formalParameters():
             args = self.visitFormalParameters(ctx.formalParameters())
 
-        # return_var = self.visitReturnStatement(ctx.returnStatement())
-        bs_function = Function(name, types, args)
+        return_var = self.visitReturnStatement(ctx.returnStatement())
+        if not return_var:
+            self.unresolved.add(name)
 
-        self.symbol_table.add_function(bs_function)
+        bs_function = Function(name, types, args, return_var=return_var)
+
+        self.symbol_table.functions[name] = bs_function
         self.symbol_table.end_scope()
 
     def visitReturnStatement(self, ctx: BSParser.ReturnStatementContext):
-        if ctx.IDENTIFIER():
-            value = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.symbol_table.current_scope.name)
-            value = value.name
-        elif ctx.literal():
-            value = Number('Constant_{}'.format(self.visitLiteral(ctx.literal())),
-                           value=float(self.visitLiteral(ctx.literal())), is_constant=False)
-            self.symbol_table.add_local(value)
-            value = value.name
-        elif ctx.methodCall():
-            call = self.visitMethodCall(ctx.methodCall())
-            value = call + "_return"
+        if ctx.primary():
+            ret = self.visitPrimary(ctx.primary())
         else:
-            value = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.symbol_table.current_scope.name)
-            value = value.name
-        return value
+            ret = self.visitMethodCall(ctx.methodCall())
+
+        # Because primary can emit a literal, we have to look
+        # at all variables.  As literals are global.
+        ret_var = self.symbol_table.get_variable(ret['name'])
+
+        return ret_var
 
     def visitFormalParameters(self, ctx: BSParser.FormalParametersContext):
         if ctx.formalParameterList():
@@ -88,14 +92,14 @@ class MethodVisitor(BSBaseVisitor):
         else:
             types.add(ChemTypes.UNKNOWN)
 
-        name = self.rename_var(ctx.IDENTIFIER().__str__())
-        variable = Variable(name, types, self.symbol_table.current_scope.name)
-        self.symbol_table.add_local(variable)
-        return variable
+        name = ctx.IDENTIFIER().__str__()
+        return {'name': name, 'types': types}
 
     def visitFunctionTyping(self, ctx: BSParser.FunctionTypingContext):
         # This is a pass-thru function.
         return self.visitUnionType(ctx.unionType())
 
     def visitMethodCall(self, ctx: BSParser.MethodCallContext):
-        return ctx.IDENTIFIER().__str__()
+        function = self.symbol_table.functions[ctx.IDENTIFIER().__str__()]
+
+        return function

@@ -2,5 +2,5 @@ manifest aaa
 
 instructions:
 
-a[3] = dispense aaa
+a = dispense aaa
 b = split a into 2

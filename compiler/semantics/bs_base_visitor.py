@@ -1,14 +1,21 @@
+from abc import ABCMeta
+from typing import Set, Dict
+
+import colorlog
+
 import compiler.data_structures.symbol_table as st
-from compiler.data_structures.ir import *
+from chemicals.chemtypes import ChemTypeResolver, ChemTypes
+from chemicals.identifier import Identifier, NaiveIdentifier
+from compiler.data_structures.properties import BSTime, BSTemperature
 from compiler.data_structures.scope import Scope
+from compiler.data_structures.variable import Number
 from grammar.parsers.python.BSParser import BSParser
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
-from shared.bs_exceptions import *
 
 
-class BSBaseVisitor(BSParserVisitor):
+class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
 
-    def __init__(self, symbol_table: st.SymbolTable, name="BaseVisitor"):
+    def __init__(self, symbol_table: st.SymbolTable, name="BaseVisitor", identifier: Identifier = NaiveIdentifier()):
         super().__init__()
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.visitor_name = name
@@ -21,6 +28,8 @@ class BSBaseVisitor(BSParserVisitor):
         self.scope_stack = list()
         # Determines if renaming should happen.
         self.rename = False
+        self.const = 'CONST_'
+        self.identifier = identifier
 
     def visitTimeIdentifier(self, ctx: BSParser.TimeIdentifierContext) -> dict:
         quantity = 10.0
@@ -38,7 +47,10 @@ class BSBaseVisitor(BSParserVisitor):
         return {'quantity': quantity, 'units': BSTemperature.CELSIUS, 'preserved_units': units}
 
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
-        return self.visitVariable(ctx.variable())
+        var = self.visitVariable(ctx.variable())
+        if ctx.unionType():
+            var['types'] = self.visitUnionType(ctx.unionType())
+        return var
 
     def visitVariable(self, ctx: BSParser.VariableContext):
         """
@@ -55,27 +67,51 @@ class BSBaseVisitor(BSParserVisitor):
         # Array_ref is context specific, something visitVariable cannot infer.
         # Either it is the size of the element or the index.
         # In something like a dispense, it's a size; if it's a mix, it's an index.
-        return {"name": ctx.IDENTIFIER().__str__(), "index": index}
+        return {"name": ctx.IDENTIFIER().__str__(), "index": index, 'types': {ChemTypes.UNKNOWN}}
 
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
-        if ctx.IDENTIFIER():
-            if not self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1]):
-                raise UndefinedException("Undeclared variable: {}".format(ctx.IDENTIFIER().__str__()))
-            return ctx.IDENTIFIER().__str__()
-        elif ctx.literal():
-            return self.visitLiteral(ctx.literal())
+        if ctx.variable():
+            primary = self.visitVariable(ctx.variable())
         else:
-            return self.visitExpression(ctx.expression())
+            value = self.visitLiteral(ctx.literal())
+            # It's a constant, thus, the size must be 1 and index 0.
+            primary = {'name': "{}_{}".format(self.const, value), "index": 0,
+                       'value': value, 'types': ChemTypeResolver.numbers()}
+        return primary
 
     def visitLiteral(self, ctx: BSParser.LiteralContext):
         if ctx.INTEGER_LITERAL():
-            return ctx.INTEGER_LITERAL().__str__()
+            return int(ctx.INTEGER_LITERAL().__str__())
         elif ctx.BOOL_LITERAL():
-            return ctx.BOOL_LITERAL().__str__()
+            return bool(ctx.BOOL_LITERAL().__str__())
         elif ctx.FLOAT_LITERAL():
-            return ctx.FLOAT_LITERAL().__str__()
+            return float(ctx.FLOAT_LITERAL().__str__())
         else:
             return ctx.STRING_LITERAL().__str__()
+
+    def visitTypeType(self, ctx: BSParser.TypeTypeContext):
+        return ChemTypeResolver.string_to_type(self.visitPrimitiveType(ctx.primitiveType()))
+
+    def visitUnionType(self, ctx: BSParser.UnionTypeContext):
+        return self.visitUnionType(ctx)
+
+    def visitTypesList(self, ctx: BSParser.TypesListContext):
+        types = set()
+        for t in ctx.typeType():
+            types.add(ctx.typeType(t))
+        return types
+
+    def visitPrimitiveType(self, ctx: BSParser.PrimitiveTypeContext):
+        if ctx.MAT():
+            return "MAT"
+        elif ctx.REAL():
+            return "REAL"
+        elif ctx.NAT():
+            return "NAT"
+        elif ctx.BOOL():
+            return "NAT"
+        else:
+            return "MAT"
 
     # def visitExpression(self, ctx: BSParser.ExpressionContext):
     #     if ctx.primary():
@@ -162,18 +198,19 @@ class BSBaseVisitor(BSParserVisitor):
         else:
             return self.symbol_table.scope_map[name]
 
-    def check_bounds(self, var: Variable, index: int) -> bool:
+    def resolve_types(self, var: Dict) -> Set:
         """
-        Check to see if we have a valid offset for a variable.
-        :param var: Variable to bound check.
-        :param index: int offset.
-        :return: bool: key is in the object.
-        :raises:
-            KeyError: if the key doesn't exist in the object,
-                this will throw an error.
+        Build the typing information for a variable.
+        :param var: The variable needing typing information.
+        :return: Set of types.
         """
-        if index >= 0:
-            return var.value[index]
+        if ChemTypes.UNKNOWN not in var['types']:
+            return var['types']
+        else:
+            types = self.identifier.identify(var['name'], var['types'])
+            if ChemTypes.UNKNOWN in types:
+                types.remove(ChemTypes.UNKNOWN)
+            return types
 
     @staticmethod
     def is_number(num):

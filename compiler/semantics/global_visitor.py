@@ -1,4 +1,4 @@
-import chemicals.identifier as identifier
+from chemicals.identifier import Identifier
 from compiler.data_structures.variable import *
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
@@ -6,9 +6,8 @@ from grammar.parsers.python.BSParser import BSParser
 
 class GlobalVariableVisitor(BSBaseVisitor):
 
-    def __init__(self, symbol_table, identifier: identifier.Identifier):
-        super().__init__(symbol_table, "Global Visitor")
-        self.identifier = identifier
+    def __init__(self, symbol_table, identifier: Identifier):
+        super().__init__(symbol_table, "Global Visitor", identifier)
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.visitModuleDeclaration(ctx.moduleDeclaration())
@@ -17,22 +16,12 @@ class GlobalVariableVisitor(BSBaseVisitor):
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         for name in ctx.IDENTIFIER():
-            variable = Module(name.__str__())
-            self.symbol_table.add_global(variable)
+            self.symbol_table.add_global(Symbol(name.__str__(), "global", {ChemTypes.MODULE}))
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
-        types = {ChemTypes.MAT}
         for name in ctx.IDENTIFIER():
-            var = self.identifier.identify(name.__str__(), types=types, scope=self.global_scope)
-            variable = Dispensable(var['name'], var['types'], var['scope'],
-                                   volume=float("inf"), units=BSVolume.MICROLITRE)
-            variable.is_global = True
-            self.symbol_table.add_global(variable)
+            self.symbol_table.add_global(Symbol(name.__str__(), "global", self.identifier.identify(name.__str__())))
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
-        types = {ChemTypes.MAT}
         for name in ctx.IDENTIFIER():
-            var = self.identifier.identify(name.__str__(), types=types, scope=self.global_scope)
-            variable = Stationary(var['name'], var['types'])
-            variable.is_global = True
-            self.symbol_table.add_global(variable)
+            self.symbol_table.add_global(Symbol(name.__str__(), "global", self.identifier.identify(name.__str__())))
