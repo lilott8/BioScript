@@ -7,8 +7,7 @@ from compiler.data_structures.variable import Variable
 
 class Function(object):
 
-    def __init__(self, name: str, return_types: Set[ChemTypes] = set(), arguments: List[str] = list(),
-                 return_var: Variable = None):
+    def __init__(self, name: str, return_types: Set[ChemTypes] = set(), arguments: List[str] = list()):
         self.name = name
         self.types = return_types
         # This is a dictionary of: {'name': str, 'types': Set[ChemTypes]}
@@ -16,9 +15,7 @@ class Function(object):
         # elsewhere into the correct state.
         self._temp_args = arguments
         # This is the actual argument list for the method.
-        self._args = list()
-        # This is a string.
-        self.return_var = return_var
+        self._args = arguments
 
     @property
     def args(self):
@@ -26,6 +23,8 @@ class Function(object):
 
     @args.setter
     def args(self, element: Variable):
+        if len(self._args) == self._temp_args:
+            return
         arg = copy.deepcopy(element['var'])
         arg.scope = self.name
         arg.name = self._temp_args[len(self._args) - 1]

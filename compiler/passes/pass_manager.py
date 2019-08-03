@@ -7,7 +7,6 @@ from compiler.passes.analyses.def_use import DefUseChains
 from compiler.passes.transforms.inline import Inline
 from compiler.passes.transforms.split_edges import SplitEdges
 from compiler.passes.transforms.ssa import SSA
-from shared.bs_exceptions import UnInitializedError
 
 
 class PassManager(object):
@@ -33,8 +32,6 @@ class PassManager(object):
             # self.log.info(self.program.functions['main']['blocks'])
 
     def run_transformations(self):
-        if self.config is None:
-            raise UnInitializedError("Config hasn't been initialized yet.")
         self.init_transforms()
         # TODO: This should be handled through decorator.
         # TODO: Make this handle dependencies correctly.
@@ -44,8 +41,6 @@ class PassManager(object):
             self.program = value.transform(self.program)
 
     def run_analysis(self):
-        if self.config is None:
-            raise UnInitializedError("Config hasn't been initialized yet.")
         self.init_analysis()
         # TODO: This should be handled through decorator.
         for key, value in self.analysis.items():

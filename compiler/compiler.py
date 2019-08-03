@@ -11,9 +11,9 @@ from compiler.passes.pass_manager import PassManager
 from compiler.semantics.global_visitor import GlobalVariableVisitor
 from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
-from compiler.semantics.simple_symbol_visitor import SimpleSymbolVisitor
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
 from compiler.semantics.type_visitor import TypeCheckVisitor
+from compiler.targets.target_selector import TargetSelector
 from grammar.parsers.python.BSLexer import BSLexer
 from grammar.parsers.python.BSParser import BSParser
 from solvers.z3_solver import Z3Solver
@@ -90,29 +90,16 @@ class BSCompiler(object):
         symbol_table = SymbolTable()
         identifier = self.config.identify.get_identifier()
 
-        visitor_passes = [GlobalVariableVisitor(symbol_table, identifier),  # , MethodVisitor(symbol_table),
-                          SimpleSymbolVisitor(symbol_table, identifier)
-                          ]
+        visitor_passes = [GlobalVariableVisitor(symbol_table, identifier), SymbolTableVisitor(symbol_table, identifier)]
+
+        if self.config.typecheck:
+            visitor_passes.append(TypeCheckVisitor(symbol_table, self.config.combine.get_combiner(
+                self.config.epa_defs, self.config.abstract_interaction), self.config.types_used))
 
         for visitor in visitor_passes:
             if self.config.debug:
                 self.log.info("Running {} pass.".format(visitor.visitor_name))
             visitor.visit(tree)
-
-
-        # This gets run first, gathering all the globals.
-        # global_visitor = GlobalVariableVisitor(SymbolTable(), self.config.identify.get_identifier())
-        # global_visitor.visit(tree)
-
-        # Build the functions and their symbols next.
-        # self.log.error("Not parsing functions yet...")
-        # method_visitor = MethodVisitor(global_visitor.symbol_table)
-        # method_visitor.visit(tree)
-
-        # Finish building the symbol table.
-        # self.log.error("Using global_visitor's symbol table.")
-        # symbol_visitor = SymbolTableVisitorV2(global_visitor.symbol_table, self.config.identify.get_identifier())
-        # symbol_visitor.visit(tree)
 
         self.log.info(symbol_table)
 

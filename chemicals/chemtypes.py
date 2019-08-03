@@ -190,6 +190,14 @@ class ChemTypeResolver(object):
         return value in ChemTypeResolver._numbers
 
     @staticmethod
+    def is_only_numeric(value: Set) -> bool:
+        return ChemTypeResolver.is_number_in_set(value) and not ChemTypeResolver.is_mat_in_set(value)
+
+    @staticmethod
+    def is_only_material(value: Set) -> bool:
+        return ChemTypeResolver.is_mat_in_set(value) and not ChemTypeResolver.is_number_in_set(value)
+
+    @staticmethod
     def is_mat_in_set(value: Set) -> bool:
         return bool(value.intersection(ChemTypeResolver._materials))
 

@@ -43,7 +43,7 @@ class MethodVisitor(BSBaseVisitor):
         name = ctx.IDENTIFIER().__str__()
 
         self.symbol_table.new_scope(name)
-        types = set()
+        types = {ChemTypes.UNKNOWN}
 
         if ctx.functionTyping():
             types = self.visitFunctionTyping(ctx.functionTyping())
@@ -56,7 +56,7 @@ class MethodVisitor(BSBaseVisitor):
         if not return_var:
             self.unresolved.add(name)
 
-        bs_function = Function(name, types, args, return_var=return_var)
+        bs_function = Function(name, types, args)
 
         self.symbol_table.functions[name] = bs_function
         self.symbol_table.end_scope()
@@ -69,7 +69,7 @@ class MethodVisitor(BSBaseVisitor):
 
         # Because primary can emit a literal, we have to look
         # at all variables.  As literals are global.
-        ret_var = self.symbol_table.get_variable(ret['name'])
+        ret_var = self.symbol_table.get_symbol(ret['name'])
 
         return ret_var
 

@@ -204,13 +204,16 @@ class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
         :param var: The variable needing typing information.
         :return: Set of types.
         """
-        if ChemTypes.UNKNOWN not in var['types']:
-            return var['types']
-        else:
+        if ChemTypes.UNKNOWN in var['types'] and len(var['types']) == 1:
             types = self.identifier.identify(var['name'], var['types'])
             if ChemTypes.UNKNOWN in types:
                 types.remove(ChemTypes.UNKNOWN)
             return types
+        elif ChemTypes.UNKNOWN in var['types'] and len(var['types']) > 1:
+            var['types'].remove(ChemTypes.UNKNOWN)
+            return var['types']
+        else:
+            return var['types']
 
     @staticmethod
     def is_number(num):

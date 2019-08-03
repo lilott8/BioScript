@@ -7,8 +7,8 @@ from chemicals.identifier import NaiveIdentifier
 from compiler.data_structures.symbol_table import SymbolTable
 from compiler.semantics.global_visitor import GlobalVariableVisitor
 from compiler.semantics.method_visitor import MethodVisitor
-from compiler.semantics.simple_symbol_visitor import SimpleSymbolVisitor
-from shared.bs_exceptions import UndefinedVariable
+from compiler.semantics.symbol_visitor import SymbolTableVisitor
+from shared.bs_exceptions import UndefinedVariable, UndefinedFunction
 
 
 class InstructionBase(metaclass=ABCMeta):
@@ -27,7 +27,7 @@ class InstructionBase(metaclass=ABCMeta):
 
     @staticmethod
     def run_symbols(tree, symbol_table: SymbolTable) -> SymbolTable:
-        symbol_visitor = SimpleSymbolVisitor(symbol_table, NaiveIdentifier())
+        symbol_visitor = SymbolTableVisitor(symbol_table, NaiveIdentifier())
         symbol_visitor.visit(tree)
         return symbol_visitor.symbol_table
 
@@ -129,7 +129,7 @@ class TestMix(InstructionBase):
         input_2 = st.get_local('b', 'main')
         output = st.get_local('c', 'main')
 
-        assert ChemTypeResolver.is_mat_in_set(input_1.types) and not ChemTypeResolver.is_number_in_set(input_1.types)
+        assert ChemTypeResolver.is_only_material(input_1.types)
         assert ChemTypeResolver.is_number_in_set(input_2.types) and ChemTypeResolver.is_number_in_set(input_2.types)
         assert ChemTypeResolver.is_number_in_set(output.types) and ChemTypeResolver.is_mat_in_set(output.types)
         assert input_1.scope == 'main'
@@ -144,9 +144,9 @@ class TestMix(InstructionBase):
         input_2 = st.get_local('b', 'main')
         output = st.get_local('c', 'main')
 
-        assert ChemTypeResolver.is_mat_in_set(input_1.types) and not ChemTypeResolver.is_number_in_set(input_1.types)
-        assert ChemTypeResolver.is_mat_in_set(input_2.types) and not ChemTypeResolver.is_number_in_set(input_2.types)
-        assert ChemTypeResolver.is_mat_in_set(output.types) and not ChemTypeResolver.is_number_in_set(output.types)
+        assert ChemTypeResolver.is_only_material(input_1.types)
+        assert ChemTypeResolver.is_only_material(input_2.types)
+        assert ChemTypeResolver.is_only_material(output.types)
         assert input_1.scope == 'main'
         assert input_2.scope == 'main'
         assert output.scope == 'main'
@@ -172,7 +172,7 @@ class TestDetect(InstructionBase):
         mod = st.get_global('mod')
         output = st.get_local('b', 'main')
 
-        assert ChemTypeResolver.is_mat_in_set(input_1.types) and not ChemTypeResolver.is_number_in_set(input_1.types)
+        assert ChemTypeResolver.is_only_material(input_1.types)
         assert ChemTypes.MODULE in mod.types and len(mod.types) == 1
         assert not ChemTypeResolver.is_mat_in_set(output.types) and ChemTypeResolver.is_number_in_set(output.types)
 
@@ -212,7 +212,7 @@ class TestHeat(InstructionBase):
         st = self.get_symbols(get_visitor(file))
 
         output = st.get_local('a', 'main')
-        assert ChemTypeResolver.is_mat_in_set(output.types) and not ChemTypeResolver.is_number_in_set(output.types)
+        assert ChemTypeResolver.is_only_material(output.types)
 
     def test_nat(self, get_visitor):
         file = "test_cases/heat/symbol_table_nat.bs"
@@ -240,7 +240,7 @@ class TestDispose(InstructionBase):
 
         output = st.get_local('a', 'main')
 
-        assert ChemTypeResolver.is_mat_in_set(output.types) and not ChemTypeResolver.is_number_in_set(output.types)
+        assert ChemTypeResolver.is_only_material(output.types)
 
     def test_nat(self, get_visitor):
         file = "test_cases/dispose/symbol_table_nat.bs"
@@ -267,7 +267,7 @@ class TestStore(InstructionBase):
 
         output = st.get_local('a', 'main')
 
-        assert ChemTypeResolver.is_mat_in_set(output.types) and not ChemTypeResolver.is_number_in_set(output.types)
+        assert ChemTypeResolver.is_only_material(output.types)
 
     def test_nat(self, get_visitor):
         file = "test_cases/store/symbol_table_nat.bs"
@@ -302,7 +302,7 @@ class TestSplit(InstructionBase):
         output = st.get_local('b', 'main')
 
         assert ChemTypeResolver.is_mat_in_set(input_1.types)
-        assert ChemTypeResolver.is_mat_in_set(output.types) and not ChemTypeResolver.is_number_in_set(output.types)
+        assert ChemTypeResolver.is_only_material(output.types)
         assert input_1.scope == 'main'
         assert output.scope == 'main'
 
@@ -323,3 +323,109 @@ class TestSplit(InstructionBase):
             file = "test_cases/split/symbol_table_undefined.bs"
             st = self.get_symbols(get_visitor(file))
             # Testing that an exception is thrown is the test.
+
+
+@pytest.mark.frontend
+@pytest.mark.symbol_table
+@pytest.mark.instructions
+@pytest.mark.math
+class TestMath(InstructionBase):
+
+    def test_literals(self, get_visitor):
+        file = "test_cases/math/symbol_table_literals.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('a', 'main')
+
+        assert ChemTypeResolver.is_only_numeric(output.types)
+
+    def test_mat_nat(self, get_visitor):
+        file = "test_cases/math/symbol_table_mat_nat.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        input_1 = st.get_local('a', 'main')
+        output = st.get_local('b', 'main')
+
+        assert ChemTypeResolver.is_number_in_set(input_1.types) and ChemTypeResolver.is_number_in_set(input_1.types)
+        assert ChemTypeResolver.is_only_numeric(output.types)
+
+    def test_undefined(self, get_visitor):
+        with pytest.raises(UndefinedVariable):
+            file = "test_cases/math/symbol_table_undefined.bs"
+            st = self.get_symbols(get_visitor(file))
+            # Testing that an exception is thrown is the test.
+
+    def test_var_literals(self, get_visitor):
+        file = "test_cases/math/symbol_table_var_literal.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('a', 'main')
+
+        assert ChemTypeResolver.is_only_numeric(output.types)
+
+
+@pytest.mark.frontend
+@pytest.mark.symbol_table
+@pytest.mark.instructions
+@pytest.mark.functions
+class TestFunction(InstructionBase):
+
+    def test_return_mat(self, get_visitor):
+        file = "test_cases/function/symbol_table_ret_mat.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        ret_val = st.get_local('a', 'foo')
+        output = st.get_local('a', 'main')
+        func = st.functions['foo']
+
+        assert ChemTypeResolver.is_only_material(ret_val.types)
+        assert ChemTypeResolver.is_only_material(output.types)
+        assert ChemTypeResolver.is_only_material(func.types)
+
+    def test_return_nat(self, get_visitor):
+        file = "test_cases/function/symbol_table_ret_nat.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        ret_val = st.get_local('a', 'foo')
+        output = st.get_local('a', 'main')
+        func = st.functions['foo']
+
+        assert ChemTypeResolver.is_only_numeric(ret_val.types)
+        assert ChemTypeResolver.is_only_numeric(output.types)
+        assert ChemTypeResolver.is_only_numeric(func.types)
+
+    def test_mat_args(self, get_visitor):
+        file = "test_cases/function/symbol_table_mat_args.bs"
+        st = self.get_symbols(get_visitor(file))
+
+    def test_mixed_args(self, get_visitor):
+        file = "test_cases/function/symbol_table_mixed_args.bs"
+        st = self.get_symbols(get_visitor(file))
+
+    def test_nat_args(self, get_visitor):
+        file = "test_cases/function/symbol_table_nat_args.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        arg1 = st.functions['foo'].args[0]
+        arg2 = st.functions['foo'].args[1]
+        output = st.get_local('a', 'main')
+
+        assert ChemTypeResolver.is_only_numeric(arg1.types)
+        assert ChemTypeResolver.is_only_numeric(arg2.types)
+        assert ChemTypeResolver.is_only_numeric(output.types)
+
+    def test_ret_method(self, get_visitor):
+        file = "test_cases/function/symbol_table_ret_method.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        assert 1 == 2
+
+    def test_undefined_arg(self, get_visitor):
+        with pytest.raises(UndefinedVariable):
+            file = "test_cases/function/symbol_table_undefined_arg.bs"
+            st = self.get_symbols(get_visitor(file))
+
+    def test_undefined_function(self, get_visitor):
+        with pytest.raises(UndefinedFunction):
+            file = "test_cases/function/symbol_table_undefined_function.bs"
+            st = self.get_symbols(get_visitor(file))

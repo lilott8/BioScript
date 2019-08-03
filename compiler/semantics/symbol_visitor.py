@@ -1,362 +1,236 @@
-from chemicals.chemtypes import *
+from chemicals.chemtypes import ChemTypeResolver, ChemTypes
 from chemicals.identifier import Identifier
-from compiler.data_structures.ir import IRInstruction
-from compiler.data_structures.variable import Movable, Number
+from compiler.data_structures.function import Function
+from compiler.data_structures.variable import Symbol
 from grammar.parsers.python.BSParser import BSParser
-from shared.bs_exceptions import *
+from shared.bs_exceptions import UndefinedVariable, UndefinedFunction, UnsupportedOperation
 from .bs_base_visitor import BSBaseVisitor
 
 
 class SymbolTableVisitor(BSBaseVisitor):
 
     def __init__(self, symbol_table, identifier: Identifier):
-        super().__init__(symbol_table, "Symbol Visitor")
-        # The identifier to use.
-        self.identifier = identifier
-        self.rename = False
+        super().__init__(symbol_table, "SimpleSymbolVisitor", identifier)
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         # Visiting globals is done in global_visitor.
+        # Add main first, it is the root.
+        self.symbol_table.new_scope("main")
+        self.scope_stack.append('main')
 
-        for func in ctx.functionDeclaration():
-            self.visitFunctionDeclaration(func)
+        if ctx.functions():
+            self.visitFunctions(ctx.functions())
 
         # We set current_scope equal to main for because the statements
         # hereafter are main's statements.
-        self.symbol_table.current_scope = self.symbol_table.scope_map["main"]
+        self.symbol_table.current_scope = self.symbol_table.scope_map['main']
         for statement in ctx.statements():
             self.visitStatements(statement)
+
+    def visitFunctions(self, ctx: BSParser.FunctionsContext):
+        for func in ctx.functionDeclaration():
+            self.visitFunctionDeclaration(func)
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
+        """
+        This populates the symbol table with methods.
+        It cannot handle return values.  So all records
+        In the symbol table will be empty typed.
+        :param ctx: visitor context
+        :return: nothing
+        """
         name = ctx.IDENTIFIER().__str__()
 
-        self.scope_stack.append(name)
-        # This sets the current scope.  At this point,
-        # The scope should have been created by now.
-        self.symbol_table.current_scope = self.symbol_table.scope_map[name]
-        method = self.symbol_table.functions[name]
-        types = set()
+        self.symbol_table.new_scope(name)
+
+        args = list()
+
+        if ctx.formalParameters():
+            args = self.visitFormalParameters(ctx.formalParameters())
 
         for statement in ctx.statements():
             self.visitStatements(statement)
 
-        return_data = self.visitReturnStatement(ctx.returnStatement())
-        method.types = types.union(return_data['types'])
-        method.return_size = return_data['size']
+        types = set()
+        if ctx.functionTyping():
+            types.update(self.visitFunctionTyping(ctx.functionTyping()))
+        types.update(self.visitReturnStatement(ctx.returnStatement()))
 
-        self.symbol_table.functions[name] = method
+        bs_function = Function(name, types, args)
 
-        self.scope_stack.pop()
+        self.symbol_table.functions[name] = bs_function
+        self.symbol_table.end_scope()
+
+    def visitReturnStatement(self, ctx: BSParser.ReturnStatementContext):
+        # It's either a primary or a method call
+        types = set()
+        if ctx.primary():
+            var = self.visitPrimary(ctx.primary())
+            local = self.symbol_table.get_local(var['name'])
+            # If we don't have a local, this is a constant.
+            if local:
+                types = self.symbol_table.get_local(var['name']).types
+            else:
+                types = ChemTypeResolver.numbers()
+        elif ctx.methodCall():
+            raise UnsupportedOperation("You need to fix the grammar, a method call is currently: vd ID LP (el)? RP")
+        else:
+            raise UnsupportedOperation("Only method calls or values are returnable.")
+
+        return types
 
     def visitFormalParameters(self, ctx: BSParser.FormalParametersContext):
         if ctx.formalParameterList():
             return self.visitFormalParameterList(ctx.formalParameterList())
-        else:
-            return list()
 
     def visitFormalParameterList(self, ctx: BSParser.FormalParameterListContext):
-        args = list()
+        params = list()
         for param in ctx.formalParameter():
-            args.append(self.visitFormalParameter(param))
-        return args
+            params.append(self.visitFormalParameter(param))
+        return params
 
     def visitFormalParameter(self, ctx: BSParser.FormalParameterContext):
-        types = set()
         if ctx.unionType():
             types = self.visitUnionType(ctx.unionType())
         else:
-            types.add(ChemTypes.UNKNOWN)
-
-        name = ctx.IDENTIFIER().__str__()
-        variable = Variable(name, types, self.symbol_table.current_scope.name)
-        self.symbol_table.add_local(variable)
-        return variable
-
-    def visitFunctionTyping(self, ctx: BSParser.FunctionTypingContext):
-        # This is a pass-thru function.
-        return self.visitUnionType(ctx.unionType())
-
-    def visitReturnStatement(self, ctx: BSParser.ReturnStatementContext):
-        if ctx.methodCall():
-            #if not self.config.supports_functions:
-            #    raise InvalidOperation("Target: {} doesn't support function returns.".format(self.config.target.name))
-            return self.visitMethodCall(ctx.methodCall())
-        elif ctx.literal():
-            return self.visitLiteral(ctx.literal())
-        else:
-            variable = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__())
-            return {'types': variable.types, 'size': variable.size}
-
-    def visitBlockStatement(self, ctx: BSParser.BlockStatementContext):
-        return super().visitBlockStatement(ctx)
-
-    def visitStatements(self, ctx: BSParser.StatementsContext):
-        return self.visitChildren(ctx)
-
-    def visitIfStatement(self, ctx: BSParser.IfStatementContext):
-        return super().visitIfStatement(ctx)
-
-    def visitWhileStatement(self, ctx: BSParser.WhileStatementContext):
-        return super().visitWhileStatement(ctx)
-
-    def visitRepeat(self, ctx: BSParser.RepeatContext):
-        return super().visitRepeat(ctx)
-
-    def visitMix(self, ctx: BSParser.MixContext):
-        types = set()
-        for fluid in ctx.volumeIdentifier():
-            variable = self.visitVolumeIdentifier(fluid)
-            # self.log.info(variable)
-            self.symbol_table.update_symbol_by_var(variable)
-            types = types.union(variable.types)
-
-        if not types:
-            types.add(ChemTypes.MAT)
-
-        return {'types': types, 'size': 1, 'instruction': IRInstruction.MIX}
-
-    def visitDetect(self, ctx: BSParser.DetectContext):
-        types = {ChemTypes.REAL}
-        module_name = ctx.IDENTIFIER(0).__str__()
-        material_name = ctx.IDENTIFIER(1).__str__()
-
-        if not self.symbol_table.get_global(module_name):
-            self.log.fatal("Undefined Module: {}".format(module_name))
-
-        if not self.symbol_table.get_variable(material_name):
-            self.log.fatal("Undefined Variable: {}".format(material_name))
-        material_types = {ChemTypes.MAT}
-        var = self.identifier.identify(material_name, material_types, self.symbol_table.current_scope.name)
-        self.symbol_table.update_symbol(material_name, var['types'])
-        return {'types': types, 'size': 1, 'instruction': IRInstruction.DETECT}
+            types = {ChemTypes.UNKNOWN}
+        var = ctx.IDENTIFIER().__str__()
+        symbol = Symbol(var, self.scope_stack[-1], types)
+        self.symbol_table.add_local(symbol)
+        return symbol
 
     def visitHeat(self, ctx: BSParser.HeatContext):
-        name = ctx.IDENTIFIER().__str__()
-        types = {ChemTypes.MAT}
-        var = self.identifier.identify(name, types, self.symbol_table.current_scope.name)
-        self.symbol_table.update_symbol(name, var['types'])
-        return {'types': types, 'size': 1, 'instruction': IRInstruction.HEAT}
-
-    def visitSplit(self, ctx: BSParser.SplitContext):
-        name = ctx.IDENTIFIER().__str__()
-        types = {ChemTypes.MAT}
-        self.symbol_table.update_symbol(name, types)
-        size = int(ctx.INTEGER_LITERAL().__str__())
-        if not SymbolTableVisitor.isPower(2, size):
-            raise InvalidOperation("Split 2^x-ways is supported; split {}-ways is not supported".format(size))
-        return {'types': types, 'size': size, 'instruction': IRInstruction.SPLIT}
-
-    def visitDispense(self, ctx: BSParser.DispenseContext):
-        name = ctx.IDENTIFIER().__str__()
-        if not self.symbol_table.get_global(name):
-            raise InvalidOperation('Trying to dispense: "{}" which is not declared in the manifest.'.format(name))
-        types = {ChemTypes.MAT}
-        self.symbol_table.update_symbol(name, types)
-        return {'types': types, 'size': 1,
-                'instruction': IRInstruction.DISPENSE}
+        name = self.visitVariable(ctx.variable())['name']
+        use = self.symbol_table.get_local(name)
+        if not use:
+            raise UndefinedVariable("{} is not defined.".format(name))
+        if not ChemTypeResolver.is_mat_in_set(use.types):
+            use.types.add(ChemTypes.MAT)
+            self.symbol_table.update_symbol(use)
+        return None
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
-        name = ctx.IDENTIFIER().__str__()
-        types = {ChemTypes.MAT}
-        var = self.symbol_table.update_symbol(name, types)
-        return {'types': types, 'size': 1, 'instruction': IRInstruction.DISPOSE}
+        name = self.visitVariable(ctx.variable())['name']
+        use = self.symbol_table.get_local(name)
+        if not use:
+            raise UndefinedVariable("{} is not defined.".format(name))
+        if not ChemTypeResolver.is_mat_in_set(use.types):
+            use.types.add(ChemTypes.MAT)
+            self.symbol_table.update_symbol(use)
+        return None
 
-    # def visitExpression(self, ctx: BSParser.ExpressionContext):
-    #     return {"types": {ChemTypes.REAL, ChemTypes.NAT}, "size": 1,
-    #             'instruction': IRInstruction.BINARYOP}
+    def visitMix(self, ctx: BSParser.MixContext):
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
 
-    def visitParExpression(self, ctx: BSParser.ParExpressionContext):
-        return super().visitParExpression(ctx)
+        symbol = Symbol(deff['name'], self.scope_stack[-1], self.resolve_types(deff))
+        # Look through the RHS vars.
+        for fluid in ctx.variable():
+            temp = self.visitVariable(fluid)
+            var = self.symbol_table.get_local(temp['name'])
+            if not var:
+                raise UndefinedVariable("{} is not defined.".format(temp['name']))
+            if not ChemTypeResolver.is_mat_in_set(var.types):
+                # This is the best we can do at this point.
+                # We won't be able to further classify anything
+                # further because if the identifier hasn't
+                # figured anything out by now, it won't.
+                var.types.update(self.resolve_types({'name': var.name, 'types': var.types}))
+            # Update the RHS types.
+            self.symbol_table.update_symbol(var)
+            # Union the types of the RHS with the LHS
+            symbol.types.update(var.types)
+        # Add the symbol to the table.
+        self.symbol_table.add_local(symbol)
+        return None
 
-    def visitMethodCall(self, ctx: BSParser.MethodCallContext):
-        """
-        Infers the types from the method call.
-        :param ctx:
-        :return: Set of ChemType Enums.
-        """
-        method_name = ctx.IDENTIFIER().__str__()
-        # if not self.config.supports_nesting and self.symbol_table.current_scope.name != "main":
-        #     raise UnsupportedOperation("%s architecture does not support nested functions" % self.config.target.name)
-        # if not self.config.supports_recursion and self.symbol_table.current_scope.name == method_name:
-        #     raise UnsupportedOperation("%s architecture does not support recursion" % self.config.target.name)
-        if method_name not in self.symbol_table.functions:
-            self.log.fatal("Function {} is not defined.".format(method_name))
-        return {'types': self.symbol_table.functions[method_name].types, 'size': 1,
-                'instruction': IRInstruction.CALL, 'name': method_name}
+    def visitDetect(self, ctx: BSParser.DetectContext):
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        self.symbol_table.add_local(Symbol(deff['name'], self.scope_stack[-1], ChemTypeResolver.numbers()))
+        use = self.visitVariable(ctx.variable())
+        var = self.symbol_table.get_local(use['name'])
+        if not var:
+            raise UndefinedVariable("{} is not defined.".format(use['name']))
+        module = self.symbol_table.get_global(ctx.IDENTIFIER().__str__())
+        if not module:
+            raise UndefinedVariable("{} isn't declared in the manifest.".format(ctx.IDENTIFIER().__str__()))
+        if ChemTypes.MODULE not in module.types:
+            raise UndefinedVariable("There is no module named {} declared in the manifest.".format(module.name))
+        if not ChemTypeResolver.is_mat_in_set(var.types):
+            var.types.add(ChemTypes.MAT)
+            self.symbol_table.update_symbol(var)
+        return None
 
-    def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
-        return self.visitChildren(ctx)
+    def visitSplit(self, ctx: BSParser.SplitContext):
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        use = self.visitVariable(ctx.variable())
+        if not self.symbol_table.get_local(use['name']):
+            raise UndefinedVariable("{} is not defined.".format(use['name']))
+        if not ChemTypeResolver.is_mat_in_set(deff['types']):
+            deff['types'].update(self.identifier.identify(deff['name'], deff['types']))
+        deff['types'].update(self.symbol_table.get_local(use['name']).types)
+        self.symbol_table.add_local(Symbol(deff['name'], self.scope_stack[-1], deff['types']))
+        return None
 
-    def visitTypeType(self, ctx: BSParser.TypeTypeContext):
-        # A simple pass-thru function.
-        return self.visitPrimitiveType(ctx.primitiveType())
+    def visitDispense(self, ctx: BSParser.DispenseContext):
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        self.symbol_table.add_local(Symbol(deff['name'], self.scope_stack[-1], self.resolve_types(deff)))
+        if not self.symbol_table.get_global(ctx.IDENTIFIER().__str__()):
+            raise UndefinedVariable("{} isn't declared in the manifest.".format(ctx.IDENTIFIER().__str__()))
+        return None
 
-    def visitUnionType(self, ctx: BSParser.UnionTypeContext):
-        # A simple pass-thru function.
-        return self.visitTypesList(ctx.typesList())
-
-    def visitTypesList(self, ctx: BSParser.TypesListContext):
-        """
-        Grab all the defined types.
-        :param ctx:
-        :return: set of ChemType Enums
-        """
-        types = set()
-        for t in ctx.typeType():
-            types.add(self.visitTypeType(t))
-        return types
-
-    # def visitVariableDeclaration(self, ctx: BSParser.VariableDeclarationContext):
-    #     return self.visitChildren(ctx)
-
-    def visitVariableDefinition_new(self, ctx: BSParser.VariableDefinitionContext):
-        name = ctx.IDENTIFIER().__str__()
-
-        # Get the index to be referenced.
-        size = int(ctx.INTEGER_LITERAL().__str__()) if ctx.INTEGER_LITERAL() else 1
-
-        declared_types = set()
-        final_types = set()
-
-        if ctx.unionType():
-            declared_types = self.visitUnionType(ctx.unionType())
-
-        operation = self.visitVariableDeclaration(ctx.variableDeclaration())
-
-        final_types = final_types.union(declared_types)
-        final_types = final_types.union(operation['types'])
-
-        # This forces the size of the declared variable to
-        # be that of the output of the operation.
-        # This case exists because global variables have a size
-        # of float("inf"), and the sizes will never match.
-        if size != operation['size'] and operation['instruction'] != IRInstruction.DISPENSE:
-            operation['size'] = size
-
-        # We need to guarantee that the size of a method call is the same
-        # size of that of whatever variable is being operated upon.
-        if operation['instruction'] == IRInstruction.CALL:
-            operation['size'] = self.symbol_table.functions[operation['name']].return_size
-            if ctx.INTEGER_LITERAL() and int(ctx.INTEGER_LITERAL().__str__()) != operation['size']:
-                raise InvalidOperation("Array size doesn't match method return size.")
-
-        variable = Movable(name, final_types, self.symbol_table.current_scope.name, operation['size'])
-        self.symbol_table.add_local(variable)
-
-    def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
-        name = ctx.IDENTIFIER().__str__()
-
-        declared_types = set()
-        final_types = set()
-
-        if ctx.unionType():
-            declared_types = self.visitUnionType(ctx.unionType())
-
-        operation = self.visitVariableDeclaration(ctx.variableDeclaration())
-
-        final_types = final_types.union(declared_types)
-        final_types = final_types.union(operation['types'])
-
-        """
-        Some necessary preconditions.  This is written
-        this way because of the reasons stated above.
-        """
-        # If we have x[n] = ... and it's not a power of 2, kill it.
-        if ctx.INTEGER_LITERAL() and not SymbolTableVisitor.isPower(2, int(ctx.INTEGER_LITERAL().__str__())):
-            raise InvalidOperation("All arrays must be 2^x.")
-        if ctx.INTEGER_LITERAL():
-            size = int(ctx.INTEGER_LITERAL().__str__())
-            if size != operation['size']:
-                operation['size'] = size
-        if operation['instruction'] == IRInstruction.CALL:
-            operation['size'] = self.symbol_table.functions[operation['name']].return_size
-            if ctx.INTEGER_LITERAL() and int(ctx.INTEGER_LITERAL().__str__()) != operation['size']:
-                raise InvalidOperation("Array size doesn't match method return size.")
-
-        # quick hack for int, float, and time.  easily add volume, etc when we have x = literal
-        if final_types.issubset(ChemTypeResolver.numbers):  # assigning a numeric type
-            if ctx.variableDeclaration().expression():  # expression
-                if ctx.variableDeclaration().expression().primary(): # primary [ can be paren, literal, or variable ]
-                    if ctx.variableDeclaration().expression().primary().literal():
-                        if ctx.stop.type is 34 or ctx.stop.type is 35:  # 35 = integer literal, 36 = float literal
-                            num = ctx.stop.text
-                            unit = 1
-                        elif ctx.stop.type is 36:  # 36 = TIME number
-                            num = ctx.stop.text
-                            unit = num[-1:]
-                            num = num[:-1]
-                            if unit is 'ns':
-                                unit = 0.000000001
-                            elif unit is 'ms':
-                                unit = 0.001
-                            elif unit is 's':
-                                unit = 1
-                            elif unit is 'm':
-                                unit = 60
-                            elif unit is 'h':
-                                unit = 3600
-                            elif unit is 'd':
-                                unit = 86400
-                            else:
-                                unit = 1
-                        else:
-                            num = 1
-                            unit = 1
-                        variable = Number(name, final_types, self.symbol_table.current_scope.name, value=float(num * unit))
-                else:
-                    variable = Number(name, final_types, self.symbol_table.current_scope.name, value=float(-1))
-                    self.log.warn("%s not properly defined in symbol table" % name)
-            else:
-                variable = Number(name, final_types, self.symbol_table.current_scope.name, value=float(-1))
-                self.log.warn("%s not properly defined in symbol table" % name)
-        else:
-            variable = Movable(name, final_types, self.symbol_table.current_scope.name, operation['size'])
-        self.symbol_table.add_local(variable)
+    def visitGradient(self, ctx: BSParser.GradientContext):
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        symbol = Symbol(deff['name'], self.scope_stack[-1], self.resolve_types(deff))
+        for use in ctx.IDENTIFIER():
+            var = self.symbol_table.get_symbol(use.__str__())
+            if not ChemTypeResolver.is_mat_in_set(var.types):
+                var.types.add(ChemTypes.MAT)
+            self.symbol_table.update_symbol(var)
+            symbol.types.update(var.types)
+        self.symbol_table.add_local(symbol)
 
         return None
 
-    def visitPrimary(self, ctx: BSParser.PrimaryContext):
-        return super().visitPrimary(ctx)
+    def visitStore(self, ctx: BSParser.StoreContext):
+        use = self.visitVariable(ctx.variable())
+        symbol = self.symbol_table.get_local(use['name'])
+        if not symbol:
+            raise UndefinedVariable("{} is not defined.".format(use['name']))
+        if not ChemTypeResolver.is_mat_in_set(symbol.types):
+            symbol.types.add(ChemTypes.MAT)
+            self.symbol_table.update_symbol(symbol)
+        return None
 
-    def visitLiteral(self, ctx: BSParser.LiteralContext):
-        return {'types': {ChemTypes.NAT}, 'size': 1}
+    def visitMath(self, ctx: BSParser.MathContext):
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        symbol = Symbol(deff['name'], self.scope_stack[-1], ChemTypeResolver.numbers())
 
-    def visitPrimitiveType(self, ctx: BSParser.PrimitiveTypeContext):
-        """
-        Get the primitive type from the input.
-        :param ctx:
-        :return: ChemType Enum
-        """
-        if ctx.MAT():
-            return ChemTypes.MAT
-        elif ctx.BOOL():
-            return ChemTypes.BOOL
-        elif ctx.NAT:
-            return ChemTypes.NAT
-        elif ctx.REAL():
-            return ChemTypes.REAL
-        else:
-            self.log.warning("A custom type has been discovered.")
-            return ChemTypes.UNKNOWN
+        for use in ctx.primary():
+            var = self.visitPrimary(use)
+            if not ChemTypeResolver.is_number_in_set(var['types']):
+                local = self.symbol_table.get_local(var['name'])
+                if not local:
+                    raise UndefinedVariable("{} is not defined.".format(var['name']))
+                local.types.update(ChemTypeResolver.numbers())
+                if ChemTypes.UNKNOWN in local.types:
+                    local.types.remove(ChemTypes.UNKNOWN)
+                self.symbol_table.update_symbol(local)
 
-    def visitTimeIdentifier(self, ctx: BSParser.TimeIdentifierContext):
-        return super().visitTimeIdentifier(ctx)
+        self.symbol_table.add_local(symbol)
 
-    def visitTemperatureIdentifier(self, ctx: BSParser.TemperatureIdentifierContext):
-        return super().visitTemperatureIdentifier(ctx)
+        return None
 
-    @staticmethod
-    def isPower(x, y):
-        """
-        Determines if y is a power of x
-        :param x: base
-        :param y: exponent
-        :return: true if input == x^y
-        """
-        if x == 1:
-            return y == 1
-        power = 1
-        while power < y:
-            power = power * x
+    def visitMethodCall(self, ctx: BSParser.MethodCallContext):
+        # First see if this method exists.
+        method_name = ctx.IDENTIFIER().__str__()
+        if method_name not in self.symbol_table.functions.keys():
+            raise UndefinedFunction("No function {} defined.".format(method_name))
 
-        return power == y
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        if ctx.expressionList():
+            args = self.visitExpressionList(ctx.expressionList())
+
+        symbol = Symbol(deff['name'], self.scope_stack[-1], self.symbol_table.functions[method_name].types)
+
+        self.symbol_table.add_local(symbol)
+        return None

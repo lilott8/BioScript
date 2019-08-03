@@ -1,0 +1,6 @@
+manifest aaa
+
+instructions:
+
+a = 5 + 4
+b = a + 4
