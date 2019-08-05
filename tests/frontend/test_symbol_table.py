@@ -8,7 +8,7 @@ from compiler.data_structures.symbol_table import SymbolTable
 from compiler.semantics.global_visitor import GlobalVariableVisitor
 from compiler.semantics.method_visitor import MethodVisitor
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
-from shared.bs_exceptions import UndefinedVariable, UndefinedFunction
+from shared.bs_exceptions import UndefinedVariable, UndefinedFunction, UnsupportedOperation
 
 
 class InstructionBase(metaclass=ABCMeta):
@@ -428,4 +428,14 @@ class TestFunction(InstructionBase):
     def test_undefined_function(self, get_visitor):
         with pytest.raises(UndefinedFunction):
             file = "test_cases/function/symbol_table_undefined_function.bs"
+            st = self.get_symbols(get_visitor(file))
+
+    def test_no_args_for_expected_args(self, get_visitor):
+        with pytest.raises(UnsupportedOperation):
+            file = "test_cases/function/symbol_table_send_no_args.bs"
+            st = self.get_symbols(get_visitor(file))
+
+    def test_unexpected_args_for_no_args(self, get_visitor):
+        with pytest.raises(UnsupportedOperation):
+            file = "test_cases/function/symbol_table_send_args.bs"
             st = self.get_symbols(get_visitor(file))

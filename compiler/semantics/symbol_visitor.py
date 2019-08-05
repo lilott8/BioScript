@@ -44,7 +44,6 @@ class SymbolTableVisitor(BSBaseVisitor):
         self.symbol_table.new_scope(name)
 
         args = list()
-
         if ctx.formalParameters():
             args = self.visitFormalParameters(ctx.formalParameters())
 
@@ -82,6 +81,8 @@ class SymbolTableVisitor(BSBaseVisitor):
     def visitFormalParameters(self, ctx: BSParser.FormalParametersContext):
         if ctx.formalParameterList():
             return self.visitFormalParameterList(ctx.formalParameterList())
+        else:
+            return list()
 
     def visitFormalParameterList(self, ctx: BSParser.FormalParameterListContext):
         params = list()
@@ -227,10 +228,22 @@ class SymbolTableVisitor(BSBaseVisitor):
             raise UndefinedFunction("No function {} defined.".format(method_name))
 
         deff = self.visitVariableDefinition(ctx.variableDefinition())
+
+        args = list()
         if ctx.expressionList():
             args = self.visitExpressionList(ctx.expressionList())
+
+        if len(args) != len(self.symbol_table.functions[method_name].args):
+            raise UnsupportedOperation("Function {} takes {} arguments; {} arguments provided.".format(
+                method_name, len(self.symbol_table.functions[method_name].args), len(args)))
 
         symbol = Symbol(deff['name'], self.scope_stack[-1], self.symbol_table.functions[method_name].types)
 
         self.symbol_table.add_local(symbol)
         return None
+
+    def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
+        args = list()
+        for primary in ctx.primary():
+            args.append(self.visitPrimary(primary))
+        return args

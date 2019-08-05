@@ -9,4 +9,5 @@ return c
 
 instructions:
 
-a = foo()
+a = 3 + 2
+b = foo(a,2)

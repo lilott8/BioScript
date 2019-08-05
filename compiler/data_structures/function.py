@@ -2,7 +2,6 @@ import copy
 from typing import Set, List, Dict
 
 from chemicals.chemtypes import ChemTypes
-from compiler.data_structures.variable import Variable
 
 
 class Function(object):
@@ -22,7 +21,7 @@ class Function(object):
         return self._args
 
     @args.setter
-    def args(self, element: Variable):
+    def args(self, element: Dict):
         if len(self._args) == self._temp_args:
             return
         arg = copy.deepcopy(element['var'])
@@ -30,16 +29,16 @@ class Function(object):
         arg.name = self._temp_args[len(self._args) - 1]
         self._args.append(arg)
 
-    @property
-    def size(self):
-        if not self.return_var:
-            return -1
-        else:
-            return self.return_var.size
+    # @property
+    # def size(self):
+    #     if not self.return_var:
+    #         return -1
+    #     else:
+    #         return self.return_var.size
 
-    @size.setter
-    def size(self, arg: Dict):
-        pass
+    # @size.setter
+    # def size(self, arg: Dict):
+    #     pass
 
     def __str__(self):
         output = "\t["
@@ -47,12 +46,9 @@ class Function(object):
             for t in self.types:
                 output += "{}, ".format(t)
             output = output[:-2]
-        output += "]\t{}\t{{".format(self.name)
+        output += "]\t{}\t".format(self.name)
         if self.args:
-            for arg in self.args:
-                output += "{}, ".format(arg.name)
-            output = output[:-2]
-        output += "}"
+            output += self._args
         return output
 
     def __repr__(self):
