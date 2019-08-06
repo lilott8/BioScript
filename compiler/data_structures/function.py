@@ -14,7 +14,7 @@ class Function(object):
         # elsewhere into the correct state.
         self._temp_args = arguments
         # This is the actual argument list for the method.
-        self._args = arguments
+        self._args = copy.deepcopy(arguments)
 
     @property
     def args(self):
@@ -43,12 +43,11 @@ class Function(object):
     def __str__(self):
         output = "\t["
         if self.types:
-            for t in self.types:
-                output += "{}, ".format(t)
-            output = output[:-2]
-        output += "]\t{}\t".format(self.name)
-        if self.args:
-            output += self._args
+            output += ', '.join(str(s) for s in self.types)
+        output += "]\t{}(".format(self.name)
+        if self._args:
+            output += ', '.join(self._args)
+        output += ")"
         return output
 
     def __repr__(self):

@@ -8,7 +8,7 @@ from compiler.data_structures.program import Program
 from compiler.data_structures.symbol_table import SymbolTable
 from compiler.data_structures.writable import Writable, WritableType
 from compiler.passes.pass_manager import PassManager
-from compiler.semantics.global_visitor import GlobalVariableVisitor
+from compiler.semantics.header_visitor import HeaderVisitor
 from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
@@ -90,7 +90,8 @@ class BSCompiler(object):
         symbol_table = SymbolTable()
         identifier = self.config.identify.get_identifier()
 
-        visitor_passes = [GlobalVariableVisitor(symbol_table, identifier), SymbolTableVisitor(symbol_table, identifier)]
+        visitor_passes = [HeaderVisitor(symbol_table, identifier), SymbolTableVisitor(symbol_table, identifier),
+                          MethodVisitor(symbol_table)]
 
         if self.config.typecheck:
             visitor_passes.append(TypeCheckVisitor(symbol_table, self.config.combine.get_combiner(
@@ -100,6 +101,7 @@ class BSCompiler(object):
             if self.config.debug:
                 self.log.info("Running {} pass.".format(visitor.visitor_name))
             visitor.visit(tree)
+            self.log.debug(symbol_table)
 
         self.log.info(symbol_table)
 
@@ -118,7 +120,7 @@ class BSCompiler(object):
         tree = parser.program()
 
         # This gets run first, gathering all the globals.
-        global_visitor = GlobalVariableVisitor(SymbolTable(), self.config.identify.get_identifier())
+        global_visitor = HeaderVisitor(SymbolTable(), self.config.identify.get_identifier())
         global_visitor.visit(tree)
 
         # Build the functions and their symbols next.

@@ -7,6 +7,10 @@ return bar()
 }
 
 function bar() {
+return biz()
+}
+
+function biz() {
 a = dispense aaa
 return a
 }

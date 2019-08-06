@@ -1,6 +1,5 @@
 from chemicals.chemtypes import ChemTypeResolver, ChemTypes
 from chemicals.identifier import Identifier
-from compiler.data_structures.function import Function
 from compiler.data_structures.variable import Symbol
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import UndefinedVariable, UndefinedFunction, UnsupportedOperation
@@ -18,14 +17,16 @@ class SymbolTableVisitor(BSBaseVisitor):
         self.symbol_table.new_scope("main")
         self.scope_stack.append('main')
 
-        if ctx.functions():
-            self.visitFunctions(ctx.functions())
-
         # We set current_scope equal to main for because the statements
         # hereafter are main's statements.
         self.symbol_table.current_scope = self.symbol_table.scope_map['main']
         for statement in ctx.statements():
             self.visitStatements(statement)
+
+        self.scope_stack.pop()
+
+        if ctx.functions():
+            self.visitFunctions(ctx.functions())
 
     def visitFunctions(self, ctx: BSParser.FunctionsContext):
         for func in ctx.functionDeclaration():
@@ -33,46 +34,42 @@ class SymbolTableVisitor(BSBaseVisitor):
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
         """
-        This populates the symbol table with methods.
-        It cannot handle return values.  So all records
-        In the symbol table will be empty typed.
-        :param ctx: visitor context
+        This attempts to finish building the method signature.
+        Including typing information.  It does visit statements.
+        It cannot handle the case of method chaining.
         :return: nothing
         """
         name = ctx.IDENTIFIER().__str__()
 
-        self.symbol_table.new_scope(name)
+        self.symbol_table.current_scope = self.symbol_table.scope_map[name]
+        self.scope_stack.append(name)
 
-        args = list()
-        if ctx.formalParameters():
-            args = self.visitFormalParameters(ctx.formalParameters())
+        function = self.symbol_table.functions[name]
 
+        # You must visit the statements first.  Otherwise,
+        # the return statement won't understand what to do.
         for statement in ctx.statements():
             self.visitStatements(statement)
 
-        types = set()
-        if ctx.functionTyping():
-            types.update(self.visitFunctionTyping(ctx.functionTyping()))
-        types.update(self.visitReturnStatement(ctx.returnStatement()))
+        function.types.update(self.visitReturnStatement(ctx.returnStatement()))
 
-        bs_function = Function(name, types, args)
-
-        self.symbol_table.functions[name] = bs_function
-        self.symbol_table.end_scope()
+        self.symbol_table.functions[name] = function
+        self.scope_stack.pop()
 
     def visitReturnStatement(self, ctx: BSParser.ReturnStatementContext):
         # It's either a primary or a method call
         types = set()
         if ctx.primary():
             var = self.visitPrimary(ctx.primary())
-            local = self.symbol_table.get_local(var['name'])
+            local = self.symbol_table.get_local(var['name'], self.scope_stack[-1])
             # If we don't have a local, this is a constant.
             if local:
                 types = self.symbol_table.get_local(var['name']).types
             else:
                 types = ChemTypeResolver.numbers()
         elif ctx.methodCall():
-            raise UnsupportedOperation("You need to fix the grammar, a method call is currently: vd ID LP (el)? RP")
+            method_name, args = self.visitMethodCall(ctx.methodCall())
+            types = self.symbol_table.functions[method_name].types
         else:
             raise UnsupportedOperation("Only method calls or values are returnable.")
 
@@ -129,7 +126,7 @@ class SymbolTableVisitor(BSBaseVisitor):
             temp = self.visitVariable(fluid)
             var = self.symbol_table.get_local(temp['name'])
             if not var:
-                raise UndefinedVariable("{} is not defined.".format(temp['name']))
+                raise UndefinedVariable("{}.{} is not defined.".format(self.scope_stack[-1], temp['name']))
             if not ChemTypeResolver.is_mat_in_set(var.types):
                 # This is the best we can do at this point.
                 # We won't be able to further classify anything
@@ -182,8 +179,9 @@ class SymbolTableVisitor(BSBaseVisitor):
     def visitGradient(self, ctx: BSParser.GradientContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
         symbol = Symbol(deff['name'], self.scope_stack[-1], self.resolve_types(deff))
-        for use in ctx.IDENTIFIER():
-            var = self.symbol_table.get_symbol(use.__str__())
+        for var_def in ctx.variableDefinition():
+            use = self.visitVariableDefinition(var_def)
+            var = self.symbol_table.get_symbol(use['name'])
             if not ChemTypeResolver.is_mat_in_set(var.types):
                 var.types.add(ChemTypes.MAT)
             self.symbol_table.update_symbol(var)
@@ -221,17 +219,10 @@ class SymbolTableVisitor(BSBaseVisitor):
 
         return None
 
-    def visitMethodCall(self, ctx: BSParser.MethodCallContext):
-        # First see if this method exists.
-        method_name = ctx.IDENTIFIER().__str__()
-        if method_name not in self.symbol_table.functions.keys():
-            raise UndefinedFunction("No function {} defined.".format(method_name))
-
+    def visitMethodInvocation(self, ctx: BSParser.MethodInvocationContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
 
-        args = list()
-        if ctx.expressionList():
-            args = self.visitExpressionList(ctx.expressionList())
+        method_name, args = self.visitMethodCall(ctx.methodCall())
 
         if len(args) != len(self.symbol_table.functions[method_name].args):
             raise UnsupportedOperation("Function {} takes {} arguments; {} arguments provided.".format(
@@ -240,7 +231,19 @@ class SymbolTableVisitor(BSBaseVisitor):
         symbol = Symbol(deff['name'], self.scope_stack[-1], self.symbol_table.functions[method_name].types)
 
         self.symbol_table.add_local(symbol)
+
         return None
+
+    def visitMethodCall(self, ctx: BSParser.MethodCallContext):
+        # First see if this method exists.
+        method_name = ctx.IDENTIFIER().__str__()
+        if method_name not in self.symbol_table.functions.keys():
+            raise UndefinedFunction("No function {} defined.".format(method_name))
+
+        args = list()
+        if ctx.expressionList():
+            args = self.visitExpressionList(ctx.expressionList())
+        return method_name, args
 
     def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
         args = list()

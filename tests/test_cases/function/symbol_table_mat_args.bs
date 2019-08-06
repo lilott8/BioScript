@@ -2,9 +2,9 @@ manifest aaa
 
 functions:
 
-function foo(a) {
+function foo(aa) {
     b = dispense aaa
-    c = mix a with b
+    c = mix aa with b
     return c
 }
 

@@ -5,7 +5,7 @@ import pytest
 from chemicals.chemtypes import ChemTypes, ChemTypeResolver
 from chemicals.identifier import NaiveIdentifier
 from compiler.data_structures.symbol_table import SymbolTable
-from compiler.semantics.global_visitor import GlobalVariableVisitor
+from compiler.semantics.header_visitor import HeaderVisitor
 from compiler.semantics.method_visitor import MethodVisitor
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
 from shared.bs_exceptions import UndefinedVariable, UndefinedFunction, UnsupportedOperation
@@ -15,9 +15,9 @@ class InstructionBase(metaclass=ABCMeta):
 
     @staticmethod
     def run_globals(tree, symbol_table: SymbolTable = SymbolTable()) -> SymbolTable:
-        global_visitor = GlobalVariableVisitor(symbol_table, NaiveIdentifier())
-        global_visitor.visit(tree)
-        return global_visitor.symbol_table
+        header_visitor = HeaderVisitor(symbol_table, NaiveIdentifier())
+        header_visitor.visit(tree)
+        return header_visitor.symbol_table
 
     @staticmethod
     def run_methods(tree, symbol_table: SymbolTable) -> SymbolTable:
@@ -33,8 +33,8 @@ class InstructionBase(metaclass=ABCMeta):
 
     def get_symbols(self, tree):
         st = InstructionBase.run_globals(tree, SymbolTable())
-        st = InstructionBase.run_methods(tree, st)
-        return InstructionBase.run_symbols(tree, st)
+        st = InstructionBase.run_symbols(tree, st)
+        return InstructionBase.run_methods(tree, st)
 
 
 @pytest.mark.frontend
@@ -398,16 +398,30 @@ class TestFunction(InstructionBase):
         file = "test_cases/function/symbol_table_mat_args.bs"
         st = self.get_symbols(get_visitor(file))
 
+        arg1 = st.get_local(st.functions['foo'].args[0], 'foo')
+        output = st.get_local('b', 'main')
+
+        assert ChemTypeResolver.is_only_material(arg1.types)
+        assert ChemTypeResolver.is_only_material(output.types)
+
     def test_mixed_args(self, get_visitor):
         file = "test_cases/function/symbol_table_mixed_args.bs"
         st = self.get_symbols(get_visitor(file))
+
+        arg1 = st.get_local(st.functions['foo'].args[0], 'foo')
+        arg2 = st.get_local(st.functions['foo'].args[1], 'foo')
+        output = st.get_local('b', 'main')
+
+        assert ChemTypeResolver.is_only_material(arg1.types)
+        assert ChemTypeResolver.is_only_numeric(arg2.types)
+        assert ChemTypeResolver.is_only_numeric(output.types)
 
     def test_nat_args(self, get_visitor):
         file = "test_cases/function/symbol_table_nat_args.bs"
         st = self.get_symbols(get_visitor(file))
 
-        arg1 = st.functions['foo'].args[0]
-        arg2 = st.functions['foo'].args[1]
+        arg1 = st.get_local(st.functions['foo'].args[0], 'foo')
+        arg2 = st.get_local(st.functions['foo'].args[1], 'foo')
         output = st.get_local('a', 'main')
 
         assert ChemTypeResolver.is_only_numeric(arg1.types)
@@ -418,7 +432,7 @@ class TestFunction(InstructionBase):
         file = "test_cases/function/symbol_table_ret_method.bs"
         st = self.get_symbols(get_visitor(file))
 
-        assert 1 == 2
+        assert ChemTypeResolver.is_only_material(st.functions['foo'].types)
 
     def test_undefined_arg(self, get_visitor):
         with pytest.raises(UndefinedVariable):
@@ -438,4 +452,9 @@ class TestFunction(InstructionBase):
     def test_unexpected_args_for_no_args(self, get_visitor):
         with pytest.raises(UnsupportedOperation):
             file = "test_cases/function/symbol_table_send_args.bs"
+            st = self.get_symbols(get_visitor(file))
+
+    def test_redeclare_function(self, get_visitor):
+        with pytest.raises(UndefinedFunction):
+            file = "test_cases/function/symbol_table_redeclare.bs"
             st = self.get_symbols(get_visitor(file))
