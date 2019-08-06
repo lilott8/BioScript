@@ -363,6 +363,15 @@ class TestMath(InstructionBase):
 
         assert ChemTypeResolver.is_only_numeric(output.types)
 
+    def test_numeric_assignment(self, get_visitor):
+        file = "test_cases/math/symbol_table_numeric_assignment.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        output = st.get_local('a', 'main')
+
+        assert ChemTypeResolver.is_only_numeric(output.types)
+
+
 
 @pytest.mark.frontend
 @pytest.mark.symbol_table
@@ -457,4 +466,55 @@ class TestFunction(InstructionBase):
     def test_redeclare_function(self, get_visitor):
         with pytest.raises(UndefinedFunction):
             file = "test_cases/function/symbol_table_redeclare.bs"
+            st = self.get_symbols(get_visitor(file))
+
+
+@pytest.mark.frontend
+@pytest.mark.symbol_table
+@pytest.mark.instructions
+@pytest.mark.gradient
+class TestGradient(InstructionBase):
+
+    def test_two_mats(self, get_visitor):
+        file = "test_cases/gradient/symbol_table_two_mats.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        input_1 = st.get_local('a', 'main')
+        input_2 = st.get_local('b', 'main')
+        output = st.get_local('c', 'main')
+
+        assert ChemTypeResolver.is_only_material(input_1.types)
+        assert ChemTypeResolver.is_only_material(input_2.types)
+        assert ChemTypeResolver.is_only_material(output.types)
+
+    def test_invalid_range(self, get_visitor):
+        with pytest.raises(UnsupportedOperation):
+            file = "test_cases/gradient/symbol_table_invalid_range.bs"
+            st = self.get_symbols(get_visitor(file))
+
+    def test_invalid_gradient(self, get_visitor):
+        with pytest.raises(UnsupportedOperation):
+            file = "test_cases/gradient/symbol_table_invalid_gradient.bs"
+            st = self.get_symbols(get_visitor(file))
+
+    def test_mat_global(self, get_visitor):
+        with pytest.raises(UndefinedVariable):
+            file = "test_cases/gradient/symbol_table_mat_global.bs"
+            st = self.get_symbols(get_visitor(file))
+
+    def test_mat_nat(self, get_visitor):
+        file = "test_cases/gradient/symbol_table_mat_nat.bs"
+        st = self.get_symbols(get_visitor(file))
+
+        input_1 = st.get_local('a', 'main')
+        input_2 = st.get_local('b', 'main')
+        output = st.get_local('c', 'main')
+
+        assert ChemTypeResolver.is_only_material(input_1.types)
+        assert ChemTypeResolver.is_number_in_set(input_2.types) and ChemTypeResolver.is_mat_in_set(input_2.types)
+        assert ChemTypeResolver.is_number_in_set(output.types) and ChemTypeResolver.is_mat_in_set(output.types)
+
+    def test_one_undefined(self, get_visitor):
+        with pytest.raises(UndefinedVariable):
+            file = "test_cases/gradient/symbol_table_one_undefined.bs"
             st = self.get_symbols(get_visitor(file))

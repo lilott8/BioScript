@@ -179,14 +179,26 @@ class SymbolTableVisitor(BSBaseVisitor):
     def visitGradient(self, ctx: BSParser.GradientContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
         symbol = Symbol(deff['name'], self.scope_stack[-1], self.resolve_types(deff))
-        for var_def in ctx.variableDefinition():
-            use = self.visitVariableDefinition(var_def)
-            var = self.symbol_table.get_symbol(use['name'])
+        for var_def in ctx.variable():
+            use = self.visitVariable(var_def)
+            var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
+            if not var:
+                raise UndefinedVariable("{} is not defined.".format(use['name']))
             if not ChemTypeResolver.is_mat_in_set(var.types):
                 var.types.add(ChemTypes.MAT)
             self.symbol_table.update_symbol(var)
             symbol.types.update(var.types)
+
         self.symbol_table.add_local(symbol)
+
+        start = float(ctx.FLOAT_LITERAL(0).__str__())
+        end = float(ctx.FLOAT_LITERAL(1).__str__())
+        at = float(ctx.FLOAT_LITERAL(2).__str__())
+
+        if start >= end:
+            raise UnsupportedOperation("The beginning concentration must be smaller than the ending concentration.")
+        if at <= 0.0:
+            raise UnsupportedOperation("You cannot have a negative rate.")
 
         return None
 
@@ -233,6 +245,11 @@ class SymbolTableVisitor(BSBaseVisitor):
         self.symbol_table.add_local(symbol)
 
         return None
+
+    def visitNumberAssignment(self, ctx: BSParser.NumberAssignmentContext):
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        symbol = Symbol(deff['name'], self.scope_stack[-1], ChemTypeResolver.numbers())
+        self.symbol_table.add_local(symbol)
 
     def visitMethodCall(self, ctx: BSParser.MethodCallContext):
         # First see if this method exists.

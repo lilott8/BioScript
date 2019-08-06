@@ -46,7 +46,6 @@ class MethodVisitor(BSBaseVisitor):
                     find = self.call_chain[find]
                 objekt.types = types
 
-
     def visitFunctions(self, ctx: BSParser.FunctionsContext):
         for func in ctx.functionDeclaration():
             self.visitFunctionDeclaration(func)

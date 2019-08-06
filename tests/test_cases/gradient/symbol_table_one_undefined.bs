@@ -1,0 +1,9 @@
+manifest aaa
+manifest bbb
+
+instructions:
+
+a = dispense aaa
+b = dispense bbb
+
+c = gradient a with q range 1.0, 2.0 at 1.0
