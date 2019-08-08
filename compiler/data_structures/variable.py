@@ -232,7 +232,7 @@ class Module(Variable):
 
 class Number(Variable):
 
-    def __init__(self, name: str, value: float = 0, size: int = 1):
+    def __init__(self, name: str, size: int = 1, value: float = float("nan")):
         super().__init__(name)
         self._value = dict()
         for x in range(size):

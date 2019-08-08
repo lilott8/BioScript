@@ -188,10 +188,10 @@ class IRVisitor(BSBaseVisitor):
         # This check guarantees that a true block will not jump to a join
         # while dealing with nested conditionals.
         if self.control_stack and len(self.graph.edges(true_block.nid)) == 0:
-            #true_block.add(Jump(join_block.label))
+            # true_block.add(Jump(join_block.label))
             self.graph.add_edge(true_block.nid, join_block.nid)
         elif len(self.control_stack) == 0 and len(self.graph.edges(true_block.nid)) == 0:
-            #true_block.add(Jump(join_block.label))
+            # true_block.add(Jump(join_block.label))
             self.graph.add_edge(true_block.nid, join_block.nid)
 
         if ctx.ELSE():
@@ -207,15 +207,15 @@ class IRVisitor(BSBaseVisitor):
             # This check guarantees that a false block will not jump to a join
             # while dealing with nested conditionals.
             if self.control_stack and len(self.graph.edges(false_block.nid)) == 0:
-                #false_block.add(Jump(join_block.label))
+                # false_block.add(Jump(join_block.label))
                 self.graph.add_edge(false_block.nid, join_block.nid)
             elif len(self.control_stack) == 0 and len(self.graph.edges(false_block.nid)) == 0:
-                #false_block.add(Jump(join_block.label))
+                # false_block.add(Jump(join_block.label))
                 self.graph.add_edge(false_block.nid, join_block.nid)
 
         # Add the current join to the parent join.
         if self.control_stack:
-            #join_block.add(Jump(self.control_stack[-1].label))
+            # join_block.add(Jump(self.control_stack[-1].label))
             self.graph.add_edge(join_block.nid, self.control_stack[-1].nid)
             pass
 
@@ -314,7 +314,7 @@ class IRVisitor(BSBaseVisitor):
             exp = self.symbol_table.get_local(ctx.IDENTIFIER().__str__())
         else:
             exp = Number("REPEAT_{}".format(ctx.INTEGER_LITERAL().__str__()), {ChemTypes.NAT, ChemTypes.REAL},
-                          self.scope_stack[-1], value=float(ctx.INTEGER_LITERAL().__str__()), is_constant=True)
+                         self.scope_stack[-1], value=float(ctx.INTEGER_LITERAL().__str__()), is_constant=True)
         self.symbol_table.add_local(exp, self.scope_stack[-1])
 
         # finished with this block
@@ -469,38 +469,120 @@ class IRVisitor(BSBaseVisitor):
         use_a = uses[0]
         use_b = uses[1]
 
-        if deff['index'] == -1 and use_a['var'].size != use_b['var'].size:
-            raise InvalidOperation("{} and {} are not the same size.".format(use_a['var'].name, use_b['var'].name))
+        # Get the time modifier, should one exist.
+        time_meta = None
+        if ctx.timeIdentifier():
+            time = self.visitTimeIdentifier(ctx.timeIdentifier())
+            time_meta = TimeConstraint(IRInstruction.MIX, time['quantity'], time['units'])
 
-        size = 1
-        if deff['index'] == -1 and use_a['index'] == -1 and use_b['index'] == -1:
-            size = use_a['var'].size if use_a['var'].size != -1 else use_b['var'].size
+        '''
+        Cases that need to be considered:
+        1) a = dispense aaa
+            b = dispense bbb
+            c = mix(a, b)
+            (all indices are -1 *and* size = 1)
 
-        variable = Movable(deff['name'], size)
-        self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = variable
+        2) a[n] = dispense aaa
+            b[m] = dispense bbb
+            c = mix(a[x], b[y]) 
+            (index(c) == -1, index(a) == x, index(b) == y, *and* size = 1)
 
-        use_a_indices = list(use_a['var'].value.keys())
-        use_b_indices = list(use_b['var'].value.keys())
+        3) a[n] = dispense aaa
+            b[n] = dispense bbb
+            c = mix(a, b) 
+            (index(c) == -1, index(a) == -1, index(b) == -1, *and* size(a || b) == length(a || b))
+        '''
+        # Check for the case where we are mixing two arrays into one.
+        if (use_a['index'] == -1 and use_a['var'].size > 1) and (use_b['index'] == -1 and use_b['var'].size > 1):
+            if use_a['var'].size != use_b['var'].size:
+                raise InvalidOperation("{} is not the same size as {}".format(use_a['var'].name, use_b['var'].name))
+            variable = Movable(deff['name'], use_a['var'].size)
+            # Update the symbol in the symbol table with the new value.
+            self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = variable
+            # This abstraction allows us to use all the indices that
+            # are currently available in the array, so if there
+            # was a case where gaps existed between index 1 and 3,
+            # but the sizes still matched, this covers that case.
+            use_a_index = list(use_a['var'].value.keys())
+            use_b_index = list(use_b['var'].value.keys())
 
-        for x in range(size):
-            ir = Mix({'name': deff['name'], 'offset': x},
-                     {'name': use_a['var'].name, 'offset': use_a_indices[x]},
-                     {'name': use_b['var'].name, 'offset': use_b_indices[x]})
+            # Add the instructions to the basic block.
+            for x in range(use_a['var'].size):
+                ir = Mix({'name': deff['name'], 'offset': x},
+                         {'name': use_a['var'].name, 'offset': use_a_index[x]},
+                         {'name': use_b['var'].name, 'offset': use_b_index[x]})
+                # Add the time constraint if there is one.
+                if time_meta:
+                    ir.meta.append(time_meta)
+                self.current_block.add(ir)
+        else:
+            # Check the bounds of the inputs.
+            if use_a['index'] > use_a['var'].size:
+                raise InvalidOperation("{}[{}] is out of bounds, which has a size of {}"
+                                       .format(use_a['var'].name, use_a['index'], use_a['var'].size))
+            # Check the bounds of the inputs.
+            if use_b['index'] > use_b['var'].size:
+                raise InvalidOperation("{}[{}] is out of bounds, which has a size of {}"
+                                       .format(use_b['var'].name, use_b['index'], use_b['var'].size))
+            # Get the offsets of the uses.
+            use_a_offset = 0 if use_a['index'] == -1 else use_a['index']
+            use_b_offset = 0 if use_b['index'] == -1 else use_b['index']
+            deff_offset = 0 if deff['index'] == -1 else deff['index']
+
+            variable = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
+            # If there is value, then we know this is a SISD instruction,
+            # and it takes the form a[x] = mix...
+            if variable.value is not None:
+                ir = Mix({'name': deff['name'], 'offset': deff_offset},
+                         {'name': use_a['var'].name, 'offset': use_a_offset},
+                         {'name': use_b['var'].name, 'offset': use_b_offset})
+            else:
+                variable.value = Movable(deff['name'])
+                ir = Mix({'name': deff['name'], 'offset': 0},
+                         {'name': use_a['var'].name, 'offset': use_a_offset},
+                         {'name': use_b['var'].name, 'offset': use_b_offset})
+            # Add the time constraint should one exist.
+            if time_meta:
+                ir.meta.append(time_meta)
             self.current_block.add(ir)
 
         return None
 
     def visitDetect(self, ctx: BSParser.DetectContext):
-        module = self.globalz[ctx.IDENTIFIER(0).__str__()]
-        variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER(1).__str__()), self.scope_stack[-1])
-        # self.current_block.add_uses(variable)
+        """
+        Cases to consider:
+        1) a = dispense aaa
+            x = detect mod on a
+        2) a[n] = dispense aaa
+            x = detect mod on a[m]
+        3) a[n] = dispense aaa
+            x = detect mod on a
+        :param ctx:
+        :return:
+        """
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
 
+        time_meta = None
         if ctx.timeIdentifier():
-            time = super().visitTimeIdentifier(ctx.timeIdentifier())
-        else:
-            time = (10, BSTime.SECOND)
+            time = self.visitTimeIdentifier(ctx.timeIdentifier())
+            time_meta = TimeConstraint(IRInstruction.DETECT, time['quantity'], time['units'])
 
-        return {"module": module, "reagents": [variable], "execute_for": time, "op": IRInstruction.DETECT}
+        module = self.symbol_table.get_global(ctx.IDENTIFIER().__str__())
+        use = self.visitVariable(ctx.variable())
+        use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
+        variable = Number(deff['name'], use_var.value.size)
+        if use['index'] == -1:
+            use['index'] = use_var.value.size
+        use_indices = list(use_var.value.value.size)
+        for x in range(use['index']):
+            ir = Detect({"name": deff['name'], 'offset': x},
+                        {'name': module.name, 'offset': 0},
+                        {'name': use['name'], 'offset': use_indices[x]})
+            if time_meta is not None:
+                ir.meta.append(time_meta)
+            self.current_block.add(ir)
+
+        return None
 
     def visitHeat(self, ctx: BSParser.HeatContext):
         use = self.visitVariable(ctx.variable())
@@ -534,7 +616,9 @@ class IRVisitor(BSBaseVisitor):
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
-        deff['index'] = 1 if deff['index'] == -1 else deff['index']
+
+        if deff['index'] == -1 or deff['index'] == 0:
+            deff['index'] = 1
 
         for x in range(deff['index']):
             self.current_block.add(Dispense({'name': deff['name'], 'offset': x},

@@ -1,12 +1,14 @@
 from abc import ABCMeta
 
 from chemicals.identifier import NaiveIdentifier
+from compiler.config.compiler_cli import CompilerCLI
 from compiler.data_structures.program import Program
 from compiler.data_structures.symbol_table import SymbolTable
 from compiler.semantics.header_visitor import HeaderVisitor
 from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
+from compiler.targets.ir_target import IRTarget
 
 
 class FrontEndBase(metaclass=ABCMeta):
@@ -46,8 +48,11 @@ class FrontEndBase(metaclass=ABCMeta):
         st = FrontEndBase.run_symbols(tree, st)
         return FrontEndBase.run_ir(tree, st)
 
-    def get_program(self, tree):
+    def get_compiled_ir(self, tree):
         ir = self.get_ir(tree)
-        return Program(functions=ir.functions, globalz=ir.globalz,
-                       symbol_table=ir.symbol_table, bb_graph=ir.graph,
-                       name="TEST_FILE", calls=ir.calls)
+        target = IRTarget(Program(functions=ir.functions, globalz=ir.globalz,
+                                  symbol_table=ir.symbol_table, bb_graph=ir.graph,
+                                  name="TEST_FILE", calls=ir.calls,
+                                  config=CompilerCLI(["-d", "-t", "ir", "-i", "TEST_FILE"]).config))
+        target.transform()
+        return target
