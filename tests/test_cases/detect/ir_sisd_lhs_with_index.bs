@@ -1,0 +1,8 @@
+module mod
+manifest aaa
+
+instructions:
+
+a = dispense aaa
+x[3] = 1
+x[0] = detect mod on a[0]

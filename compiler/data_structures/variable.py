@@ -211,8 +211,8 @@ class Stationary(Reagent):
 
 class Module(Variable):
 
-    def __init__(self, name: str, scope: str = "global"):
-        super().__init__(name, {ChemTypes.MODULE}, scope)
+    def __init__(self, name: str):
+        super().__init__(name)
         # TODO: Delete this.
         self._value = name
         self.is_global = False

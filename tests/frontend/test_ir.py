@@ -82,3 +82,44 @@ class TestMix(FrontEndBase):
         expected = "a[0] = dispense(aaa)\nb[0] = dispense(bbb)\nc[0] = dispense(aaa)\n" \
                    "c[1] = dispense(aaa)\nc[0] = mix(a[0], b[0])"
         assert expected == ir.compiled.rstrip()
+
+
+@pytest.mark.frontend
+@pytest.mark.ir
+@pytest.mark.instructions
+@pytest.mark.detect
+class TestDetect(FrontEndBase):
+
+    def test_simd(self, get_visitor):
+        file = "test_cases/detect/ir_simd.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "a[0] = dispense(aaa)\na[1] = dispense(aaa)\nx[0] = detect(mod, a[0])\nx[1] = detect(mod, a[1])"
+        assert expected == ir.compiled.rstrip()
+
+    def test_sisd_lhs_index(self, get_visitor):
+        file = "test_cases/detect/ir_sisd_lhs_with_index.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "a[0] = dispense(aaa)\na[1] = dispense(aaa)\nb[0] = dispense(bbb)\n" \
+                   "b[1] = dispense(bbb)\nc[0] = mix(a[0], b[0])\nc[1] = mix(a[1], b[1])"
+        assert expected == ir.compiled.rstrip()
+
+    def test_sisd_index(self, get_visitor):
+        file = "test_cases/detect/ir_sisd_index.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "a[0] = dispense(aaa)\na[1] = dispense(aaa)\nx[0] = detect(mod, a[0])"
+        assert expected == ir.compiled.rstrip()
+
+    def test_sisd_no_index(self, get_visitor):
+        file = "test_cases/detect/ir_sisd_no_index.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "a[0] = dispense(aaa)\nx[0] = detect(mod, a[0])"
+        assert expected == ir.compiled.rstrip()
+
+    def test_sisd_out_of_bounds(self, get_visitor):
+        with pytest.raises(InvalidOperation):
+            file = "test_cases/detect/ir_sisd_out_of_bounds.bs"
+            ir = self.get_compiled_ir(get_visitor(file))

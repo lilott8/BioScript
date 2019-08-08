@@ -245,7 +245,8 @@ class Detect(Statement):
         pass
 
     def __str__(self):
-        return "DETECT:\t {} = detect({}, {})".format(self.defs, self.module, self.uses[0])
+        return "{}[{}] = detect({}, {}[{}])".format(self.defs['name'], self.defs['offset'], self.module['name'],
+                                                    self.uses[0]['name'], self.uses[0]['offset'])
 
 
 class Heat(Statement):

@@ -38,6 +38,18 @@ class IRVisitor(BSBaseVisitor):
             self.calls[source] = set()
         self.calls[source].add(dest)
 
+    def check_bounds(self, var: Dict) -> bool:
+        # Make one last-ditch effort to find the symbol.
+        if var['var'] is None:
+            var['var'] = self.symbol_table.get_symbol(var['name'])
+        # If there isn't a value, assume all is good.
+        if not var['var']:
+            return True
+        if var['index'] >= var['var'].size:
+            raise InvalidOperation("{}[{}] is out of bounds, which has a size of {}"
+                                   .format(var['var'].name, var['index'], var['var'].size))
+        return True
+
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
         self.symbol_table.current_scope = self.symbol_table.scope_map['main']
@@ -465,7 +477,7 @@ class IRVisitor(BSBaseVisitor):
         for fluid in ctx.variable():
             use = self.visitVariable(fluid)
             var = self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value
-            uses.append({'var': var, 'index': use['index']})
+            uses.append({'var': var, 'index': use['index'], 'name': use['name']})
         use_a = uses[0]
         use_b = uses[1]
 
@@ -517,13 +529,8 @@ class IRVisitor(BSBaseVisitor):
                 self.current_block.add(ir)
         else:
             # Check the bounds of the inputs.
-            if use_a['index'] > use_a['var'].size:
-                raise InvalidOperation("{}[{}] is out of bounds, which has a size of {}"
-                                       .format(use_a['var'].name, use_a['index'], use_a['var'].size))
-            # Check the bounds of the inputs.
-            if use_b['index'] > use_b['var'].size:
-                raise InvalidOperation("{}[{}] is out of bounds, which has a size of {}"
-                                       .format(use_b['var'].name, use_b['index'], use_b['var'].size))
+            self.check_bounds(use_a)
+            self.check_bounds(use_b)
             # Get the offsets of the uses.
             use_a_offset = 0 if use_a['index'] == -1 else use_a['index']
             use_b_offset = 0 if use_b['index'] == -1 else use_b['index']
@@ -571,9 +578,12 @@ class IRVisitor(BSBaseVisitor):
         use = self.visitVariable(ctx.variable())
         use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
         variable = Number(deff['name'], use_var.value.size)
+        self.check_bounds({'index': use['index'], 'name': use_var.name, 'var': use_var.value})
         if use['index'] == -1:
             use['index'] = use_var.value.size
-        use_indices = list(use_var.value.value.size)
+        if use['index'] == 0:
+            use['index'] = 1
+        use_indices = list(use_var.value.value.keys())
         for x in range(use['index']):
             ir = Detect({"name": deff['name'], 'offset': x},
                         {'name': module.name, 'offset': 0},
