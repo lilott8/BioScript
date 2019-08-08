@@ -35,13 +35,12 @@ class BSCompiler(object):
         times = {"sa": 0, "opts": 0, "target": 0}
 
         start = timer()
-        # ir = self.translate(self.config.input)
-        self.log.error("Using translate v2")
-        ir = self.translate2(self.config.input)
+        ir = self.translate(self.config.input)
         times['sa'] = timer() - start
 
         start = timer()
-        prog = self.optimizations(self.program)
+        self.log.error("Turning off all optimizations")
+        # prog = self.optimizations(self.program)
         times['opts'] = timer() - start
 
         start = timer()
@@ -58,7 +57,7 @@ class BSCompiler(object):
             self.log.warning("Not writing any output to disk.")
             if self.log.debug:
                 for key, writable in self.program.write.items():
-                    self.log.info(writable.content)
+                    self.log.info('{}: \n{}'.format(key, writable.content))
 
         if self.config.print_stats:
             stats = "\n"
@@ -72,13 +71,12 @@ class BSCompiler(object):
         if not target:
             self.log.critical("You aren't doing anything with the results of the compile function.")
 
-    def translate2(self, filename: str) -> Program:
+    def translate(self, filename: str) -> Program:
         """
         Translates the program from the AST into the corresponding IR.
         :param filename: name of file to parse.
         :return:
         """
-        self.log.error("You are exiting with a 147, anything other is an error")
         file_stream = FileStream(filename)
         lexer = BSLexer(file_stream)
         stream = CommonTokenStream(lexer)
@@ -97,50 +95,17 @@ class BSCompiler(object):
             visitor_passes.append(TypeCheckVisitor(symbol_table, self.config.combine.get_combiner(
                 self.config.epa_defs, self.config.abstract_interaction), self.config.types_used))
 
+        visitor_passes.append(IRVisitor(symbol_table))
+
         for visitor in visitor_passes:
             if self.config.debug:
                 self.log.info("Running {} pass.".format(visitor.visitor_name))
             visitor.visit(tree)
-            self.log.debug(symbol_table)
 
-        self.log.info(symbol_table)
-
-        exit(147)
-
-    def translate(self, filename: str) -> Program:
-        """
-        Translates the program from the AST into the corresponding IR.
-        :param filename: name of file to parse.
-        :return:
-        """
-        file_stream = FileStream(filename)
-        lexer = BSLexer(file_stream)
-        stream = CommonTokenStream(lexer)
-        parser = BSParser(stream)
-        tree = parser.program()
-
-        # This gets run first, gathering all the globals.
-        global_visitor = HeaderVisitor(SymbolTable(), self.config.identify.get_identifier())
-        global_visitor.visit(tree)
-
-        # Build the functions and their symbols next.
-        method_visitor = MethodVisitor(global_visitor.symbol_table)
-        method_visitor.visit(tree)
-
-        # Finish building the symbol table.
-        symbol_visitor = SymbolTableVisitor(method_visitor.symbol_table, self.config.identify.get_identifier())
-        symbol_visitor.visit(tree)
-
-        # Attempt to type check the program
-        self.visit_type_check(tree, symbol_visitor.symbol_table)
-
-        # Convert the AST to the IR for further analysis.
-        ir_visitor = IRVisitor(symbol_visitor.symbol_table)
-        ir_visitor.visit(tree)
-        # Always update the symbol table.
-        self.program = Program(functions=ir_visitor.functions, globalz=ir_visitor.globalz, config=self.config,
-                               symbol_table=ir_visitor.symbol_table, bb_graph=ir_visitor.graph,
-                               name=self.config.input_file, calls=ir_visitor.calls)
+        ir = visitor_passes[-1]
+        self.program = Program(functions=ir.functions, globalz=ir.globalz, config=self.config,
+                               symbol_table=ir.symbol_table, bb_graph=ir.graph,
+                               name=self.config.input_file, calls=ir.calls)
 
         if self.config.write_cfg:
             for root in self.program.functions:
@@ -150,7 +115,6 @@ class BSCompiler(object):
                                                                                        self.program.name, root),
                                                                                    self.program.functions[root][
                                                                                        'graph'], WritableType.GRAPH)
-
         return self.program
 
     def optimizations(self, program: Program):
@@ -171,9 +135,11 @@ class BSCompiler(object):
         :param program:
         :return:
         """
+        target = None
         if self.config.target != TargetSelector.DISABLED:
             target = self.config.target.get_target(program)
-        return target.transform()
+            target.transform()
+        return target
 
     def visit_type_check(self, tree, symbol_table: SymbolTable):
         """

@@ -1,50 +1,19 @@
-from abc import ABCMeta
-
 import pytest
 
 from chemicals.chemtypes import ChemTypes, ChemTypeResolver
-from chemicals.identifier import NaiveIdentifier
 from compiler.data_structures.symbol_table import SymbolTable
-from compiler.semantics.header_visitor import HeaderVisitor
-from compiler.semantics.method_visitor import MethodVisitor
-from compiler.semantics.symbol_visitor import SymbolTableVisitor
 from shared.bs_exceptions import UndefinedVariable, UndefinedFunction, UnsupportedOperation
-
-
-class InstructionBase(metaclass=ABCMeta):
-
-    @staticmethod
-    def run_globals(tree, symbol_table: SymbolTable = SymbolTable()) -> SymbolTable:
-        header_visitor = HeaderVisitor(symbol_table, NaiveIdentifier())
-        header_visitor.visit(tree)
-        return header_visitor.symbol_table
-
-    @staticmethod
-    def run_methods(tree, symbol_table: SymbolTable) -> SymbolTable:
-        method_visitor = MethodVisitor(symbol_table)
-        method_visitor.visit(tree)
-        return method_visitor.symbol_table
-
-    @staticmethod
-    def run_symbols(tree, symbol_table: SymbolTable) -> SymbolTable:
-        symbol_visitor = SymbolTableVisitor(symbol_table, NaiveIdentifier())
-        symbol_visitor.visit(tree)
-        return symbol_visitor.symbol_table
-
-    def get_symbols(self, tree):
-        st = InstructionBase.run_globals(tree, SymbolTable())
-        st = InstructionBase.run_symbols(tree, st)
-        return InstructionBase.run_methods(tree, st)
+from tests.frontend.front_end_base import FrontEndBase
 
 
 @pytest.mark.frontend
 @pytest.mark.symbol_table
-class TestHeader(InstructionBase):
+class TestHeader(FrontEndBase):
 
     def test_manifests(self, get_visitor):
         file = "test_cases/header/manifest.bs"
         tree = get_visitor(file)
-        st = InstructionBase.run_globals(tree, SymbolTable())
+        st = FrontEndBase.run_globals(tree, SymbolTable())
 
         mod = st.get_global('mod')
         stat = st.get_global('stat')
@@ -54,27 +23,12 @@ class TestHeader(InstructionBase):
         assert ChemTypeResolver.is_mat_in_set(stat.types)
         assert ChemTypeResolver.is_mat_in_set(mani.types)
 
-    # def test_constants(self, get_visitor):
-    #     file = "test_cases/header/global_constants.bs"
-    #     tree = get_visitor(file)
-    #     st = InstructionBase.run_globals(tree, SymbolTable())
-    #
-    #     const1 = st.get_global("CONST_1")
-    #     const2 = st.get_global("CONST_2")
-    #
-    #     assert isinstance(const1, Number)
-    #     assert isinstance(const2, Number)
-    #     assert const1.size == 1
-    #     assert const2.size == 1
-    #     assert const1.value[0] == 1
-    #     assert const2.value[0] == 2
-
 
 @pytest.mark.frontend
 @pytest.mark.symbol_table
 @pytest.mark.instructions
 @pytest.mark.dispense
-class TestDispense(InstructionBase):
+class TestDispense(FrontEndBase):
 
     def test_undefined_manifest(self, get_visitor):
         with pytest.raises(UndefinedVariable):
@@ -97,7 +51,7 @@ class TestDispense(InstructionBase):
 @pytest.mark.symbol_table
 @pytest.mark.instructions
 @pytest.mark.mix
-class TestMix(InstructionBase):
+class TestMix(FrontEndBase):
 
     def teardown(self):
         # called after each function
@@ -162,7 +116,7 @@ class TestMix(InstructionBase):
 @pytest.mark.symbol_table
 @pytest.mark.instructions
 @pytest.mark.detect
-class TestDetect(InstructionBase):
+class TestDetect(FrontEndBase):
 
     def test_mat(self, get_visitor):
         file = "test_cases/detect/symbol_table_mat.bs"
@@ -205,7 +159,7 @@ class TestDetect(InstructionBase):
 @pytest.mark.symbol_table
 @pytest.mark.instructions
 @pytest.mark.heat
-class TestHeat(InstructionBase):
+class TestHeat(FrontEndBase):
 
     def test_mat(self, get_visitor):
         file = "test_cases/heat/symbol_table_mat.bs"
@@ -232,7 +186,7 @@ class TestHeat(InstructionBase):
 @pytest.mark.symbol_table
 @pytest.mark.instructions
 @pytest.mark.dispose
-class TestDispose(InstructionBase):
+class TestDispose(FrontEndBase):
 
     def test_mat(self, get_visitor):
         file = "test_cases/dispose/symbol_table_mat.bs"
@@ -259,7 +213,7 @@ class TestDispose(InstructionBase):
 @pytest.mark.frontend
 @pytest.mark.symbol_table
 @pytest.mark.instructions
-class TestStore(InstructionBase):
+class TestStore(FrontEndBase):
 
     def test_mat(self, get_visitor):
         file = "test_cases/store/symbol_table_mat.bs"
@@ -287,7 +241,7 @@ class TestStore(InstructionBase):
 @pytest.mark.symbol_table
 @pytest.mark.instructions
 @pytest.mark.split
-class TestSplit(InstructionBase):
+class TestSplit(FrontEndBase):
 
     def test_global(self, get_visitor):
         with pytest.raises(UndefinedVariable):
@@ -329,7 +283,7 @@ class TestSplit(InstructionBase):
 @pytest.mark.symbol_table
 @pytest.mark.instructions
 @pytest.mark.math
-class TestMath(InstructionBase):
+class TestMath(FrontEndBase):
 
     def test_literals(self, get_visitor):
         file = "test_cases/math/symbol_table_literals.bs"
@@ -377,7 +331,7 @@ class TestMath(InstructionBase):
 @pytest.mark.symbol_table
 @pytest.mark.instructions
 @pytest.mark.functions
-class TestFunction(InstructionBase):
+class TestFunction(FrontEndBase):
 
     def test_return_mat(self, get_visitor):
         file = "test_cases/function/symbol_table_ret_mat.bs"
@@ -473,7 +427,7 @@ class TestFunction(InstructionBase):
 @pytest.mark.symbol_table
 @pytest.mark.instructions
 @pytest.mark.gradient
-class TestGradient(InstructionBase):
+class TestGradient(FrontEndBase):
 
     def test_two_mats(self, get_visitor):
         file = "test_cases/gradient/symbol_table_two_mats.bs"

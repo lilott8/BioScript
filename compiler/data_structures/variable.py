@@ -18,6 +18,7 @@ class Symbol(object):
         self.name = name
         self.scope = scope
         self.types = types
+        self.value = None
 
     def __repr__(self):
         return "[{}]\t{}\t{}".format(self.scope, self.name, self.types)
@@ -25,11 +26,9 @@ class Symbol(object):
 
 class Variable(metaclass=ABCMeta):
 
-    def __init__(self, name: str, types: set = None, scope: str = "unknown"):
+    def __init__(self, name: str):
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.name = name
-        self._types = set(types)
-        self.scope = scope
         # Used for timing annotations.
         self._annotations = dict()
         self._value = None
@@ -114,8 +113,8 @@ class RenamedVar(Variable):
 
 class Reagent(Variable, metaclass=ABCMeta):
 
-    def __init__(self, name: str, types: Set[ChemTypes], scope: str, size: int, volume: float, units: BSVolume):
-        super().__init__(name, types, scope)
+    def __init__(self, name: str, size: int, volume: float, units: BSVolume):
+        super().__init__(name)
         self._value = dict()
         for x in range(0, size):
             self._value[x] = FluidProperties(volume=units.normalize(volume), vol_units=BSVolume.MICROLITRE)
@@ -192,22 +191,20 @@ class Reagent(Variable, metaclass=ABCMeta):
 
 class Movable(Reagent):
 
-    def __init__(self, name: str, types: Set[ChemTypes] = {ChemTypes.MAT}, scope: str = "main", size: int = 1,
-                 volume: float = 10.0, units: BSVolume = BSVolume.MICROLITRE):
-        super().__init__(name, types, scope, size=size, volume=volume, units=units)
+    def __init__(self, name: str, size: int = 1, volume: float = 10.0, units: BSVolume = BSVolume.MICROLITRE):
+        super().__init__(name, size=size, volume=volume, units=units)
 
 
 class Dispensable(Reagent):
 
-    def __init__(self, name: str, types: Set[ChemTypes] = {ChemTypes.MAT}, scope: str = "main",
-                 size: int = 1, volume=0.0, units=BSVolume.MICROLITRE):
-        super().__init__(name, types, scope, size=size, volume=volume, units=units)
+    def __init__(self, name: str):
+        super().__init__(name, size=1, volume=float("inf"), units=BSVolume.MICROLITRE)
 
 
 class Stationary(Reagent):
 
-    def __init__(self, name: str, scope: str = "global", types: Set[ChemTypes] = {ChemTypes.MAT}):
-        super().__init__(name, types, scope, size=1, volume=float("inf"), units=BSVolume.DECILITRE)
+    def __init__(self, name: str):
+        super().__init__(name, size=1, volume=float("inf"), units=BSVolume.DECILITRE)
         # TODO: Delete this.
         self.is_global = True
 
@@ -235,9 +232,8 @@ class Module(Variable):
 
 class Number(Variable):
 
-    def __init__(self, name: str, types: Set[ChemTypes] = {ChemTypes.REAL}, scope: str = "main",
-                 value: float = 0, size: int = 1):
-        super().__init__(name, types, scope)
+    def __init__(self, name: str, value: float = 0, size: int = 1):
+        super().__init__(name)
         self._value = dict()
         for x in range(size):
             self._value[x] = value

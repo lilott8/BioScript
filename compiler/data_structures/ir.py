@@ -1,7 +1,10 @@
-import abc
+from abc import ABCMeta, abstractmethod
+from enum import IntEnum
+from typing import Dict
 
 from compiler.data_structures.function import Function
-from compiler.data_structures.registers import *
+from compiler.data_structures.properties import BSTime, BSTemperature
+from compiler.data_structures.variable import Variable
 
 
 class IRInstruction(IntEnum):
@@ -70,7 +73,7 @@ class InstructionSet(object):
     BinaryOps = {BinaryOps.AND, BinaryOps.ADD, BinaryOps.DIVIDE, BinaryOps.MULTIPLE, BinaryOps.OR, BinaryOps.SUBTRACT}
 
 
-class IR(metaclass=abc.ABCMeta):
+class IR(metaclass=ABCMeta):
     id_counter = 1
 
     @staticmethod
@@ -84,7 +87,7 @@ class IR(metaclass=abc.ABCMeta):
         self.name = op.name
         self.iid = IR.get_next_id()
 
-    @abc.abstractmethod
+    @abstractmethod
     def write(self, target: 'BaseTarget') -> str:
         pass
 
@@ -113,9 +116,13 @@ Expression IR:
 """
 
 
-class Expression(IR, metaclass=abc.ABCMeta):
+class Expression(IR, ABCMeta, metaclass=ABCMeta):
+
     def __init__(self, op: IRInstruction):
         super().__init__(op)
+
+    def write(self, target: 'BaseTarget') -> str:
+        pass
 
 
 class Constant(Expression):
@@ -133,23 +140,8 @@ class Constant(Expression):
         return self.__str__()
 
 
-class Temp(Expression):
-    def __init__(self, value: Variable):
-        super().__init__(IRInstruction.TEMP)
-        self.value = value
-
-    def write(self, target: 'BaseTarget') -> str:
-        pass
-
-    def __str__(self):
-        return "TEMP: {}".format(self.value)
-
-    def __repr__(self):
-        return self.__str__()
-
-
 class BinaryOp(Expression):
-    def __init__(self, left: Expression, right: Expression, op: BinaryOps, out: Temp):
+    def __init__(self, left: Expression, right: Expression, op: BinaryOps, out: Dict):
         super().__init__(IRInstruction.BINARYOP)
         self.left = left
         self.right = right
@@ -157,7 +149,6 @@ class BinaryOp(Expression):
         self.uses = [x for x in [left, right] if isinstance(x, Variable)]
         #self.uses = [out ,left, right]
         self.defs = out
-
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -167,7 +158,7 @@ class BinaryOp(Expression):
 
 
 class Call(Expression):
-    def __init__(self, out: Temp, func: Function, arguments: list):
+    def __init__(self, out: Dict, func: Function, arguments: list):
         super().__init__(IRInstruction.CALL)
         self.function = func
         self.args = self.function.args
@@ -183,6 +174,7 @@ class Call(Expression):
 
     def __repr__(self):
         return self.__str__()
+
 
 class Name(Expression):
     def __init__(self, name: str):
@@ -203,21 +195,22 @@ Statement IR:
 """
 
 
-class Statement(IR, metaclass=abc.ABCMeta):
+class Statement(IR, metaclass=ABCMeta):
     def __init__(self, op: IRInstruction, out):
         super().__init__(op)
         self.uses = []
         self.defs = out
+        self.meta = list()
 
     def write(self, target: 'BaseTarget') -> str:
         pass
 
     def __str__(self):
-        return "{}: {}=[{}]".format(super().__str__(), self.defs, self.uses)
+        return "\n".join(str(s) for s in self.meta)
 
 
 class Mix(Statement):
-    def __init__(self, out: Temp, one: Temp, two: Temp):
+    def __init__(self, out: Dict, one: Dict, two: Dict):
         super().__init__(IRInstruction.MIX, out)
         self.uses.extend([one, two])
 
@@ -225,24 +218,25 @@ class Mix(Statement):
         return target.write_mix(self)
 
     def __str__(self):
-        return "MIX:\t {} = mix({}, {})".format(self.defs, self.uses[0], self.uses[1])
+        return "{}[{}] = mix({}[{}], {}[{}])".format(self.defs['name'], self.defs['offset'],
+                                                     self.uses[0]['name'], self.uses[0]['offset'],
+                                                     self.uses[1]['name'], self.uses[1]['offset'])
 
 
 class Split(Statement):
-    def __init__(self, out: Temp, one: Temp, size: int):
+    def __init__(self, out: Dict, one: Dict):
         super().__init__(IRInstruction.SPLIT, out)
         self.uses.append(one)
-        self.size = size
 
     def write(self, target: 'BaseTarget') -> str:
         pass
 
     def __str__(self):
-        return "SPLIT:\t {} = split({}, {})".format(self.defs, self.uses)
+        return "SPLIT: {}[{}] = split({}, {})".format(self.defs, self.defs.index, self.uses, self.defs.index)
 
 
 class Detect(Statement):
-    def __init__(self, out: Temp, module: Temp, one: Temp):
+    def __init__(self, out: Dict, module: Dict, one: Dict):
         super().__init__(IRInstruction.DETECT, out)
         self.module = module
         self.uses.append(one)
@@ -255,7 +249,7 @@ class Detect(Statement):
 
 
 class Heat(Statement):
-    def __init__(self, out: Temp, reagent: Temp):
+    def __init__(self, out: Dict, reagent: Dict):
         super().__init__(IRInstruction.HEAT, out)
         self.uses.append(reagent)
 
@@ -263,11 +257,13 @@ class Heat(Statement):
         pass
 
     def __str__(self):
-        return "HEAT:\t {} = heat({})".format(self.defs, self.uses[0])
+        output = super().__str__() + "\n"
+        output += "heat({}[{}])".format(self.uses[0]['name'], self.uses[0]['offset'])
+        return output
 
 
 class Dispense(Statement):
-    def __init__(self, out: Temp, reagent: Temp):
+    def __init__(self, out: Dict, reagent: Dict):
         super().__init__(IRInstruction.DISPENSE, out)
         self.uses.append(reagent)
 
@@ -275,11 +271,11 @@ class Dispense(Statement):
         pass
 
     def __str__(self):
-        return "DISPENSE:\t {} = dispense({})".format(self.defs, self.uses[0])
+        return "{}[{}] = dispense({})".format(self.defs['name'], self.defs['offset'], self.uses[0]['name'])
 
 
 class Dispose(Statement):
-    def __init__(self, out: Output, reagent: Temp):
+    def __init__(self, out: Dict, reagent: Dict):
         super().__init__(IRInstruction.DISPOSE, out)
         self.uses.append(reagent)
 
@@ -287,11 +283,11 @@ class Dispose(Statement):
         pass
 
     def __str__(self):
-        return "DISPOSE:\t dispose({})".format(self.uses[0])
+        return "dispose({})".format(self.uses[0])
 
 
 class Store(Statement):
-    def __init__(self, out: Temp, value: Expression):
+    def __init__(self, out: Dict, value: Expression):
         super().__init__(IRInstruction.STORE, out)
         if not isinstance(value, float) and value.op == IRInstruction.CALL:
             self.uses.extend(value.uses)
@@ -313,7 +309,7 @@ Control IR:
 """
 
 
-class Control(IR, metaclass=abc.ABCMeta):
+class Control(IR, metaclass=ABCMeta):
     def __init__(self, op: IRInstruction):
         super().__init__(op)
 
@@ -431,17 +427,36 @@ class Phi(Meta):
 class TimeConstraint(Meta):
     def __init__(self, op: IRInstruction, time: float = 10, unit: BSTime = BSTime.SECOND):
         super().__init__(op)
-        self.time = time
+        self.quantity = time
         self.unit = unit
         if self.unit is not BSTime.SECOND:
-            self.time = self.unit.normalize(self.time)
+            self.quantity = self.unit.normalize(self.quantity)
             self.unit = BSTime.SECOND
 
     def write(self, target: 'BaseTarget') -> str:
         pass
 
     def __repr__(self):
-        return "{}{}".format(self.time, self.unit.name)
+        return "{}{}".format(self.quantity, self.unit.name)
+
+
+class TempConstraint(Meta):
+    def __init__(self, op: IRInstruction, temp: float = 10, unit: BSTemperature = BSTemperature.CELSIUS):
+        super().__init__(op)
+        self.unit = unit
+        self.quantity = temp
+        if self.unit is not BSTemperature.CELSIUS:
+            self.quantity = self.unit.normalize(self.quantity)
+            self.unit = BSTemperature.CELSIUS
+
+    def write(self, target: 'BaseTarget') -> str:
+        pass
+
+    def __repr__(self):
+        return "{} {} {}".format(self.op.name, self.quantity, self.unit.name)
+
+    def __str__(self):
+        return self.__repr__()
 
 
 class UseBy(TimeConstraint):
@@ -453,7 +468,7 @@ class UseBy(TimeConstraint):
         pass
 
     def __repr__(self):
-        return "USEBY {}{}".format(self.time, self.unit.value)
+        return "USEBY {}{}".format(self.quantity, self.unit.value)
 
 
 class ExecuteFor(TimeConstraint):
@@ -465,4 +480,4 @@ class ExecuteFor(TimeConstraint):
         pass
 
     def __repr__(self):
-        return "EXECUTEFOR {}{}".format(self.time, self.unit.value)
+        return "EXECUTEFOR {}{}".format(self.quantity, self.unit.value)

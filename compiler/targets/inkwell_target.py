@@ -450,6 +450,9 @@ class InkwellTarget(BaseTarget):
 
         return connection
 
+    def get_machine_code(self):
+        return {}
+
     def build_name(self, root: str, nid: int, op: str, variable):
         return "{}_{}_{}_{}".format(root, nid, op, variable)
 

@@ -16,8 +16,8 @@ class CompilerCLI(BaseCLI):
         self.config = None
 
         self.parser.add_argument('-t', '--target', help='Platforms to target.', type=str,
-                                 default='mfsim', choices={'llvm', 'mfsim', 'puddle', 'inkwell',
-                                                           'l', 'm', 'p', 'i'})
+                                 default='ir', choices={'llvm', 'mfsim', 'puddle', 'inkwell', 'ir'
+                                                                                              'l', 'm', 'p', 'i', 'ir'})
         self.parser.add_argument('-cfg', '--write-cfg',
                                  help="Write the CFG to dot file", default=False, action='store_true')
         self.parser.add_argument('-inline', '--inline', help="Inline all, non-recursive functions", default=False,

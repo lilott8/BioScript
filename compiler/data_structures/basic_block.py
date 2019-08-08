@@ -59,11 +59,10 @@ class BasicBlock(object):
         # All statements have def/uses.
         if hasattr(instruction, 'defs'):
             if instruction.defs is not None:
-                self.defs.add(instruction.defs.name)
+                self.defs.add(instruction.defs['name'])
         if hasattr(instruction, 'uses'):
             for use in instruction.uses:
-                if isinstance(use, Variable):
-                    self.uses.add(use.name)
+                self.uses.add(use['name'])
 
         if instruction.op == IRInstruction.LABEL:
             if self.label:

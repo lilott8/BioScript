@@ -1,0 +1,6 @@
+manifest aaa
+
+instructions:
+
+a[2] = dispense aaa
+heat a[0] at 90c

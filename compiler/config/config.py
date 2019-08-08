@@ -138,8 +138,13 @@ class Config(object):
                 self.supports_functions = True
                 self.supports_recursion = True
                 self.supports_nesting = True
-            else:
+            elif target == "l" or target == 'llvm':
                 self.target = targets.TargetSelector.LLVM_IR
+                self.supports_functions = True
+                self.supports_recursion = True
+                self.supports_nesting = True
+            else:
+                self.target = targets.TargetSelector.IR
                 self.supports_functions = True
                 self.supports_recursion = True
                 self.supports_nesting = True
