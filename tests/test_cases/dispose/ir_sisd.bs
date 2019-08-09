@@ -1,8 +1,6 @@
-module mod
 manifest aaa
 
 instructions:
 
 a = dispense aaa
-x[2] = 1
-x[0] = detect mod on a[0]
+dispose a

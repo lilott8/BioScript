@@ -103,8 +103,8 @@ class TestDetect(FrontEndBase):
         file = "test_cases/detect/ir_sisd_lhs_with_index.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "main:\n\ta[0] = dispense(aaa)\n\ta[1] = dispense(aaa)\n\tb[0] = dispense(bbb)\n" \
-                   "\tb[1] = dispense(bbb)\n\tc[0] = mix(a[0], b[0])\n\tc[1] = mix(a[1], b[1])"
+        expected = "main:\n\ta[0] = dispense(aaa)\n\tx[0] = 1\n\tx[1] = 1\n" \
+                   "\tx[0] = detect(mod, a[0])"
         assert expected == ir.compiled.rstrip()
 
     def test_sisd_index(self, get_visitor):
@@ -193,4 +193,37 @@ class TestSplit(FrontEndBase):
     def test_sisd_out_of_bounds(self, get_visitor):
         with pytest.raises(InvalidOperation):
             file = "test_cases/split/ir_sisd_out_of_bounds.bs"
+            ir = self.get_compiled_ir(get_visitor(file))
+
+
+@pytest.mark.frontend
+@pytest.mark.ir
+@pytest.mark.instructions
+@pytest.mark.dispose
+class TestDispose(FrontEndBase):
+
+    def test_sisd(self, get_visitor):
+        file = "test_cases/dispose/ir_sisd.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = dispense(aaa)\n\tdispose(a[0])"
+        assert expected == ir.compiled.rstrip()
+
+    def test_simd(self, get_visitor):
+        file = "test_cases/dispose/ir_simd.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = dispense(aaa)\n\ta[1] = dispense(aaa)\n\tdispose(a[0])\n\tdispose(a[1])"
+        assert expected == ir.compiled.rstrip()
+
+    def test_sisd_index(self, get_visitor):
+        file = "test_cases/dispose/ir_sisd_index.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = dispense(aaa)\n\ta[1] = dispense(aaa)\n\tdispose(a[0])"
+        assert expected == ir.compiled.rstrip()
+
+    def test_sisd_out_of_bounds(self, get_visitor):
+        with pytest.raises(InvalidOperation):
+            file = "test_cases/dispose/ir_sisd_out_of_bounds.bs"
             ir = self.get_compiled_ir(get_visitor(file))

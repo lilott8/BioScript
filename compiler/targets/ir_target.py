@@ -36,6 +36,9 @@ class IRTarget(BaseTarget):
                         if instruction.uses[0]['offset'] != -1:
                             self.compiled += "[{}]".format(instruction.uses[0]['offset'])
                         self.compiled += ", {})".format(instruction.split_size)
+                    elif instruction.op == iri.DISPOSE:
+                        self.compiled += "{}({}[{}])".format(instruction.op.name.lower(), instruction.uses[0]['name'],
+                                                             instruction.uses[0]['offset'])
                     elif instruction.op in InstructionSet.assignment:
                         # There is only one def.
                         self.compiled += "{}[{}] = {}(".format(instruction.defs['name'],

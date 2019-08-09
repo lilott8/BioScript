@@ -657,10 +657,18 @@ class IRVisitor(BSBaseVisitor):
         return None
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
+        use = self.visitVariable(ctx.variable())
+        use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
 
-        variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
-        # self.current_block.add_uses(variable)
-        # TODO: Attempt to calculate the number of disposal registers (i.e. number of ports.)
-        ir = Dispose(variable, variable)
-        self.current_block.add(ir)
-        return ir
+        self.check_bounds({'index': use['index'], 'name': use['name'], 'var': use_var.value})
+        if use['index'] == -1:
+            use['index'] = use_var.value.size
+        if use['index'] == 0:
+            use['index'] = 1
+        use_indices = list(use_var.value.value.keys())
+        for x in range(use['index']):
+            ir = Dispose({"name": use['name'], 'offset': use_indices[x]},
+                         {'name': use['name'], 'offset': use_indices[x]})
+            self.current_block.add(ir)
+
+        return None
