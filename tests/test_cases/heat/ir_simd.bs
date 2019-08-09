@@ -2,5 +2,5 @@ manifest aaa
 
 instructions:
 
-a[3] = dispense aaa
+a[2] = dispense aaa
 heat a at 90c

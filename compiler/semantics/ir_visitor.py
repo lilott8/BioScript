@@ -62,6 +62,7 @@ class IRVisitor(BSBaseVisitor):
 
         # Set the current block to a new block *after* the functions.
         self.current_block = BasicBlock()
+        self.current_block.label = "main"
         self.graph.add_node(self.current_block.nid, function=self.scope_stack[-1])
         # Build the main function.
         self.functions['main'] = {'blocks': dict(), 'entry': self.current_block.nid, 'graph': self.graph}
@@ -596,15 +597,22 @@ class IRVisitor(BSBaseVisitor):
 
     def visitHeat(self, ctx: BSParser.HeatContext):
         use = self.visitVariable(ctx.variable())
+        use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
 
-        if use['index'] == -1:
-            use['index'] = self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value.size
+        # if use['index'] == -1:
+        #     use['index'] = self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value.size
 
         time = None
         if ctx.timeIdentifier():
             time = self.visitTimeIdentifier(ctx.timeIdentifier())
 
         temp = self.visitTemperatureIdentifier(ctx.temperatureIdentifier())
+
+        self.check_bounds({'index': use['index'], 'name': use['name'], 'var': use_var.value})
+        if use['index'] == -1:
+            use['index'] = use_var.value.size
+        if use['index'] == 0:
+            use['index'] = 1
 
         for x in range(use['index']):
             val = {'name': use['name'], 'offset': x}
@@ -613,7 +621,6 @@ class IRVisitor(BSBaseVisitor):
                 ir.meta.append(TimeConstraint(IRInstruction.HEAT, time[0], time[1]))
             ir.meta.append(TempConstraint(IRInstruction.HEAT, temp['quantity'], temp['units']))
             self.current_block.add(ir)
-
         # We don't need to add a value to whatever symbol is being used.
         # There is nothing being created, thus, no symbol to attach a value.
         return None

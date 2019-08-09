@@ -22,16 +22,21 @@ class IRInstruction(IntEnum):
     DISPENSE = 9
     DISPOSE = 10
     STORE = 11
+    GRADIENT = 12
     # Control
-    JUMP = 12
-    CONDITIONAL = 13
-    LABEL = 14
-    RETURN = 15
+    JUMP = 13
+    CONDITIONAL = 14
+    LABEL = 15
+    RETURN = 16
     # Meta
-    USEBY = 16
-    EXECUTEFOR = 17
-    NOP = 18
-    PHI = 19
+    USEBY = 17
+    EXECUTEFOR = 18
+    NOP = 19
+    PHI = 20
+    TIME = 21
+    TEMPERATURE = 22
+    MATH = 23
+
 
 
 class BinaryOps(IntEnum):
@@ -66,12 +71,17 @@ class RelationalOps(IntEnum):
             return ">="
 
 
-class InstructionSet(object):
+class InstructionSet(metaclass=ABCMeta):
     instructions = {IRInstruction.MIX, IRInstruction.SPLIT, IRInstruction.DETECT, IRInstruction.DISPENSE,
-                    IRInstruction.DISPOSE, IRInstruction.HEAT, IRInstruction.CALL, IRInstruction.BINARYOP}
+                    IRInstruction.DISPOSE, IRInstruction.HEAT, IRInstruction.CALL, IRInstruction.BINARYOP,
+                    IRInstruction.GRADIENT}
+
+    assignment = {IRInstruction.MIX, IRInstruction.SPLIT, IRInstruction.SPLIT, IRInstruction.DISPENSE,
+                  IRInstruction.CALL, IRInstruction.MATH, IRInstruction.GRADIENT, IRInstruction.DETECT}
 
     BinaryOps = {BinaryOps.AND, BinaryOps.ADD, BinaryOps.DIVIDE, BinaryOps.MULTIPLE, BinaryOps.OR, BinaryOps.SUBTRACT}
 
+    control_flow = {IRInstruction.CONDITIONAL, IRInstruction.JUMP}
 
 class IR(metaclass=ABCMeta):
     id_counter = 1
@@ -238,15 +248,16 @@ class Split(Statement):
 class Detect(Statement):
     def __init__(self, out: Dict, module: Dict, one: Dict):
         super().__init__(IRInstruction.DETECT, out)
-        self.module = module
+        # self.module = module
+        self.uses.append(module)
         self.uses.append(one)
 
     def write(self, target: 'BaseTarget') -> str:
         pass
 
     def __str__(self):
-        return "{}[{}] = detect({}, {}[{}])".format(self.defs['name'], self.defs['offset'], self.module['name'],
-                                                    self.uses[0]['name'], self.uses[0]['offset'])
+        return "{}[{}] = detect({}, {}[{}])".format(self.defs['name'], self.defs['offset'], self.uses[0]['name'],
+                                                    self.uses[1]['name'], self.uses[1]['offset'])
 
 
 class Heat(Statement):
