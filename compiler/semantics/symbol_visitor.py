@@ -1,6 +1,6 @@
 from chemicals.chemtypes import ChemTypeResolver, ChemTypes
 from chemicals.identifier import Identifier
-from compiler.data_structures.variable import Symbol
+from compiler.data_structures.variable import Symbol, Number
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import UndefinedVariable, UndefinedFunction, UnsupportedOperation
 from .bs_base_visitor import BSBaseVisitor
@@ -218,6 +218,12 @@ class SymbolTableVisitor(BSBaseVisitor):
 
         for use in ctx.primary():
             var = self.visitPrimary(use)
+
+            if 'value' in var.keys() and not self.symbol_table.get_global(var['name']):
+                globalz = Symbol(var['name'], 'global', ChemTypeResolver.numbers())
+                globalz.value = Number(var['name'], 1, var['value'])
+                self.symbol_table.add_global(globalz)
+
             if not ChemTypeResolver.is_number_in_set(var['types']):
                 local = self.symbol_table.get_local(var['name'])
                 if not local:
@@ -250,6 +256,14 @@ class SymbolTableVisitor(BSBaseVisitor):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
         symbol = Symbol(deff['name'], self.scope_stack[-1], ChemTypeResolver.numbers())
         self.symbol_table.add_local(symbol)
+        # Yes, this is assigning value to something,
+        # But this is a constant.  So we know all
+        # of the values up front.  This also makes
+        # the IRVisitor easier to work with.
+        value = self.visitLiteral(ctx.literal())
+        const = Symbol('CONST_{}'.format(value), 'global', ChemTypeResolver.numbers())
+        const.value = Number('CONST_{}'.format(value), 1, value)
+        self.symbol_table.add_global(const)
 
     def visitMethodCall(self, ctx: BSParser.MethodCallContext):
         # First see if this method exists.

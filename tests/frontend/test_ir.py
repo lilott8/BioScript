@@ -260,3 +260,67 @@ class TestStore(FrontEndBase):
         with pytest.raises(InvalidOperation):
             file = "test_cases/store/ir_sisd_out_of_bounds.bs"
             ir = self.get_compiled_ir(get_visitor(file))
+
+
+@pytest.mark.frontend
+@pytest.mark.ir
+@pytest.mark.instructions
+@pytest.mark.math
+class TestMath(FrontEndBase):
+
+    def test_sisd_assignment(self, get_visitor):
+        file = "test_cases/math/ir_assignment_sisd.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = 3"
+        assert expected == ir.compiled.rstrip()
+
+    def test_simd_assignment(self, get_visitor):
+        file = "test_cases/math/ir_assignment_simd.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = 3\n\ta[1] = 3\n\ta[2] = 3\n\ta[3] = 3"
+        assert expected == ir.compiled.rstrip()
+        assert ir.program.symbol_table.get_local('a', 'main').value.size == 4
+
+    def test_add_numbers(self, get_visitor):
+        file = "test_cases/math/ir_add_numbers.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = 3 + 3"
+        assert expected == ir.compiled.rstrip()
+
+    def test_add_vars(self, get_visitor):
+        file = "test_cases/math/ir_add_vars.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = 5\n\tb[0] = 5\n\tc[0] = a[0] + b[0]"
+        assert expected == ir.compiled.rstrip()
+
+    def test_add_var_number(self, get_visitor):
+        file = "test_cases/math/ir_add_var_number.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = 5\n\tb[0] = a[0] + 5"
+        assert expected == ir.compiled.rstrip()
+
+    def test_divide_numbers(self, get_visitor):
+        file = "test_cases/math/ir_divide_numbers.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = 5 / 4"
+        assert expected == ir.compiled.rstrip()
+
+    def test_multiply_numbers(self, get_visitor):
+        file = "test_cases/math/ir_multiply_numbers.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = 5 * 4"
+        assert expected == ir.compiled.rstrip()
+
+    def test_subtract_numbers(self, get_visitor):
+        file = "test_cases/math/ir_subtract_numbers.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = 5 - 4"
+        assert expected == ir.compiled.rstrip()

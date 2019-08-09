@@ -435,13 +435,72 @@ class IRVisitor(BSBaseVisitor):
             self.current_block.add(ir)
 
     def visitNumberAssignment(self, ctx: BSParser.NumberAssignmentContext):
-        return super().visitNumberAssignment(ctx)
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        value = self.visitLiteral(ctx.literal())
+        size = 1 if deff['index'] == -1 else deff['index']
+        variable = Number(deff['name'], size, value)
+        for x in range(size):
+            ir = Constant({'name': deff['name'], 'offset': x}, value)
+            self.current_block.add(ir)
+        # The numerical equivalent of a dispense.
+        self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = variable
+        return None
 
     def visitMath(self, ctx: BSParser.MathContext):
-        return super().visitMath(ctx)
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        deff_var = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
+        if deff_var.value is not None:
+            self.check_bounds({'name': deff['name'], 'index': deff['index'], 'var': deff_var})
+        deff_offset = 0 if deff['index'] == -1 else deff['index']
+
+        op1 = self.visitPrimary(ctx.primary(0))
+        if 'value' in op1.keys():
+            op1_var = self.symbol_table.get_global('CONST_{}'.format(op1['value'])).value
+        else:
+            op1_var = self.symbol_table.get_local(op1['name'], self.scope_stack[-1]).value
+        self.check_bounds({'name': op1['name'], 'index': op1['index'], 'var': op1_var})
+
+        op2 = self.visitPrimary(ctx.primary(1))
+        if 'value' in op2.keys():
+            op2_var = self.symbol_table.get_global('CONST_{}'.format(op2['value'])).value
+        else:
+            op2_var = self.symbol_table.get_local(op2['name'], self.scope_stack[-1]).value
+        self.check_bounds({'name': op2['name'], 'index': op2['index'], 'var': op2_var})
+
+        op1_offset = 0 if op1['index'] == -1 else op1['index']
+        op2_offset = 0 if op2['index'] == -1 else op2['index']
+
+        outcome = 0
+        if ctx.ADDITION():
+            operand = BinaryOps.ADD
+            outcome = op1_var.value[op1_offset] + op2_var.value[op2_offset]
+        elif ctx.SUBTRACT():
+            operand = BinaryOps.SUBTRACT
+            outcome = op1_var.value[op1_offset] - op2_var.value[op2_offset]
+        elif ctx.DIVIDE():
+            operand = BinaryOps.DIVIDE
+            outcome = op1_var.value[op1_offset] / op2_var.value[op2_offset]
+        elif ctx.MULTIPLY():
+            operand = BinaryOps.MULTIPLE
+            outcome = op1_var.value[op1_offset] * op2_var.value[op2_offset]
+        else:
+            operand = BinaryOps.ADD
+            outcome = op1_var.value[op1_offset] + op2_var.value[op2_offset]
+
+        ir = Math({'name': deff['name'], 'offset': deff_offset},
+                  {'name': op1_var.name, 'offset': op1_offset},
+                  {'name': op2_var.name, 'offset': op2_offset},
+                  operand)
+        self.current_block.add(ir)
+
+        if deff_var.value is None:
+            deff_var.value = Number(deff['name'], value=outcome)
+
+        return None
 
     def visitMix(self, ctx: BSParser.MixContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
+        symbol = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
 
         if ctx.timeIdentifier():
             temp_time = self.visitTimeIdentifier(ctx.timeIdentifier())
@@ -480,19 +539,18 @@ class IRVisitor(BSBaseVisitor):
             c = mix(a, b) 
             (index(c) == -1, index(a) == -1, index(b) == -1, *and* size(a || b) == length(a || b))
         '''
+        size = 1
         # Check for the case where we are mixing two arrays into one.
         if (use_a['index'] == -1 and use_a['var'].size > 1) and (use_b['index'] == -1 and use_b['var'].size > 1):
             if use_a['var'].size != use_b['var'].size:
                 raise InvalidOperation("{} is not the same size as {}".format(use_a['var'].name, use_b['var'].name))
-            variable = Movable(deff['name'], use_a['var'].size)
-            # Update the symbol in the symbol table with the new value.
-            self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = variable
             # This abstraction allows us to use all the indices that
             # are currently available in the array, so if there
             # was a case where gaps existed between index 1 and 3,
             # but the sizes still matched, this covers that case.
             use_a_index = list(use_a['var'].value.keys())
             use_b_index = list(use_b['var'].value.keys())
+            size = use_a['var'].size
 
             # Add the instructions to the basic block.
             for x in range(use_a['var'].size):
@@ -512,15 +570,13 @@ class IRVisitor(BSBaseVisitor):
             use_b_offset = 0 if use_b['index'] == -1 else use_b['index']
             deff_offset = 0 if deff['index'] == -1 else deff['index']
 
-            variable = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
             # If there is value, then we know this is a SISD instruction,
             # and it takes the form a[x] = mix...
-            if variable.value is not None:
+            if symbol.value is not None:
                 ir = Mix({'name': deff['name'], 'offset': deff_offset},
                          {'name': use_a['var'].name, 'offset': use_a_offset},
                          {'name': use_b['var'].name, 'offset': use_b_offset})
             else:
-                variable.value = Movable(deff['name'])
                 ir = Mix({'name': deff['name'], 'offset': 0},
                          {'name': use_a['var'].name, 'offset': use_a_offset},
                          {'name': use_b['var'].name, 'offset': use_b_offset})
@@ -528,6 +584,10 @@ class IRVisitor(BSBaseVisitor):
             if time_meta:
                 ir.meta.append(time_meta)
             self.current_block.add(ir)
+
+        if not symbol.value:
+            # Update the symbol in the symbol table with the new value.
+            symbol.value = Movable(deff['name'], size)
 
         return None
 
@@ -544,6 +604,7 @@ class IRVisitor(BSBaseVisitor):
         :return:
         """
         deff = self.visitVariableDefinition(ctx.variableDefinition())
+        symbol = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
 
         time_meta = None
         if ctx.timeIdentifier():
@@ -553,7 +614,7 @@ class IRVisitor(BSBaseVisitor):
         module = self.symbol_table.get_global(ctx.IDENTIFIER().__str__())
         use = self.visitVariable(ctx.variable())
         use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
-        variable = Number(deff['name'], use_var.value.size)
+
         self.check_bounds({'index': use['index'], 'name': use_var.name, 'var': use_var.value})
         if use['index'] == -1:
             use['index'] = use_var.value.size
@@ -567,6 +628,9 @@ class IRVisitor(BSBaseVisitor):
             if time_meta is not None:
                 ir.meta.append(time_meta)
             self.current_block.add(ir)
+
+        if symbol.value is None:
+            symbol.value = Number(deff['name'], use_var.value.size)
 
         return None
 
@@ -602,6 +666,7 @@ class IRVisitor(BSBaseVisitor):
 
     def visitSplit(self, ctx: BSParser.SplitContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
+        symbol = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
 
         use = self.visitVariable(ctx.variable())
         use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
@@ -609,11 +674,11 @@ class IRVisitor(BSBaseVisitor):
 
         split_num = int(ctx.INTEGER_LITERAL().__str__())
 
-        deff_var = Movable(deff['name'], size=split_num * use_var.value.size)
-        self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = deff_var
-
         ir = Split({'name': deff['name'], 'offset': -1}, {'name': use['name'], 'offset': use['index']}, split_num)
         self.current_block.add(ir)
+
+        if symbol.value is None:
+            symbol.value = Movable(deff['name'], size=split_num * use_var.value.size)
 
         return None
 
@@ -627,6 +692,7 @@ class IRVisitor(BSBaseVisitor):
             self.current_block.add(Dispense({'name': deff['name'], 'offset': x},
                                             {'name': ctx.IDENTIFIER().__str__(), 'offset': 1}))
 
+        # We don't have to check here, because this is a dispense.
         self.symbol_table.get_local(deff['name']).value = Movable(deff['name'], size=deff['index'], volume=10.0)
 
         return None

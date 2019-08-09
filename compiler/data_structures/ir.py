@@ -38,7 +38,6 @@ class IRInstruction(IntEnum):
     MATH = 23
 
 
-
 class BinaryOps(IntEnum):
     ADD = 0
     SUBTRACT = 1
@@ -46,6 +45,22 @@ class BinaryOps(IntEnum):
     DIVIDE = 3
     OR = 4
     AND = 5
+
+    def get_string(self):
+        if self.value == BinaryOps.ADD:
+            return "+"
+        elif self.value == BinaryOps.SUBTRACT:
+            return "-"
+        elif self.value == BinaryOps.MULTIPLE:
+            return "*"
+        elif self.value == BinaryOps.DIVIDE:
+            return "/"
+        elif self.value == BinaryOps.OR:
+            return "||"
+        elif self.value == BinaryOps.AND:
+            return "&&"
+        else:
+            return "+"
 
 
 class RelationalOps(IntEnum):
@@ -96,6 +111,8 @@ class IR(metaclass=ABCMeta):
         self.op = op
         self.name = op.name
         self.iid = IR.get_next_id()
+        self.uses = list()
+        self.defs = None
 
     @abstractmethod
     def write(self, target: 'BaseTarget') -> str:
@@ -126,19 +143,21 @@ Expression IR:
 """
 
 
-class Expression(IR, ABCMeta, metaclass=ABCMeta):
+class Expression(IR, metaclass=ABCMeta):
 
     def __init__(self, op: IRInstruction):
         super().__init__(op)
+        self.meta = list()
 
     def write(self, target: 'BaseTarget') -> str:
         pass
 
 
 class Constant(Expression):
-    def __init__(self, value: float):
+    def __init__(self, out: Dict, value: float):
         super().__init__(IRInstruction.CONSTANT)
         self.value = value
+        self.defs = out
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -148,6 +167,14 @@ class Constant(Expression):
 
     def __repr__(self):
         return self.__str__()
+
+
+class Math(Expression):
+    def __init__(self, out: Dict, op1: Dict, op2: Dict, operand: BinaryOps):
+        super().__init__(IRInstruction.MATH)
+        self.uses.extend([op1, op2])
+        self.operand = operand
+        self.defs = out
 
 
 class BinaryOp(Expression):
@@ -208,7 +235,6 @@ Statement IR:
 class Statement(IR, metaclass=ABCMeta):
     def __init__(self, op: IRInstruction, out):
         super().__init__(op)
-        self.uses = []
         self.defs = out
         self.meta = list()
 
@@ -249,9 +275,7 @@ class Split(Statement):
 class Detect(Statement):
     def __init__(self, out: Dict, module: Dict, one: Dict):
         super().__init__(IRInstruction.DETECT, out)
-        # self.module = module
-        self.uses.append(module)
-        self.uses.append(one)
+        self.uses.extend([module, one])
 
     def write(self, target: 'BaseTarget') -> str:
         pass

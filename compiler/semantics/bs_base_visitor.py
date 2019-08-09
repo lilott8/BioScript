@@ -75,7 +75,7 @@ class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
         else:
             value = self.visitLiteral(ctx.literal())
             # It's a constant, thus, the size must be 1 and index 0.
-            primary = {'name': "{}_{}".format(self.const, value), "index": 0,
+            primary = {'name': "{}{}".format(self.const, value), "index": 0,
                        'value': value, 'types': ChemTypeResolver.numbers()}
         return primary
 

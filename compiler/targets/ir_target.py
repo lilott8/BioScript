@@ -39,6 +39,22 @@ class IRTarget(BaseTarget):
                     elif instruction.op == iri.DISPOSE or instruction.op == iri.STORE:
                         self.compiled += "{}({}[{}])".format(instruction.op.name.lower(), instruction.uses[0]['name'],
                                                              instruction.uses[0]['offset'])
+                    elif instruction.op == iri.CONSTANT:
+                        self.compiled += "{}[{}] = {}".format(instruction.defs['name'],
+                                                              instruction.defs['offset'], instruction.value)
+                    elif instruction.op == iri.MATH:
+                        self.compiled += "{}[{}] = ".format(instruction.defs['name'], instruction.defs['offset'])
+                        use_1 = self.program.symbol_table.get_symbol(instruction.uses[0]['name'], root)
+                        use_2 = self.program.symbol_table.get_symbol(instruction.uses[1]['name'], root)
+                        if "CONST_" in use_1.name:
+                            self.compiled += "{}".format(use_1.value.value[instruction.uses[0]['offset']])
+                        else:
+                            self.compiled += "{}[{}]".format(use_1.name, instruction.uses[0]['offset'])
+                        self.compiled += " {} ".format(instruction.operand.get_string())
+                        if "CONST_" in use_2.name:
+                            self.compiled += "{}".format(use_2.value.value[instruction.uses[1]['offset']])
+                        else:
+                            self.compiled += "{}[{}]".format(use_2.name, instruction.uses[1]['offset'])
                     elif instruction.op in InstructionSet.assignment:
                         # There is only one def.
                         self.compiled += "{}[{}] = {}(".format(instruction.defs['name'],

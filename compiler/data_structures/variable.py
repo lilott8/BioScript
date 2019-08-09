@@ -56,14 +56,6 @@ class Variable(metaclass=ABCMeta):
         pass
 
     @property
-    def types(self):
-        return self._types
-
-    @types.setter
-    def types(self, typez: set):
-        self._types.update(typez)
-
-    @property
     def annotations(self):
         return self._annotations
 
@@ -73,12 +65,7 @@ class Variable(metaclass=ABCMeta):
 
     def __repr__(self):
         output = "\t["
-        if self.types:
-            for t in self.types:
-                output += "{}, ".format(t)
-            output = output[:-2]
         output += "]\t{}".format(self.name)
-        output += "\t({})".format(self.scope)
         return output
 
     def __str__(self):
