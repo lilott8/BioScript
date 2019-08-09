@@ -4,7 +4,6 @@ from typing import Dict
 
 from compiler.data_structures.function import Function
 from compiler.data_structures.properties import BSTime, BSTemperature
-from compiler.data_structures.variable import Variable
 
 
 class IRInstruction(IntEnum):
@@ -113,6 +112,7 @@ class IR(metaclass=ABCMeta):
         self.iid = IR.get_next_id()
         self.uses = list()
         self.defs = None
+        self.meta = list()
 
     @abstractmethod
     def write(self, target: 'BaseTarget') -> str:
@@ -147,7 +147,6 @@ class Expression(IR, metaclass=ABCMeta):
 
     def __init__(self, op: IRInstruction):
         super().__init__(op)
-        self.meta = list()
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -178,20 +177,15 @@ class Math(Expression):
 
 
 class BinaryOp(Expression):
-    def __init__(self, left: Expression, right: Expression, op: BinaryOps, out: Dict):
+    def __init__(self, left: Dict, right: Dict, op: RelationalOps):
         super().__init__(IRInstruction.BINARYOP)
         self.left = left
         self.right = right
         self.op = op
-        self.uses = [x for x in [left, right] if isinstance(x, Variable)]
-        #self.uses = [out ,left, right]
-        self.defs = out
+        self.uses.extend([left, right])
 
     def write(self, target: 'BaseTarget') -> str:
         pass
-
-    def __str__(self):
-        return "BINARYOP {} {} {} {}".format(self.defs, self.op, self.left, self.right)
 
 
 class Call(Expression):
@@ -236,7 +230,6 @@ class Statement(IR, metaclass=ABCMeta):
     def __init__(self, op: IRInstruction, out):
         super().__init__(op)
         self.defs = out
-        self.meta = list()
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -385,7 +378,7 @@ class Jump(Control):
 
 class Conditional(Control):
 
-    def __init__(self, relop: RelationalOps, left: Expression, right: Expression,
+    def __init__(self, relop: RelationalOps, left: Dict, right: Dict,
                  t_branch: Label = None, f_branch: Label = None):
         super().__init__(IRInstruction.CONDITIONAL)
         # first is true, last is else
@@ -394,7 +387,7 @@ class Conditional(Control):
         self.relop = relop
         self.left = left
         self.right = right
-        self.uses = [x for x in [right, left] if isinstance(x, Variable)]
+        self.uses.extend([left, right])
         self.defs = None
 
     def write(self, target: 'BaseTarget') -> str:

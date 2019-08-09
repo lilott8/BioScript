@@ -1,0 +1,8 @@
+manifest aaa
+
+instructions:
+
+a = 3
+if (a > 3) {
+    b = 1
+}

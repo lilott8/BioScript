@@ -324,3 +324,10 @@ class TestMath(FrontEndBase):
 
         expected = "main:\n\ta[0] = 5 - 4"
         assert expected == ir.compiled.rstrip()
+
+    def test_var_offset_number(self, get_visitor):
+        file = "test_cases/math/ir_add_var_offset_number.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = 1\n\ta[1] = 1\n\tb[0] = 2 + a[1]"
+        assert expected == ir.compiled.rstrip()

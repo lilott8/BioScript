@@ -97,6 +97,22 @@ class SymbolTableVisitor(BSBaseVisitor):
         self.symbol_table.add_local(symbol)
         return symbol
 
+    def visitBinops(self, ctx: BSParser.BinopsContext):
+        op1 = self.visitPrimary(ctx.primary(0))
+        op2 = self.visitPrimary(ctx.primary(1))
+
+        # This places any constants into the global symbol table.
+        # By doing this, it makes it significantly easier to handle
+        # arithmetic later in the compilation process.
+        if 'value' in op1.keys() and not self.symbol_table.get_global(op1['name']):
+            globalz = Symbol(op1['name'], 'global', ChemTypeResolver.numbers())
+            globalz.value = Number(op1['name'], 1, op1['value'])
+            self.symbol_table.add_global(globalz)
+        if 'value' in op2.keys() and not self.symbol_table.get_global(op2['name']):
+            globalz = Symbol(op2['name'], 'global', ChemTypeResolver.numbers())
+            globalz.value = Number(op2['name'], 1, op2['value'])
+            self.symbol_table.add_global(globalz)
+
     def visitHeat(self, ctx: BSParser.HeatContext):
         name = self.visitVariable(ctx.variable())['name']
         use = self.symbol_table.get_local(name)

@@ -26,7 +26,7 @@ class IRTarget(BaseTarget):
     def transform(self):
         for root in self.program.functions:
             for nid, block in self.program.functions[root]['blocks'].items():
-                self.compiled += block.label + ":\n"
+                self.compiled += block.label.label + ":\n"
                 self.increment_tab()
                 for instruction in block.instructions:
                     self.compiled += self.tab
@@ -68,7 +68,22 @@ class IRTarget(BaseTarget):
                         # Get rid of trailing characters
                         self.compiled = self.compiled[:-2]
                         self.compiled += ")"
-
+                    elif instruction.op == iri.CONDITIONAL:
+                        use_1 = self.program.symbol_table.get_symbol(instruction.left['name'], root)
+                        use_2 = self.program.symbol_table.get_symbol(instruction.right['name'], root)
+                        self.compiled += "if "
+                        if "CONST_" in use_1.name:
+                            self.compiled += "{}".format(use_1.value.value[instruction.left['offset']])
+                        else:
+                            self.compiled += "{}[{}]".format(use_1.name, instruction.left['offset'])
+                        self.compiled += " {} ".format(instruction.relop.get_readable())
+                        if "CONST_" in use_2.name:
+                            self.compiled += "{}".format(use_1.value.value[instruction.left['offset']])
+                        else:
+                            self.compiled += "{}[{}]".format(use_2.name, instruction.right['offset'])
+                        self.compiled += "{}|{}true: {}{}|{}false: {}".format(self.tab, self.tab,
+                                                                              instruction.true_branch.label, self.tab,
+                                                                              self.tab, instruction.false_branch.label)
                     elif instruction.op == iri.HEAT:
                         self.compiled += "{}({}[{}])".format(instruction.op.name.lower(), instruction.uses[0]['name'],
                                                              instruction.uses[0]['offset'])

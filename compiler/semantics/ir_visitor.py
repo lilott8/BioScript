@@ -62,7 +62,7 @@ class IRVisitor(BSBaseVisitor):
 
         # Set the current block to a new block *after* the functions.
         self.current_block = BasicBlock()
-        self.current_block.label = "main"
+        self.current_block.label = Label("main")
         self.graph.add_node(self.current_block.nid, function=self.scope_stack[-1])
         # Build the main function.
         self.functions['main'] = {'blocks': dict(), 'entry': self.current_block.nid, 'graph': self.graph}
@@ -92,7 +92,7 @@ class IRVisitor(BSBaseVisitor):
         name = ctx.IDENTIFIER().__str__()
         func = self.symbol_table.functions[name]
         self.functions[name] = dict()
-        # initialize the basicblock calling chain.
+        # initialize the basic block calling chain.
         self.bb_calls[name] = list()
 
         self.scope_stack.append(name)
@@ -130,24 +130,63 @@ class IRVisitor(BSBaseVisitor):
 
         return Return(value, None)
 
+    def visitParExpression(self, ctx: BSParser.ParExpressionContext):
+        binops = list()
+        for binop in ctx.binops():
+            bop = self.visitBinops(binop)
+            binops.append(BinaryOp(bop['op1'], bop['op2'], bop['operand']))
+        return binops
+
+    def visitBinops(self, ctx: BSParser.BinopsContext):
+        op1 = self.visitPrimary(ctx.primary(0))
+        op2 = self.visitPrimary(ctx.primary(1))
+
+        op1['index'] = 0 if op1['index'] == -1 else op1['index']
+        op2['index'] = 0 if op2['index'] == -1 else op2['index']
+
+        op1_var = self.symbol_table.get_symbol(op1['name'], self.scope_stack[-1])
+        op2_var = self.symbol_table.get_symbol(op2['name'], self.scope_stack[-1])
+
+        self.check_bounds({'name': op1['name'], 'index': op1['index'], 'var': op1_var.value})
+        self.check_bounds({'name': op2['name'], 'index': op2['index'], 'var': op2_var.value})
+
+        if ctx.EQUALITY():
+            operand = RelationalOps.EQUALITY
+        elif ctx.NOTEQUAL():
+            operand = RelationalOps.NE
+        elif ctx.LT():
+            operand = RelationalOps.LT
+        elif ctx.LTE():
+            operand = RelationalOps.LTE
+        elif ctx.GT():
+            operand = RelationalOps.GT
+        elif ctx.GTE():
+            operand = RelationalOps.GTE
+        else:
+            operand = RelationalOps.EQUALITY
+
+        return {"op1": {'var': op1_var, 'offset': op1['index'], 'name': op1_var.name},
+                "op2": {'var': op2_var, 'offset': op2['index'], 'name': op2_var.name},
+                'operand': operand}
+
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
         # Build the conditional for this statement.
-        par_expression = self.visitParExpression(ctx.parExpression())
-        if BSBaseVisitor.is_number(par_expression['exp1']):
-            exp1 = Number("Constant_{}".format(par_expression['exp1']), {ChemTypes.NAT, ChemTypes.REAL},
-                          self.scope_stack[-1], value=float(par_expression['exp1']), is_constant=True)
-            self.symbol_table.add_local(exp1, self.scope_stack[-1])
-        else:
-            exp1 = par_expression['exp1']
-        if BSBaseVisitor.is_number(par_expression['exp2']):
-            exp2 = Number("Constant_{}".format(par_expression['exp2']), {ChemTypes.NAT, ChemTypes.REAL},
-                          self.scope_stack[-1], value=float(par_expression['exp2']), is_constant=True)
-            self.symbol_table.add_local(exp2, self.scope_stack[-1])
-        else:
-            exp2 = par_expression['exp2']
+        cond = self.visitParExpression(ctx.parExpression())
+        # if BSBaseVisitor.is_number(par_expression['exp1']):
+        #     exp1 = Number("Constant_{}".format(par_expression['exp1']), {ChemTypes.NAT, ChemTypes.REAL},
+        #                   self.scope_stack[-1], value=float(par_expression['exp1']), is_constant=True)
+        #     self.symbol_table.add_local(exp1, self.scope_stack[-1])
+        # else:
+        #     exp1 = par_expression['exp1']
+        # if BSBaseVisitor.is_number(par_expression['exp2']):
+        #     exp2 = Number("Constant_{}".format(par_expression['exp2']), {ChemTypes.NAT, ChemTypes.REAL},
+        #                   self.scope_stack[-1], value=float(par_expression['exp2']), is_constant=True)
+        #     self.symbol_table.add_local(exp2, self.scope_stack[-1])
+        # else:
+        #     exp2 = par_expression['exp2']
 
         # Build the IR Conditional
-        condition = Conditional(par_expression['op'], exp1, exp2)
+        condition = Conditional(cond[0].op, cond[0].left, cond[0].right)
         self.current_block.add(condition)
         # Build the true block of this statement.
         true_block = BasicBlock()
@@ -398,9 +437,6 @@ class IRVisitor(BSBaseVisitor):
 
         return NOP()
 
-    def visitParExpression(self, ctx: BSParser.ParExpressionContext):
-        return self.visitExpression(ctx.expression())
-
     def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
         args = list()
         for expr in ctx.expression():
@@ -449,10 +485,12 @@ class IRVisitor(BSBaseVisitor):
     def visitMath(self, ctx: BSParser.MathContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
         deff_var = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
+        # Has this variable been declared before?
         if deff_var.value is not None:
             self.check_bounds({'name': deff['name'], 'index': deff['index'], 'var': deff_var})
         deff_offset = 0 if deff['index'] == -1 else deff['index']
 
+        # Check to see if this is a constant or a variable
         op1 = self.visitPrimary(ctx.primary(0))
         if 'value' in op1.keys():
             op1_var = self.symbol_table.get_global('CONST_{}'.format(op1['value'])).value
@@ -460,6 +498,7 @@ class IRVisitor(BSBaseVisitor):
             op1_var = self.symbol_table.get_local(op1['name'], self.scope_stack[-1]).value
         self.check_bounds({'name': op1['name'], 'index': op1['index'], 'var': op1_var})
 
+        # Check to see if this is a constant or a variable
         op2 = self.visitPrimary(ctx.primary(1))
         if 'value' in op2.keys():
             op2_var = self.symbol_table.get_global('CONST_{}'.format(op2['value'])).value
@@ -467,9 +506,11 @@ class IRVisitor(BSBaseVisitor):
             op2_var = self.symbol_table.get_local(op2['name'], self.scope_stack[-1]).value
         self.check_bounds({'name': op2['name'], 'index': op2['index'], 'var': op2_var})
 
+        # Set the offsets for everything.
         op1_offset = 0 if op1['index'] == -1 else op1['index']
         op2_offset = 0 if op2['index'] == -1 else op2['index']
 
+        # Grab the operand.
         outcome = 0
         if ctx.ADDITION():
             operand = BinaryOps.ADD
