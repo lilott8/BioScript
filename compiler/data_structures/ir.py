@@ -234,9 +234,10 @@ class Mix(Statement):
 
 
 class Split(Statement):
-    def __init__(self, out: Dict, one: Dict):
+    def __init__(self, out: Dict, one: Dict, split_num: int):
         super().__init__(IRInstruction.SPLIT, out)
         self.uses.append(one)
+        self.split_size = split_num
 
     def write(self, target: 'BaseTarget') -> str:
         pass

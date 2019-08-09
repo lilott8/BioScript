@@ -160,3 +160,37 @@ class TestHeat(FrontEndBase):
         with pytest.raises(InvalidOperation):
             file = "test_cases/heat/ir_sisd_out_of_bounds.bs"
             ir = self.get_compiled_ir(get_visitor(file))
+
+
+@pytest.mark.frontend
+@pytest.mark.ir
+@pytest.mark.instructions
+@pytest.mark.split
+class TestSplit(FrontEndBase):
+
+    def test_sisd(self, get_visitor):
+        file = "test_cases/split/ir_sisd.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = dispense(aaa)\n\tb = split(a, 4)"
+        assert expected == ir.compiled.rstrip()
+
+    def test_simd(self, get_visitor):
+        file = "test_cases/split/ir_simd.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = dispense(aaa)\n\ta[1] = dispense(aaa)\n\tb = split(a, 4)"
+        assert expected == ir.compiled.rstrip()
+        assert ir.program.symbol_table.get_local('b', 'main').value.size == 8
+
+    def test_split_an_index(self, get_visitor):
+        file = "test_cases/split/ir_sisd_index.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = dispense(aaa)\n\ta[1] = dispense(aaa)\n\tb = split(a[1], 4)"
+        assert expected == ir.compiled.rstrip()
+
+    def test_sisd_out_of_bounds(self, get_visitor):
+        with pytest.raises(InvalidOperation):
+            file = "test_cases/split/ir_sisd_out_of_bounds.bs"
+            ir = self.get_compiled_ir(get_visitor(file))

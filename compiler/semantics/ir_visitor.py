@@ -626,10 +626,21 @@ class IRVisitor(BSBaseVisitor):
         return None
 
     def visitSplit(self, ctx: BSParser.SplitContext):
-        variable = self.symbol_table.get_local(self.rename_var(ctx.IDENTIFIER().__str__()), self.scope_stack[-1])
-        # self.current_block.add_uses(variable)
-        size = int(ctx.INTEGER_LITERAL().__str__())
-        return {"reagents": [variable], "size": size, "op": IRInstruction.SPLIT}
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+
+        use = self.visitVariable(ctx.variable())
+        use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
+        self.check_bounds({'index': use['index'], 'name': use['name'], 'var': use_var.value})
+
+        split_num = int(ctx.INTEGER_LITERAL().__str__())
+
+        deff_var = Movable(deff['name'], size=split_num * use_var.value.size)
+        self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = deff_var
+
+        ir = Split({'name': deff['name'], 'offset': -1}, {'name': use['name'], 'offset': use['index']}, split_num)
+        self.current_block.add(ir)
+
+        return None
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())

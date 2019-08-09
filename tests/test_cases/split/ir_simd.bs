@@ -1,0 +1,6 @@
+manifest aaa
+
+instructions:
+
+a[2] = dispense aaa
+b = split a into 4

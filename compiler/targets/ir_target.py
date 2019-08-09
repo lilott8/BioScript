@@ -30,7 +30,13 @@ class IRTarget(BaseTarget):
                 self.increment_tab()
                 for instruction in block.instructions:
                     self.compiled += self.tab
-                    if instruction.op in InstructionSet.assignment:
+                    if instruction.op == iri.SPLIT:
+                        self.compiled += "{} = {}({}".format(instruction.defs['name'],
+                                                             instruction.op.name.lower(), instruction.uses[0]['name'])
+                        if instruction.uses[0]['offset'] != -1:
+                            self.compiled += "[{}]".format(instruction.uses[0]['offset'])
+                        self.compiled += ", {})".format(instruction.split_size)
+                    elif instruction.op in InstructionSet.assignment:
                         # There is only one def.
                         self.compiled += "{}[{}] = {}(".format(instruction.defs['name'],
                                                                instruction.defs['offset'], instruction.op.name.lower())
