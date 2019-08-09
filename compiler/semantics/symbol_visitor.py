@@ -219,6 +219,9 @@ class SymbolTableVisitor(BSBaseVisitor):
         for use in ctx.primary():
             var = self.visitPrimary(use)
 
+            # This places any constants into the global symbol table.
+            # By doing this, it makes it significantly easier to handle
+            # arithmetic later in the compilation process.
             if 'value' in var.keys() and not self.symbol_table.get_global(var['name']):
                 globalz = Symbol(var['name'], 'global', ChemTypeResolver.numbers())
                 globalz.value = Number(var['name'], 1, var['value'])
