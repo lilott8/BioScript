@@ -227,3 +227,36 @@ class TestDispose(FrontEndBase):
         with pytest.raises(InvalidOperation):
             file = "test_cases/dispose/ir_sisd_out_of_bounds.bs"
             ir = self.get_compiled_ir(get_visitor(file))
+
+
+@pytest.mark.frontend
+@pytest.mark.ir
+@pytest.mark.instructions
+@pytest.mark.store
+class TestStore(FrontEndBase):
+
+    def test_sisd(self, get_visitor):
+        file = "test_cases/store/ir_sisd.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = dispense(aaa)\n\tstore(a[0])"
+        assert expected == ir.compiled.rstrip()
+
+    def test_simd(self, get_visitor):
+        file = "test_cases/store/ir_simd.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = dispense(aaa)\n\ta[1] = dispense(aaa)\n\tstore(a[0])\n\tstore(a[1])"
+        assert expected == ir.compiled.rstrip()
+
+    def test_sisd_index(self, get_visitor):
+        file = "test_cases/store/ir_sisd_index.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = dispense(aaa)\n\ta[1] = dispense(aaa)\n\tstore(a[0])"
+        assert expected == ir.compiled.rstrip()
+
+    def test_sisd_out_of_bounds(self, get_visitor):
+        with pytest.raises(InvalidOperation):
+            file = "test_cases/store/ir_sisd_out_of_bounds.bs"
+            ir = self.get_compiled_ir(get_visitor(file))

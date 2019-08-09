@@ -288,9 +288,9 @@ class Dispense(Statement):
 
 
 class Dispose(Statement):
-    def __init__(self, out: Dict, reagent: Dict):
+    def __init__(self, out: Dict):
         super().__init__(IRInstruction.DISPOSE, out)
-        self.uses.append(reagent)
+        self.uses.append(out)
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -300,10 +300,9 @@ class Dispose(Statement):
 
 
 class Store(Statement):
-    def __init__(self, out: Dict, value: Expression):
+    def __init__(self, out: Dict):
         super().__init__(IRInstruction.STORE, out)
-        if not isinstance(value, float) and value.op == IRInstruction.CALL:
-            self.uses.extend(value.uses)
+        self.uses.append(out)
         self.defs = out
 
     def write(self, target: 'BaseTarget') -> str:
