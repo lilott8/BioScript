@@ -62,7 +62,7 @@ class ClangTarget(BaseTarget):
             elif type(instr) == Store:
                 #print(instr)
                 
-                code += '  {} = {};\n'.format(instr.defs.name, instr.uses)
+                code += '  {} = {};\n'.format(instr.defs[0].name, instr.uses)
             elif type(instr) == Mix:
                 code += '  mat {} = mix({}, {}, {}, {}, {});\n'.format(
                                             instr.defs[0].name,
@@ -100,7 +100,7 @@ class ClangTarget(BaseTarget):
                         args += ', '+arg.name
                     else:
                         args = arg.name
-                code += '  {} {} = {}({});\n'.format(ret, instr.defs.name, instr.name, args)
+                code += '  {} {} = {}({});\n'.format(ret, instr.defs[0].name, instr.name, args)
             elif type(instr) == BinaryOps:
                 pass
             else:

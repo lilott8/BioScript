@@ -156,14 +156,11 @@ class BSBaseVisitor(BSParserVisitor):
 
             return output
 
-    def create_simd_name(self, name: str, size: int, op: str, types: frozenset, update_symbols: bool = False):
-        created_vars = []
-        for x in range(0, size):
-            var_name = "{}[{}]".format(name, x)
-            created_vars.append(var_name)
-            if update_symbols:
-                self.symbol_table.add_local(Chemical(var_name, types, self.symbol_table.current_scope.name, 1))
-        return created_vars
+    def create_simd_name(self, name: str, index: int, op: str, types: frozenset, update_symbols: bool = False):
+        var_name = "{}[{}]".format(name, index)
+        if update_symbols:
+            self.symbol_table.add_local(Chemical(var_name, types, self.symbol_table.current_scope.name, 1))
+        return var_name
         # return name
 
     def get_simd_name(self, name: str, size: int, op: str):

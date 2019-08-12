@@ -6,6 +6,6 @@ functions:
 
 instructions:
 a = dispense aaa
-splita = split a into 8
+splita = split a into 4
 heat splita at 10f for 13d
 dispose splita

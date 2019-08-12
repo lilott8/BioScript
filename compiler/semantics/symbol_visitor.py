@@ -153,6 +153,8 @@ class SymbolTableVisitor(BSBaseVisitor):
         size = self.symbol_table.get_variable(ctx.IDENTIFIER().__str__()).size * int(ctx.INTEGER_LITERAL().__str__())
         if not SymbolTableVisitor.isPower(2, int(ctx.INTEGER_LITERAL().__str__())):
             raise InvalidOperation("Split 2^x-ways is supported; split {}-ways is not supported".format(size))
+        if int(ctx.INTEGER_LITERAL().__str__()) < 2:
+            raise InvalidOperation("Cannot split into less than 2 parts")
         return {'types': types, 'size': size, 'instruction': IRInstruction.SPLIT, "name": IRInstruction.SPLIT.name}
 
     def visitDispense(self, ctx: BSParser.DispenseContext):

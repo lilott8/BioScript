@@ -561,9 +561,9 @@ class IRVisitor(BSBaseVisitor):
                 name1 = reagent1['variable'].name
                 name2 = reagent2['variable'].name
                 for x in range(0, size1):
-                    var1 = self.symbol_table.get_variable(self.create_simd_name(name1, size1, "mix", types, True)[x],
+                    var1 = self.symbol_table.get_variable(self.create_simd_name(name1, 1, "mix", types, True)[0],
                                                           self.scope_stack[-1])
-                    var2 = self.symbol_table.get_variable(self.create_simd_name(name2, size2, "mix", types, True)[x],
+                    var2 = self.symbol_table.get_variable(self.create_simd_name(name2, 1, "mix", types, True)[0],
                                                           self.scope_stack[-1])
                     reagents = [var1, var2]
                     output.append({"reagents": reagents, "execute_for": time, "op": IRInstruction.MIX})
@@ -599,7 +599,7 @@ class IRVisitor(BSBaseVisitor):
         types = {ChemTypes.MAT}
         if size > 1:
             for x in range(0, size):
-                var = self.symbol_table.get_variable(self.create_simd_name(name, size, "detect", types, True)[x],
+                var = self.symbol_table.get_variable(self.create_simd_name(name, 1, "detect", types, True)[x],
                                                      self.scope_stack[-1])
                 output.append({"module": module, "reagents": [var], "execute_for": time, "op": IRInstruction.DETECT})
             return output
@@ -622,7 +622,7 @@ class IRVisitor(BSBaseVisitor):
         types = {ChemTypes.MAT}
         if size > 1:
             for x in range(0, size):
-                var = self.symbol_table.get_variable(self.create_simd_name(name, size, "heat", types, True)[x], self.scope_stack[-1])
+                var = self.symbol_table.get_variable(self.create_simd_name(name, x, "heat", types, True), self.scope_stack[-1])
                 output.append(Heat(var, var))
                 # "{}{}[{}] = session.heat({}[{}], {}){}".format(
                 #   "\t", name, x, name, x, temp['quantity'], self.nl)
@@ -648,7 +648,7 @@ class IRVisitor(BSBaseVisitor):
         types = {ChemTypes.MAT}
         if size > 1:
             for x in range(0, size):
-                var = self.symbol_table.get_variable(self.create_simd_name(name, size, "split", types, True)[x],
+                var = self.symbol_table.get_variable(self.create_simd_name(name, x, "split", types, True)[0],
                                                      self.scope_stack[-1])
                 output.append({"reagents": [var], "size": size, "op": IRInstruction.SPLIT})
             return output
@@ -668,7 +668,7 @@ class IRVisitor(BSBaseVisitor):
         types = {ChemTypes.MAT}
         if size > 1:
             for x in range(0, size):
-                var = self.symbol_table.get_variable(self.create_simd_name(name, size, "dispose", types, True)[x],
+                var = self.symbol_table.get_variable(self.create_simd_name(name, x, "dispose", types, True),
                                                      self.scope_stack[-1])
                 output.append(Dispose(var, var))
                 # "{}{}[{}] = session.heat({}[{}], {}){}".format(
