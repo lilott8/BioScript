@@ -28,7 +28,7 @@ class IRTarget(BaseTarget):
             for nid, block in self.program.functions[root]['blocks'].items():
                 self.compiled += block.label.label + ":\n"
                 self.increment_tab()
-                for instruction in block.instructions:
+                for iid, instruction in enumerate(block.instructions):
                     self.compiled += self.tab
                     if instruction.op == iri.SPLIT:
                         self.compiled += "{} = {}({}".format(instruction.defs['name'],
@@ -78,22 +78,29 @@ class IRTarget(BaseTarget):
                             self.compiled += "{}[{}]".format(use_1.name, instruction.left['offset'])
                         self.compiled += " {} ".format(instruction.relop.get_readable())
                         if "CONST_" in use_2.name:
-                            self.compiled += "{}".format(use_1.value.value[instruction.left['offset']])
+                            self.compiled += "{}".format(use_2.value.value[instruction.right['offset']])
                         else:
                             self.compiled += "{}[{}]".format(use_2.name, instruction.right['offset'])
-                        self.compiled += "{}|{}true: {}{}|{}false: {}".format(self.tab, self.tab,
-                                                                              instruction.true_branch.label, self.tab,
-                                                                              self.tab, instruction.false_branch.label)
+                        self.compiled += "{}|{}true: jump {}{}|{}false: jump {}".format(self.tab, self.tab,
+                                                                                        instruction.true_branch.label,
+                                                                                        self.tab,
+                                                                                        self.tab,
+                                                                                        instruction.false_branch.label)
                     elif instruction.op == iri.HEAT:
                         self.compiled += "{}({}[{}])".format(instruction.op.name.lower(), instruction.uses[0]['name'],
                                                              instruction.uses[0]['offset'])
-
+                    elif instruction.op == iri.NOP:
+                        self.compiled += "NOP"
                     # Add any meta operations.
                     if instruction.meta:
                         for meta in instruction.meta:
                             self.compiled += " @ {}{}".format(meta.quantity, meta.unit.name)
 
                     self.compiled += "\n"
+                if block.jumps:
+                    for jump in block.jumps:
+                        if jump:
+                            self.compiled += self.tab + "jump: " + jump.label + "\n"
                 self.decrement_tab()
 
         self.program.write[self.program.name] = Writable(self.program.name,

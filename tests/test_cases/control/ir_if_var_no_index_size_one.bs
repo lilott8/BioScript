@@ -1,0 +1,8 @@
+manifest aaa
+
+instructions:
+a = dispense aaa
+
+if (a == 8) {
+    dispose a
+}

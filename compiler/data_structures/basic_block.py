@@ -64,7 +64,9 @@ class BasicBlock(object):
             for use in instruction.uses:
                 self.uses.add(use['name'])
 
-        if instruction.op == IRInstruction.LABEL:
+        if instruction.op == IRInstruction.NOP:
+            self.instructions.append(instruction)
+        elif instruction.op == IRInstruction.LABEL:
             if self.label:
                 self.log.warning("Trying to add a label to an already labeled block.")
             self.label = instruction

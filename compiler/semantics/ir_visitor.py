@@ -11,7 +11,7 @@ from shared.bs_exceptions import InvalidOperation
 class IRVisitor(BSBaseVisitor):
 
     def __init__(self, symbol_table):
-        super().__init__(symbol_table, "Basic Block Visitor")
+        super().__init__(symbol_table, "IR Visitor")
         # This is the list of *all* basic blocks.
         # This is the blocks which belong to specific functions.
         # This minimally is populated with a 'main'
@@ -71,6 +71,7 @@ class IRVisitor(BSBaseVisitor):
         for statement in ctx.statements():
             self.visitStatements(statement)
 
+        self.current_block.add(NOP())
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
@@ -141,11 +142,16 @@ class IRVisitor(BSBaseVisitor):
         op1 = self.visitPrimary(ctx.primary(0))
         op2 = self.visitPrimary(ctx.primary(1))
 
-        op1['index'] = 0 if op1['index'] == -1 else op1['index']
-        op2['index'] = 0 if op2['index'] == -1 else op2['index']
-
         op1_var = self.symbol_table.get_symbol(op1['name'], self.scope_stack[-1])
         op2_var = self.symbol_table.get_symbol(op2['name'], self.scope_stack[-1])
+
+        if (op1['index'] == -1 and op1_var.value.size > 1) or (op2['index'] == -1 and op2_var.value.size > 1):
+            raise InvalidOperation("You provided an array to condition; you must provide a valid offset.")
+
+        # This must come after the conditional above.  Otherwise,
+        # there is no guarantee we mantain syntactic fidelity.
+        op1['index'] = 0 if op1['index'] == -1 else op1['index']
+        op2['index'] = 0 if op2['index'] == -1 else op2['index']
 
         self.check_bounds({'name': op1['name'], 'index': op1['index'], 'var': op1_var.value})
         self.check_bounds({'name': op2['name'], 'index': op2['index'], 'var': op2_var.value})
@@ -193,7 +199,7 @@ class IRVisitor(BSBaseVisitor):
         true_label = Label("bsbbif_{}_t".format(true_block.nid))
         self.labels[true_label.name] = true_block.nid
         true_block.add(true_label)
-        self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
+        self.graph.add_node(true_block.nid, function=true_label.label)
         self.graph.add_edge(self.current_block.nid, true_block.nid)
         condition.true_branch = true_label
 
@@ -205,7 +211,7 @@ class IRVisitor(BSBaseVisitor):
         false_label = Label("bsbbif_{}_f".format(false_block.nid))
         self.labels[false_label.name] = false_block.nid
         false_block.add(false_label)
-        self.graph.add_node(false_block.nid, function=self.scope_stack[-1])
+        self.graph.add_node(false_block.nid, function=false_label.label)
         self.graph.add_edge(self.current_block.nid, false_block.nid)
         condition.false_branch = false_label
 
@@ -219,13 +225,9 @@ class IRVisitor(BSBaseVisitor):
             join_label = Label("bsbbif_{}_j".format(join_block.nid))
             self.labels[join_label.name] = join_block.nid
             join_block.add(join_label)
-            self.graph.add_node(join_block.nid, function=self.scope_stack[-1])
-            # self.basic_blocks[self.scope_stack[-1]][join_block.nid] = join_block
+            self.graph.add_node(join_block.nid, function=join_label.label)
             self.functions[self.scope_stack[-1]]['blocks'][join_block.nid] = join_block
 
-        # self.current_block.add("Condition")
-
-        # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
 
         self.current_block = true_block
@@ -240,14 +242,13 @@ class IRVisitor(BSBaseVisitor):
         # This check guarantees that a true block will not jump to a join
         # while dealing with nested conditionals.
         if self.control_stack and len(self.graph.edges(true_block.nid)) == 0:
-            # true_block.add(Jump(join_block.label))
+            true_block.add(Jump(join_block.label))
             self.graph.add_edge(true_block.nid, join_block.nid)
         elif len(self.control_stack) == 0 and len(self.graph.edges(true_block.nid)) == 0:
-            # true_block.add(Jump(join_block.label))
+            true_block.add(Jump(join_block.label))
             self.graph.add_edge(true_block.nid, join_block.nid)
 
         if ctx.ELSE():
-            # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
             self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
 
             self.control_stack.append(join_block)
@@ -259,15 +260,15 @@ class IRVisitor(BSBaseVisitor):
             # This check guarantees that a false block will not jump to a join
             # while dealing with nested conditionals.
             if self.control_stack and len(self.graph.edges(false_block.nid)) == 0:
-                # false_block.add(Jump(join_block.label))
+                false_block.add(Jump(join_block.label))
                 self.graph.add_edge(false_block.nid, join_block.nid)
             elif len(self.control_stack) == 0 and len(self.graph.edges(false_block.nid)) == 0:
-                # false_block.add(Jump(join_block.label))
+                false_block.add(Jump(join_block.label))
                 self.graph.add_edge(false_block.nid, join_block.nid)
 
         # Add the current join to the parent join.
         if self.control_stack:
-            # join_block.add(Jump(self.control_stack[-1].label))
+            join_block.add(Jump(self.control_stack[-1].label))
             self.graph.add_edge(join_block.nid, self.control_stack[-1].nid)
             pass
 

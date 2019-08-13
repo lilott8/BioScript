@@ -97,6 +97,7 @@ class InstructionSet(metaclass=ABCMeta):
 
     control_flow = {IRInstruction.CONDITIONAL, IRInstruction.JUMP}
 
+
 class IR(metaclass=ABCMeta):
     id_counter = 1
 

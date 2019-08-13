@@ -2,6 +2,7 @@ from abc import ABCMeta
 
 from chemicals.identifier import NaiveIdentifier
 from compiler.config.compiler_cli import CompilerCLI
+from compiler.data_structures.basic_block import BasicBlock
 from compiler.data_structures.program import Program
 from compiler.data_structures.symbol_table import SymbolTable
 from compiler.semantics.header_visitor import HeaderVisitor
@@ -49,6 +50,11 @@ class FrontEndBase(metaclass=ABCMeta):
         return FrontEndBase.run_ir(tree, st)
 
     def get_compiled_ir(self, tree):
+        # This resets the basic block counter right before we
+        # traverse the IR visitor.  This makes testing for
+        # basic block id deterministic and independent of
+        # the order in which tests are run.
+        BasicBlock.id_counter = 1
         ir = self.get_ir(tree)
         target = IRTarget(Program(functions=ir.functions, globalz=ir.globalz,
                                   symbol_table=ir.symbol_table, bb_graph=ir.graph,
