@@ -94,7 +94,7 @@ class BasicBlock(object):
     #     self.uses.add(var.name)
 
     def __repr__(self):
-        return self.__str__()
+        return self.label.label
 
     def __str__(self):
         dag = "True" if self.dag is not None else "False"

@@ -1,0 +1,10 @@
+manifest aaa
+
+instructions:
+
+x[2] = 3
+
+while (3 < 4) {
+    a = dispense aaa
+    dispose a
+}
