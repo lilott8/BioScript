@@ -176,6 +176,14 @@ class IRVisitor(BSBaseVisitor):
                 'operand': operand}
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
+        # This oddly specific check handles the case where a while loop nested in an if block
+        # wouldn't have its false edge connect to the if block's false node.  This, in particular,
+        # removes the naive edge that is added as there are still conditional statements that follow.
+        if "_f" in self.current_block.label.label and len(self.control_stack) == 1 and \
+                self.graph.out_edges(self.current_block.nid):
+            if (self.current_block.nid, self.control_stack[-1].nid) in self.graph.out_edges(self.current_block.nid):
+                self.graph.remove_edge(self.current_block.nid, self.control_stack[-1].nid)
+
         # Build the conditional for this statement.
         cond = self.visitParExpression(ctx.parExpression())
         # Build the IR Conditional
@@ -227,11 +235,9 @@ class IRVisitor(BSBaseVisitor):
         join_block = self.control_stack.pop()
 
         # This check guarantees that a true block will not jump to a join
-        # while dealing with nested conditionals.
-        if self.control_stack and len(self.graph.edges(true_block.nid)) == 0:
-            true_block.add(Jump(join_block.label))
-            self.graph.add_edge(true_block.nid, join_block.nid)
-        elif len(self.control_stack) == 0 and len(self.graph.edges(true_block.nid)) == 0:
+        # while dealing with nested conditionals.  If the number of out
+        # edges is greater than 0, then we
+        if len(self.graph.edges(true_block.nid)) == 0:
             true_block.add(Jump(join_block.label))
             self.graph.add_edge(true_block.nid, join_block.nid)
 
@@ -255,8 +261,16 @@ class IRVisitor(BSBaseVisitor):
 
         # Add the current join to the parent join.
         if self.control_stack:
-            join_block.add(Jump(self.control_stack[-1].label))
-            self.graph.add_edge(join_block.nid, self.control_stack[-1].nid)
+            # This is onle last filter to guarantee that
+            # the same jump isn't added multiple times.
+            add = False
+            for jump in join_block.jumps:
+                if jump.jumps.label.label == self.control_stack[-1].label.label:
+                    add = True
+                    break
+            if add:
+                join_block.add(Jump(self.control_stack[-1].label))
+                self.graph.add_edge(join_block.nid, self.control_stack[-1].nid)
             pass
 
         # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
@@ -327,6 +341,16 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_node(false_block.nid, function=self.scope_stack[-1], label=false_label.label)
         self.graph.add_edge(header_block.nid, false_block.nid)
         self.functions[self.scope_stack[-1]]['blocks'][false_block.nid] = false_block
+
+        # Naively add the edge back to whatever is on the stack.
+        # This allows the false node of the while statement to properly jump
+        # to where it belongs.  This does add an extra edge that might not
+        # need to exist.  If we don't need it (see the crazy restrictive
+        # conditional in the visitIfStatement function), then it will be
+        # removed.
+        if self.control_stack:
+            self.graph.add_edge(false_block.nid, self.control_stack[-1].nid)
+            false_block.add(Jump(self.control_stack[-1].label))
 
         self.current_block = false_block
 

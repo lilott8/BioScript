@@ -1,0 +1,25 @@
+manifest aaa
+
+instructions:
+z = dispense aaa
+if (3 < 4) {
+    a = dispense aaa
+    while (3 < 4) {
+        b = dispense aaa
+        if (3 < 4) {
+            x = 3
+        }
+        dispose b
+    }
+    dispose a
+//    if (3 < 4) {
+//       x = 3
+//    }
+//     else {
+//        x = 7
+//    }
+//    x = 9
+//} else {
+//    x = 7
+}
+dispose z
