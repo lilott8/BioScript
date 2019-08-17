@@ -261,17 +261,8 @@ class IRVisitor(BSBaseVisitor):
 
         # Add the current join to the parent join.
         if self.control_stack:
-            # This is onle last filter to guarantee that
-            # the same jump isn't added multiple times.
-            add = False
-            for jump in join_block.jumps:
-                if jump.jumps.label.label == self.control_stack[-1].label.label:
-                    add = True
-                    break
-            if add:
-                join_block.add(Jump(self.control_stack[-1].label))
-                self.graph.add_edge(join_block.nid, self.control_stack[-1].nid)
-            pass
+            join_block.add(Jump(self.control_stack[-1].label))
+            self.graph.add_edge(join_block.nid, self.control_stack[-1].nid)
 
         # self.basic_blocks[self.scope_stack[-1]][self.current_block.nid] = self.current_block
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
