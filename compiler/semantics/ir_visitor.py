@@ -79,6 +79,7 @@ class IRVisitor(BSBaseVisitor):
         self.current_block.add(NOP())
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
 
+        # Add the graph edges for function calls.
         for key, val in self.calls.items():
             for v in val:
                 self.graph.add_cycle([key, self.functions[v]['entry']])
