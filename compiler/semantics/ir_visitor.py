@@ -33,15 +33,14 @@ class IRVisitor(BSBaseVisitor):
         self.labels = dict()
         self.registers = dict()
 
-    def add_call(self, source: str, dest: str):
-        if source not in self.calls:
-            self.calls[source] = set()
-        self.calls[source].add(dest)
+    def get_entry_block(self, method_name: str) -> Dict:
+        nid = self.labels[method_name]
+        return {'label': self.functions[method_name]['blocks'][nid].label, 'nid': nid}
 
     def check_bounds(self, var: Dict) -> bool:
         # Make one last-ditch effort to find the symbol.
         if var['var'] is None:
-            var['var'] = self.symbol_table.get_symbol(var['name'])
+            var['var'] = self.symbol_table.get_symbol(var['name']).value
         # If there isn't a value, assume all is good.
         if not var['var']:
             return True
@@ -49,6 +48,11 @@ class IRVisitor(BSBaseVisitor):
             raise InvalidOperation("{}[{}] is out of bounds, which has a size of {}"
                                    .format(var['var'].name, var['index'], var['var'].size))
         return True
+
+    def add_call_to_graph(self, nid: int, function: str):
+        if nid not in self.calls.keys():
+            self.calls[nid] = set()
+        self.calls[nid].add(function)
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
@@ -62,6 +66,7 @@ class IRVisitor(BSBaseVisitor):
 
         # Set the current block to a new block *after* the functions.
         self.current_block = BasicBlock()
+        self.labels['main'] = self.current_block.nid
         self.current_block.label = Label("main")
         self.graph.add_node(self.current_block.nid, function=self.scope_stack[-1], label=self.current_block.label.label)
         # Build the main function.
@@ -73,6 +78,10 @@ class IRVisitor(BSBaseVisitor):
 
         self.current_block.add(NOP())
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+
+        for key, val in self.calls.items():
+            for v in val:
+                self.graph.add_cycle([key, self.functions[v]['entry']])
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         name = ctx.IDENTIFIER().__str__()
@@ -102,15 +111,27 @@ class IRVisitor(BSBaseVisitor):
         self.current_block = BasicBlock()
         self.functions[name] = {"blocks": dict(), "entry": self.current_block.nid, 'graph': None}
         label = Label("{}_entry".format(name))
-        self.labels[label.name] = self.current_block.nid
+        # Build the mapping from label to nid.
+        self.labels[name] = self.current_block.nid
         self.current_block.add(label)
         self.graph.add_node(self.current_block.nid, function=self.scope_stack[-1], label=self.current_block.label.label)
 
         for statement in ctx.statements():
             self.visitStatements(statement)
 
-        ret_statement = self.visitReturnStatement(ctx.returnStatement())
-        self.current_block.add(ret_statement)
+        if ctx.returnStatement():
+            ret_statement = self.visitReturnStatement(ctx.returnStatement())
+            self.log.info(ret_statement)
+            if ret_statement['function']:
+                ret_val = "{}_return".format(ret_statement['name'])
+                self.current_block.add(Call({'name': ret_val, 'offset': -1},
+                                            self.symbol_table.functions[ret_statement['name']], ret_statement['args']))
+                self.current_block.add(Return({'name': ret_val, 'offset': -1}))
+                self.add_call_to_graph(self.current_block.nid, ret_statement['name'])
+            else:
+                self.current_block.add(Return(ret_statement))
+
+        # self.current_block.add(ret_statement)
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
         self.functions[name]['graph'] = self.graph
 
@@ -118,18 +139,19 @@ class IRVisitor(BSBaseVisitor):
         return None
 
     def visitReturnStatement(self, ctx: BSParser.ReturnStatementContext):
-        if ctx.IDENTIFIER():
-            value = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
-        elif ctx.literal():
-            value = Number('Constant_{}'.format(self.visitLiteral(ctx.literal())),
-                           value=float(self.visitLiteral(ctx.literal())), is_constant=False)
-            self.symbol_table.add_local(value, self.scope_stack[-1])
-        elif ctx.methodCall():
-            value = self.visitMethodCall(ctx.methodCall())
+        if ctx.methodCall():
+            method_name, args = self.visitMethodCall(ctx.methodCall())
+            var = {'name': method_name, 'size': -1, 'function': True, 'offset': 0, 'args': args}
         else:
-            value = self.symbol_table.get_local(ctx.IDENTIFIER().__str__(), self.scope_stack[-1])
-
-        return Return(value, None)
+            var = self.visitPrimary(ctx.primary())
+            var['function'] = False
+            var['var'] = self.symbol_table.get_symbol(var['name'], self.scope_stack[-1]).value
+            self.check_bounds(var)
+            if var['index'] == -1 and var['var'].size > 1:
+                var['offset'] = -1
+            else:
+                var['offset'] = 0 if var['index'] == -1 else var['index']
+        return var
 
     def visitParExpression(self, ctx: BSParser.ParExpressionContext):
         binops = list()
@@ -352,7 +374,7 @@ class IRVisitor(BSBaseVisitor):
         if ctx.IDENTIFIER() is not None:
             exp = self.symbol_table.get_local(ctx.IDENTIFIER().__str__())
         else:
-            exp = Number("REPEAT_{}".format(ctx.INTEGER_LITERAL().__str__()), {ChemTypes.NAT, ChemTypes.REAL},
+            exp = Number("REPEAT_{}".format(ctx.INTEGER_LITERAL().__str__()), {},
                          self.scope_stack[-1], value=float(ctx.INTEGER_LITERAL().__str__()), is_constant=True)
         self.symbol_table.add_local(exp, self.scope_stack[-1])
 
@@ -426,22 +448,48 @@ class IRVisitor(BSBaseVisitor):
 
     def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
         args = list()
-        for expr in ctx.expression():
-            arg = self.visitExpression(expr)
-            if self.is_number(arg):
-                number = Number("Constant_{}".format(arg), {ChemTypes.NAT, ChemTypes.REAL},
-                                self.scope_stack[-1], value=float(arg), is_constant=True)
-                self.symbol_table.add_local(number, self.scope_stack[-1])
-                args.append(number)
+        for expr in ctx.primary():
+            arg = self.visitPrimary(expr)
+            var = self.symbol_table.get_symbol(arg['name'], self.scope_stack[-1])
+            if arg['index'] == -1 and var.value.size <= 1:
+                offset = 0
             else:
-                args.append(self.symbol_table.get_local(arg, self.scope_stack[-1]))
+                offset = arg['index']
+            args.append({'name': var.name, 'offset': offset, 'var': var})
 
         return args
 
+    def visitMethodInvocation(self, ctx: BSParser.MethodInvocationContext):
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        deff['var'] = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
+        if deff['var'].value.size <= 1 and deff['index'] == -1:
+            offset = 0
+        else:
+            offset = deff['index']
+        method_name, args = self.visitMethodCall(ctx.methodCall())
+        self.current_block.add(
+            Call({'name': deff['name'], 'offset': offset}, self.symbol_table.functions[method_name], args))
+
+        # Create the jump to the function.
+        jump_location = self.get_entry_block(method_name)
+        # Build the graph edge.
+        self.graph.add_cycle([self.current_block.nid, jump_location['nid']])
+        # self.current_block.add(Jump(jump_location['label']))
+        # Sve the block.
+        self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
+        # Save this for the return call.
+        previous_nid = self.current_block.nid
+        # We must create a new block.
+        self.current_block = BasicBlock()
+        # This is the return call from the return call.
+        self.current_block.add(Label('{}_return_{}'.format(method_name, previous_nid)))
+
     def visitMethodCall(self, ctx: BSParser.MethodCallContext):
-        name = ctx.IDENTIFIER().__str__()
-        return {"args": self.visitExpressionList(ctx.expressionList()), "func": self.symbol_table.functions[name],
-                "op": IRInstruction.CALL}
+        method_name = ctx.IDENTIFIER().__str__()
+        args = list()
+        if ctx.expressionList():
+            args = self.visitExpressionList(ctx.expressionList())
+        return method_name, args
 
     def visitStore(self, ctx: BSParser.StoreContext):
         use = self.visitVariable(ctx.variable())
@@ -721,7 +769,8 @@ class IRVisitor(BSBaseVisitor):
                                             {'name': ctx.IDENTIFIER().__str__(), 'offset': 1}))
 
         # We don't have to check here, because this is a dispense.
-        self.symbol_table.get_local(deff['name']).value = Movable(deff['name'], size=deff['index'], volume=10.0)
+        self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = Movable(deff['name'],
+                                                                                        size=deff['index'], volume=10.0)
 
         return None
 

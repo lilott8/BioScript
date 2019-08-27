@@ -55,7 +55,7 @@ class IRTarget(BaseTarget):
                             self.compiled += "{}".format(use_2.value.value[instruction.uses[1]['offset']])
                         else:
                             self.compiled += "{}[{}]".format(use_2.name, instruction.uses[1]['offset'])
-                    elif instruction.op in InstructionSet.assignment:
+                    elif instruction.op in InstructionSet.assignment and instruction.op != iri.CALL:
                         # There is only one def.
                         self.compiled += "{}[{}] = {}(".format(instruction.defs['name'],
                                                                instruction.defs['offset'], instruction.op.name.lower())
@@ -89,6 +89,24 @@ class IRTarget(BaseTarget):
                     elif instruction.op == iri.HEAT:
                         self.compiled += "{}({}[{}])".format(instruction.op.name.lower(), instruction.uses[0]['name'],
                                                              instruction.uses[0]['offset'])
+                    elif instruction.op == iri.CALL:
+                        uses = ""
+                        if instruction.uses:
+                            for use in instruction.uses:
+                                uses += use['name']
+                                if use['offset'] >= 0:
+                                    uses += "[{}], ".format(use['offset'])
+                            uses = uses[:-2]
+                        else:
+                            uses = ""
+                        self.compiled += "_{}_ {}".format(instruction.op.name.lower(), instruction.defs['name'])
+                        if instruction.defs['offset'] != -1:
+                            self.compiled += "[{}]".format(instruction.defs['offset'])
+                        self.compiled += " = {}({})".format(instruction.function.name, uses)
+                    elif instruction.op == iri.RETURN:
+                        self.compiled += "^{}^ {}".format(instruction.op.name.lower(), instruction.defs['name'])
+                        if instruction.defs['offset'] != -1:
+                            self.compiled += "[{}]".format(instruction.defs['offset'])
                     elif instruction.op == iri.NOP:
                         self.compiled += "NOP"
                     # Add any meta operations.

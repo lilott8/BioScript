@@ -197,6 +197,7 @@ class Call(Expression):
         self.name = self.function.name
         self.uses = arguments
         self.defs = out
+        self.label = Label(self.function.name)
 
     def write(self, target: 'BaseTarget') -> str:
         pass
@@ -405,10 +406,9 @@ class Conditional(Control):
 
 class Return(Control):
 
-    def __init__(self, return_value: Expression, return_to: Label):
+    def __init__(self, return_value: Dict):
         super().__init__(IRInstruction.RETURN)
         self.return_value = return_value
-        self.return_to = return_value
         self.uses = [return_value]
         self.defs = return_value
 

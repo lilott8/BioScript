@@ -54,7 +54,6 @@ class BasicBlock(object):
     def add_binop(self, bo: BinaryOp):
         self.instructions.append(bo)
 
-
     def add(self, instruction: IR):
         # All statements have def/uses.
         if hasattr(instruction, 'defs'):
@@ -72,26 +71,17 @@ class BasicBlock(object):
             self.label = instruction
         elif instruction.op == IRInstruction.JUMP:
             self.jumps.append(instruction.jumps)
-            self.instructions.append(instruction)
         elif instruction.op == IRInstruction.CONDITIONAL:
             self.jumps.append(instruction.true_branch)
             self.jumps.append(instruction.false_branch)
             self.instructions.append(instruction)
         elif instruction.op == IRInstruction.CALL:
-            self.jumps.append(instruction.function.name)
+            # self.jumps.append(instruction)
             self.instructions.append(instruction)
         elif instruction.op == IRInstruction.RETURN:
-            self.jumps.append(instruction.return_to)
-            self.jumps.append(instruction.name)
             self.instructions.append(instruction)
         else:
             self.instructions.append(instruction)
-
-    # def add_defs(self, var: variable.Variable):
-    #     self.defs.add(var.name)
-    #
-    # def add_uses(self, var: variable.Variable):
-    #     self.uses.add(var.name)
 
     def __repr__(self):
         return self.label.label

@@ -298,5 +298,10 @@ class SymbolTableVisitor(BSBaseVisitor):
     def visitExpressionList(self, ctx: BSParser.ExpressionListContext):
         args = list()
         for primary in ctx.primary():
+            arg = self.visitPrimary(primary)
+            if 'value' in arg.keys() and self.symbol_table.get_global("CONST_{}".format(arg['value'])) is None:
+                const = Symbol('CONST_{}'.format(arg['value']), 'global', arg['value'])
+                const.value = Number(const.name, 1, arg['value'])
+                self.symbol_table.add_global(const)
             args.append(self.visitPrimary(primary))
         return args

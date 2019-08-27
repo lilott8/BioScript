@@ -1,3 +1,4 @@
+from chemicals.chemtypes import ChemTypeResolver
 from compiler.data_structures.variable import *
 from grammar.parsers.python.BSParser import BSParser
 from .bs_base_visitor import BSBaseVisitor
@@ -117,6 +118,11 @@ class MethodVisitor(BSBaseVisitor):
         function = self.visitMethodCall(ctx.methodCall())
         # Update the types of the symbol.
         symbol.types.update(function['types'])
+        if ChemTypeResolver.is_only_numeric(symbol.types):
+            symbol.value = Number(symbol.name, deff['index'])
+        else:
+            symbol.value = Movable(symbol.name, deff['index'])
+
         # Save the symbol.
         self.symbol_table.update_symbol(symbol)
 

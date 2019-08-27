@@ -390,6 +390,7 @@ class TestFunction(FrontEndBase):
         assert ChemTypeResolver.is_only_numeric(arg1.types)
         assert ChemTypeResolver.is_only_numeric(arg2.types)
         assert ChemTypeResolver.is_only_numeric(output.types)
+        assert st.get_symbol('CONST_2') is not None
 
     def test_ret_method(self, get_visitor):
         file = "test_cases/function/symbol_table_ret_method.bs"

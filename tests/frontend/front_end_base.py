@@ -45,8 +45,8 @@ class FrontEndBase(metaclass=ABCMeta):
 
     def get_ir(self, tree):
         st = FrontEndBase.run_globals(tree, SymbolTable())
-        st = FrontEndBase.run_methods(tree, st)
         st = FrontEndBase.run_symbols(tree, st)
+        st = FrontEndBase.run_methods(tree, st)
         return FrontEndBase.run_ir(tree, st)
 
     def get_compiled_ir(self, tree):
