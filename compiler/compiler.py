@@ -103,7 +103,7 @@ class BSCompiler(object):
             visitor.visit(tree)
 
         ir = visitor_passes[-1]
-        self.program = Program(functions=ir.functions, globalz=ir.globalz, config=self.config,
+        self.program = Program(functions=ir.functions, config=self.config,
                                symbol_table=ir.symbol_table, bb_graph=ir.graph,
                                name=self.config.input_file, calls=ir.calls)
 

@@ -56,9 +56,8 @@ class FrontEndBase(metaclass=ABCMeta):
         # the order in which tests are run.
         BasicBlock.id_counter = 1
         ir = self.get_ir(tree)
-        target = IRTarget(Program(functions=ir.functions, globalz=ir.globalz,
-                                  symbol_table=ir.symbol_table, bb_graph=ir.graph,
-                                  name="TEST_FILE", calls=ir.calls,
+        target = IRTarget(Program(functions=ir.functions, symbol_table=ir.symbol_table,
+                                  bb_graph=ir.graph, name="TEST_FILE", calls=ir.calls,
                                   config=CompilerCLI(["-d", "-t", "ir", "-i", "TEST_FILE"]).config))
         target.transform()
         return target

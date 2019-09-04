@@ -17,8 +17,6 @@ class IRVisitor(BSBaseVisitor):
         # This minimally is populated with a 'main'
         self.functions = dict()
         self.current_block = None
-        # Global vars.
-        self.globalz = dict()
         # Used for controlling the control basic blocks.
         self.control_stack = list()
         # Call stack for the program.
@@ -87,17 +85,17 @@ class IRVisitor(BSBaseVisitor):
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         name = ctx.IDENTIFIER().__str__()
         symbol = self.symbol_table.get_global(name)
-        self.globalz[name] = Module(name)
+        symbol.value = Module(name)
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
         name = ctx.IDENTIFIER().__str__()
         symbol = self.symbol_table.get_global(name)
-        self.globalz[name] = Dispensable(name)
+        symbol.value = Dispensable(name)
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
         name = ctx.IDENTIFIER().__str__()
         symbol = self.symbol_table.get_global(name)
-        self.globalz[name] = Stationary(name)
+        symbol.value = Stationary(name)
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
         name = ctx.IDENTIFIER().__str__()
@@ -484,6 +482,7 @@ class IRVisitor(BSBaseVisitor):
         self.current_block = BasicBlock()
         # This is the return call from the return call.
         self.current_block.add(Label('{}_return_{}'.format(method_name, previous_nid)))
+        # self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
 
     def visitMethodCall(self, ctx: BSParser.MethodCallContext):
         method_name = ctx.IDENTIFIER().__str__()

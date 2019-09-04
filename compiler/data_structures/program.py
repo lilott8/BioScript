@@ -1,3 +1,5 @@
+from typing import Dict
+
 from compiler.data_structures.symbol_table import SymbolTable
 
 
@@ -7,9 +9,9 @@ class Program(object):
     stores various data about the program.
     """
 
-    def __init__(self, functions: dict = dict, entry_point: int = 1, config: 'Config' = None,
+    def __init__(self, functions: Dict = dict, entry_point: int = 1, config: 'Config' = None,
                  symbol_table: SymbolTable = None, bb_graph=None, name: str = "program",
-                 ssa_form: bool = False, globalz: dict = dict, calls: dict = dict):
+                 ssa_form: bool = False, globalz: Dict = None, calls: Dict = dict):
         # A dict: id->basic block
         self.functions = functions
         # The main entry point for the program
@@ -25,7 +27,7 @@ class Program(object):
         # Storing different analysis here (liveness, call graph, etc)
         self.analysis = dict()
         # Keep track of the globals
-        self.globalz = globalz
+        self.globalz = globalz if globalz else self.symbol_table.globals
         # keep the call graph.
         self.calls = calls
         # The config object
