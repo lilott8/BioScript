@@ -1,4 +1,3 @@
-import copy
 import json
 import uuid
 from collections import deque
@@ -43,47 +42,58 @@ class InkwellTarget(BaseTarget):
             var_uses = dict()
             instruction_defs = dict()
             instruction_uses = dict()
-            used_defs = set()
-            nodes = set()
+            used_defs = dict()
+            # This maps the offset variable to the
+            # concrete variable to which it should.
+            # e.g., a_0 = a
+            # noting that a[0] <==> a_0
+            var_mapper = dict()
 
             for nid, block in self.program.functions[root]['blocks'].items():
                 graph = nx.MultiDiGraph()
                 # Op nodes are defined as {output var, op}
                 # Var nodes are defined as {var}
                 for instruction in block.instructions:
-                    instruction_defs[instruction.iid] = set()
-                    instruction_uses[instruction.iid] = set()
+                    instruction_defs[instruction.iid] = dict()
+                    instruction_uses[instruction.iid] = dict()
 
-                    if instruction.defs:
-                        instruction_defs[instruction.iid].add(instruction.defs.name)
-                        var_defs[instruction.defs.name] = instruction.iid
+                    if instruction.op not in {IRInstruction.CALL, IRInstruction.MATH, IRInstruction.NOP}:
+                        instruction_defs[instruction.iid][instruction.defs['name']] = instruction.defs
+                        var_defs[instruction.defs['name']] = instruction.iid
+                        symbol = self.program.symbol_table.get_symbol(instruction.defs['name'], root)
+                        for x in range(symbol.value.size):
+                            var_mapper["{}_{}".format(symbol.name, x)] = instruction.defs
+                            var_defs["{}_{}".format(symbol.name, x)] = instruction.iid
+                    elif instruction.op == IRInstruction.NOP:
+                        continue
                     else:
                         raise UnsupportedOperation("Inkwell target does not support arithmetic math.")
 
                     for uses in instruction.uses:
-                        if uses.name not in var_uses:
-                            var_uses[uses.name] = list()
-                        instruction_uses[instruction.iid].add(uses.name)
-                        var_uses[uses.name].append(instruction.iid)
+                        if uses['name'] not in var_uses:
+                            var_uses[uses['name']] = set()
+                        symbol = self.program.symbol_table.get_symbol(uses['name'], root)
+                        for x in range(symbol.value.size):
+                            var_mapper["{}_{}".format(uses['name'], x)] = uses
+                        instruction_uses[instruction.iid][uses['name']] = uses
+                        var_uses[uses['name']].add(instruction.iid)
 
-                    data = {'op': instruction.op.name, 'defs': instruction.defs.name,
+                    data = {'op': instruction.op.name, 'defs': instruction.defs,
                             'uses': instruction_uses[instruction.iid]}
                     graph.add_node(instruction.iid, data=data)
 
-                    for use in instruction_uses[instruction.iid]:
-                        if not self.program.symbol_table.is_global(use):
-                            # graph.add_node(use)
-                            if use not in used_defs:
-                                used_defs.add(use)
-                                if use not in var_defs:
+                    for key, use in instruction_uses[instruction.iid].items():
+                        if not self.program.symbol_table.is_global(use['name']):
+                            symbol = self.program.symbol_table.get_symbol(use['name'], root)
+                            if use['name'] not in used_defs:
+                                used_defs[use['name']] = use
+                                if use['name'] not in var_defs:
                                     raise UnsupportedOperation("Inkwell target does not support arithmetic math.")
                                 else:
-                                    node = var_defs[use]
+                                    node = var_defs[use['name']]
                             else:
                                 node = var_uses[use][-2]
                             graph.add_edge(node, instruction.iid)
-                        # else:
-                        #     graph.add_edge(use, var_defs[instruction.defs.name])
 
                 if self.config.write_cfg:
                     self.program.write['cfg'] = Writable(self.program.name,
@@ -94,10 +104,9 @@ class InkwellTarget(BaseTarget):
                 self.program.functions[root]['blocks'][nid].dag = graph
                 self.dags[root][nid] = graph
 
-    def transform(self, verify: bool = False):
+    def transform(self):
         """
         Transform the IR into something Inkwell can understand.
-        :param verify:
         :return:
         """
         uid = uuid.uuid5(uuid.NAMESPACE_OID, self.program.name)
@@ -139,13 +148,15 @@ class InkwellTarget(BaseTarget):
                     # We use the def iff the def is not a global.
                     # If it's a global, then we need the dispense
                     # port for this to work correctly.
-                    var = self.program.symbol_table.get_variable(graph[current]['defs'], root)
+                    var = self.program.symbol_table.get_symbol(graph[current]['defs']['name'], root)
                     # Stop if we couldn't find the variable.
                     if not var:
                         break
                     # destination_op = graph[var.name]
                     if var.name not in self.components:
-                        use = self.program.symbol_table.get_local(copy.deepcopy(graph[current]['uses']).pop(), root)
+                        use = None
+                        if var.name in graph[current]['uses']:
+                            use = self.program.symbol_table.get_symbol(graph[current]['uses'][var.name], root)
                         # This amounts to a unique identifier for each component generated.
                         # name = self.build_name(root, bid, graph[current]['op'], use.name)
                         if not use:
@@ -216,19 +227,18 @@ class InkwellTarget(BaseTarget):
                     activations = self.generate_activations(output, component_set, block.dag, sinks)
                     sequences[root][bid]['timing'] = activations
 
-            verified = self.verify_json(output, True)
+            verified = self.verify_json(output, self.program.config.validate_schema)
             if verified:
                 netlist[root] = output
             """
             The check happens here because this is a shared function.
             It has no access to the config object.
             """
-            if verified and self.config.write_out and self.config.write_cfg:
+            if self.config.debug and self.config.write_out:
                 json_dag_name = "{}_{}_dag_from_json".format(self.program.name, root)
                 self.program.write["json_graph"] = Writable(json_dag_name,
                                                             "{}/{}.dot".format(self.config.output, json_dag_name),
                                                             self.json_to_graph(output, root), WritableType.GRAPH)
-                # self.json_to_graph(output, root)
         if self.config.flow_type == FlowType.ACTIVE:
             self.program.write['activations'] = Writable("{}_activations".format(self.program.name),
                                                          "{}/{}_activations.json".format(self.config.output,
@@ -252,7 +262,7 @@ class InkwellTarget(BaseTarget):
     def verify_json(self, output: dict, verify: bool = False) -> bool:
         if verify:
             try:
-                with open('resources/parchmint_schema.json') as f:
+                with open(self.program.config.schema) as f:
                     schema = json.load(f)
                 validate(instance=output, schema=schema)
                 self.log.debug("JSON validation successful")

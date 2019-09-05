@@ -60,6 +60,9 @@ class CompilerCLI(BaseCLI):
         inkwell_group.add_argument('-flow', '--flow', help="Which type of flow-based chip to target.",
                                    default="passive", choices={'active', 'a', 'passive', 'p'})
         inkwell_group.add_argument('--cdb', help="Name of Component Database", default='')
+        inkwell_group.add_argument('--schema', help='The schema to validate json against.',
+                                   default=None)
+        inkwell_group.add_argument('--validate', help="Validate the schema is correct.", action='store_true')
 
         self.args = self.parser.parse_args(args)
         # This should always be the first instantiation of a Config.

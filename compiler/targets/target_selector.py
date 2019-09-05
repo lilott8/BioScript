@@ -19,5 +19,7 @@ class TargetSelector(IntEnum):
             return targets.InkwellTarget(program)
         elif self.value == TargetSelector.MFSIM:
             return targets.MFSimTarget(program)
+        elif self.value == TargetSelector.LLVM_IR:
+            return targets.ClangTarget(program)
         else:
             return targets.IRTarget(program)

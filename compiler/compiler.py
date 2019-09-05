@@ -138,6 +138,7 @@ class BSCompiler(object):
         target = None
         if self.config.target != TargetSelector.DISABLED:
             target = self.config.target.get_target(program)
+            self.log.info("Running {} transform.".format(self.config.target.name))
             target.transform()
         return target
 

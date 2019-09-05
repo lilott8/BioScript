@@ -62,9 +62,11 @@ class Config(object):
         """
         Inkwell Stuff
         """
-        self.library = './resources/components/components.json'
+        self.library = './resources/flow/components.json'
         self.flow_type = FlowType.PASSIVE
         self.use_local_db = True
+        self.schema = './resources/flow/parchmint_schema.json'
+        self.validate_schema = False
 
         """
         Build the config object now.
@@ -157,6 +159,12 @@ class Config(object):
 
         if args.cdb:
             self.use_local_db = False
+
+        if args.schema:
+            self.schema = args.schema
+
+        if args.validate:
+            self.validate_schema = True
 
         if self.db['name'] and self.db['user'] and self.db['pass']:
             self.db_enabled = True
