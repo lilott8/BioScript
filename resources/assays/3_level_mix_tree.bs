@@ -1,0 +1,17 @@
+manifest aaa
+manifest bbb
+
+instructions:
+
+a[2] = dispense aaa
+b[2] = dispense bbb
+c = mix a[1] with b[1]
+d = split c into 2
+e = split a[0] into 2
+f = split b[0] into 2
+g = mix d[0] with e[1]
+h = mix d[1] with f[1]
+dispose e[0]
+dispose f[0]
+dispose g
+dispose h

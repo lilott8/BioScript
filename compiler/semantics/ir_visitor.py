@@ -754,7 +754,8 @@ class IRVisitor(BSBaseVisitor):
         self.current_block.add(ir)
 
         if symbol.value is None:
-            symbol.value = Movable(deff['name'], size=split_num * use_var.value.size)
+            split_modifier = 1 if use['index'] >= 0 else use_var.value.size
+            symbol.value = Movable(deff['name'], size=split_num * split_modifier)
 
         return None
 

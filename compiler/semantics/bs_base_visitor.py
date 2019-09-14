@@ -19,8 +19,6 @@ class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
         super().__init__()
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.visitor_name = name
-        # Name of global scope
-        self.global_scope = "global"
         # The current symbol table
         self.symbol_table = symbol_table
         self.nl = "\n"

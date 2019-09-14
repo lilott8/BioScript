@@ -21,14 +21,15 @@ class HeaderVisitor(BSBaseVisitor):
         return super().visitGlobalDeclarations(ctx)
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
-        self.symbol_table.add_global(Symbol(ctx.IDENTIFIER().__str__(), "global", {ChemTypes.MODULE}))
+        self.symbol_table.add_global(Symbol(ctx.IDENTIFIER().__str__(), self.symbol_table.global_scope,
+                                            {ChemTypes.MODULE}))
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
-        self.symbol_table.add_global(Symbol(ctx.IDENTIFIER().__str__(), "global",
+        self.symbol_table.add_global(Symbol(ctx.IDENTIFIER().__str__(), self.symbol_table.global_scope,
                                             self.identifier.identify(ctx.IDENTIFIER().__str__())))
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
-        self.symbol_table.add_global(Symbol(ctx.IDENTIFIER().__str__(), "global",
+        self.symbol_table.add_global(Symbol(ctx.IDENTIFIER().__str__(), self.symbol_table.global_scope,
                                             self.identifier.identify(ctx.IDENTIFIER().__str__())))
 
     def visitFunctions(self, ctx: BSParser.FunctionsContext):

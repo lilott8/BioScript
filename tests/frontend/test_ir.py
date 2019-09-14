@@ -195,6 +195,9 @@ class TestSplit(FrontEndBase):
             file = "test_cases/split/ir_sisd_out_of_bounds.bs"
             ir = self.get_compiled_ir(get_visitor(file))
 
+    def test_size_check(self, get_visitor):
+        assert 1 == 2
+
 
 @pytest.mark.frontend
 @pytest.mark.ir

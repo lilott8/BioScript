@@ -8,6 +8,8 @@ class SymbolTable(object):
 
     def __init__(self, name="main"):
         self.log = colorlog.getLogger(self.__class__.__name__)
+        # Name of global scope
+        self.global_scope = "global"
         self.current_scope = Scope(name)
         self.scope_stack = list()
         self.scope_map = dict()
