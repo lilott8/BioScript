@@ -264,7 +264,8 @@ class Split(Statement):
         pass
 
     def __str__(self):
-        return "SPLIT: {}[{}] = split({}, {})".format(self.defs, self.defs.index, self.uses, self.defs.index)
+        return "SPLIT: {}[{}] = split({}, {})".format(self.defs['name'], self.defs['offset'], self.uses[0]['name'],
+                                                      self.defs['offset'])
 
 
 class Detect(Statement):
