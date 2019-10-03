@@ -501,26 +501,26 @@
           "flow"
         ],
         "name": "",
-        "x-span": 150,
-        "y-span": 30,
+        "x-span": 30,
+        "y-span": 150,
         "ports": [
           {
             "label": "input_1",
             "layer": "flow",
-            "x": 75,
-            "y": 0
+            "x": 0,
+            "y": 75
           },
           {
             "label": "output_2",
             "layer": "flow",
-            "x": 37,
-            "y": 30
+            "x": 30,
+            "y": 37
           },
           {
             "label": "output_1",
             "layer": "flow",
-            "x": 74,
-            "y": 30
+            "x": 30,
+            "y": 74
           }
         ]
       }

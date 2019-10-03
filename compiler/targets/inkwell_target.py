@@ -1,5 +1,5 @@
 import json
-from collections import deque, defaultdict
+from collections import defaultdict
 
 import networkx as nx
 from jsonschema import exceptions
@@ -153,7 +153,6 @@ class InkwellTarget(BaseTarget):
             sequences[root] = dict()
             for bid, block in self.program.functions[root]['blocks'].items():
                 graph = block.dag
-                queue = deque()
                 sequences[root][bid] = {"on": {}, "off": {}}
                 sinks = set()
 
@@ -191,15 +190,15 @@ class InkwellTarget(BaseTarget):
                             component_name, output['layers'][0]['id'], graph.nodes[node]['op'], splits=use[1]
                         )
                         output['components'].append(self.components[component_name])
-                        if f'{use[0]}_{use[1]}' == 'e_0':
-                            x = 2
-                        connection = self.build_connection(
+                        connection_name = f"{use[0]}_{use[1]}->{component_name}"
+                        if connection_name not in self.connections:
+                            connection = self.build_connection(
                             self.components[f'{use[0]}_{use[1]}'], self.components[component_name],
-                            f"{use[0]}_{use[1]}->{component_name}", output['layers'][0]['id'],
+                                connection_name, output['layers'][0]['id'],
                             self.program.symbol_table.is_global(use[1])
-                        )
-                        self.connections[f"{use[0]}_{use[1]}->{component_name}"] = connection
-                        output['connections'].append(connection)
+                            )
+                            self.connections[connection_name] = connection
+                            output['connections'].append(connection)
                     else:
                         '''
                         Iterate all the other nodes that exist.
@@ -229,11 +228,12 @@ class InkwellTarget(BaseTarget):
                         for deff_name, deff_offset in graph.nodes[node]['defs']:
                             deff_var = self.program.symbol_table.get_symbol(deff_name)
                             destination = self.components[f"{deff_name}_{deff_offset}"]
-                            if source['name'] != destination['name']:
-                                output['connections'].append(self.build_connection(
-                                    source, destination, f"{source['name']}->{destination['name']}",
+                            connection_name = f"{source['name']}->{destination['name']}"
+                            if source['name'] != destination['name'] and connection_name not in self.connections:
+                                self.connections[connection_name] = self.build_connection(
+                                    source, destination, connection_name,
                                     output['layers'][0]['id'], deff_var.value.is_global)
-                                )
+                                output['connections'].append(self.connections[connection_name])
 
                 for component in output['components']:
                     if component['entity'] == 'Input-port':
