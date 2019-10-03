@@ -514,13 +514,13 @@
             "label": "output_2",
             "layer": "flow",
             "x": 30,
-            "y": 37
+            "y": 39
           },
           {
             "label": "output_1",
             "layer": "flow",
             "x": 30,
-            "y": 74
+            "y": 111
           }
         ]
       }
