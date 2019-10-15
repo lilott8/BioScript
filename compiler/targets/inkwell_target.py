@@ -42,7 +42,7 @@ class InkwellTarget(BaseTarget):
             # defines or uses (basically a use/def chain)
             # Have we added the edge for this def yet?
 
-            no_defs = {IRInstruction.NOP, IRInstruction.CONDITIONAL}
+            no_defs = {IRInstruction.NOP, IRInstruction.CONDITIONAL, IRInstruction.PHI}
             for nid, block in self.program.functions[root]['blocks'].items():
                 graph = nx.DiGraph()
                 # Op nodes are defined as {output var, op}

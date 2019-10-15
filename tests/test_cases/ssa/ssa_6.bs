@@ -1,0 +1,26 @@
+module mod
+stationary stat
+manifest aaa
+manifest bbb
+manifest ccc
+manifest ddd
+
+instructions:
+
+x[3] = dispense aaa
+//x[1] = dispense ddd
+//x[2] = dispense aaa
+
+while (3 > 3)
+{
+    x = dispense bbb
+
+    while (4 > 4)
+    {
+        x = dispense ccc
+    }
+
+    a = detect mod on x
+}
+
+b = detect mod on x

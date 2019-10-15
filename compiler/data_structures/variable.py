@@ -24,6 +24,16 @@ class Symbol(object):
         return "[{}]\t{}\t{}".format(self.scope, self.name, self.types)
 
 
+class RenamedSymbol(Symbol):
+
+    def __init__(self, name: str, symbol: Symbol):
+        self.name = name
+        self.scope = symbol.scope
+        self.types = symbol.types
+        self.points_to = symbol
+        self.value = symbol.value
+
+
 class Variable(metaclass=ABCMeta):
 
     def __init__(self, name: str):
@@ -36,9 +46,6 @@ class Variable(metaclass=ABCMeta):
         self.is_constant = False
         # TODO: Delete this.
         self.is_global = False
-        # The observer related members.
-        self.observers = set()
-        self._subject_state = None
 
     @property
     @abstractmethod
@@ -74,13 +81,16 @@ class Variable(metaclass=ABCMeta):
 
 class RenamedVar(Variable):
 
-    def __init__(self, rename: str, var: Variable):
-        super().__init__(var.name, var.types, var.scope)
+    def __init__(self, rename: str, var: Symbol):
+        super().__init__(rename)
         self.rename = rename
-        self._annotations = var._annotations
-        self.points_to = var.name
+        self.points_to = var
         self.name = rename
         self._value = var.value
+
+    @property
+    def types(self):
+        return self.points_to.types
 
     @property
     def value(self):

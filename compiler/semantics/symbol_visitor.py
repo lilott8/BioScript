@@ -181,6 +181,8 @@ class SymbolTableVisitor(BSBaseVisitor):
             raise UndefinedVariable("{} is not defined.".format(use['name']))
         if not ChemTypeResolver.is_mat_in_set(deff['types']):
             deff['types'].update(self.identifier.identify(deff['name'], deff['types']))
+        if ChemTypes.UNKNOWN in deff['types']:
+            deff['types'].remove(ChemTypes.UNKNOWN)
         deff['types'].update(self.symbol_table.get_local(use['name']).types)
         self.symbol_table.add_local(Symbol(deff['name'], self.scope_stack[-1], deff['types']))
         return None

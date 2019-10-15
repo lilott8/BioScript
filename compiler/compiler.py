@@ -39,8 +39,8 @@ class BSCompiler(object):
         times['sa'] = timer() - start
 
         start = timer()
-        self.log.error("Turning off all optimizations")
-        # prog = self.optimizations(self.program)
+        # self.log.error("Turning off all optimizations")
+        prog = self.optimizations(self.program)
         times['opts'] = timer() - start
 
         start = timer()

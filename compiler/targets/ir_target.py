@@ -42,6 +42,10 @@ class IRTarget(BaseTarget):
                     elif instruction.op == iri.CONSTANT:
                         self.compiled += "{}[{}] = {}".format(instruction.defs['name'],
                                                               instruction.defs['offset'], instruction.value)
+                    elif instruction.op == iri.PHI:
+                        self.compiled += f"PHI {instruction.defs} = {{"
+                        self.compiled += ",".join(instruction.uses)
+                        self.compiled += "}"
                     elif instruction.op == iri.MATH:
                         self.compiled += "{}[{}] = ".format(instruction.defs['name'], instruction.defs['offset'])
                         use_1 = self.program.symbol_table.get_symbol(instruction.uses[0]['name'], root)
