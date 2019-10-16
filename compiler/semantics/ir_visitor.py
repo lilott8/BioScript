@@ -192,8 +192,8 @@ class IRVisitor(BSBaseVisitor):
         else:
             operand = RelationalOps.EQUALITY
 
-        return {"op1": {'var': op1_var, 'offset': op1['index'], 'name': op1_var.name},
-                "op2": {'var': op2_var, 'offset': op2['index'], 'name': op2_var.name},
+        return {"op1": {'var': op1_var, 'offset': op1['index'], 'name': op1_var.name, 'size': op1_var.value.size},
+                "op2": {'var': op2_var, 'offset': op2['index'], 'name': op2_var.name, 'size': op1_var.value.size},
                 'operand': operand}
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
@@ -454,7 +454,7 @@ class IRVisitor(BSBaseVisitor):
                 offset = 0
             else:
                 offset = arg['index']
-            args.append({'name': var.name, 'offset': offset, 'var': var})
+            args.append({'name': var.name, 'offset': offset, 'var': var, 'size': var.value.size})
 
         return args
 
@@ -496,25 +496,32 @@ class IRVisitor(BSBaseVisitor):
         use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
 
         self.check_bounds({'index': use['index'], 'name': use['name'], 'var': use_var.value})
-        if use['index'] == -1:
-            use['index'] = use_var.value.size
-        if use['index'] == 0:
-            use['index'] = 1
-        use_indices = list(use_var.value.value.keys())
-        for x in range(use['index']):
-            ir = Store({"name": use['name'], 'offset': use_indices[x]})
-            self.current_block.add(ir)
+        ir = Store({'name': use['name'], 'offset': use['index'], 'size': use_var.value.size})
+        self.current_block.add(ir)
+        # if use['index'] == -1:
+        #     use['index'] = use_var.value.size
+        # if use['index'] == 0:
+        #     use['index'] = 1
+        # use_indices = list(use_var.value.value.keys())
+        # for x in range(use['index']):
+        #     ir = Store({"name": use['name'], 'offset': use_indices[x], 'size': use_var.value.size})
+        #     self.current_block.add(ir)
 
     def visitNumberAssignment(self, ctx: BSParser.NumberAssignmentContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
         value = self.visitLiteral(ctx.literal())
         size = 1 if deff['index'] == -1 else deff['index']
+
         variable = Number(deff['name'], size, value)
-        for x in range(size):
-            ir = Constant({'name': deff['name'], 'offset': x}, value)
-            self.current_block.add(ir)
-        # The numerical equivalent of a dispense.
         self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = variable
+
+        ir = Constant({'name': deff['name'], 'offset': deff['index'], 'size': variable.size})
+        self.current_block.add(ir)
+
+        # for x in range(size):
+        #     ir = Constant({'name': deff['name'], 'offset': x}, value)
+        #     self.current_block.add(ir)
+        # The numerical equivalent of a dispense.
         return None
 
     def visitMath(self, ctx: BSParser.MathContext):
@@ -598,6 +605,26 @@ class IRVisitor(BSBaseVisitor):
             time = self.visitTimeIdentifier(ctx.timeIdentifier())
             time_meta = TimeConstraint(IRInstruction.MIX, time['quantity'], time['units'])
 
+        if (use_a['index'] == -1 and use_a['var'].size > 1) and (use_b['index'] == -1 and use_b['var'].size > 1):
+            if use_a['var'].size != use_b['var'].size:
+                raise InvalidOperation("{} is not the same size as {}".format(use_a['var'].name, use_b['var'].name))
+            size = use_a['var'].size
+        else:
+            self.check_bounds(use_a)
+            self.check_bounds(use_b)
+            size = 1
+
+        if not symbol.value:
+            # Update the symbol in the symbol table with the new value.
+            symbol.value = Movable(deff['name'], size)
+
+        ir = Mix({'name': deff['name'], 'offset': deff['index'], 'size': size, 'var': symbol},
+                 {'name': use_a['var'].name, 'offset': use_a['index'], 'size': use_a['var'].size, 'var': use_a['var']},
+                 {'name': use_b['var'].name, 'offset': use_b['index'], 'size': use_b['var'].size, 'var': use_b['var']})
+        if time_meta:
+            ir.meta.append(time_meta)
+        self.current_block.add(ir)
+
         '''
         Cases that need to be considered:
         1) a = dispense aaa
@@ -615,55 +642,54 @@ class IRVisitor(BSBaseVisitor):
             c = mix(a, b) 
             (index(c) == -1, index(a) == -1, index(b) == -1, *and* size(a || b) == length(a || b))
         '''
-        size = 1
-        # Check for the case where we are mixing two arrays into one.
-        if (use_a['index'] == -1 and use_a['var'].size > 1) and (use_b['index'] == -1 and use_b['var'].size > 1):
-            if use_a['var'].size != use_b['var'].size:
-                raise InvalidOperation("{} is not the same size as {}".format(use_a['var'].name, use_b['var'].name))
-            # This abstraction allows us to use all the indices that
-            # are currently available in the array, so if there
-            # was a case where gaps existed between index 1 and 3,
-            # but the sizes still matched, this covers that case.
-            use_a_index = list(use_a['var'].value.keys())
-            use_b_index = list(use_b['var'].value.keys())
-            size = use_a['var'].size
-
-            # Add the instructions to the basic block.
-            for x in range(use_a['var'].size):
-                ir = Mix({'name': deff['name'], 'offset': x},
-                         {'name': use_a['var'].name, 'offset': use_a_index[x]},
-                         {'name': use_b['var'].name, 'offset': use_b_index[x]})
-                # Add the time constraint if there is one.
-                if time_meta:
-                    ir.meta.append(time_meta)
-                self.current_block.add(ir)
-        else:
-            # Check the bounds of the inputs.
-            self.check_bounds(use_a)
-            self.check_bounds(use_b)
-            # Get the offsets of the uses.
-            use_a_offset = 0 if use_a['index'] == -1 else use_a['index']
-            use_b_offset = 0 if use_b['index'] == -1 else use_b['index']
-            deff_offset = 0 if deff['index'] == -1 else deff['index']
-
-            # If there is value, then we know this is a SISD instruction,
-            # and it takes the form a[x] = mix...
-            if symbol.value is not None:
-                ir = Mix({'name': deff['name'], 'offset': deff_offset},
-                         {'name': use_a['var'].name, 'offset': use_a_offset},
-                         {'name': use_b['var'].name, 'offset': use_b_offset})
-            else:
-                ir = Mix({'name': deff['name'], 'offset': 0},
-                         {'name': use_a['var'].name, 'offset': use_a_offset},
-                         {'name': use_b['var'].name, 'offset': use_b_offset})
-            # Add the time constraint should one exist.
-            if time_meta:
-                ir.meta.append(time_meta)
-            self.current_block.add(ir)
-
-        if not symbol.value:
-            # Update the symbol in the symbol table with the new value.
-            symbol.value = Movable(deff['name'], size)
+        # size = 1
+        # # Check for the case where we are mixing two arrays into one.
+        # if (use_a['index'] == -1 and use_a['var'].size > 1) and (use_b['index'] == -1 and use_b['var'].size > 1):
+        #     if use_a['var'].size != use_b['var'].size:
+        #         raise InvalidOperation("{} is not the same size as {}".format(use_a['var'].name, use_b['var'].name))
+        #     # This abstraction allows us to use all the indices that
+        #     # are currently available in the array, so if there
+        #     # was a case where gaps existed between index 1 and 3,
+        #     # but the sizes still matched, this covers that case.
+        #     use_a_index = list(use_a['var'].value.keys())
+        #     use_b_index = list(use_b['var'].value.keys())
+        #     size = use_a['var'].size
+        #
+        #     ir = Mix({'name': deff['name'], 'size': use_a['var'].size, 'offset': -1, 'var': },
+        #              {'name': use_a['var'].name, 'offset': -1, 'size': use_a['var'].size, 'var': use_a['var']},
+        #              {'name': use_b['var'].name, 'offset': -1, 'size': use_b['var'].size, 'var': use_b['var']})
+        #     # Add the instructions to the basic block.
+        #     for x in range(use_a['var'].size):
+        #         ir = Mix({'name': deff['name'], 'offset': x},
+        #                  {'name': use_a['var'].name, 'offset': use_a_index[x]},
+        #                  {'name': use_b['var'].name, 'offset': use_b_index[x]})
+        #         # Add the time constraint if there is one.
+        #         if time_meta:
+        #             ir.meta.append(time_meta)
+        #         self.current_block.add(ir)
+        # else:
+        #     # Check the bounds of the inputs.
+        #     self.check_bounds(use_a)
+        #     self.check_bounds(use_b)
+        #     # Get the offsets of the uses.
+        #     use_a_offset = 0 if use_a['index'] == -1 else use_a['index']
+        #     use_b_offset = 0 if use_b['index'] == -1 else use_b['index']
+        #     deff_offset = 0 if deff['index'] == -1 else deff['index']
+        #
+        #     # If there is value, then we know this is a SISD instruction,
+        #     # and it takes the form a[x] = mix...
+        #     if symbol.value is not None:
+        #         ir = Mix({'name': deff['name'], 'offset': deff_offset},
+        #                  {'name': use_a['var'].name, 'offset': use_a_offset},
+        #                  {'name': use_b['var'].name, 'offset': use_b_offset})
+        #     else:
+        #         ir = Mix({'name': deff['name'], 'offset': 0},
+        #                  {'name': use_a['var'].name, 'offset': use_a_offset},
+        #                  {'name': use_b['var'].name, 'offset': use_b_offset})
+        #     # Add the time constraint should one exist.
+        #     if time_meta:
+        #         ir.meta.append(time_meta)
+        #     self.current_block.add(ir)
 
         return None
 
@@ -691,23 +717,30 @@ class IRVisitor(BSBaseVisitor):
         use = self.visitVariable(ctx.variable())
         use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
 
-        self.check_bounds({'index': use['index'], 'name': use_var.name, 'var': use_var.value})
-        if use['index'] == -1:
-            use['index'] = use_var.value.size
-        if use['index'] == 0:
-            use['index'] = 1
-        use_indices = list(use_var.value.value.keys())
-        for x in range(use['index']):
-            ir = Detect({"name": deff['name'], 'offset': x},
-                        {'name': module.name, 'offset': 0},
-                        {'name': use['name'], 'offset': use_indices[x]})
-            if time_meta is not None:
-                ir.meta.append(time_meta)
-            self.current_block.add(ir)
-
         if symbol.value is None:
             symbol.value = Number(deff['name'], use_var.value.size)
 
+        self.check_bounds({'index': use['index'], 'name': use_var.name, 'var': use_var.value})
+
+        # if use['index'] == -1:
+        #     use['index'] = use_var.value.size
+        # if use['index'] == 0:
+        #     use['index'] = 1
+        # use_indices = list(use_var.value.value.keys())
+        ir = Detect({'name': deff['name'], 'offset': use['index'], 'size': symbol.value.size},
+                    {'name': module.name, 'offset': 0, 'size': float("inf")},
+                    {'name': use['name'], 'offset': use['index'], 'size': use_var.value.size})
+        if time_meta is not None:
+            ir.meta.append(time_meta)
+        self.current_block.add(ir)
+
+        # for x in range(use['index']):
+        #     ir = Detect({"name": deff['name'], 'offset': x},
+        #                 {'name': module.name, 'offset': 0},
+        #                 {'name': use['name'], 'offset': use_indices[x]})
+        #     if time_meta is not None:
+        #         ir.meta.append(time_meta)
+        #     self.current_block.add(ir)
         return None
 
     def visitHeat(self, ctx: BSParser.HeatContext):
@@ -724,18 +757,25 @@ class IRVisitor(BSBaseVisitor):
         temp = self.visitTemperatureIdentifier(ctx.temperatureIdentifier())
 
         self.check_bounds({'index': use['index'], 'name': use['name'], 'var': use_var.value})
-        if use['index'] == -1:
-            use['index'] = use_var.value.size
-        if use['index'] == 0:
-            use['index'] = 1
+        # if use['index'] == -1:
+        #     use['index'] = use_var.value.size
+        # if use['index'] == 0:
+        #     use['index'] = 1
 
-        for x in range(use['index']):
-            val = {'name': use['name'], 'offset': x}
-            ir = Heat(val, val)
-            if time is not None:
-                ir.meta.append(TimeConstraint(IRInstruction.HEAT, time[0], time[1]))
-            ir.meta.append(TempConstraint(IRInstruction.HEAT, temp['quantity'], temp['units']))
-            self.current_block.add(ir)
+        val = {'name': use['name'], 'offset': use['index'], 'size': use_var.value.size, 'var': use_var}
+        ir = Heat(val, val)
+        ir.meta.append(TempConstraint(IRInstruction.HEAT, temp['quantity'], temp['units']))
+        if time is not None:
+            ir.meta.append(TimeConstraint(IRInstruction.HEAT, time[0], time[1]))
+        self.current_block.add(ir)
+
+        # for x in range(use['index']):
+        #     val = {'name': use['name'], 'offset': x}
+        #     ir = Heat(val, val)
+        #     if time is not None:
+        #         ir.meta.append(TimeConstraint(IRInstruction.HEAT, time[0], time[1]))
+        #     ir.meta.append(TempConstraint(IRInstruction.HEAT, temp['quantity'], temp['units']))
+        #     self.current_block.add(ir)
         # We don't need to add a value to whatever symbol is being used.
         # There is nothing being created, thus, no symbol to attach a value.
         return None
@@ -761,18 +801,20 @@ class IRVisitor(BSBaseVisitor):
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
+        # We don't have to check here, because this is a dispense.
+        self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = Movable(deff['name'], size=deff['index'], volume=10.0)
 
         if deff['index'] == -1 or deff['index'] == 0:
-            deff['index'] = 1
+            size = 1
+        else:
+            size = deff['index']
 
-        for x in range(deff['index']):
-            self.current_block.add(Dispense({'name': deff['name'], 'offset': x},
-                                            {'name': ctx.IDENTIFIER().__str__(), 'offset': 1}))
+        offset = deff['index'] if deff['index'] != size else -1
 
-        # We don't have to check here, because this is a dispense.
-        self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = Movable(deff['name'],
-                                                                                        size=deff['index'], volume=10.0)
-
+        ir = Dispense({'name': deff['name'], 'offset': offset, 'size': size,
+                       'var': self.symbol_table.get_local(deff['name'], self.scope_stack[-1])},
+                      {'name': ctx.IDENTIFIER().__str__(), 'offset': 1, 'size': float("inf")})
+        self.current_block.add(ir)
         return None
 
     def visitDispose(self, ctx: BSParser.DisposeContext):
@@ -780,13 +822,15 @@ class IRVisitor(BSBaseVisitor):
         use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
 
         self.check_bounds({'index': use['index'], 'name': use['name'], 'var': use_var.value})
-        if use['index'] == -1:
-            use['index'] = use_var.value.size
-        if use['index'] == 0:
-            use['index'] = 1
-        use_indices = list(use_var.value.value.keys())
-        for x in range(use['index']):
-            ir = Dispose({"name": use['name'], 'offset': use_indices[x]})
-            self.current_block.add(ir)
+        # if use['index'] == -1:
+        #     use['index'] = use_var.value.size
+        # if use['index'] == 0:
+        #     use['index'] = 1
+        # use_indices = list(use_var.value.value.keys())
+        ir = Dispose({'name': use['name'], 'offset': use['index'], 'var': use_var.value, 'size': use_var.value.size})
+        self.current_block.add(ir)
+        # for x in range(use['index']):
+        #     ir = Dispose({"name": use['name'], 'offset': use_indices[x]})
+        #     self.current_block.add(ir)
 
         return None
