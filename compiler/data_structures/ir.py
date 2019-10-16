@@ -264,6 +264,7 @@ class Mix(Statement):
                 ret[-1].meta = self.meta
         else:
             def_offset = 0 if self.defs['size'] == 1 and self.defs['offset'] == -1 else self.defs['offset']
+
             use_a_offset = 0 if use_a['offset'] == -1 else use_a['offset']
             use_b_offset = 0 if use_b['offset'] == -1 else use_b['offset']
             ret.append(Mix({'name': self.defs['name'], 'offset': def_offset,
