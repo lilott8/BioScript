@@ -9,6 +9,7 @@ from compiler.semantics.header_visitor import HeaderVisitor
 from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
+from compiler.passes.transforms.simd_expansion import SIMDExpansion
 from compiler.targets.ir_target import IRTarget
 
 
@@ -56,8 +57,10 @@ class FrontEndBase(metaclass=ABCMeta):
         # the order in which tests are run.
         BasicBlock.id_counter = 1
         ir = self.get_ir(tree)
-        target = IRTarget(Program(functions=ir.functions, symbol_table=ir.symbol_table,
+
+        expander = SIMDExpansion()
+        target = IRTarget(expander.transform(Program(functions=ir.functions, symbol_table=ir.symbol_table,
                                   bb_graph=ir.graph, name="TEST_FILE", calls=ir.calls,
-                                  config=CompilerCLI(["-d", "-t", "ir", "-i", "TEST_FILE"]).config))
+                                  config=CompilerCLI(["-d", "-t", "ir", "-i", "TEST_FILE"]).config)))
         target.transform()
         return target
