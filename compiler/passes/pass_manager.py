@@ -22,7 +22,7 @@ class PassManager(object):
         self.transforms = dict()
         self.analysis = dict()
         # Ensure SSA is run first.
-        # self.run_ssa()
+        self.run_ssa()
 
     def run_ssa(self):
         if not self.program.ssa_form:
