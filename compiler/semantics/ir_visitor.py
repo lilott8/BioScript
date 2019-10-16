@@ -498,14 +498,6 @@ class IRVisitor(BSBaseVisitor):
         self.check_bounds({'index': use['index'], 'name': use['name'], 'var': use_var.value})
         ir = Store({'name': use['name'], 'offset': use['index'], 'size': use_var.value.size, 'var': use_var.value})
         self.current_block.add(ir)
-        # if use['index'] == -1:
-        #     use['index'] = use_var.value.size
-        # if use['index'] == 0:
-        #     use['index'] = 1
-        # use_indices = list(use_var.value.value.keys())
-        # for x in range(use['index']):
-        #     ir = Store({"name": use['name'], 'offset': use_indices[x], 'size': use_var.value.size})
-        #     self.current_block.add(ir)
 
     def visitNumberAssignment(self, ctx: BSParser.NumberAssignmentContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
@@ -520,10 +512,6 @@ class IRVisitor(BSBaseVisitor):
                       variable.value)
         self.current_block.add(ir)
 
-        # for x in range(size):
-        #     ir = Constant({'name': deff['name'], 'offset': x}, value)
-        #     self.current_block.add(ir)
-        # The numerical equivalent of a dispense.
         return None
 
     def visitMath(self, ctx: BSParser.MathContext):
@@ -626,72 +614,6 @@ class IRVisitor(BSBaseVisitor):
         if time_meta:
             ir.meta.append(time_meta)
         self.current_block.add(ir)
-
-        '''
-        Cases that need to be considered:
-        1) a = dispense aaa
-            b = dispense bbb
-            c = mix(a, b)
-            (all indices are -1 *and* size = 1)
-
-        2) a[n] = dispense aaa
-            b[m] = dispense bbb
-            c = mix(a[x], b[y]) 
-            (index(c) == -1, index(a) == x, index(b) == y, *and* size = 1)
-
-        3) a[n] = dispense aaa
-            b[n] = dispense bbb
-            c = mix(a, b) 
-            (index(c) == -1, index(a) == -1, index(b) == -1, *and* size(a || b) == length(a || b))
-        '''
-        # size = 1
-        # # Check for the case where we are mixing two arrays into one.
-        # if (use_a['index'] == -1 and use_a['var'].size > 1) and (use_b['index'] == -1 and use_b['var'].size > 1):
-        #     if use_a['var'].size != use_b['var'].size:
-        #         raise InvalidOperation("{} is not the same size as {}".format(use_a['var'].name, use_b['var'].name))
-        #     # This abstraction allows us to use all the indices that
-        #     # are currently available in the array, so if there
-        #     # was a case where gaps existed between index 1 and 3,
-        #     # but the sizes still matched, this covers that case.
-        #     use_a_index = list(use_a['var'].value.keys())
-        #     use_b_index = list(use_b['var'].value.keys())
-        #     size = use_a['var'].size
-        #
-        #     ir = Mix({'name': deff['name'], 'size': use_a['var'].size, 'offset': -1, 'var': },
-        #              {'name': use_a['var'].name, 'offset': -1, 'size': use_a['var'].size, 'var': use_a['var']},
-        #              {'name': use_b['var'].name, 'offset': -1, 'size': use_b['var'].size, 'var': use_b['var']})
-        #     # Add the instructions to the basic block.
-        #     for x in range(use_a['var'].size):
-        #         ir = Mix({'name': deff['name'], 'offset': x},
-        #                  {'name': use_a['var'].name, 'offset': use_a_index[x]},
-        #                  {'name': use_b['var'].name, 'offset': use_b_index[x]})
-        #         # Add the time constraint if there is one.
-        #         if time_meta:
-        #             ir.meta.append(time_meta)
-        #         self.current_block.add(ir)
-        # else:
-        #     # Check the bounds of the inputs.
-        #     self.check_bounds(use_a)
-        #     self.check_bounds(use_b)
-        #     # Get the offsets of the uses.
-        #     use_a_offset = 0 if use_a['index'] == -1 else use_a['index']
-        #     use_b_offset = 0 if use_b['index'] == -1 else use_b['index']
-        #     deff_offset = 0 if deff['index'] == -1 else deff['index']
-        #
-        #     # If there is value, then we know this is a SISD instruction,
-        #     # and it takes the form a[x] = mix...
-        #     if symbol.value is not None:
-        #         ir = Mix({'name': deff['name'], 'offset': deff_offset},
-        #                  {'name': use_a['var'].name, 'offset': use_a_offset},
-        #                  {'name': use_b['var'].name, 'offset': use_b_offset})
-        #     else:
-        #         ir = Mix({'name': deff['name'], 'offset': 0},
-        #                  {'name': use_a['var'].name, 'offset': use_a_offset},
-        #                  {'name': use_b['var'].name, 'offset': use_b_offset})
-        #     # Add the time constraint should one exist.
-        #     if time_meta:
-        #         ir.meta.append(time_meta)
-        #     self.current_block.add(ir)
 
         return None
 

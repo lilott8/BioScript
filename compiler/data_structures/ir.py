@@ -150,6 +150,9 @@ class Expression(IR, metaclass=ABCMeta):
     def __init__(self, op: IRInstruction):
         super().__init__(op)
 
+    def expand(self) -> List:
+        return [self]
+
 
 class Constant(Expression):
     def __init__(self, out: Dict, value: float):
@@ -302,15 +305,7 @@ class Split(Statement):
         self.split_size = split_num
 
     def expand(self) -> List:
-        ret = list()
-        if self.defs['size'] > 1 and self.defs['offset'] == -1:
-            for x in range(self.defs['size']):
-                ret.append(
-
-                )
-        else:
-            ret.append()
-        return ret
+        return [self]
 
     def __str__(self):
         return "SPLIT: {}[{}] = split({}, {})".format(self.defs['name'], self.defs['offset'], self.uses[0]['name'],
@@ -369,13 +364,13 @@ class Heat(Statement):
             for x in range(self.defs['size']):
                 reagent = {'name': self.defs['name'], 'offset': x, 'size': self.defs['size'], 'var': self.defs['var']}
                 ret.append(Heat(reagent, reagent))
+                # Always save the meta operations.
                 ret[-1].meta = self.meta
         else:
             offset = 0 if self.uses[0]['offset'] == -1 else self.uses[0]['offset']
             reagent = {'name': self.defs['name'], 'offset': offset, 'size': self.defs['size'], 'var': self.defs['var']}
-            ir = Heat(reagent, reagent)
-            ir.meta = self.meta
-            ret.append(ir)
+            ret.append(Heat(reagent, reagent))
+            ret[-1].meta = self.meta
         return ret
 
     def __str__(self):
@@ -397,9 +392,12 @@ class Dispense(Statement):
                 ret.append(Dispense({'name': self.defs['name'], 'offset': x,
                                      'size': self.defs['size'], 'var': self.defs['var']},
                                     usage))
+                # Always save the meta operations.
+                ret[-1].meta = self.meta
         else:
             ret.append(Dispense({'name': self.defs['name'], 'offset': 0, 'size': 1, 'var': self.defs['var']},
                                 usage))
+            ret[-1].meta = self.meta
         return ret
 
     def __str__(self):
@@ -417,10 +415,13 @@ class Dispose(Statement):
             for x in range(self.uses[0]['size']):
                 ret.append(Dispose({'name': self.uses[0]['name'], 'offset': x,
                                     'size': self.uses[0]['size'], 'var': self.uses[0]['var']}))
+                # Always save the meta operations.
+                ret[-1].meta = self.meta
         else:
             offset = 0 if self.uses[0]['offset'] == -1 else self.uses[0]['offset']
             ret.append(Dispose({'name': self.uses[0]['name'], 'offset': offset,
                                 'size': self.uses[0]['size'], 'var': self.uses[0]['var']}))
+            ret[-1].meta = self.meta
         return ret
 
     def __str__(self):
@@ -439,10 +440,13 @@ class Store(Statement):
             for x in range(self.defs['size']):
                 ret.append(Store({'name': self.uses[0]['name'], 'offset': x,
                                   'size': self.uses[0]['size'], 'var': self.uses[0]['var']}))
+                # Always save the meta operations.
+                ret[-1].meta = self.meta
         else:
             offset = 0 if self.uses[0]['offset'] == -1 else self.uses[0]['offset']
             ret.append(Store({'name': self.uses[0]['name'], 'offset': offset,
                               'size': self.uses[0]['size'], 'var': self.uses[0]['var']}))
+            ret[-1].meta = self.meta
         return ret
 
     def __str__(self):
@@ -462,15 +466,14 @@ class Control(IR, metaclass=ABCMeta):
     def __init__(self, op: IRInstruction):
         super().__init__(op)
 
+    def expand(self) -> List:
+        return [self]
 
 class Label(Control):
 
     def __init__(self, name: str):
         super().__init__(IRInstruction.LABEL)
         self.label = name
-
-    def expand(self) -> List:
-        return [self]
 
     def __str__(self):
         return "LABEL: " + self.label

@@ -12,9 +12,6 @@ class SIMDExpansion(BSTransform):
             for nid, block in program.functions[root]['blocks'].items():
                 expanded_instructions = list()
                 for x, instruction in enumerate(block.instructions):
-                    for expanded in instruction.expand():
-                        expanded_instructions.append(expanded)
-
-                    self.log.info(instruction)
+                    expanded_instructions.extend(instruction.expand())
                 block.instructions = expanded_instructions
         return program
