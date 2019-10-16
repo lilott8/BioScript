@@ -335,11 +335,15 @@ class Heat(Statement):
         ret = list()
         if self.defs['size'] > 1 and self.defs['offset'] == -1:
             for x in range(self.defs['size']):
-                ret.append(
-
-                )
+                reagent = {'name': self.defs['name'], 'offset': x, 'size': self.defs['size'], 'var': self.defs['var']}
+                ret.append(Heat(reagent, reagent))
+                ret[-1].meta = self.meta
         else:
-            ret.append()
+            offset = 0 if self.uses[0]['offset'] == -1 else self.uses[0]['offset']
+            reagent = {'name': self.defs['name'], 'offset': offset, 'size': self.defs['size'], 'var': self.defs['var']}
+            ir = Heat(reagent, reagent)
+            ir.meta = self.meta
+            ret.append(ir)
         return ret
 
     def __str__(self):
@@ -499,6 +503,9 @@ class Meta(IR):
 
     def __init__(self, op: IRInstruction):
         super().__init__(op)
+
+    def expand(self) -> List:
+        return [self]
 
 
 class Phi(Meta):
