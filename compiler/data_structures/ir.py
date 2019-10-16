@@ -157,6 +157,18 @@ class Constant(Expression):
         self.value = value
         self.defs = out
 
+    def expand(self) -> List:
+        ret = list()
+        if self.defs['size'] > 1 and self.defs['offset'] == -1:
+            for x in range(self.defs['size']):
+                ret.append(Constant({'name': self.defs['name'], 'offset': x,
+                                     'size': self.defs['size'], 'var': self.defs['var']},
+                                    self.value[x]))
+        else:
+            ret.append(Constant({'name': self.defs['name'], 'offset': 0, 'size': 1, 'var': self.defs['var']},
+                                self.value[0]))
+        return ret
+
     def __str__(self):
         return "CONSTANT: {}".format(self.value)
 
@@ -311,14 +323,34 @@ class Detect(Statement):
         self.uses.extend([module, one])
 
     def expand(self) -> List:
-        ret = list()
+        ret = []
+        module = self.uses[0]
+        use = self.uses[1]
         if self.defs['size'] > 1 and self.defs['offset'] == -1:
             for x in range(self.defs['size']):
-                ret.append(
-
-                )
+                module['offset'] = x
+                use['offset'] = x
+                ret.append(Detect({'name': self.defs['name'], 'offset': x, 'size': self.defs['size'],
+                                'var': self.defs['var']},
+                               {'name': module['name'], 'offset': x,
+                                'size': module['size'], 'var': module['var']},
+                               {'name': use['name'], 'offset': x,
+                                'size': use['size'], 'var': use['var']}
+                               ))
+                # Always save the meta operations.
+                ret[-1].meta = self.meta
         else:
-            ret.append()
+            def_offset = 0 if self.defs['size'] == 1 and self.defs['offset'] == -1 else self.defs['offset']
+
+            use_offset = 0 if use['offset'] == -1 else use['offset']
+            ret.append(Detect({'name': self.defs['name'], 'offset': def_offset,
+                            'size': self.defs['size'], 'var': self.defs['var']},
+                           {'name': module['name'], 'offset': module['offset'],
+                            'size': module['size'], 'var': module['var']},
+                           {'name': use['name'], 'offset': use_offset,
+                            'size': use['size'], 'var': use['var']}
+                           ))
+            ret[-1].meta = self.meta
         return ret
 
     def __str__(self):
@@ -405,11 +437,12 @@ class Store(Statement):
         ret = list()
         if self.defs['size'] > 1 and self.defs['offset'] == -1:
             for x in range(self.defs['size']):
-                ret.append(
-
-                )
+                ret.append(Store({'name': self.uses[0]['name'], 'offset': x,
+                                  'size': self.uses[0]['size'], 'var': self.uses[0]['var']}))
         else:
-            ret.append()
+            offset = 0 if self.uses[0]['offset'] == -1 else self.uses[0]['offset']
+            ret.append(Store({'name': self.uses[0]['name'], 'offset': offset,
+                              'size': self.uses[0]['size'], 'var': self.uses[0]['var']}))
         return ret
 
     def __str__(self):
