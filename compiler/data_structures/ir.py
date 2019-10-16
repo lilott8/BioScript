@@ -230,10 +230,8 @@ class Mix(Statement):
 
     def expand(self) -> List:
         ret = []
-        use_a = {'name': self.uses[0]['name'], 'offset': self.uses[0]['offset'],
-                 'size': self.uses[0]['size'], 'var': self.uses[0]['var']}
-        use_b = {'name': self.uses[1]['name'], 'offset': self.uses[1]['offset'],
-                 'size': self.uses[1]['size'], 'var': self.uses[1]['var']}
+        use_a = self.uses[0]
+        use_b = self.uses[1]
         '''
                 Cases that need to be considered:
                 1) a = dispense aaa
@@ -256,15 +254,25 @@ class Mix(Statement):
                 use_a['offset'] = x
                 use_b['offset'] = x
                 ret.append(Mix({'name': self.defs['name'], 'offset': x, 'size': self.defs['size'],
-                                'var': self.defs['var']}, copy.deepcopy(use_a), copy.deepcopy(use_b)))
+                                'var': self.defs['var']},
+                               {'name': use_a['name'], 'offset': x,
+                                'size': use_a['size'], 'var': use_a['var']},
+                               {'name': use_b['name'], 'offset': x,
+                                'size': use_b['size'], 'var': use_b['var']}
+                               ))
                 # Always save the meta operations.
                 ret[-1].meta = self.meta
         else:
             def_offset = 0 if self.defs['size'] == 1 and self.defs['offset'] == -1 else self.defs['offset']
-            use_a['offset'] = 0 if use_a['offset'] == -1 else use_a['offset']
-            use_b['offset'] = 0 if use_b['offset'] == -1 else use_b['offset']
+            use_a_offset = 0 if use_a['offset'] == -1 else use_a['offset']
+            use_b_offset = 0 if use_b['offset'] == -1 else use_b['offset']
             ret.append(Mix({'name': self.defs['name'], 'offset': def_offset,
-                            'size': self.defs['size'], 'var': self.defs['var']}, use_a, use_b))
+                            'size': self.defs['size'], 'var': self.defs['var']},
+                           {'name': use_a['name'], 'offset': use_a_offset,
+                            'size': use_a['size'], 'var': use_a['var']},
+                           {'name': use_b['name'], 'offset': use_b_offset,
+                            'size': use_b['size'], 'var': use_b['var']}
+                           ))
             ret[-1].meta = self.meta
         return ret
 
@@ -280,6 +288,17 @@ class Split(Statement):
         self.uses.append(one)
         self.split_size = split_num
 
+    def expand(self) -> List:
+        ret = list()
+        if self.defs['size'] > 1 and self.defs['offset'] == -1:
+            for x in range(self.defs['size']):
+                ret.append(
+
+                )
+        else:
+            ret.append()
+        return ret
+
     def __str__(self):
         return "SPLIT: {}[{}] = split({}, {})".format(self.defs['name'], self.defs['offset'], self.uses[0]['name'],
                                                       self.defs['offset'])
@@ -290,6 +309,17 @@ class Detect(Statement):
         super().__init__(IRInstruction.DETECT, out)
         self.uses.extend([module, one])
 
+    def expand(self) -> List:
+        ret = list()
+        if self.defs['size'] > 1 and self.defs['offset'] == -1:
+            for x in range(self.defs['size']):
+                ret.append(
+
+                )
+        else:
+            ret.append()
+        return ret
+
     def __str__(self):
         return "{}[{}] = detect({}, {}[{}])".format(self.defs['name'], self.defs['offset'], self.uses[0]['name'],
                                                     self.uses[1]['name'], self.uses[1]['offset'])
@@ -299,6 +329,17 @@ class Heat(Statement):
     def __init__(self, out: Dict, reagent: Dict):
         super().__init__(IRInstruction.HEAT, out)
         self.uses.append(reagent)
+
+    def expand(self) -> List:
+        ret = list()
+        if self.defs['size'] > 1 and self.defs['offset'] == -1:
+            for x in range(self.defs['size']):
+                ret.append(
+
+                )
+        else:
+            ret.append()
+        return ret
 
     def __str__(self):
         output = super().__str__() + "\n"
@@ -333,6 +374,18 @@ class Dispose(Statement):
         super().__init__(IRInstruction.DISPOSE, out)
         self.uses.append(out)
 
+    def expand(self) -> List:
+        ret = list()
+        if self.uses[0]['size'] > 1 and self.uses[0]['offset'] == -1:
+            for x in range(self.uses[0]['size']):
+                ret.append(Dispose({'name': self.uses[0]['name'], 'offset': x,
+                                    'size': self.uses[0]['size'], 'var': self.uses[0]['var']}))
+        else:
+            offset = 0 if self.uses[0]['offset'] == -1 else self.uses[0]['offset']
+            ret.append(Dispose({'name': self.uses[0]['name'], 'offset': offset,
+                                'size': self.uses[0]['size'], 'var': self.uses[0]['var']}))
+        return ret
+
     def __str__(self):
         return "dispose({})".format(self.uses[0])
 
@@ -342,6 +395,17 @@ class Store(Statement):
         super().__init__(IRInstruction.STORE, out)
         self.uses.append(out)
         self.defs = out
+
+    def expand(self) -> List:
+        ret = list()
+        if self.defs['size'] > 1 and self.defs['offset'] == -1:
+            for x in range(self.defs['size']):
+                ret.append(
+
+                )
+        else:
+            ret.append()
+        return ret
 
     def __str__(self):
         return "STORE:\t {} = {}".format(self.defs, self.uses)
