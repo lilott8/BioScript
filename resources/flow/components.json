@@ -745,25 +745,25 @@
         "y-span": 140,
         "ports": [
           {
-            "label": "input_1",
+            "label": "output_1",
             "layer": "flow",
             "x": 0,
             "y": 70
           },
           {
-            "label": "output_1",
+            "label": "output_2",
             "layer": "flow",
             "x": 70,
             "y": 0
           },
           {
-            "label": "input_2",
+            "label": "output_3",
             "layer": "flow",
             "x": 140,
             "y": 70
           },
           {
-            "label": "output_2",
+            "label": "output_4",
             "layer": "flow",
             "x": 70,
             "y": 140

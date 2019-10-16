@@ -169,7 +169,8 @@ class InkwellTarget(BaseTarget):
                             self.components[global_use] = self.build_component(global_use,
                                                                                output['layers'][0]['id'],
                                                                                graph.nodes[node]['op'],
-                                                                               splits=use[1])
+                                                                               splits=use[1], iid=global_use,
+                                                                               deff_name="none")
                             output['components'].append(self.components[global_use])
                         # This maps a disposals def to the correct global use.
                         # e.g.: a[2] = dispose aaa, a[0] and a[1] will map to
@@ -183,11 +184,11 @@ class InkwellTarget(BaseTarget):
                         then we know this must be a disposal port, so we build it,
                         and the corresponding connection right now.
                         '''
-                        pass
                         use = next(iter(graph.nodes[node]['uses']))
                         component_name = f"{use[0]}_{use[1]}_disposal"
                         self.components[component_name] = self.build_component(
-                            component_name, output['layers'][0]['id'], graph.nodes[node]['op'], splits=use[1]
+                            component_name, output['layers'][0]['id'], graph.nodes[node]['op'],
+                            splits=use[1], iid=node, deff_name=use[0]
                         )
                         output['components'].append(self.components[component_name])
                         connection_name = f"{use[0]}_{use[1]}->{component_name}"
@@ -206,7 +207,8 @@ class InkwellTarget(BaseTarget):
                         deff_name = '__'.join("%s_%s" % tup for tup in graph.nodes[node]['defs'])
                         self.components[deff_name] = self.build_component(deff_name, output['layers'][0]['id'],
                                                                           graph.nodes[node]['op'],
-                                                                          splits=len(graph.nodes[node]['defs']))
+                                                                          splits=len(graph.nodes[node]['defs']),
+                                                                          iid=node, deff_name=deff_name)
                         output['components'].append((self.components[deff_name]))
                         for name, offset in graph.nodes[node]['defs']:
                             # Access an item in a set but don't iterate.
@@ -270,11 +272,17 @@ class InkwellTarget(BaseTarget):
     def json_to_graph(self, spec, function_name):
         graph = nx.DiGraph()
         for component in spec['components']:
-            graph.add_node(component['id'], label=component['entity'])
+            label = ""
+            if 'iid' in component['params']:
+                label += f"[{component['params']['iid']}] - "
+            label += component['entity']
+            if 'deff_name' in component['params']:
+                label += " - \n" + component['params']['deff_name']
+            graph.add_node(component['id'], label=label)
         for connection in spec['connections']:
             for sink in connection['sinks']:
                 if 'source' in connection:
-                    graph.add_edge(connection['source']['component'], sink['component'], label=connection['name'])
+                    graph.add_edge(connection['source']['component'], sink['component'])#, label=connection['id'])
         return graph
 
     def verify_json(self, output: dict, verify: bool = False) -> bool:
@@ -422,7 +430,7 @@ class InkwellTarget(BaseTarget):
             schedule = temp
         return schedule
 
-    def build_component(self, name, layer: str, op: IRInstruction = IRInstruction.MIX, splits: int = 1):
+    def build_component(self, name, layer: str, op: IRInstruction = IRInstruction.MIX, splits: int = 1, **kwargs):
         """
         This builds the attributes required for defining
         a component on a continuous flow device.
@@ -443,6 +451,11 @@ class InkwellTarget(BaseTarget):
                                             'flow': self.program.config.flow_type})
         # Each port must have it's own connections, so we list all the ports here.
         self.connections[name] = set(n['label'] for n in out['ports'])
+
+        # This allows us to store additional information in the json structure for future use.
+        out['params'] = dict()
+        for key, value in kwargs.items():
+            out['params'][key] = value
         return out
 
     def build_connection(self, source: dict, destination: dict, name: str, layer: str,
