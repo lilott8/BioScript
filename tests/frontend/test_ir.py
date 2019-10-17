@@ -380,6 +380,11 @@ class TestIfElse(FrontEndBase):
             file = "test_cases/control/ir_if_var_no_index_not_size_one.bs"
             ir = self.get_compiled_ir(get_visitor(file))
 
+    def test_var_index_out_of_bounds(self, get_visitor):
+        with pytest.raises(InvalidOperation):
+            file = "test_cases/control/if_if_var_index_out_of_bounds.bs"
+            ir = self.get_compiled_ir(get_visitor(file))
+
     def test_nested_if(self, get_visitor):
         file = "test_cases/control/ir_if_nested_ifs.bs"
         ir = self.get_compiled_ir(get_visitor(file))
