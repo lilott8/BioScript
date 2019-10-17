@@ -1,0 +1,18 @@
+
+module fluorescence
+manifest pcr_mixture
+
+instructions:
+
+a = dispense pcr_mixture
+
+heat a at 95c for 5s
+
+repeat 20 times {
+    heat a at 53c for 15s
+    heat a at 72c for 10s
+}
+
+x = detect fluorescence on a for 3m
+
+dispose a

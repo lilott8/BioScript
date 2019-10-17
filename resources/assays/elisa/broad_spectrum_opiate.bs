@@ -1,0 +1,34 @@
+module fluorescence
+
+manifest Anti_Morphine
+manifest Anti_Oxy
+manifest Anti_Fentanyl
+manifest Anti_Ciprofloxcin
+manifest Anti_Heroin
+manifest UrineSample
+
+instructions:
+
+us1 = dispense 10uL of UrineSample
+us2 = dispense 10uL of UrineSample
+us3 = dispense 10uL of UrineSample
+us4 = dispense 10uL of UrineSample
+us5 = dispense 10uL of UrineSample
+
+a = mix us1 with Anti_Morphine
+b = mix us2 with Anti_Oxy
+cc = mix us3 with Anti_Fentanyl
+d = mix us4 with Anti_Ciprofloxcin
+e = mix us5 with Anti_Heroin
+
+MorphineReading = detect fluorescence on a for 5s
+OxyReading = detect fluorescence on b for 5s
+FentanylReading = detect fluorescence on cc for 5s
+CiproReading = detect fluorescence on d for 5s
+HeroinReading = detect fluorescence on e for 5s
+
+dispose Anti_Morphine
+dispose Anti_Oxy
+dispose Anti_Fentanyl
+dispose Anti_Ciprofloxcin
+dispose Anti_Heroin

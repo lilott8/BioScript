@@ -1,0 +1,51 @@
+module fluorescence
+
+manifest diazepam_enzyme
+
+manifest urinesample
+manifest diazepam_antibody
+manifest distilled_water
+manifest stop_reagent
+manifest hrp_conjugate
+manifest tmb_substrate
+
+instructions:
+
+urine = dispense 50uL of urinesample
+dpe = dispense diazepam_enzyme
+a = mix urine with dpe for 60s
+anti = dispense 100uL diazepam_antibody
+b = mix a with anti for 60s
+heat b at 23c for 30m
+dispose b
+
+repeat 3 times {
+    water = dispense 250uL of distilled_water
+    dpe = dispense diazepam_enzyme
+    a = mix water with dpe for 45s
+    dispose a
+}
+
+hrpc = dispense 150uL of hrp_conjugate
+dpe = dispense diazepam_enzyme
+cc = mix hrpc with dpe
+heat cc at 23c for 15m
+dispose cc
+
+repeat 3 times {
+    water = dispense 250uL of distilled_water
+    dpe = dispense diazepam_enzyme
+    a = mix water with dpe for 45s
+    dispose a
+}
+
+tmb = dispense 100uL of tmb_substrate
+dpe = dispense diazepam_enzyme
+d = mix tmb with dpe
+heat d at 23c for 15m
+
+stop = dispense 100uL of stop_reagent
+
+reagent = mix d with stop for 60s
+Negative_Reading = detect fluorescence on reagent for 30m
+dispose d

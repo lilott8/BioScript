@@ -1,0 +1,61 @@
+module fluorescence
+
+manifest Antigen1
+manifest Antigen2
+manifest Antigen3
+
+manifest morphine_conjugate
+manifest negative_standard
+manifest diluted_sample
+manifest positive_standard
+manifest distilled_water
+manifest tmb_substrate
+manifest stop_reagent
+
+instructions:
+
+a = mix 20uL of negative_standard with Antigen1
+b = mix 20uL of positive_standard with Antigen2
+cc = mix 20uL of diluted_sample with Antigen3
+
+a = mix 100uL of morphine_conjugate with a for 60s
+b = mix 100uL of morphine_conjugate with b for 60s
+cc = mix 100uL of morphine_conjugate with cc for 60s
+
+heat a at 23c for 60m
+heat b at 23c for 60m
+heat cc at 23c for 60m
+
+dispose a
+dispose b
+dispose cc
+
+repeat 6 times {
+    aa = mix 350uL of distilled_water with Antigen1 for 45s
+    bb = mix 350uL of distilled_water with Antigen2 for 45s
+    cc = mix 350uL of distilled_water with Antigen3 for 45s
+
+    dispose aa
+    dispose bb
+    dispose cc
+}
+
+aa = mix 100uL of tmb_substrate with Antigen1
+bb = mix 100uL of tmb_substrate with Antigen2
+cc = mix 100uL of tmb_substrate with Antigen3
+
+heat aa at 23c for 30m
+heat bb at 23c for 30m
+heat cc at 23c for 30m
+
+aa = mix stop_reagent with 100uL of aa for 60s
+bb = mix stop_reagent with 100uL of bb for 60s
+cc = mix stop_reagent with 100uL of cc for 60s
+
+negative_reading = detect fluorescence on aa for 30m
+positive_reading = detect fluorescence on bb for 30m
+sample_reading = detect fluorescence on cc for 30m
+
+dispose aa
+dispose bb
+dispose cc
