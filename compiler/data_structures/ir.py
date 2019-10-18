@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from enum import IntEnum
 from typing import Dict, List
-import copy
 
 from compiler.data_structures.function import Function
 from compiler.data_structures.properties import BSTime, BSTemperature
@@ -92,7 +91,8 @@ class InstructionSet(metaclass=ABCMeta):
                     IRInstruction.GRADIENT}
 
     assignment = {IRInstruction.MIX, IRInstruction.SPLIT, IRInstruction.SPLIT, IRInstruction.DISPENSE,
-                  IRInstruction.CALL, IRInstruction.MATH, IRInstruction.GRADIENT, IRInstruction.DETECT}
+                  IRInstruction.CALL, IRInstruction.MATH, IRInstruction.GRADIENT, IRInstruction.DETECT,
+                  IRInstruction.PHI}
 
     BinaryOps = {BinaryOps.AND, BinaryOps.ADD, BinaryOps.DIVIDE, BinaryOps.MULTIPLE, BinaryOps.OR, BinaryOps.SUBTRACT}
 
@@ -374,9 +374,7 @@ class Heat(Statement):
         return ret
 
     def __str__(self):
-        output = super().__str__() + "\n"
-        output += "heat({}[{}])".format(self.uses[0]['name'], self.uses[0]['offset'])
-        return output
+        return f"heat({self.uses[0]['name']}[{self.uses[0]['offset']}], {super().__str__()})"
 
 
 class Dispense(Statement):
@@ -469,6 +467,7 @@ class Control(IR, metaclass=ABCMeta):
     def expand(self) -> List:
         return [self]
 
+
 class Label(Control):
 
     def __init__(self, name: str):
@@ -508,9 +507,8 @@ class Conditional(Control):
         self.defs = None
 
     def __str__(self):
-        return "CONDITIONAL:\t ({} {} {}) T: {}\tF:{}".format(self.left.name, self.relop.get_readable(),
-                                                              self.right.name, self.true_branch,
-                                                              self.false_branch)
+        return f"Conditional:\t ({self.left['name']} {self.relop.get_readable()} {self.right['name']})\t " \
+               f"T: {self.true_branch.label}\tF: {self.false_branch.label}"
 
     def __repr__(self):
         return self.__str__()

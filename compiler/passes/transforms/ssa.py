@@ -32,8 +32,7 @@ class SSA(BSTransform):
             self.log.info(f"Running SSA on function: {root}")
             self.build_dominators(root)
             self.insert_phi_function_new(root)
-            self.log.critical("Renaming of variables is disabled.")
-            # self.rename_variables(root)
+            self.rename_variables(root)
         return self.program
 
     def build_dominators(self, root: str):
@@ -64,7 +63,7 @@ class SSA(BSTransform):
         for name, var in self.program.symbol_table.scope_map[root].locals.items():
             # Set of blocks where phi's are added
             phis = set()
-            # The set of basic blocks that contain definitions of name
+            # The set of basic blocks that contain definitions of a variable
             defs = set()
             # Find all the def sites for the variable
             for bid, block in self.program.functions[root]['blocks'].items():
@@ -72,19 +71,19 @@ class SSA(BSTransform):
                     defs.add(block)
             while defs:
                 block = defs.pop()
-                self.log.debug(f"{block.nid}'s dominance frontier: {self.frontier[root][block.nid]}")
                 for dominator in self.frontier[root][block.nid]:
                     if dominator not in phis:
-                        self.log.error(f"We need to add a phi node for {name} to block {dominator}")
-                        # block.instructions.insert(Phi(name, [name * len(nx.neighbors(self.program.bb_graph, block.nid))]))
+                        dom_block = self.program.functions[root]['blocks'][dominator]
+                        # self.log.error(f"We need to add a phi node for {name} to block {dominator}")
+                        # Build a phi node and add a variable for each incoming edge.
+                        phi = Phi(name, ['x' for x in range(len(self.program.bb_graph.in_edges(dominator)))])
+                        # Prepend the phi node to the top of the block.
+                        dom_block.instructions.insert(0, phi)
                         phis.add(dominator)
                         if dominator not in defs:
                             defs.add(self.program.functions[root]['blocks'][dominator])
 
-            self.log.info(name)
-
-        # self.log.critical("Exiting in non-standard fashion.")
-        # exit(-122)
+        self.log.debug("Done inserting phi nodes.")
 
     def insert_phi_functions(self, root: str):
         """
@@ -160,9 +159,59 @@ class SSA(BSTransform):
         """
         for variable in self.program.symbol_table.scope_map[root].locals:
             self.bookkeeper[variable] = {'count': 0, 'stack': [0]}
+        for variable in self.program.symbol_table.globals:
+            self.bookkeeper[variable] = {'count': 0, 'stack': [0]}
         self.new_rename(self.program.functions[root]['blocks'][self.program.functions[root]['entry']], root, set())
 
     def new_rename(self, block: BasicBlock, root: str, visited: Set):
+        # For each phi function and x = y op z.
+        for instruction in block.instructions:
+            if instruction.op != IRInstruction.PHI:
+                for use in instruction.uses:
+                    self.log.info(
+                        f"{block.label.label} - {instruction.op.name}: Renaming use: {use['name']} -> {use['name']}{self.bookkeeper[use['name']]['stack'][-1]}")
+                    # i = top(Stack[x])
+                    # replace the use of x with x_i in instruction
+                    pass
+            if instruction.op in InstructionSet.assignment:
+                if instruction.op == IRInstruction.PHI:
+                    self.bookkeeper[instruction.defs]['count'] += 1
+                    self.bookkeeper[instruction.defs]['stack'].append(self.bookkeeper[instruction.defs]['count'])
+                    self.log.info(
+                        f"{block.label.label} - {instruction.op.name}: Renaming def: {instruction.defs} -> {instruction.defs}{self.bookkeeper[instruction.defs]['stack'][-1]}")
+                else:
+                    self.bookkeeper[instruction.defs['name']]['count'] += 1
+                    self.bookkeeper[instruction.defs['name']]['stack'].append(
+                        self.bookkeeper[instruction.defs['name']]['count'])
+                    self.log.info(
+                        f"{block.label.label} - {instruction.op.name}: Renaming def: {instruction.defs['name']} -> {instruction.defs['name']}{self.bookkeeper[instruction.defs['name']]['stack'][-1]}")
+                # count[deff] = count[deff] + 1
+                # i = count[deff]
+                # stack[deff].push(i)
+                # replace deff with deff_i in instruction
+                pass
+        for successor in self.dominator_tree[root][block.nid]:
+            self.log.debug(successor)
+            succ_block = self.program.functions[root]['blocks'][successor]
+            for instruction in succ_block.instructions:
+                if instruction.op == IRInstruction.PHI:
+                    # i = stack[deff].peek()
+                    # replace use[i] with use[i]_i
+                    self.log.error("Figure out how to map n -> j from appel.")
+                    for x, count in enumerate(self.bookkeeper[instruction.defs]['stack']):
+                        self.log.info(
+                            f"{succ_block.label.label} - {instruction.op.name}: Replacing phi node use {instruction.uses[x]} -> {instruction.uses[x]}{count}")
+                    pass
+                else:
+                    break
+        for successor in self.dominator_tree[root][block.nid]:
+            self.log.debug(f"Visiting {successor}")
+            self.new_rename(self.program.functions[root]['blocks'][successor], root, visited)
+        visited.add(block.nid)
+        for deff in block.defs:
+            self.bookkeeper[deff]['stack'].pop()
+
+    def rename2(self, block: BasicBlock, root: str, visited: Set):
         if block.nid in visited:
             return
         for instruction in block.instructions:
@@ -181,7 +230,8 @@ class SSA(BSTransform):
                     # replace var by var_i where i = Top(Stacks[var])
                     renamed = self.generate_name(instruction.defs['name'])
                     self.log.info("The dictionary is not being updated correctly.")
-                    instruction.defs = {'name': renamed, 'offset': instruction.defs['offset'], 'size': -1}
+                    instruction.defs = {'name': renamed, 'offset': instruction.defs['offset'], 'size': -1,
+                                        'var': old['var']}
                     self.add_renamed_symbol(renamed, old, root)
                 if instruction.uses:
                     for var in instruction.uses:
@@ -190,6 +240,7 @@ class SSA(BSTransform):
                             self.log.info("The dictionary is not being updated correctly.")
                             self.add_renamed_symbol(renamed, var, root)
                             # GenName(var) and replace var with var_i, where i=Top(Stack[var])
+
                             pass
         for successor in nx.neighbors(self.program.bb_graph, block.nid):
             # j = position in successor's phi-function corresponding to block.nid

@@ -1,7 +1,7 @@
 from compiler.data_structures import program as prog
 from compiler.data_structures.ir import IRInstruction as iri
 from compiler.data_structures.ir import InstructionSet
-from compiler.data_structures.writable import Writable
+from compiler.data_structures.writable import Writable, WritableType
 from compiler.targets.base_target import BaseTarget
 
 
@@ -124,6 +124,11 @@ class IRTarget(BaseTarget):
                         if jump:
                             self.compiled += self.tab + "jump: " + jump.label + "\n"
                 self.decrement_tab()
+
+            if self.config.write_cfg:
+                self.program.write['cfg'] = Writable(self.program.name,
+                                                     f"{self.config.output}/{self.program.name}_{root}_dag.dot",
+                                                     self.program.bb_graph, WritableType.GRAPH)
 
         self.program.write[self.program.name] = Writable(self.program.name,
                                                          "{}/{}.ir".format(self.config.output, self.program.name),
