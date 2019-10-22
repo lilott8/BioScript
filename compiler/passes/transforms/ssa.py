@@ -37,6 +37,9 @@ class SSA(BSTransform):
             self.log.debug("Renaming variables.")
             self.rename_variables(root)
             self.log.debug("Done renaming variables.")
+            self.log.debug("Removing direct copy phi nodes.")
+            self.remove_copies(root)
+            self.log.debug("Done removing blind copies.")
         self.log.debug(f"Done converting {self.program.name} to SSA form.")
         return self.program
 
@@ -89,6 +92,7 @@ class SSA(BSTransform):
                     # This is Appel's a \notin A_{phi}[y]
                     if dominator not in needs_phi:
                         phi = Phi(var, [var for x in range(len(self.program.bb_graph.in_edges(dominator)))])
+                        self.program.functions[root]['blocks'][dominator].phis.add(phi)
                         self.program.functions[root]['blocks'][dominator].instructions.insert(0, phi)
                         needs_phi.add(dominator)
                     if dominator not in seen_block:
@@ -185,3 +189,22 @@ class SSA(BSTransform):
                 # We must use the old points to name
                 # because we've lost it at this point.
                 self.bookkeeper[instruction.defs['var'].points_to.name]['stack'].pop()
+
+    def remove_copies(self, root: str):
+        for nid, block in self.program.functions[root]['blocks'].items():
+            if block.phis:
+                x = 0
+                while x < len(block.phis):
+                    if block.instructions[x].op == IRInstruction.PHI:
+                        if len(block.instructions[x].uses) == 2:
+                            for use in block.instructions[x].uses:
+                                if use[-1] == '0':
+                                    block.instructions.pop(x)
+                                    # We subtract one because popping reduces
+                                    # the size of the array.  This prevents the
+                                    # case where you pop an instruction and try
+                                    # to reference an index out of bounds.
+                                    x -= 1
+                    else:
+                        break
+                    x += 1
