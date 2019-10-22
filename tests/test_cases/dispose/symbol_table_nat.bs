@@ -1,0 +1,7 @@
+manifest aaa
+
+instructions:
+
+a = 7 + 7
+
+dispose a

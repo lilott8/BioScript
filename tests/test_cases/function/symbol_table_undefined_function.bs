@@ -1,0 +1,11 @@
+manifest aaa
+
+functions:
+
+function foo() {
+    return 3
+}
+
+instructions:
+
+a = bar()

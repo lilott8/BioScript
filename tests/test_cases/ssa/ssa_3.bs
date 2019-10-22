@@ -1,0 +1,31 @@
+// correct ssa
+// nested branch
+
+module mod
+stationary stat
+manifest aaa
+manifest bbb
+manifest ccc
+manifest ddd
+
+functions:
+
+instructions:
+
+x = dispense aaa
+x = dispense ddd
+x = dispense aaa
+
+if (3 > 3)
+{
+    x = dispense bbb
+
+    if (4 > 4)
+    {
+        x = dispense ccc
+    }
+
+    a = detect mod on x
+}
+
+b = detect mod on x

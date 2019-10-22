@@ -1,0 +1,32 @@
+module fluorescence
+
+manifest reagent
+manifest glucose
+manifest distilled_water
+manifest Sample
+
+instructions:
+
+result1 = mix 10uL of glucose with 10uL of reagent for 10s
+reading1 = detect fluorescence on result1 for 30s
+a = mix distilled_water with reagent for 30s
+dispose a
+
+result2 = mix 10uL of glucose with 20uL of reagent for 10s
+reading2 = detect fluorescence on result2 for 30s
+a = mix distilled_water with reagent for 30s
+dispose a
+
+result3 = mix 10uL of glucose with 40uL of reagent for 10s
+reading3 = detect fluorescence on result3 for 30s
+a = mix distilled_water with reagent for 30s
+dispose a
+
+result4 = mix 10uL of glucose with 80uL of reagent for 10s
+reading4 = detect fluorescence on result4 for 30s
+a = mix distilled_water with reagent for 30s
+dispose a
+
+result5 = mix 10uL of Sample with 10uL of reagent for 10s
+reading5 = detect fluorescence on result5 for 30s
+a = mix distilled_water with reagent for 30s

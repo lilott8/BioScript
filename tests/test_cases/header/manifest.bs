@@ -1,0 +1,5 @@
+module mod
+stationary stat
+manifest aaa
+
+instructions:

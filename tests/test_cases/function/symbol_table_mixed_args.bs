@@ -1,0 +1,15 @@
+manifest aaa
+
+functions:
+
+function foo(a, b) {
+    c = dispense aaa
+    d = mix a with c
+    e = b + 5
+    return e
+}
+
+instructions:
+
+a = dispense aaa
+b = foo(a, 3)

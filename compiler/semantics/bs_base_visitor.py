@@ -1,72 +1,33 @@
+from abc import ABCMeta
+from typing import Set, Dict
+
 import colorlog
 
 import compiler.data_structures.symbol_table as st
-from compiler.data_structures.ir import *
+from chemicals.chemtypes import ChemTypeResolver, ChemTypes
+from chemicals.identifier import Identifier, NaiveIdentifier
+from compiler.data_structures.properties import BSTime, BSTemperature
 from compiler.data_structures.scope import Scope
+from compiler.data_structures.variable import Number
 from grammar.parsers.python.BSParser import BSParser
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
-from shared.bs_exceptions import *
 
 
-class BSBaseVisitor(BSParserVisitor):
+class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
 
-    def __init__(self, symbol_table: st.SymbolTable, name="BaseVisitor"):
+    def __init__(self, symbol_table: st.SymbolTable, name="BaseVisitor", identifier: Identifier = NaiveIdentifier()):
         super().__init__()
         self.log = colorlog.getLogger(self.__class__.__name__)
         self.visitor_name = name
-        # Name of global scope
-        self.global_scope = "global"
         # The current symbol table
         self.symbol_table = symbol_table
         self.nl = "\n"
         # Manages the scopes that we are in.
         self.scope_stack = list()
-        # Manages the renamed variables
-        self.rename_counter = dict()
         # Determines if renaming should happen.
         self.rename = False
-
-    def get_renamed_var(self, name: str):
-        """
-        Gets a variable from the counter table.
-        :param name: Variable to get rename for.
-        :return: Renamed variable.
-        """
-        if name not in self.rename_counter:
-            self.rename_counter[name] = 0
-        return "{}{}".format(name, self.rename_counter[name])
-
-    def increment_rename_var(self, name: str):
-        """
-        Increment the variable counter for the given name.
-        :param name: Name to increment counter.
-        :return: The name of the renamed variable.
-        """
-        if name not in self.rename_counter:
-            self.rename_counter[name] = 0
-        else:
-            self.rename_counter[name] += 1
-        output = "{}{}".format(name, self.rename_counter[name])
-        return output
-
-    def rename_var(self, name: str, is_def: bool = False) -> str:
-        if not self.rename:
-            return name
-        if is_def:
-            return self.increment_rename_var(name)
-        else:
-            return self.get_renamed_var(name)
-
-    def visitVolumeIdentifier(self, ctx: BSParser.VolumeIdentifierContext) -> dict:
-        quantity = 10.0
-        units = BSVolume.MICROLITRE
-        name = self.rename_var(ctx.IDENTIFIER().__str__())
-        if ctx.VOLUME_NUMBER():
-            x = self.split_number_from_unit(ctx.VOLUME_NUMBER().__str__())
-            units = BSVolume.get_from_string(x['units'])
-            quantity = units.normalize(x['quantity'])
-        return {'quantity': quantity, 'units': units,
-                'variable': self.symbol_table.get_variable(name, self.scope_stack[-1])}
+        self.const = 'CONST_'
+        self.identifier = identifier
 
     def visitTimeIdentifier(self, ctx: BSParser.TimeIdentifierContext) -> dict:
         quantity = 10.0
@@ -83,78 +44,125 @@ class BSBaseVisitor(BSParserVisitor):
         quantity = units.normalize(x['quantity'])
         return {'quantity': quantity, 'units': BSTemperature.CELSIUS, 'preserved_units': units}
 
+    def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
+        var = self.visitVariable(ctx.variable())
+        if ctx.unionType():
+            var['types'] = self.visitUnionType(ctx.unionType())
+        return var
+
+    def visitVariable(self, ctx: BSParser.VariableContext):
+        """
+        Gets the variable to which the statement will be assigned.
+        If it's -1, the statement uses the whole array.  Which means
+        there must be a check to see if the size of the input arrays
+        are equal.
+        :param ctx: context of the visitor.
+        :return: Dictionary that holds the index and the name of the variable to be assigned.
+        """
+        # If it's -1, it means there wasn't anything given,
+        # so use all the elements of the variable available.
+        index = -1 if not ctx.INTEGER_LITERAL() else int(ctx.INTEGER_LITERAL().__str__())
+        # Array_ref is context specific, something visitVariable cannot infer.
+        # Either it is the size of the element or the index.
+        # In something like a dispense, it's a size; if it's a mix, it's an index.
+        return {"name": ctx.IDENTIFIER().__str__(), "index": index, 'types': {ChemTypes.UNKNOWN}}
+
     def visitPrimary(self, ctx: BSParser.PrimaryContext):
-        if ctx.IDENTIFIER():
-            if not self.symbol_table.get_variable(ctx.IDENTIFIER().__str__(), self.scope_stack[-1]):
-                raise UndefinedException("Undeclared variable: {}".format(ctx.IDENTIFIER().__str__()))
-            return ctx.IDENTIFIER().__str__()
-        elif ctx.literal():
-            return self.visitLiteral(ctx.literal())
+        if ctx.variable():
+            primary = self.visitVariable(ctx.variable())
         else:
-            return self.visitExpression(ctx.expression())
+            value = self.visitLiteral(ctx.literal())
+            # It's a constant, thus, the size must be 1 and index 0.
+            primary = {'name': "{}{}".format(self.const, value), "index": 0,
+                       'value': value, 'types': ChemTypeResolver.numbers()}
+        return primary
 
     def visitLiteral(self, ctx: BSParser.LiteralContext):
         if ctx.INTEGER_LITERAL():
-            return ctx.INTEGER_LITERAL().__str__()
+            return int(ctx.INTEGER_LITERAL().__str__())
         elif ctx.BOOL_LITERAL():
-            return ctx.BOOL_LITERAL().__str__()
+            return bool(ctx.BOOL_LITERAL().__str__())
         elif ctx.FLOAT_LITERAL():
-            return ctx.FLOAT_LITERAL().__str__()
+            return float(ctx.FLOAT_LITERAL().__str__())
         else:
             return ctx.STRING_LITERAL().__str__()
 
-    def visitExpression(self, ctx: BSParser.ExpressionContext):
-        if ctx.primary():
-            return self.visitPrimary(ctx.primary())
+    def visitTypeType(self, ctx: BSParser.TypeTypeContext):
+        return ChemTypeResolver.string_to_type(self.visitPrimitiveType(ctx.primitiveType()))
+
+    def visitUnionType(self, ctx: BSParser.UnionTypeContext):
+        return self.visitUnionType(ctx)
+
+    def visitTypesList(self, ctx: BSParser.TypesListContext):
+        types = set()
+        for t in ctx.typeType():
+            types.add(ctx.typeType(t))
+        return types
+
+    def visitPrimitiveType(self, ctx: BSParser.PrimitiveTypeContext):
+        if ctx.MAT():
+            return "MAT"
+        elif ctx.REAL():
+            return "REAL"
+        elif ctx.NAT():
+            return "NAT"
+        elif ctx.BOOL():
+            return "NAT"
         else:
-            exp1 = self.visitExpression(ctx.expression(0))
-            exp2 = self.visitExpression(ctx.expression(1))
-            if ctx.MULTIPLY():
-                op = BinaryOps.MULTIPLE
-            elif ctx.DIVIDE():
-                op = BinaryOps.DIVIDE
-            elif ctx.ADDITION():
-                op = BinaryOps.ADD
-            elif ctx.SUBTRACT():
-                op = BinaryOps.SUBTRACT
-            elif ctx.AND():
-                op = BinaryOps.AND
-            elif ctx.EQUALITY():
-                op = RelationalOps.EQUALITY
-            elif ctx.GT():
-                op = RelationalOps.GT
-            elif ctx.GTE():
-                op = RelationalOps.GTE
-            elif ctx.LT():
-                op = RelationalOps.LT
-            elif ctx.LTE():
-                op = RelationalOps.LTE
-            elif ctx.NOTEQUAL():
-                op = RelationalOps.NE
-            elif ctx.OR():
-                op = BinaryOps.OR
-            else:
-                op = RelationalOps.EQUALITY
+            return "MAT"
 
-            if ctx.LBRACKET():
-                """
-                In this context, exp1 will *always* hold the variable name.
-                So we can check to make sure that exp1 is the appropriate size,
-                Given exp2 as the index. 
-                """
-                variable = self.symbol_table.get_variable(exp1)
-                if int(exp2) > variable.size - 1 and int(exp2) >= 0:
-                    raise InvalidOperation("Out of bounds index: {}[{}], where {} is of size: {}".format(
-                        exp1, exp2, exp1, variable.size))
-                output = "{}[{}]".format(exp1, exp2)
-            else:
-                if not self.is_number(exp1):
-                    exp1 = self.symbol_table.get_local(exp1, self.scope_stack[-1])
-                if not self.is_number(exp2):
-                    exp2 = self.symbol_table.get_local(exp2, self.scope_stack[-1])
-                output = {"exp1": exp1, "exp2": exp2, "op": op}
-
-            return output
+    # def visitExpression(self, ctx: BSParser.ExpressionContext):
+    #     if ctx.primary():
+    #         return self.visitPrimary(ctx.primary())
+    #     else:
+    #         exp1 = self.visitExpression(ctx.expression(0))
+    #         exp2 = self.visitExpression(ctx.expression(1))
+    #         if ctx.MULTIPLY():
+    #             op = BinaryOps.MULTIPLE
+    #         elif ctx.DIVIDE():
+    #             op = BinaryOps.DIVIDE
+    #         elif ctx.ADDITION():
+    #             op = BinaryOps.ADD
+    #         elif ctx.SUBTRACT():
+    #             op = BinaryOps.SUBTRACT
+    #         elif ctx.AND():
+    #             op = BinaryOps.AND
+    #         elif ctx.EQUALITY():
+    #             op = RelationalOps.EQUALITY
+    #         elif ctx.GT():
+    #             op = RelationalOps.GT
+    #         elif ctx.GTE():
+    #             op = RelationalOps.GTE
+    #         elif ctx.LT():
+    #             op = RelationalOps.LT
+    #         elif ctx.LTE():
+    #             op = RelationalOps.LTE
+    #         elif ctx.NOTEQUAL():
+    #             op = RelationalOps.NE
+    #         elif ctx.OR():
+    #             op = BinaryOps.OR
+    #         else:
+    #             op = RelationalOps.EQUALITY
+    #
+    #         if ctx.LBRACKET():
+    #             """
+    #             In this context, exp1 will *always* hold the variable name.
+    #             So we can check to make sure that exp1 is the appropriate size,
+    #             Given exp2 as the index.
+    #             """
+    #             variable = self.symbol_table.get_variable(exp1)
+    #             if int(exp2) > variable.size - 1 and int(exp2) >= 0:
+    #                 raise InvalidOperation("Out of bounds index: {}[{}], where {} is of size: {}".format(
+    #                     exp1, exp2, exp1, variable.size))
+    #             output = "{}[{}]".format(exp1, exp2)
+    #         else:
+    #             if not self.is_number(exp1):
+    #                 exp1 = self.symbol_table.get_local(exp1, self.scope_stack[-1])
+    #             if not self.is_number(exp2):
+    #                 exp2 = self.symbol_table.get_local(exp2, self.scope_stack[-1])
+    #             output = {"exp1": exp1, "exp2": exp2, "op": op}
+    #
+    #         return output
 
     def split_number_from_unit(self, text) -> dict:
         """
@@ -187,6 +195,23 @@ class BSBaseVisitor(BSParserVisitor):
             return scope
         else:
             return self.symbol_table.scope_map[name]
+
+    def resolve_types(self, var: Dict) -> Set:
+        """
+        Build the typing information for a variable.
+        :param var: The variable needing typing information.
+        :return: Set of types.
+        """
+        if ChemTypes.UNKNOWN in var['types'] and len(var['types']) == 1:
+            types = self.identifier.identify(var['name'], var['types'])
+            if ChemTypes.UNKNOWN in types:
+                types.remove(ChemTypes.UNKNOWN)
+            return types
+        elif ChemTypes.UNKNOWN in var['types'] and len(var['types']) > 1:
+            var['types'].remove(ChemTypes.UNKNOWN)
+            return var['types']
+        else:
+            return var['types']
 
     @staticmethod
     def is_number(num):

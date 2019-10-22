@@ -22,13 +22,13 @@ class UnsupportedOperation(Exception):
         Exception.__init__(self, error_message)
 
 
-class UnsupportedVariable(Exception):
+class UndefinedVariable(Exception):
 
     def __init__(self, error_message):
         Exception.__init__(self, error_message)
 
 
-class UnInitializedError(Exception):
+class UndefinedFunction(Exception):
 
     def __init__(self, error_message):
         Exception.__init__(self, error_message)

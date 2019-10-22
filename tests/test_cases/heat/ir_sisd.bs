@@ -1,0 +1,6 @@
+manifest aaa
+
+instructions:
+
+a = dispense aaa
+heat a at 90c

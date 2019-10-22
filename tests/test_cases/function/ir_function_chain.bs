@@ -1,0 +1,21 @@
+manifest aaa
+
+functions:
+
+function foo(a) {
+    x = 3
+    return bar(3)
+}
+
+function bar(a) {
+    y = 3
+    return baz()
+}
+
+function baz() {
+    return 3
+}
+
+instructions:
+
+a = foo(3)

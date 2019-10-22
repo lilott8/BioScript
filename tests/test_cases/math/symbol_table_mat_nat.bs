@@ -1,0 +1,6 @@
+manifest aaa
+
+instructions:
+
+a = dispense aaa
+b = a + 3

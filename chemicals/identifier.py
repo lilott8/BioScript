@@ -1,24 +1,27 @@
 import re
+from abc import abstractmethod, ABCMeta
 from enum import IntEnum
+from typing import Set
 
-from chemicals.chemtypes import ChemTypes
+from chemicals.chemtypes import ChemTypes, ChemTypeResolver
 from shared.bs_exceptions import IdentificationException
 
 
-class Identifier(object):
-    smiles_string = '^({0}+|\({0}+\)[0-9]*)({1}{0}+|\({1}{0}+\)[0-9]*|{1}\({0}+\)[0-9]*)*$'.format(
-        '({0}|\[{0}+\][0-9]*)'.format('(([A-Z][a-z]?|[bncnops])([0-9]*\+*|\+*[0-9]*|[0-9]*\-*|\-*[0-9]*)|@)'),
-        '([\.\-=#$:/\\\\]?)')
+class Identifier(metaclass=ABCMeta):
+    smiles_string = r'^({0}+|\({0}+\)[0-9]*)({1}{0}+|\({1}{0}+\)[0-9]*|{1}\({0}+\)[0-9]*)*$'.format(
+        r'({0}|\[{0}+\][0-9]*)'.format(r'(([A-Z][a-z]?|[bncnops])([0-9]*\+*|\+*[0-9]*|[0-9]*\-*|\-*[0-9]*)|@)'),
+        r'([\.\-=#$:/\\\\]?)')
 
-    cas_number_regex = re.compile('^[0-9]{2,7}-[0-9]{2}-[0-9]$')
-    formula_regex = re.compile('^([A-Z][a-z]?[0-9]*|\(([A-Z][a-z]?[0-9]*)+\)[0-9]*)+$')
+    cas_number_regex = re.compile(r'^[0-9]{2,7}-[0-9]{2}-[0-9]$')
+    formula_regex = re.compile(r'^([A-Z][a-z]?[0-9]*|\(([A-Z][a-z]?[0-9]*)+\)[0-9]*)+$')
     smiles_regex = re.compile(smiles_string)
-    inchi_key_regex = re.compile('^InChI\=1S?\/[A-Za-z0-9]+(\+[0-9]+)?(\/[cnpbtmshi][A-Za-z0-9\-\+\(\)\,\/]+)*$')
+    inchi_key_regex = re.compile(r'^InChI\=1S?\/[A-Za-z0-9]+(\+[0-9]+)?(\/[cnpbtmshi][A-Za-z0-9\-\+\(\)\,\/]+)*$')
 
     def __init__(self):
         pass
 
-    def identify(self, search_for: str, types: set = frozenset(), scope: str = "") -> dict:
+    @abstractmethod
+    def identify(self, search_for: str, types: Set = Set) -> Set:
         raise NotImplementedError
 
     @staticmethod
@@ -62,10 +65,9 @@ class DBIdentifier(Identifier):
         super().__init__()
         self.db = db
 
-    def identify(self, search_for: str, types: set = frozenset(), scope: str = "", volume: float = 10.0,
-                 units: str = "mL") -> dict:
+    def identify(self, search_for: str, types: Set = Set) -> Set:
         self.log.fatal("DB Identifier isn't functioning correctly.")
-        return {'name': search_for, 'types': set(), 'scope': scope, 'volume': volume, 'units': units}
+        return types
 
     # fix(daniel): figure out if there is a way to prevent exceptions from firing...
     def is_name(self, string):
@@ -110,8 +112,7 @@ class NaiveIdentifier(Identifier):
     def __init__(self):
         super().__init__()
 
-    def identify(self, search_for: str, types: set = frozenset(), scope: str = "") -> dict:
-        if not types:
-            types = set()
-            types.add(ChemTypes.UNKNOWN)
-        return {'name': search_for, 'types': types, 'scope': scope}
+    def identify(self, search_for: str, types: Set = set()) -> Set:
+        if not ChemTypeResolver.is_mat_in_set(types):
+            types.add(ChemTypes.MAT)
+        return types

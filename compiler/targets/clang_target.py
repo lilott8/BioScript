@@ -1,6 +1,8 @@
 # from compiler.data_structures import Program
+from chemicals.chemtypes import ChemTypes
 from compiler.data_structures.ir import *
 from compiler.data_structures.program import Program
+from compiler.data_structures.variable import Reagent, Number, RenamedVar
 from compiler.data_structures.writable import Writable
 from compiler.targets.base_target import BaseTarget
 
@@ -81,8 +83,8 @@ class ClangTarget(BaseTarget):
             elif type(instr) == Dispense:
                         code += '  mat {} = dispense({}, {});\n'.format(instr.defs.name, instr.uses[0].name, instr.uses[0].size) 
             elif type(instr) == Return:
-            
-                if type(instr.return_value) == Chemical:
+
+                if type(instr.return_value) == Reagent:
                     code += '  return {};\n'.format(instr.return_value.name)
                 elif type(instr.return_value) == RenamedVar:
                     code += '  return {};\n'.format(instr.return_value.name)

@@ -1,7 +1,9 @@
-import abc
+from abc import ABCMeta, abstractmethod
+from enum import IntEnum
+from typing import Dict, List
 
 from compiler.data_structures.function import Function
-from compiler.data_structures.registers import *
+from compiler.data_structures.properties import BSTime, BSTemperature
 
 
 class IRInstruction(IntEnum):
@@ -19,16 +21,20 @@ class IRInstruction(IntEnum):
     DISPENSE = 9
     DISPOSE = 10
     STORE = 11
+    GRADIENT = 12
     # Control
-    JUMP = 12
-    CONDITIONAL = 13
-    LABEL = 14
-    RETURN = 15
+    JUMP = 13
+    CONDITIONAL = 14
+    LABEL = 15
+    RETURN = 16
     # Meta
-    USEBY = 16
-    EXECUTEFOR = 17
-    NOP = 18
-    PHI = 19
+    USEBY = 17
+    EXECUTEFOR = 18
+    NOP = 19
+    PHI = 20
+    TIME = 21
+    TEMPERATURE = 22
+    MATH = 23
 
 
 class BinaryOps(IntEnum):
@@ -38,6 +44,22 @@ class BinaryOps(IntEnum):
     DIVIDE = 3
     OR = 4
     AND = 5
+
+    def get_string(self):
+        if self.value == BinaryOps.ADD:
+            return "+"
+        elif self.value == BinaryOps.SUBTRACT:
+            return "-"
+        elif self.value == BinaryOps.MULTIPLE:
+            return "*"
+        elif self.value == BinaryOps.DIVIDE:
+            return "/"
+        elif self.value == BinaryOps.OR:
+            return "||"
+        elif self.value == BinaryOps.AND:
+            return "&&"
+        else:
+            return "+"
 
 
 class RelationalOps(IntEnum):
@@ -63,14 +85,21 @@ class RelationalOps(IntEnum):
             return ">="
 
 
-class InstructionSet(object):
+class InstructionSet(metaclass=ABCMeta):
     instructions = {IRInstruction.MIX, IRInstruction.SPLIT, IRInstruction.DETECT, IRInstruction.DISPENSE,
-                    IRInstruction.DISPOSE, IRInstruction.HEAT, IRInstruction.CALL, IRInstruction.BINARYOP}
+                    IRInstruction.DISPOSE, IRInstruction.HEAT, IRInstruction.CALL, IRInstruction.BINARYOP,
+                    IRInstruction.GRADIENT}
+
+    assignment = {IRInstruction.MIX, IRInstruction.SPLIT, IRInstruction.SPLIT, IRInstruction.DISPENSE,
+                  IRInstruction.CALL, IRInstruction.MATH, IRInstruction.GRADIENT, IRInstruction.DETECT,
+                  IRInstruction.PHI}
 
     BinaryOps = {BinaryOps.AND, BinaryOps.ADD, BinaryOps.DIVIDE, BinaryOps.MULTIPLE, BinaryOps.OR, BinaryOps.SUBTRACT}
 
+    control_flow = {IRInstruction.CONDITIONAL, IRInstruction.JUMP}
 
-class IR(metaclass=abc.ABCMeta):
+
+class IR(metaclass=ABCMeta):
     id_counter = 1
 
     @staticmethod
@@ -83,9 +112,28 @@ class IR(metaclass=abc.ABCMeta):
         self.op = op
         self.name = op.name
         self.iid = IR.get_next_id()
+        self._uses = list()
+        self._defs = None
+        self.meta = list()
 
-    @abc.abstractmethod
-    def write(self, target: 'BaseTarget') -> str:
+    @property
+    def uses(self):
+        return self._uses
+
+    @uses.setter
+    def uses(self, items: List):
+        self._uses.extend(items)
+
+    @property
+    def defs(self):
+        return self._defs
+
+    @defs.setter
+    def defs(self, deff):
+        self._defs = deff
+
+    @abstractmethod
+    def expand(self) -> List:
         pass
 
     def __repr__(self):
@@ -101,8 +149,8 @@ class NOP(IR):
         self.uses = []
         self.defs = None
 
-    def write(self, target: 'BaseTarget') -> str:
-        return ""
+    def expand(self) -> List:
+        return [self]
 
 
 """
@@ -113,18 +161,32 @@ Expression IR:
 """
 
 
-class Expression(IR, metaclass=abc.ABCMeta):
+class Expression(IR, metaclass=ABCMeta):
+
     def __init__(self, op: IRInstruction):
         super().__init__(op)
 
+    def expand(self) -> List:
+        return [self]
+
 
 class Constant(Expression):
-    def __init__(self, value: float):
+    def __init__(self, out: Dict, value: float):
         super().__init__(IRInstruction.CONSTANT)
         self.value = value
+        self.defs = out
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
+    def expand(self) -> List:
+        ret = list()
+        if self.defs['size'] > 1 and self.defs['offset'] == -1:
+            for x in range(self.defs['size']):
+                ret.append(Constant({'name': self.defs['name'], 'offset': x,
+                                     'size': self.defs['size'], 'var': self.defs['var']},
+                                    self.value[x]))
+        else:
+            ret.append(Constant({'name': self.defs['name'], 'offset': 0, 'size': 1, 'var': self.defs['var']},
+                                self.value[0]))
+        return ret
 
     def __str__(self):
         return "CONSTANT: {}".format(self.value)
@@ -133,50 +195,32 @@ class Constant(Expression):
         return self.__str__()
 
 
-class Temp(Expression):
-    def __init__(self, value: Variable):
-        super().__init__(IRInstruction.TEMP)
-        self.value = value
-
-    def write(self, target: 'BaseTarget') -> str:
-        pass
-
-    def __str__(self):
-        return "TEMP: {}".format(self.value)
-
-    def __repr__(self):
-        return self.__str__()
+class Math(Expression):
+    def __init__(self, out: Dict, op1: Dict, op2: Dict, operand: BinaryOps):
+        super().__init__(IRInstruction.MATH)
+        self.uses.extend([op1, op2])
+        self.operand = operand
+        self.defs = out
 
 
 class BinaryOp(Expression):
-    def __init__(self, left: Expression, right: Expression, op: BinaryOps, out: Temp):
+    def __init__(self, left: Dict, right: Dict, op: RelationalOps):
         super().__init__(IRInstruction.BINARYOP)
         self.left = left
         self.right = right
         self.op = op
-        self.uses = [x for x in [left, right] if isinstance(x, Variable)]
-        #self.uses = [out ,left, right]
-        self.defs = out
-
-
-    def write(self, target: 'BaseTarget') -> str:
-        pass
-
-    def __str__(self):
-        return "BINARYOP {} {} {} {}".format(self.defs, self.op, self.left, self.right)
+        self.uses.extend([left, right])
 
 
 class Call(Expression):
-    def __init__(self, out: Temp, func: Function, arguments: list):
+    def __init__(self, out: Dict, func: Function, arguments: list):
         super().__init__(IRInstruction.CALL)
         self.function = func
         self.args = self.function.args
         self.name = self.function.name
         self.uses = arguments
         self.defs = out
-
-    def write(self, target: 'BaseTarget') -> str:
-        pass
+        self.label = Label(self.function.name)
 
     def __str__(self):
         return "{} = {}({})".format(self.defs.name, self.function.name, self.uses)
@@ -184,13 +228,11 @@ class Call(Expression):
     def __repr__(self):
         return self.__str__()
 
+
 class Name(Expression):
     def __init__(self, name: str):
         super().__init__(IRInstruction.NAME)
         self.name = name
-
-    def write(self, target: 'BaseTarget') -> str:
-        pass
 
 
 """
@@ -203,102 +245,223 @@ Statement IR:
 """
 
 
-class Statement(IR, metaclass=abc.ABCMeta):
+class Statement(IR, metaclass=ABCMeta):
     def __init__(self, op: IRInstruction, out):
         super().__init__(op)
-        self.uses = []
         self.defs = out
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
-
     def __str__(self):
-        return "{}: {}=[{}]".format(super().__str__(), self.defs, self.uses)
+        return "\n".join(str(s) for s in self.meta)
 
 
 class Mix(Statement):
-    def __init__(self, out: Temp, one: Temp, two: Temp):
+    def __init__(self, out: Dict, one: Dict, two: Dict):
         super().__init__(IRInstruction.MIX, out)
         self.uses.extend([one, two])
 
-    def write(self, target: 'BaseTarget') -> str:
-        return target.write_mix(self)
+    def expand(self) -> List:
+        ret = []
+        use_a = self.uses[0]
+        use_b = self.uses[1]
+        '''
+                Cases that need to be considered:
+                1) a = dispense aaa
+                    b = dispense bbb
+                    c = mix(a, b)
+                    (all indices are -1 *and* size = 1)
+
+                2) a[n] = dispense aaa
+                    b[m] = dispense bbb
+                    c = mix(a[x], b[y]) 
+                    (index(c) == -1, index(a) == x, index(b) == y, *and* size = 1)
+
+                3) a[n] = dispense aaa
+                    b[n] = dispense bbb
+                    c = mix(a, b) 
+                    (index(c) == -1, index(a) == -1, index(b) == -1, *and* size(a || b) == length(a || b))
+        '''
+        if self.defs['size'] > 1 and self.defs['offset'] == -1:
+            for x in range(self.defs['size']):
+                use_a['offset'] = x
+                use_b['offset'] = x
+                ret.append(Mix({'name': self.defs['name'], 'offset': x, 'size': self.defs['size'],
+                                'var': self.defs['var']},
+                               {'name': use_a['name'], 'offset': x,
+                                'size': use_a['size'], 'var': use_a['var']},
+                               {'name': use_b['name'], 'offset': x,
+                                'size': use_b['size'], 'var': use_b['var']}
+                               ))
+                # Always save the meta operations.
+                ret[-1].meta = self.meta
+        else:
+            def_offset = 0 if self.defs['size'] == 1 and self.defs['offset'] == -1 else self.defs['offset']
+
+            use_a_offset = 0 if use_a['offset'] == -1 else use_a['offset']
+            use_b_offset = 0 if use_b['offset'] == -1 else use_b['offset']
+            ret.append(Mix({'name': self.defs['name'], 'offset': def_offset,
+                            'size': self.defs['size'], 'var': self.defs['var']},
+                           {'name': use_a['name'], 'offset': use_a_offset,
+                            'size': use_a['size'], 'var': use_a['var']},
+                           {'name': use_b['name'], 'offset': use_b_offset,
+                            'size': use_b['size'], 'var': use_b['var']}
+                           ))
+            ret[-1].meta = self.meta
+        return ret
 
     def __str__(self):
-        return "MIX:\t {} = mix({}, {})".format(self.defs, self.uses[0], self.uses[1])
+        return "{}[{}] = mix({}[{}], {}[{}])".format(self.defs['name'], self.defs['offset'],
+                                                     self.uses[0]['name'], self.uses[0]['offset'],
+                                                     self.uses[1]['name'], self.uses[1]['offset'])
 
 
 class Split(Statement):
-    def __init__(self, out: Temp, one: Temp, size: int):
+    def __init__(self, out: Dict, one: Dict, split_num: int):
         super().__init__(IRInstruction.SPLIT, out)
         self.uses.append(one)
-        self.size = size
+        self.split_size = split_num
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
+    def expand(self) -> List:
+        return [self]
 
     def __str__(self):
-        return "SPLIT:\t {} = split({}, {})".format(self.defs, self.uses)
+        return "SPLIT: {}[{}] = split({}, {})".format(self.defs['name'], self.defs['offset'], self.uses[0]['name'],
+                                                      self.defs['offset'])
 
 
 class Detect(Statement):
-    def __init__(self, out: Temp, module: Temp, one: Temp):
+    def __init__(self, out: Dict, module: Dict, one: Dict):
         super().__init__(IRInstruction.DETECT, out)
-        self.module = module
-        self.uses.append(one)
+        self.uses.extend([module, one])
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
+    def expand(self) -> List:
+        ret = []
+        module = self.uses[0]
+        use = self.uses[1]
+        if self.defs['size'] > 1 and self.defs['offset'] == -1:
+            for x in range(self.defs['size']):
+                module['offset'] = x
+                use['offset'] = x
+                ret.append(Detect({'name': self.defs['name'], 'offset': x, 'size': self.defs['size'],
+                                'var': self.defs['var']},
+                               {'name': module['name'], 'offset': x,
+                                'size': module['size'], 'var': module['var']},
+                               {'name': use['name'], 'offset': x,
+                                'size': use['size'], 'var': use['var']}
+                               ))
+                # Always save the meta operations.
+                ret[-1].meta = self.meta
+        else:
+            def_offset = 0 if self.defs['size'] == 1 and self.defs['offset'] == -1 else self.defs['offset']
+
+            use_offset = 0 if use['offset'] == -1 else use['offset']
+            ret.append(Detect({'name': self.defs['name'], 'offset': def_offset,
+                            'size': self.defs['size'], 'var': self.defs['var']},
+                           {'name': module['name'], 'offset': module['offset'],
+                            'size': module['size'], 'var': module['var']},
+                           {'name': use['name'], 'offset': use_offset,
+                            'size': use['size'], 'var': use['var']}
+                           ))
+            ret[-1].meta = self.meta
+        return ret
 
     def __str__(self):
-        return "DETECT:\t {} = detect({}, {})".format(self.defs, self.module, self.uses[0])
+        return "{}[{}] = detect({}, {}[{}])".format(self.defs['name'], self.defs['offset'], self.uses[0]['name'],
+                                                    self.uses[1]['name'], self.uses[1]['offset'])
 
 
 class Heat(Statement):
-    def __init__(self, out: Temp, reagent: Temp):
+    def __init__(self, out: Dict, reagent: Dict):
         super().__init__(IRInstruction.HEAT, out)
         self.uses.append(reagent)
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
+    def expand(self) -> List:
+        ret = list()
+        if self.defs['size'] > 1 and self.defs['offset'] == -1:
+            for x in range(self.defs['size']):
+                reagent = {'name': self.defs['name'], 'offset': x, 'size': self.defs['size'], 'var': self.defs['var']}
+                ret.append(Heat(reagent, reagent))
+                # Always save the meta operations.
+                ret[-1].meta = self.meta
+        else:
+            offset = 0 if self.uses[0]['offset'] == -1 else self.uses[0]['offset']
+            reagent = {'name': self.defs['name'], 'offset': offset, 'size': self.defs['size'], 'var': self.defs['var']}
+            ret.append(Heat(reagent, reagent))
+            ret[-1].meta = self.meta
+        return ret
 
     def __str__(self):
-        return "HEAT:\t {} = heat({})".format(self.defs, self.uses[0])
+        return f"heat({self.uses[0]['name']}[{self.uses[0]['offset']}], {super().__str__()})"
 
 
 class Dispense(Statement):
-    def __init__(self, out: Temp, reagent: Temp):
+    def __init__(self, out: Dict, reagent: Dict):
         super().__init__(IRInstruction.DISPENSE, out)
         self.uses.append(reagent)
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
+    def expand(self) -> List:
+        ret = list()
+        usage = {'name': self.uses[0]['name'], 'offset': self.uses[0]['offset'], 'size': self.uses[0]['size']}
+        if self.defs['size'] > 1 and self.defs['offset'] == -1:
+            for x in range(self.defs['size']):
+                ret.append(Dispense({'name': self.defs['name'], 'offset': x,
+                                     'size': self.defs['size'], 'var': self.defs['var']},
+                                    usage))
+                # Always save the meta operations.
+                ret[-1].meta = self.meta
+        else:
+            ret.append(Dispense({'name': self.defs['name'], 'offset': 0, 'size': 1, 'var': self.defs['var']},
+                                usage))
+            ret[-1].meta = self.meta
+        return ret
 
     def __str__(self):
-        return "DISPENSE:\t {} = dispense({})".format(self.defs, self.uses[0])
+        return "{}[{}] = dispense({})".format(self.defs['name'], self.defs['offset'], self.uses[0]['name'])
 
 
 class Dispose(Statement):
-    def __init__(self, out: Output, reagent: Temp):
+    def __init__(self, out: Dict):
         super().__init__(IRInstruction.DISPOSE, out)
-        self.uses.append(reagent)
+        self.uses.append(out)
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
+    def expand(self) -> List:
+        ret = list()
+        if self.uses[0]['size'] > 1 and self.uses[0]['offset'] == -1:
+            for x in range(self.uses[0]['size']):
+                ret.append(Dispose({'name': self.uses[0]['name'], 'offset': x,
+                                    'size': self.uses[0]['size'], 'var': self.uses[0]['var']}))
+                # Always save the meta operations.
+                ret[-1].meta = self.meta
+        else:
+            offset = 0 if self.uses[0]['offset'] == -1 else self.uses[0]['offset']
+            ret.append(Dispose({'name': self.uses[0]['name'], 'offset': offset,
+                                'size': self.uses[0]['size'], 'var': self.uses[0]['var']}))
+            ret[-1].meta = self.meta
+        return ret
 
     def __str__(self):
-        return "DISPOSE:\t dispose({})".format(self.uses[0])
+        return "dispose({})".format(self.uses[0])
 
 
 class Store(Statement):
-    def __init__(self, out: Temp, value: Expression):
+    def __init__(self, out: Dict):
         super().__init__(IRInstruction.STORE, out)
-        if not isinstance(value, float) and value.op == IRInstruction.CALL:
-            self.uses.extend(value.uses)
+        self.uses.append(out)
         self.defs = out
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
+    def expand(self) -> List:
+        ret = list()
+        if self.defs['size'] > 1 and self.defs['offset'] == -1:
+            for x in range(self.defs['size']):
+                ret.append(Store({'name': self.uses[0]['name'], 'offset': x,
+                                  'size': self.uses[0]['size'], 'var': self.uses[0]['var']}))
+                # Always save the meta operations.
+                ret[-1].meta = self.meta
+        else:
+            offset = 0 if self.uses[0]['offset'] == -1 else self.uses[0]['offset']
+            ret.append(Store({'name': self.uses[0]['name'], 'offset': offset,
+                              'size': self.uses[0]['size'], 'var': self.uses[0]['var']}))
+            ret[-1].meta = self.meta
+        return ret
 
     def __str__(self):
         return "STORE:\t {} = {}".format(self.defs, self.uses)
@@ -313,12 +476,12 @@ Control IR:
 """
 
 
-class Control(IR, metaclass=abc.ABCMeta):
+class Control(IR, metaclass=ABCMeta):
     def __init__(self, op: IRInstruction):
         super().__init__(op)
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
+    def expand(self) -> List:
+        return [self]
 
 
 class Label(Control):
@@ -326,9 +489,6 @@ class Label(Control):
     def __init__(self, name: str):
         super().__init__(IRInstruction.LABEL)
         self.label = name
-
-    def write(self, target: 'BaseTarget') -> str:
-        pass
 
     def __str__(self):
         return "LABEL: " + self.label
@@ -344,16 +504,13 @@ class Jump(Control):
         # first is true, last is else
         self.jumps = jump_to
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
-
     def __str__(self):
         return "JUMP {}".format(self.jumps)
 
 
 class Conditional(Control):
 
-    def __init__(self, relop: RelationalOps, left: Expression, right: Expression,
+    def __init__(self, relop: RelationalOps, left: Dict, right: Dict,
                  t_branch: Label = None, f_branch: Label = None):
         super().__init__(IRInstruction.CONDITIONAL)
         # first is true, last is else
@@ -362,16 +519,12 @@ class Conditional(Control):
         self.relop = relop
         self.left = left
         self.right = right
-        self.uses = [x for x in [right, left] if isinstance(x, Variable)]
+        self.uses.extend([left, right])
         self.defs = None
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
-
     def __str__(self):
-        return "CONDITIONAL:\t ({} {} {}) T: {}\tF:{}".format(self.left.name, self.relop.get_readable(),
-                                                              self.right.name, self.true_branch,
-                                                              self.false_branch)
+        return f"Conditional:\t ({self.left['name']} {self.relop.get_readable()} {self.right['name']})\t " \
+               f"T: {self.true_branch.label}\tF: {self.false_branch.label}"
 
     def __repr__(self):
         return self.__str__()
@@ -379,15 +532,11 @@ class Conditional(Control):
 
 class Return(Control):
 
-    def __init__(self, return_value: Expression, return_to: Label):
+    def __init__(self, return_value: Dict):
         super().__init__(IRInstruction.RETURN)
         self.return_value = return_value
-        self.return_to = return_value
         self.uses = [return_value]
         self.defs = return_value
-
-    def write(self, target: 'BaseTarget') -> str:
-        pass
 
 
 """
@@ -405,8 +554,8 @@ class Meta(IR):
     def __init__(self, op: IRInstruction):
         super().__init__(op)
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
+    def expand(self) -> List:
+        return [self]
 
 
 class Phi(Meta):
@@ -414,9 +563,6 @@ class Phi(Meta):
         super().__init__(IRInstruction.PHI)
         self.defs = left
         self.uses = right
-
-    def write(self, target: 'BaseTarget') -> str:
-        pass
 
     def __str__(self):
         out = "PHI:\t {} = Phi(".format(self.defs)
@@ -431,17 +577,30 @@ class Phi(Meta):
 class TimeConstraint(Meta):
     def __init__(self, op: IRInstruction, time: float = 10, unit: BSTime = BSTime.SECOND):
         super().__init__(op)
-        self.time = time
+        self.quantity = time
         self.unit = unit
         if self.unit is not BSTime.SECOND:
-            self.time = self.unit.normalize(self.time)
+            self.quantity = self.unit.normalize(self.quantity)
             self.unit = BSTime.SECOND
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
+    def __repr__(self):
+        return "{}{}".format(self.quantity, self.unit.name)
+
+
+class TempConstraint(Meta):
+    def __init__(self, op: IRInstruction, temp: float = 10, unit: BSTemperature = BSTemperature.CELSIUS):
+        super().__init__(op)
+        self.unit = unit
+        self.quantity = temp
+        if self.unit is not BSTemperature.CELSIUS:
+            self.quantity = self.unit.normalize(self.quantity)
+            self.unit = BSTemperature.CELSIUS
 
     def __repr__(self):
-        return "{}{}".format(self.time, self.unit.name)
+        return "{} {} {}".format(self.op.name, self.quantity, self.unit.name)
+
+    def __str__(self):
+        return self.__repr__()
 
 
 class UseBy(TimeConstraint):
@@ -449,11 +608,8 @@ class UseBy(TimeConstraint):
     def __init__(self, time: float, unit: BSTime):
         super().__init__(IRInstruction.USEBY, time, unit)
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
-
     def __repr__(self):
-        return "USEBY {}{}".format(self.time, self.unit.value)
+        return "USEBY {}{}".format(self.quantity, self.unit.value)
 
 
 class ExecuteFor(TimeConstraint):
@@ -461,8 +617,5 @@ class ExecuteFor(TimeConstraint):
     def __init__(self, execute_for: float = 10, unit: BSTime = BSTime.SECOND):
         super().__init__(IRInstruction.EXECUTEFOR, execute_for, unit)
 
-    def write(self, target: 'BaseTarget') -> str:
-        pass
-
     def __repr__(self):
-        return "EXECUTEFOR {}{}".format(self.time, self.unit.value)
+        return "EXECUTEFOR {}{}".format(self.quantity, self.unit.value)

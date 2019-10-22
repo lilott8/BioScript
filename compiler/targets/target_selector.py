@@ -5,10 +5,12 @@ import compiler.targets as targets
 
 
 class TargetSelector(IntEnum):
-    LLVM_IR = 1
-    MFSIM = 2
-    PUDDLE = 4
-    INKWELL = 8
+    DISABLED = 0
+    IR = 1
+    LLVM_IR = 2
+    MFSIM = 4
+    PUDDLE = 8
+    INKWELL = 16
 
     def get_target(self, program: prog.Program):
         if self == TargetSelector.PUDDLE:
@@ -17,5 +19,7 @@ class TargetSelector(IntEnum):
             return targets.InkwellTarget(program)
         elif self.value == TargetSelector.MFSIM:
             return targets.MFSimTarget(program)
-        else:
+        elif self.value == TargetSelector.LLVM_IR:
             return targets.ClangTarget(program)
+        else:
+            return targets.IRTarget(program)

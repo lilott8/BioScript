@@ -1,0 +1,38 @@
+module fluorescence
+
+manifest ciprofloxacin_enzyme
+manifest distilled_water
+manifest ciprofloxacin_conjugate
+manifest tmb_substrate
+manifest urinesample
+manifest stop_reagent
+
+instructions:
+
+us = dispense 20uL of urinesample
+cfc = dispense ciprofloxacin_conjugate
+cfe = dispense ciprofloxacin_enzyme
+
+a = mix us with cfe
+b = mix cfc with a for 60s
+heat b at 23c for 60m
+dispose b
+
+repeat 5 times {
+    water = dispense 250uL of distilled_water
+    cfe = dispense ciprofloxacin_enzyme
+    temp = mix 250uL of water with cfe for 45s
+    dipose temp
+}
+tmb = dispense 50uL of tmb_substrate
+cfe = dispense ciprofloxacin_enzyme
+
+d = mix tmb_substrate with cfe
+heat d at 25c for 30m
+
+cfe = dispense ciprofloxacin_enzyme
+stop = dispense 100uL of stop_reagent
+e = mix cfe with stop for 60s
+
+urine_reading = detect fluorescence on e for 5m
+dispose e

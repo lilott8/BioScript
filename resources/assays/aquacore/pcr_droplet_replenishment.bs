@@ -1,0 +1,22 @@
+manifest PCRMasterMix
+manifest Template
+
+instructions:
+
+PCRMix = mix 50 uL of PCRMasterMix with 50 uL of Template for 1s
+
+repeat 50 times {
+    heat PCRMix at 95c for 20s
+    volumeWeight = detect weight on PCRMix
+
+    if (volumeWeight <= 50) {
+        replacement = mix 25uL of PCRMasterMix with 25uL of Template for 5s
+        heat replacement at 95c for 45s
+        PCRMix = mix PCRMix with replacement for 5s
+    }
+
+    heat PCRMix at 68c for 30s
+    heat PCRMix at 95c for 45s
+}
+
+heat PCRMix at 68c for 5m

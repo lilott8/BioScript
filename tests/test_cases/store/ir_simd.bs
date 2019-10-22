@@ -1,0 +1,6 @@
+manifest aaa
+
+instructions:
+
+a[2] = dispense aaa
+store a

@@ -1,0 +1,29 @@
+manifest substance_a
+manifest substance_b
+manifest substance_c
+manifest dilutant1
+manifest dilutant2
+manifest dilutant3
+
+instructions:
+
+first_dilute = mix substance_a with dilutant1
+x = split first_dilute into 2
+
+dispose x2
+
+second_dilute = mix x1 with dilutant2
+y = split second_dilute into 2
+dispose y2
+
+third_dilute = mix y1 with dilutant3
+z = split third_dilute into 2
+dispose z2
+
+fourth_dilute = mix substance_b with substance_c
+a = split fourth_dilute into 2
+dispose a2
+
+final_dilute = mix third_dilute with fourth_dilute
+b = split final_dilute into 2
+dispose b2

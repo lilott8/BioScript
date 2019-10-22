@@ -1,30 +1,30 @@
-from compiler.data_structures.variable import Variable
+from compiler.data_structures.variable import Symbol
+
 
 class Scope(object):
+    """
+    This represents a scope -- the place to where
+    variables are bound.  In this environment,
+    there are only function-level scoping.
+    All programs begin with a "main" function.
+    Because scoping only occurs at the function level,
+    there is no hierarchy to the scope -- it's all flat.
+    """
 
-    def __init__(self, name, parent=""):
-        # self.log = colorlog.getLogger(self.__class__.__name__)
+    def __init__(self, name):
         self.name = name
-        self.parent = parent
         self.locals = dict()
 
-    def add_local(self, local: Variable):
+    def add_local(self, local: Symbol):
+        """
+        Adds a local variable to the scope.
+        :param local: Variable that belongs to this scope.
+        :return: None
+        """
         if local.name not in self.locals:
             self.locals[local.name] = local
         else:
             self.locals[local.name].types.update(local.types)
-
-    def get_name(self):
-        return self.name
-
-    def get_parent(self):
-        return self.parent
-
-    def get_locals(self):
-        return self.locals
-
-    def set_parent(self, parent):
-        self.parent = parent
 
     def __str__(self):
         output = ""

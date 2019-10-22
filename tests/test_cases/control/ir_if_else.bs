@@ -1,0 +1,12 @@
+manifest aaa
+
+instructions:
+
+a = dispense aaa
+
+if (3 > 3) {
+    x = 3
+} else {
+    x = 3
+}
+dispose a

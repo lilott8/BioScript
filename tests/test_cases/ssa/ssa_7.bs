@@ -1,0 +1,23 @@
+// correct ssa
+// repeat
+
+module mod
+stationary stat
+manifest aaa
+manifest bbb
+manifest ccc
+manifest ddd
+
+functions:
+
+instructions:
+
+x = dispense aaa
+
+repeat 7 times
+{
+    x = dispense bbb
+    heat x at 45f
+}
+
+b = detect mod on x

@@ -8,11 +8,12 @@ from compiler.data_structures.program import Program
 from compiler.data_structures.symbol_table import SymbolTable
 from compiler.data_structures.writable import Writable, WritableType
 from compiler.passes.pass_manager import PassManager
-from compiler.semantics.global_visitor import GlobalVariableVisitor
+from compiler.semantics.header_visitor import HeaderVisitor
 from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
 from compiler.semantics.type_visitor import TypeCheckVisitor
+from compiler.targets.target_selector import TargetSelector
 from grammar.parsers.python.BSLexer import BSLexer
 from grammar.parsers.python.BSParser import BSParser
 from solvers.z3_solver import Z3Solver
@@ -38,6 +39,7 @@ class BSCompiler(object):
         times['sa'] = timer() - start
 
         start = timer()
+        # self.log.error("Turning off all optimizations")
         prog = self.optimizations(self.program)
         times['opts'] = timer() - start
 
@@ -55,7 +57,7 @@ class BSCompiler(object):
             self.log.warning("Not writing any output to disk.")
             if self.log.debug:
                 for key, writable in self.program.write.items():
-                    self.log.info(writable.content)
+                    self.log.info('{}: \n{}'.format(key, writable.content))
 
         if self.config.print_stats:
             stats = "\n"
@@ -81,28 +83,29 @@ class BSCompiler(object):
         parser = BSParser(stream)
         tree = parser.program()
 
-        # This gets run first, gathering all the globals.
-        global_visitor = GlobalVariableVisitor(SymbolTable(), self.config.identify.get_identifier())
-        global_visitor.visit(tree)
+        # We can rely on Python's shallow copy and pass by reference semantics
+        # to create only one object and allow all the passes to update it.
+        symbol_table = SymbolTable()
+        identifier = self.config.identify.get_identifier()
 
-        # Build the functions and their symbols next.
-        method_visitor = MethodVisitor(global_visitor.symbol_table)
-        method_visitor.visit(tree)
+        visitor_passes = [HeaderVisitor(symbol_table, identifier), SymbolTableVisitor(symbol_table, identifier),
+                          MethodVisitor(symbol_table)]
 
-        # Finish building the symbol table.
-        symbol_visitor = SymbolTableVisitor(method_visitor.symbol_table, self.config.identify.get_identifier())
-        symbol_visitor.visit(tree)
+        if self.config.typecheck:
+            visitor_passes.append(TypeCheckVisitor(symbol_table, self.config.combine.get_combiner(
+                self.config.epa_defs, self.config.abstract_interaction), self.config.types_used))
 
-        # Attempt to type check the program
-        self.visit_type_check(tree, symbol_visitor.symbol_table)
+        visitor_passes.append(IRVisitor(symbol_table))
 
-        # Convert the AST to the IR for further analysis.
-        ir_visitor = IRVisitor(symbol_visitor.symbol_table)
-        ir_visitor.visit(tree)
-        # Always update the symbol table.
-        self.program = Program(functions=ir_visitor.functions, globalz=ir_visitor.globalz, config=self.config,
-                               symbol_table=ir_visitor.symbol_table, bb_graph=ir_visitor.graph,
-                               name=self.config.input_file, calls=ir_visitor.calls)
+        for visitor in visitor_passes:
+            if self.config.debug:
+                self.log.info("Running {} pass.".format(visitor.visitor_name))
+            visitor.visit(tree)
+
+        ir = visitor_passes[-1]
+        self.program = Program(functions=ir.functions, config=self.config,
+                               symbol_table=ir.symbol_table, bb_graph=ir.graph,
+                               name=self.config.input_file, calls=ir.calls)
 
         if self.config.write_cfg:
             for root in self.program.functions:
@@ -112,7 +115,6 @@ class BSCompiler(object):
                                                                                        self.program.name, root),
                                                                                    self.program.functions[root][
                                                                                        'graph'], WritableType.GRAPH)
-
         return self.program
 
     def optimizations(self, program: Program):
@@ -133,8 +135,12 @@ class BSCompiler(object):
         :param program:
         :return:
         """
-        target = self.config.target.get_target(program)
-        return target.transform()
+        target = None
+        if self.config.target != TargetSelector.DISABLED:
+            target = self.config.target.get_target(program)
+            self.log.info("Running {} transform.".format(self.config.target.name))
+            target.transform()
+        return target
 
     def visit_type_check(self, tree, symbol_table: SymbolTable):
         """

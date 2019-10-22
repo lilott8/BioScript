@@ -1,0 +1,8 @@
+manifest aaa
+manifest bbb
+
+instructions:
+
+a = dispense aaa
+
+c = mix a with bbb

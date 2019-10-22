@@ -1,0 +1,37 @@
+manifest hcl1
+manifest hcl2
+manifest buffer1
+manifest buffer2
+
+instructions:
+
+acid[3] = dispense hcl1
+acid2[2] = dispense hcl2
+buff[3] = dispense buffer1
+buff2[2] = dispense buffer2
+
+// 100% of each
+dispose acid[0]
+dispose buff[0]
+
+// Level 1
+level1 = mix acid[1] with buff[1]
+level2_i = split level1 into 2
+
+// Level 2
+level2_1 = mix level2_i[0] with acid[2]
+level2_2 = mix level2_i[1] with buff[2]
+
+level3_i_1 = split level2_1 into 2
+level3_i_2 = split level2_2 into 2
+
+// Level 3
+level3_1 = mix level3_i_1[0] with acid2[0]
+level3_2 = mix level3_i_2[0] with buff2[0]
+level3_3 = mix level3_i_2[1] with acid2[1]
+level3_4 = mix level3_i_1[1] with buff2[1]
+
+dispose level3_1
+dispose level3_2
+dispose level3_3
+dispose level3_4

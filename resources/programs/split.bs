@@ -1,9 +1,0 @@
-module mod
-manifest aaa
-manifest bbb
-
-functions:
-
-instructions:
-
-pass1 = split aaa into 4

@@ -3,7 +3,7 @@ import abc
 import colorlog
 
 import compiler.data_structures.program as prog
-from shared.bs_exceptions import UnInitializedError
+from shared.bs_exceptions import UndefinedException
 
 
 class BaseTarget(metaclass=abc.ABCMeta):
@@ -82,7 +82,7 @@ class BaseTarget(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def transform(self):
         if self.config is None:
-            raise UnInitializedError("Config must be set before you can transform")
+            raise UndefinedException("Config must be set before you can transform")
         pass
 
     @abc.abstractmethod

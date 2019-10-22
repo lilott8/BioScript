@@ -1,0 +1,13 @@
+manifest aaa
+
+functions:
+
+function foo(a, b) {
+    x = 3
+    return x
+}
+
+instructions:
+
+z = dispense aaa
+a = foo(2, z)

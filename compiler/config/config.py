@@ -45,7 +45,7 @@ class Config(object):
         Compiler Stuff
         """
         # What is the target?
-        self.target = targets.TargetSelector.INKWELL
+        self.target = targets.TargetSelector.DISABLED
         self.supports_functions = False
         self.supports_recursion = False
         self.supports_nesting = False
@@ -62,9 +62,11 @@ class Config(object):
         """
         Inkwell Stuff
         """
-        self.library = './resources/components/components.json'
+        self.library = './resources/flow/components.json'
         self.flow_type = FlowType.PASSIVE
         self.use_local_db = True
+        self.schema = './resources/flow/parchmint_schema.json'
+        self.validate_schema = False
 
         """
         Build the config object now.
@@ -138,8 +140,13 @@ class Config(object):
                 self.supports_functions = True
                 self.supports_recursion = True
                 self.supports_nesting = True
-            else:
+            elif target == "l" or target == 'llvm':
                 self.target = targets.TargetSelector.LLVM_IR
+                self.supports_functions = True
+                self.supports_recursion = True
+                self.supports_nesting = True
+            else:
+                self.target = targets.TargetSelector.IR
                 self.supports_functions = True
                 self.supports_recursion = True
                 self.supports_nesting = True
@@ -152,6 +159,12 @@ class Config(object):
 
         if args.cdb:
             self.use_local_db = False
+
+        if args.schema:
+            self.schema = args.schema
+
+        if args.validate:
+            self.validate_schema = True
 
         if self.db['name'] and self.db['user'] and self.db['pass']:
             self.db_enabled = True

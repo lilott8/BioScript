@@ -64,6 +64,16 @@ class TypeCheckVisitor(BSBaseVisitor):
             """
             Declare the constants for all global variables.
             """
+            if ChemTypes.UNKNOWN in var.types and ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION in var.types:
+                if len(var.types) > 2:
+                    var.types.remove(ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION)
+                    var.types.remove(ChemTypes.UNKNOWN)
+            else:
+                if ChemTypes.UNKNOWN in var.types and len(var.types) > 1:
+                    var.types.remove(ChemTypes.UNKNOWN)
+                elif ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION in var.types and len(var.types) > 1:
+                    var.types.remove(ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION)
+
             declares += "; Declaring constants for: {}{}".format(self.get_smt_name(var).upper(), self.nl)
             for enum in types:
                 declares += "(declare-const {} Bool){}".format(self.get_smt_name(var, ChemTypes(enum)), self.nl)
@@ -88,6 +98,15 @@ class TypeCheckVisitor(BSBaseVisitor):
             """
             for symbol in scope.locals:
                 var = scope.locals[symbol]
+                if ChemTypes.UNKNOWN in var.types and ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION in var.types:
+                    if len(var.types) > 2:
+                        var.types.remove(ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION)
+                        var.types.remove(ChemTypes.UNKNOWN)
+                else:
+                    if ChemTypes.UNKNOWN in var.types and len(var.types) > 1:
+                        var.types.remove(ChemTypes.UNKNOWN)
+                    elif ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION in var.types and len(var.types) > 1:
+                        var.types.remove(ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION)
                 declares += "; Declaring constants for: {}{}".format(self.get_smt_name(var).upper(), self.nl)
                 for enum in types:
                     """
@@ -274,14 +293,14 @@ class TypeCheckVisitor(BSBaseVisitor):
         smt = "; Not doing any work in dispose{}".format(self.nl)
         return smt
 
-    def visitExpression(self, ctx: BSParser.ExpressionContext) -> str:
-        smt = ""
-        if ctx.primary():
-            smt += self.visitPrimary(ctx.primary())
-        else:
-            for expr in ctx.expression():
-                smt += self.visitExpression(expr)
-        return smt
+    # def visitExpression(self, ctx: BSParser.ExpressionContext) -> str:
+    #     smt = ""
+    #     if ctx.primary():
+    #         smt += self.visitPrimary(ctx.primary())
+    #     else:
+    #         for expr in ctx.expression():
+    #             smt += self.visitExpression(expr)
+    #     return smt
 
     def visitParExpression(self, ctx: BSParser.ParExpressionContext):
         return self.visit(ctx.expression())

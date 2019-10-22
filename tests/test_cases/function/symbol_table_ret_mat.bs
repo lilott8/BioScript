@@ -1,0 +1,12 @@
+manifest aaa
+
+functions:
+
+function foo() {
+a = dispense aaa
+return a
+}
+
+instructions:
+
+a = foo()

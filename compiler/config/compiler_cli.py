@@ -16,8 +16,8 @@ class CompilerCLI(BaseCLI):
         self.config = None
 
         self.parser.add_argument('-t', '--target', help='Platforms to target.', type=str,
-                                 default='mfsim', choices={'llvm', 'mfsim', 'puddle', 'inkwell',
-                                                           'l', 'm', 'p', 'i'})
+                                 default='ir', choices={'llvm', 'mfsim', 'puddle', 'inkwell', 'ir',
+                                                        'l', 'm', 'p', 'i', 'ir'})
         self.parser.add_argument('-cfg', '--write-cfg',
                                  help="Write the CFG to dot file", default=False, action='store_true')
         self.parser.add_argument('-inline', '--inline', help="Inline all, non-recursive functions", default=False,
@@ -25,7 +25,8 @@ class CompilerCLI(BaseCLI):
         self.parser.add_argument('-stats', '--stats', help="Print the stats", default=False,
                                  action='store_true')
 
-        self.parser.add_argument('-lu', '--loopunroll', help="Perform loop unrolling", default=False, action='store_true')
+        self.parser.add_argument('-lu', '--loopunroll', help="Perform loop unrolling",
+                                 default=False, action='store_true')
 
         chemistry = self.parser.add_argument_group('chemistry', 'Chemistry specific arguments')
         chemistry.add_argument('-sim', '--simulate', help='Simulate chemistry.', default=False,
@@ -59,6 +60,9 @@ class CompilerCLI(BaseCLI):
         inkwell_group.add_argument('-flow', '--flow', help="Which type of flow-based chip to target.",
                                    default="passive", choices={'active', 'a', 'passive', 'p'})
         inkwell_group.add_argument('--cdb', help="Name of Component Database", default='')
+        inkwell_group.add_argument('--schema', help='The schema to validate json against.',
+                                   default=None)
+        inkwell_group.add_argument('--validate', help="Validate the schema is correct.", action='store_true')
 
         self.args = self.parser.parse_args(args)
         # This should always be the first instantiation of a Config.

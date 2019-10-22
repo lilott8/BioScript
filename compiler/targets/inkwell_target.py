@@ -1,7 +1,5 @@
-import copy
 import json
-import uuid
-from collections import deque
+from collections import defaultdict
 
 import networkx as nx
 from jsonschema import exceptions
@@ -11,7 +9,6 @@ from compiler.data_structures import Program
 from compiler.data_structures.ir import *
 from compiler.data_structures.writable import Writable, WritableType
 from compiler.targets.base_target import BaseTarget
-from shared.bs_exceptions import UnsupportedOperation
 from shared.components import FlowType
 from shared.components import get_component_api
 
@@ -39,51 +36,94 @@ class InkwellTarget(BaseTarget):
         for root in self.program.functions:
             self.dags[root] = dict()
             # This maps an output variable (key) to a node in the graph.
-            var_defs = dict()
-            var_uses = dict()
-            instruction_defs = dict()
-            instruction_uses = dict()
-            used_defs = set()
-            nodes = set()
+            var_defs = defaultdict(lambda: list())
+            var_uses = defaultdict(lambda: list())
+            # This maintains the set of variables an instruction
+            # defines or uses (basically a use/def chain)
+            # Have we added the edge for this def yet?
 
+            no_defs = {IRInstruction.NOP, IRInstruction.CONDITIONAL, IRInstruction.PHI}
             for nid, block in self.program.functions[root]['blocks'].items():
-                graph = nx.MultiDiGraph()
+                graph = nx.DiGraph()
                 # Op nodes are defined as {output var, op}
                 # Var nodes are defined as {var}
                 for instruction in block.instructions:
-                    instruction_defs[instruction.iid] = set()
-                    instruction_uses[instruction.iid] = set()
+                    if instruction.op not in no_defs:
+                        # Add all the global variables to the instruction_uses.
+                        if instruction.op == IRInstruction.DISPENSE and instruction.uses[0]['name'] not in graph:
+                            graph.add_node(instruction.uses[0]['name'], defs=set(),
+                                           uses={(instruction.uses[0]['name'], 1)}, op=instruction.op)
+                        # Keep track of all the used variables,
+                        # with offsets in an instruction
+                        use = set()
+                        # Keep track of all the defd variables,
+                        # with offset in an instruction
+                        deff = set()
 
-                    if instruction.defs:
-                        instruction_defs[instruction.iid].add(instruction.defs.name)
-                        var_defs[instruction.defs.name] = instruction.iid
-                    else:
-                        raise UnsupportedOperation("Inkwell target does not support arithmetic math.")
-
-                    for uses in instruction.uses:
-                        if uses.name not in var_uses:
-                            var_uses[uses.name] = list()
-                        instruction_uses[instruction.iid].add(uses.name)
-                        var_uses[uses.name].append(instruction.iid)
-
-                    data = {'op': instruction.op.name, 'defs': instruction.defs.name,
-                            'uses': instruction_uses[instruction.iid]}
-                    graph.add_node(instruction.iid, data=data)
-
-                    for use in instruction_uses[instruction.iid]:
-                        if not self.program.symbol_table.is_global(use):
-                            # graph.add_node(use)
-                            if use not in used_defs:
-                                used_defs.add(use)
-                                if use not in var_defs:
-                                    raise UnsupportedOperation("Inkwell target does not support arithmetic math.")
-                                else:
-                                    node = var_defs[use]
+                        if instruction.defs['offset'] >= 0:
+                            name = f"{instruction.defs['name']}_{instruction.defs['offset']}"
+                            if self.program.symbol_table.is_global(instruction.uses[0]['name']):
+                                var_defs[name].append(instruction.uses[0]['name'])
                             else:
-                                node = var_uses[use][-2]
-                            graph.add_edge(node, instruction.iid)
-                        # else:
-                        #     graph.add_edge(use, var_defs[instruction.defs.name])
+                                var_defs[name].append(instruction.iid)
+                            deff.add((instruction.defs['name'], instruction.defs['offset']))
+                        else:
+                            if instruction.op == IRInstruction.SPLIT:
+                                var = self.program.symbol_table.get_symbol(instruction.defs['name'], root)
+                                offset = var.value.size
+                            else:
+                                offset = instruction.defs['offset']
+                            for x in range(offset):
+                                name = f"{instruction.defs['name']}_{x}"
+                                var_defs[name].append(instruction.iid)
+                                deff.add((instruction.defs['name'], x))
+
+                        for uze in instruction.uses:
+                            if uze['offset'] >= 0:
+                                # This wraps all dispenses into one single node.
+                                if self.program.symbol_table.is_global(uze['name']):
+                                    name = uze['name']
+                                else:
+                                    name = f"{uze['name']}_{uze['offset']}"
+                                var_uses[name].append(instruction.iid)
+                                use.add((uze['name'], uze['offset']))
+                            else:
+                                # This if/else must be here because if the op is a split,
+                                # and the op consumes the entire variable, then both
+                                # the use['offset'] and def['offset'] are = 1.
+                                if instruction.op == IRInstruction.SPLIT:
+                                    var = self.program.symbol_table.get_symbol(uze['name'], root)
+                                    offset = var.value.size
+                                else:
+                                    offset = instruction.defs['offset']
+                                for x in range(offset):
+                                    name = f"{uze['name']}_{x}"
+                                    var_uses[name].append(instruction.iid)
+                                    use.add((uze['name'], x))
+
+                        for name, offset in use:
+                            if self.program.symbol_table.is_global(name):
+                                graph.nodes[name]['defs'].update(deff)
+                            else:
+                                graph.add_node(instruction.iid, op=instruction.op, defs=deff, uses=use)
+
+                edges = set()
+                for node in graph.nodes:
+                    # Get the instruction in which this variable is defined.
+                    # Source is the uses.
+                    for source, src_offset in graph.nodes[node]['uses']:
+                        # Destination is the defs.
+                        if self.program.symbol_table.is_global(source):
+                            siids = [source]
+                        else:
+                            siids = var_uses[f"{source}_{src_offset}"]
+                        for destination, dst_offset in graph.nodes[node]['defs']:
+                            # Build the edge from the source to the destination.
+                            for sid in siids:
+                                for did in var_uses[f"{destination}_{dst_offset}"]:
+                                    if sid != did and (f"{sid}_{did}" not in edges and f"{did}_{sid}" not in edges):
+                                        graph.add_edge(sid, did)
+                                        edges.add(f"{sid}_{did}")
 
                 if self.config.write_cfg:
                     self.program.write['cfg'] = Writable(self.program.name,
@@ -100,8 +140,7 @@ class InkwellTarget(BaseTarget):
         :param verify:
         :return:
         """
-        uid = uuid.uuid5(uuid.NAMESPACE_OID, self.program.name)
-
+        # uid = uuid.uuid5(uuid.NAMESPACE_OID, self.program.name)
         output = {'name': self.program.name.replace('/', '_').replace('.', '_'),
                   'layers': [{"id": "flow", "name": "flow"}],
                   'components': [], 'connections': []}
@@ -113,105 +152,95 @@ class InkwellTarget(BaseTarget):
         for root in self.program.functions:
             sequences[root] = dict()
             for bid, block in self.program.functions[root]['blocks'].items():
-                queue = deque()
-                seen = set()
-                connections = set()
-                globalz = dict()
+                graph = block.dag
                 sequences[root][bid] = {"on": {}, "off": {}}
                 sinks = set()
 
-                # This gets all the nodes with no incoming edges
-                # These are the source nodes of a graph.
-                # This is an initialization step.
-                for node in block.dag.nodes:
-                    if len(block.dag.in_edges(node)) == 0:
-                        queue.append(node)
-
-                # A dictionary of the nodes and their associated data.
-                graph = dict(block.dag.nodes('data'))
-
-                # BFS!
-                while queue:
-                    current = queue.pop()
-                    operation = graph[current]['op']
-                    if operation not in component_set:
-                        component_set[operation] = set()
-                    # We use the def iff the def is not a global.
-                    # If it's a global, then we need the dispense
-                    # port for this to work correctly.
-                    var = self.program.symbol_table.get_variable(graph[current]['defs'], root)
-                    # Stop if we couldn't find the variable.
-                    if not var:
-                        break
-                    # destination_op = graph[var.name]
-                    if var.name not in self.components:
-                        use = self.program.symbol_table.get_local(copy.deepcopy(graph[current]['uses']).pop(), root)
-                        # This amounts to a unique identifier for each component generated.
-                        # name = self.build_name(root, bid, graph[current]['op'], use.name)
-                        if not use:
-                            break
-                        # The check to see if this is a global use.
-                        # If it's not a global, then the original def
-                        # Is used for this.
-                        if use.is_global:
-                            globalz[var.name] = use
-                            var = use
-                        # If we haven't seen this (global or def) before,
-                        # Then we need to create it.  This happens twice
-                        # because the global may alter things.
-                        if var.name not in self.components:
-                            destination = self.build_component(var.name, output['layers'][0]['id'],
-                                                               graph[current]['op'], splits=var.size)
-                            destination_name = "{}_{}".format(destination['entity'], var.name)
-                            if graph[current]['op'] in {'DISPOSE', 'OUTPUT'}:
-                                sinks.add(destination_name)
-                            output['components'].append(destination)
-                            self.components[var.name] = destination
-                            component_set[operation].add(destination['id'])
+                # Build the components.
+                for node in graph.nodes:
+                    if not graph.in_edges(node):
+                        '''
+                        This checks for dispense.  If there are no incoming edges,
+                        then we know this must be a dispense port, so we build it.
+                        '''
+                        use = next(iter(graph.nodes[node]['uses']))
+                        global_use = f"{use[0]}_{use[1]}"
+                        if global_use not in self.components:
+                            self.components[global_use] = self.build_component(global_use,
+                                                                               output['layers'][0]['id'],
+                                                                               graph.nodes[node]['op'],
+                                                                               splits=use[1], iid=global_use,
+                                                                               deff_name="none")
+                            output['components'].append(self.components[global_use])
+                        # This maps a disposals def to the correct global use.
+                        # e.g.: a[2] = dispose aaa, a[0] and a[1] will map to
+                        # the dispenser aaa.
+                        for deff_name, deff_offset in graph.nodes[node]['defs']:
+                            if f"{deff_name}_{deff_offset}" not in self.components:
+                                self.components[f"{deff_name}_{deff_offset}"] = self.components[global_use]
+                    elif not graph.out_edges(node):
+                        '''
+                        This checks for disposals.  If there are no outgoing edges,
+                        then we know this must be a disposal port, so we build it,
+                        and the corresponding connection right now.
+                        '''
+                        use = next(iter(graph.nodes[node]['uses']))
+                        component_name = f"{use[0]}_{use[1]}_disposal"
+                        self.components[component_name] = self.build_component(
+                            component_name, output['layers'][0]['id'], graph.nodes[node]['op'],
+                            splits=use[1], iid=node, deff_name=use[0]
+                        )
+                        output['components'].append(self.components[component_name])
+                        connection_name = f"{use[0]}_{use[1]}->{component_name}"
+                        if connection_name not in self.connections:
+                            connection = self.build_connection(
+                            self.components[f'{use[0]}_{use[1]}'], self.components[component_name],
+                                connection_name, output['layers'][0]['id'],
+                            self.program.symbol_table.is_global(use[1])
+                            )
+                            self.connections[connection_name] = connection
+                            output['connections'].append(connection)
                     else:
-                        destination = self.components[var.name]
-                        destination_name = "{}_{}".format(destination['entity'], var.name)
+                        '''
+                        Iterate all the other nodes that exist.
+                        '''
+                        deff_name = '__'.join("%s_%s" % tup for tup in graph.nodes[node]['defs'])
+                        self.components[deff_name] = self.build_component(deff_name, output['layers'][0]['id'],
+                                                                          graph.nodes[node]['op'],
+                                                                          splits=len(graph.nodes[node]['defs']),
+                                                                          iid=node, deff_name=deff_name)
+                        output['components'].append((self.components[deff_name]))
+                        for name, offset in graph.nodes[node]['defs']:
+                            # Access an item in a set but don't iterate.
+                            # Disposals will have only one use, thus we can
+                            # safely check the first element if it's not global,
+                            # it doesn't matter what anything else is.
+                            component_name = f"{name}_{offset}"
+                            if component_name not in self.components:
+                                self.components[component_name] = self.components[deff_name]
 
-                    # All the edges that are coming into this
-                    # node requires connections; build them.
-                    # We should have seen *all* incoming edges,
-                    # by now, which means we don't have to create.
-                    # for ancestor in block.dag.in_edges(var.name):
-                    for ancestor in block.dag.in_edges(current):
-                        incoming = self.program.symbol_table.get_variable(graph[ancestor[0]]['defs'], root)
-                        if self.program.symbol_table.is_global(ancestor[0]):
-                            continue
-                        # source_op = graph[incoming.name]
-                        # incoming_name = self.build_name(root, bid, graph[current]['op'], incoming.name)
-                        if incoming.name in globalz:
-                            incoming = globalz[incoming.name]
-                        if incoming.name not in self.components:
-                            source = self.build_component(incoming.name, output['layers'][0]['id'],
-                                                          op=graph[incoming.name],
-                                                          splits=incoming.size)
-                            output['components'].append(source)
-                            self.components[incoming.name] = source
-                            component_set[operation].add(source['id'])
+                # Build the connections between those components.
+                for node in block.dag.nodes:
+                    for name, offset in graph.nodes[node]['uses']:
+                        use_name, use_offset = next(iter(graph.nodes[node]['uses']))
+                        if self.program.symbol_table.is_global(use_name):
+                            source = self.components[f"{use_name}_{use_offset}"]
                         else:
-                            source = self.components[incoming.name]
-                        # This builds the maps of the components.
-                        incoming_name = "{}_{}".format(source['entity'], incoming.name)
-                        connection_name = "{}_{}".format(incoming.name, var.name)
-                        if connection_name not in connections:
-                            output['connections'].append(
-                                self.build_connection(source, destination, connection_name, output['layers'][0]['id'],
-                                                      incoming.is_global))
-                            connections.add(connection_name)
+                            source = self.components[f"{name}_{offset}"]
+                        for deff_name, deff_offset in graph.nodes[node]['defs']:
+                            deff_var = self.program.symbol_table.get_symbol(deff_name)
+                            destination = self.components[f"{deff_name}_{deff_offset}"]
+                            connection_name = f"{source['name']}->{destination['name']}"
+                            if source['name'] != destination['name'] and connection_name not in self.connections:
+                                self.connections[connection_name] = self.build_connection(
+                                    source, destination, connection_name,
+                                    output['layers'][0]['id'], deff_var.value.is_global)
+                                output['connections'].append(self.connections[connection_name])
 
-                    # Gather all the edges that leave this node and
-                    # Add them to the queue if we haven't seen them.
-                    # for out in block.dag.out_edges(var.name):
-                    for out in block.dag.out_edges(current):
-                        if out not in seen:
-                            queue.appendleft(out[1])
-                    # We've now seen this
-                    seen.add(current)
-                
+                for component in output['components']:
+                    if component['entity'] == 'Input-port':
+                        component['name'] = f"dispense_{component['name']}"
+
                 if self.config.flow_type == FlowType.ACTIVE:
                     activations = self.generate_activations(output, component_set, block.dag, sinks)
                     sequences[root][bid]['timing'] = activations
@@ -243,16 +272,23 @@ class InkwellTarget(BaseTarget):
     def json_to_graph(self, spec, function_name):
         graph = nx.DiGraph()
         for component in spec['components']:
-            graph.add_node(component['id'])
+            label = ""
+            if 'iid' in component['params']:
+                label += f"[{component['params']['iid']}] - "
+            label += component['entity']
+            if 'deff_name' in component['params']:
+                label += " - \n" + component['params']['deff_name']
+            graph.add_node(component['id'], label=label)
         for connection in spec['connections']:
             for sink in connection['sinks']:
-                graph.add_edge(connection['source']['component'], sink['component'])
+                if 'source' in connection:
+                    graph.add_edge(connection['source']['component'], sink['component'])#, label=connection['id'])
         return graph
 
     def verify_json(self, output: dict, verify: bool = False) -> bool:
         if verify:
             try:
-                with open('resources/parchmint_schema.json') as f:
+                with open(self.program.config.schema) as f:
                     schema = json.load(f)
                 validate(instance=output, schema=schema)
                 self.log.debug("JSON validation successful")
@@ -282,7 +318,7 @@ class InkwellTarget(BaseTarget):
                     return s
 
         complete = set(range(1, len(dag.nodes)))
-        mapping_names_to_graph = {} 
+        mapping_names_to_graph = {}
         mapping_graph_to_names = {}
         print(dag.nodes, dag.edges)
         for i, data in dag.nodes('data'):
@@ -303,15 +339,15 @@ class InkwellTarget(BaseTarget):
                     key = s
                     break
                 mapping_graph_to_names[i] = key
-                mapping_names_to_graph[key] = i 
+                mapping_names_to_graph[key] = i
             else:
-                print('hello',data)
+                print('hello', data)
                 pass
         print('hey')
         print(dag.nodes, dag.edges)
-        sink_names = set(map(lambda s : s[7:], sinks)) 
-        sink_nums  = set(map(lambda s : mapping_names_to_graph[s], sink_names))
-        timing = list() 
+        sink_names = set(map(lambda s: s[7:], sinks))
+        sink_nums = set(map(lambda s: mapping_names_to_graph[s], sink_names))
+        timing = list()
         paths = {}
 
         # where start originates from...
@@ -322,16 +358,16 @@ class InkwellTarget(BaseTarget):
             for instr in block.instructions:
                 if type(instr) == Dispose:
                     t = {}
-                    name = instr.uses[0].name 
-                    assert(name in mapping_names_to_graph)
+                    name = instr.uses[0].name
+                    assert (name in mapping_names_to_graph)
                     node_num = mapping_names_to_graph[name]
                     for path in paths.values():
                         for pp in path.values():
                             if node_num in pp:
-                                t['on'] = pp 
+                                t['on'] = pp
                                 t['off'] = complete - pp
                                 break
-                    assert(len(t['on']) != 0)
+                    assert (len(t['on']) != 0)
                     timing.append(t)
                 elif type(instr) == Mix:
                     # schedule the 1st element to be mixed.
@@ -345,7 +381,7 @@ class InkwellTarget(BaseTarget):
 
                     # schedule the 2nd element to be mixed.
                     e = instr.uses[1].name
-                    start = find_start(e, dispense_dict, mix_defs_dict) 
+                    start = find_start(e, dispense_dict, mix_defs_dict)
                     t3 = {'on': paths[start][end], 'off': (complete - paths[start][end])}
 
                     # append timings
@@ -364,7 +400,7 @@ class InkwellTarget(BaseTarget):
                 elif type(instr) == Dispense:
                     node_name = instr.uses[0].name
                     dispense_dict[instr.defs.name] = node_name
-                    start = mapping_names_to_graph[node_name] 
+                    start = mapping_names_to_graph[node_name]
                     paths[node_name] = {}
                     for n, path in nx.single_source_shortest_path(dag, start).items():
                         if n not in sink_nums:
@@ -394,7 +430,7 @@ class InkwellTarget(BaseTarget):
             schedule = temp
         return schedule
 
-    def build_component(self, name, layer: str, op: str = 'mix', splits: int = 1):
+    def build_component(self, name, layer: str, op: IRInstruction = IRInstruction.MIX, splits: int = 1, **kwargs):
         """
         This builds the attributes required for defining
         a component on a continuous flow device.
@@ -406,14 +442,20 @@ class InkwellTarget(BaseTarget):
         :param splits: If it's a split, how many?
         :return: The created component.
         """
-        if op == 'DISPENSE':
+        if op.name == 'DISPENSE':
             out = self.api.build_component({'taxonomy': 'input', 'uuid': layer, 'name': name, 'splits': splits,
                                             'flow': self.program.config.flow_type})
             self.inputs[name] = out
         else:
-            out = self.api.build_component({'taxonomy': op, 'uuid': layer, 'name': name, 'splits': splits,
+            out = self.api.build_component({'taxonomy': op.name, 'uuid': layer, 'name': name, 'splits': splits,
                                             'flow': self.program.config.flow_type})
+        # Each port must have it's own connections, so we list all the ports here.
         self.connections[name] = set(n['label'] for n in out['ports'])
+
+        # This allows us to store additional information in the json structure for future use.
+        out['params'] = dict()
+        for key, value in kwargs.items():
+            out['params'][key] = value
         return out
 
     def build_connection(self, source: dict, destination: dict, name: str, layer: str,
@@ -428,7 +470,7 @@ class InkwellTarget(BaseTarget):
         :return: A dictionary forming the connection.
         """
         connection = dict()
-        connection['id'] = '{}|{}'.format(source['name'], destination['name'])
+        connection['id'] = f"{source['name']}|{destination['name']}"
         connection['layer'] = layer
         connection['name'] = name
         connection['sinks'] = list()
@@ -439,19 +481,19 @@ class InkwellTarget(BaseTarget):
                 if not source_global:
                     self.connections[source['name']].remove(label)
                 break
-        connection['source'] = {'component': source['id'], 'port': label}
+        connection['source'] = {'component': source['id'], 'port': label if label is not None else "none"}
         label = None
         for p in destination['ports']:
             if 'input' in p['label'] and p['label'] in self.connections[destination['name']]:
                 label = p['label']
                 self.connections[destination['name']].remove(label)
                 break
-        connection['sinks'].append({'component': destination['id'], 'port': label})
+        connection['sinks'].append({'component': destination['id'], 'port': label if label is not None else "none"})
 
         return connection
 
-    def build_name(self, root: str, nid: int, op: str, variable):
-        return "{}_{}_{}_{}".format(root, nid, op, variable)
+    def get_machine_code(self):
+        return {}
 
     def write_mix(self) -> str:
         return "oh, you know!"

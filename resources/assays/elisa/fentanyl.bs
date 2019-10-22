@@ -1,0 +1,28 @@
+module fluorescence
+
+manifest antigen
+
+manifest urine_sample
+manifest fentanyl_conjugate
+manifest tmb_substrate
+manifest distilled_water
+manifest stop_reagent
+
+instructions:
+
+a = mix 20uL of urine_sample with antigen
+b = mix 100uL of fentanyl_conjugate with a for 60s
+heat b at 23c for 60m
+dispose b
+
+repeat 6 times {
+    z = mix 350uL of distilled_water with a for 45s
+    dispose z
+}
+
+a = mix 100uL of tmb_substrate with a
+heat a at 23c for 30m
+
+a = mix a with 100uL of stop_reagent for 60s
+negative_reading = detect fluorescence on a for 30m
+dispose a

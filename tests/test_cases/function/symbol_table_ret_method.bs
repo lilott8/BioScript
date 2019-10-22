@@ -1,0 +1,20 @@
+manifest aaa
+
+functions:
+
+function foo() {
+return bar()
+}
+
+function bar() {
+return biz()
+}
+
+function biz() {
+a = dispense aaa
+return a
+}
+
+instructions:
+
+a = foo()

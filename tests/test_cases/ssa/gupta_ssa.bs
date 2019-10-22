@@ -1,0 +1,22 @@
+manifest aaa
+
+instructions:
+
+p = dispense aaa
+q = dispense aaa
+z = dispense aaa
+
+while (3 > 4) {
+    if (5 > 6) {
+        p = mix p with q
+        k = dispense aaa
+    } else {
+        k = dispense aaa
+        q = mix q with z
+    }
+    k = mix p with z
+    while (7 > 8) {
+        p = mix k with p
+        q = mix k with q
+    }
+}

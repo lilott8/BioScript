@@ -1,4 +1,6 @@
+import copy
 from enum import IntEnum
+from typing import Set
 
 
 class ReportingLevel(IntEnum):
@@ -89,103 +91,119 @@ class ChemTypes(IntEnum):
 
 
 class ChemTypeResolver(object):
-    materials = {ChemTypes.ACIDS_STRONG_NON_OXIDIZING, ChemTypes.ACIDS_STRONG_OXIDIZING, ChemTypes.ACIDS_CARBOXYLIC,
-                 ChemTypes.ALCOHOLS_AND_POLYOLS, ChemTypes.ALDEHYDES,
-                 ChemTypes.AMIDES_AND_IMIDES, ChemTypes.AMINES_PHOSPHINES_AND_PYRIDINES,
-                 ChemTypes.AZO_DIAZO_AZIDO_HYDRAZINE_AND_AZIDE_COMPOUNDS,
-                 ChemTypes.CARBAMATES, ChemTypes.BASES_STRONG, ChemTypes.CYANIDES_INORGANIC,
-                 ChemTypes.THIOCARBAMATE_ESTERS_AND_SALTS_DITHIOCARBAMATE_ESTERS_AND_SALTS,
-                 ChemTypes.ESTERS_SULFATE_ESTERS_PHOSPHATE_ESTERS_THIOPHOSPHATE_ESTERS_AND_BORATE_ESTERS,
-                 ChemTypes.ETHERS, ChemTypes.METALS_AND_METAL_COMPOUNDS_TOXIC,
-                 ChemTypes.FLUORIDES_INORGANIC, ChemTypes.HYDROCARBONS_AROMATIC,
-                 ChemTypes.HALOGENATED_ORGANIC_COMPOUNDS, ChemTypes.ISOCYANATES_AND_ISOTHIOCYANATES,
-                 ChemTypes.KETONES, ChemTypes.SULFIDES_ORGANIC, ChemTypes.METALS_ALKALI_VERY_ACTIVE,
-                 ChemTypes.METALS_ELEMENTAL_AND_POWDER_ACTIVE,
-                 ChemTypes.METALS_LESS_REACTIVE, ChemTypes.DIAZONIUM_SALTS, ChemTypes.NITRILES,
-                 ChemTypes.NITRO_NITROSO_NITRATE_AND_NITRITE_COMPOUNDS_ORGANIC,
-                 ChemTypes.HYDROCARBONS_ALIPHATIC_SATURATED, ChemTypes.HYDROCARBONS_ALIPHATIC_UNSATURATED,
-                 ChemTypes.PEROXIDES_ORGANIC, ChemTypes.PHENOLS_AND_CRESOLS,
-                 ChemTypes.SULFONATES_PHOSPHONATES_AND_THIOPHOSPHONATES_ORGANIC,
-                 ChemTypes.SULFIDES_INORGANIC, ChemTypes.EPOXIDES,
-                 ChemTypes.METAL_HYDRIDES_METAL_ALKYLS_METAL_ARYLS_AND_SILANES, ChemTypes.ANHYDRIDES,
-                 ChemTypes.SALTS_ACIDIC, ChemTypes.SALTS_BASIC,
-                 ChemTypes.ACYL_HALIDES_SULFONYL_HALIDES_AND_CHLOROFORMATES,
-                 ChemTypes.ORGANOMETALLICS, ChemTypes.OXIDIZING_AGENTS_STRONG, ChemTypes.REDUCING_AGENTS_STRONG,
-                 ChemTypes.NON_REDOX_ACTIVE_INORGANIC_COMPOUNDS,
-                 ChemTypes.FLUORINATED_ORGANIC_COMPOUNDS, ChemTypes.FLUORIDE_SALTS_SOLUBLE,
-                 ChemTypes.OXIDIZING_AGENTS_WEAK, ChemTypes.REDUCING_AGENTS_WEAK,
-                 ChemTypes.NITRIDES_PHOSPHIDES_CARBIDES_AND_SILICIDES,
-                 ChemTypes.CHLOROSILANES, ChemTypes.SILOXANES, ChemTypes.HALOGENATING_AGENTS, ChemTypes.ACIDS_WEAK,
-                 ChemTypes.BASES_WEAK, ChemTypes.CARBONATE_SALTS,
-                 ChemTypes.ALKYNES_WITH_ACETYLENIC_HYDROGEN, ChemTypes.ALKYNES_WITH_NO_ACETYLENIC_HYDROGEN,
-                 ChemTypes.CONJUGATED_DIENES, ChemTypes.ARYL_HALIDES,
-                 ChemTypes.AMINES_AROMATIC, ChemTypes.NITRATE_AND_NITRITE_COMPOUNDS_INORGANIC,
-                 ChemTypes.ACETALS_KETALS_HEMIACETALS_AND_HEMIKETALS, ChemTypes.PHENOLIC_SALTS,
-                 ChemTypes.QUATERNARY_AMMONIUM_AND_PHOSPHONIUM_SALTS,
-                 ChemTypes.SULFITE_AND_THIOSULFATE_SALTS, ChemTypes.OXIMES, ChemTypes.POLYMERIZABLE_COMPOUNDS,
-                 ChemTypes.NOT_CHEMICALLY_REACTIVE,
-                 ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION, ChemTypes.WATER_AND_AQUEOUS_SOLUTIONS,
-                 ChemTypes.MAT}
+    _materials = {ChemTypes.ACIDS_STRONG_NON_OXIDIZING, ChemTypes.ACIDS_STRONG_OXIDIZING, ChemTypes.ACIDS_CARBOXYLIC,
+                  ChemTypes.ALCOHOLS_AND_POLYOLS, ChemTypes.ALDEHYDES,
+                  ChemTypes.AMIDES_AND_IMIDES, ChemTypes.AMINES_PHOSPHINES_AND_PYRIDINES,
+                  ChemTypes.AZO_DIAZO_AZIDO_HYDRAZINE_AND_AZIDE_COMPOUNDS,
+                  ChemTypes.CARBAMATES, ChemTypes.BASES_STRONG, ChemTypes.CYANIDES_INORGANIC,
+                  ChemTypes.THIOCARBAMATE_ESTERS_AND_SALTS_DITHIOCARBAMATE_ESTERS_AND_SALTS,
+                  ChemTypes.ESTERS_SULFATE_ESTERS_PHOSPHATE_ESTERS_THIOPHOSPHATE_ESTERS_AND_BORATE_ESTERS,
+                  ChemTypes.ETHERS, ChemTypes.METALS_AND_METAL_COMPOUNDS_TOXIC,
+                  ChemTypes.FLUORIDES_INORGANIC, ChemTypes.HYDROCARBONS_AROMATIC,
+                  ChemTypes.HALOGENATED_ORGANIC_COMPOUNDS, ChemTypes.ISOCYANATES_AND_ISOTHIOCYANATES,
+                  ChemTypes.KETONES, ChemTypes.SULFIDES_ORGANIC, ChemTypes.METALS_ALKALI_VERY_ACTIVE,
+                  ChemTypes.METALS_ELEMENTAL_AND_POWDER_ACTIVE,
+                  ChemTypes.METALS_LESS_REACTIVE, ChemTypes.DIAZONIUM_SALTS, ChemTypes.NITRILES,
+                  ChemTypes.NITRO_NITROSO_NITRATE_AND_NITRITE_COMPOUNDS_ORGANIC,
+                  ChemTypes.HYDROCARBONS_ALIPHATIC_SATURATED, ChemTypes.HYDROCARBONS_ALIPHATIC_UNSATURATED,
+                  ChemTypes.PEROXIDES_ORGANIC, ChemTypes.PHENOLS_AND_CRESOLS,
+                  ChemTypes.SULFONATES_PHOSPHONATES_AND_THIOPHOSPHONATES_ORGANIC,
+                  ChemTypes.SULFIDES_INORGANIC, ChemTypes.EPOXIDES,
+                  ChemTypes.METAL_HYDRIDES_METAL_ALKYLS_METAL_ARYLS_AND_SILANES, ChemTypes.ANHYDRIDES,
+                  ChemTypes.SALTS_ACIDIC, ChemTypes.SALTS_BASIC,
+                  ChemTypes.ACYL_HALIDES_SULFONYL_HALIDES_AND_CHLOROFORMATES,
+                  ChemTypes.ORGANOMETALLICS, ChemTypes.OXIDIZING_AGENTS_STRONG, ChemTypes.REDUCING_AGENTS_STRONG,
+                  ChemTypes.NON_REDOX_ACTIVE_INORGANIC_COMPOUNDS,
+                  ChemTypes.FLUORINATED_ORGANIC_COMPOUNDS, ChemTypes.FLUORIDE_SALTS_SOLUBLE,
+                  ChemTypes.OXIDIZING_AGENTS_WEAK, ChemTypes.REDUCING_AGENTS_WEAK,
+                  ChemTypes.NITRIDES_PHOSPHIDES_CARBIDES_AND_SILICIDES,
+                  ChemTypes.CHLOROSILANES, ChemTypes.SILOXANES, ChemTypes.HALOGENATING_AGENTS, ChemTypes.ACIDS_WEAK,
+                  ChemTypes.BASES_WEAK, ChemTypes.CARBONATE_SALTS,
+                  ChemTypes.ALKYNES_WITH_ACETYLENIC_HYDROGEN, ChemTypes.ALKYNES_WITH_NO_ACETYLENIC_HYDROGEN,
+                  ChemTypes.CONJUGATED_DIENES, ChemTypes.ARYL_HALIDES,
+                  ChemTypes.AMINES_AROMATIC, ChemTypes.NITRATE_AND_NITRITE_COMPOUNDS_INORGANIC,
+                  ChemTypes.ACETALS_KETALS_HEMIACETALS_AND_HEMIKETALS, ChemTypes.PHENOLIC_SALTS,
+                  ChemTypes.QUATERNARY_AMMONIUM_AND_PHOSPHONIUM_SALTS,
+                  ChemTypes.SULFITE_AND_THIOSULFATE_SALTS, ChemTypes.OXIMES, ChemTypes.POLYMERIZABLE_COMPOUNDS,
+                  ChemTypes.NOT_CHEMICALLY_REACTIVE,
+                  ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION, ChemTypes.WATER_AND_AQUEOUS_SOLUTIONS,
+                  ChemTypes.MAT}
 
-    numbers = {ChemTypes.REAL, ChemTypes.NAT, ChemTypes.CONST, ChemTypes.BOOL}
+    _numbers = {ChemTypes.REAL, ChemTypes.NAT, ChemTypes.BOOL}
 
-    available_types = {ChemTypes.ACIDS_STRONG_NON_OXIDIZING, ChemTypes.ACIDS_STRONG_OXIDIZING,
-                       ChemTypes.ACIDS_CARBOXYLIC,
-                       ChemTypes.ALCOHOLS_AND_POLYOLS, ChemTypes.ALDEHYDES,
-                       ChemTypes.AMIDES_AND_IMIDES, ChemTypes.AMINES_PHOSPHINES_AND_PYRIDINES,
-                       ChemTypes.AZO_DIAZO_AZIDO_HYDRAZINE_AND_AZIDE_COMPOUNDS,
-                       ChemTypes.CARBAMATES, ChemTypes.BASES_STRONG, ChemTypes.CYANIDES_INORGANIC,
-                       ChemTypes.THIOCARBAMATE_ESTERS_AND_SALTS_DITHIOCARBAMATE_ESTERS_AND_SALTS,
-                       ChemTypes.ESTERS_SULFATE_ESTERS_PHOSPHATE_ESTERS_THIOPHOSPHATE_ESTERS_AND_BORATE_ESTERS,
-                       ChemTypes.ETHERS, ChemTypes.METALS_AND_METAL_COMPOUNDS_TOXIC,
-                       ChemTypes.FLUORIDES_INORGANIC, ChemTypes.HYDROCARBONS_AROMATIC,
-                       ChemTypes.HALOGENATED_ORGANIC_COMPOUNDS, ChemTypes.ISOCYANATES_AND_ISOTHIOCYANATES,
-                       ChemTypes.KETONES, ChemTypes.SULFIDES_ORGANIC, ChemTypes.METALS_ALKALI_VERY_ACTIVE,
-                       ChemTypes.METALS_ELEMENTAL_AND_POWDER_ACTIVE,
-                       ChemTypes.METALS_LESS_REACTIVE, ChemTypes.DIAZONIUM_SALTS, ChemTypes.NITRILES,
-                       ChemTypes.NITRO_NITROSO_NITRATE_AND_NITRITE_COMPOUNDS_ORGANIC,
-                       ChemTypes.HYDROCARBONS_ALIPHATIC_SATURATED, ChemTypes.HYDROCARBONS_ALIPHATIC_UNSATURATED,
-                       ChemTypes.PEROXIDES_ORGANIC, ChemTypes.PHENOLS_AND_CRESOLS,
-                       ChemTypes.SULFONATES_PHOSPHONATES_AND_THIOPHOSPHONATES_ORGANIC,
-                       ChemTypes.SULFIDES_INORGANIC, ChemTypes.EPOXIDES,
-                       ChemTypes.METAL_HYDRIDES_METAL_ALKYLS_METAL_ARYLS_AND_SILANES, ChemTypes.ANHYDRIDES,
-                       ChemTypes.SALTS_ACIDIC, ChemTypes.SALTS_BASIC,
-                       ChemTypes.ACYL_HALIDES_SULFONYL_HALIDES_AND_CHLOROFORMATES,
-                       ChemTypes.ORGANOMETALLICS, ChemTypes.OXIDIZING_AGENTS_STRONG, ChemTypes.REDUCING_AGENTS_STRONG,
-                       ChemTypes.NON_REDOX_ACTIVE_INORGANIC_COMPOUNDS,
-                       ChemTypes.FLUORINATED_ORGANIC_COMPOUNDS, ChemTypes.FLUORIDE_SALTS_SOLUBLE,
-                       ChemTypes.OXIDIZING_AGENTS_WEAK, ChemTypes.REDUCING_AGENTS_WEAK,
-                       ChemTypes.NITRIDES_PHOSPHIDES_CARBIDES_AND_SILICIDES,
-                       ChemTypes.CHLOROSILANES, ChemTypes.SILOXANES, ChemTypes.HALOGENATING_AGENTS,
-                       ChemTypes.ACIDS_WEAK,
-                       ChemTypes.BASES_WEAK, ChemTypes.CARBONATE_SALTS,
-                       ChemTypes.ALKYNES_WITH_ACETYLENIC_HYDROGEN, ChemTypes.ALKYNES_WITH_NO_ACETYLENIC_HYDROGEN,
-                       ChemTypes.CONJUGATED_DIENES, ChemTypes.ARYL_HALIDES,
-                       ChemTypes.AMINES_AROMATIC, ChemTypes.NITRATE_AND_NITRITE_COMPOUNDS_INORGANIC,
-                       ChemTypes.ACETALS_KETALS_HEMIACETALS_AND_HEMIKETALS, ChemTypes.PHENOLIC_SALTS,
-                       ChemTypes.QUATERNARY_AMMONIUM_AND_PHOSPHONIUM_SALTS,
-                       ChemTypes.SULFITE_AND_THIOSULFATE_SALTS, ChemTypes.OXIMES, ChemTypes.POLYMERIZABLE_COMPOUNDS,
-                       ChemTypes.NOT_CHEMICALLY_REACTIVE,
-                       ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION, ChemTypes.WATER_AND_AQUEOUS_SOLUTIONS,
-                       ChemTypes.REAL, ChemTypes.NAT, ChemTypes.MODULE}
+    _available_types = {ChemTypes.ACIDS_STRONG_NON_OXIDIZING, ChemTypes.ACIDS_STRONG_OXIDIZING,
+                        ChemTypes.ACIDS_CARBOXYLIC,
+                        ChemTypes.ALCOHOLS_AND_POLYOLS, ChemTypes.ALDEHYDES,
+                        ChemTypes.AMIDES_AND_IMIDES, ChemTypes.AMINES_PHOSPHINES_AND_PYRIDINES,
+                        ChemTypes.AZO_DIAZO_AZIDO_HYDRAZINE_AND_AZIDE_COMPOUNDS,
+                        ChemTypes.CARBAMATES, ChemTypes.BASES_STRONG, ChemTypes.CYANIDES_INORGANIC,
+                        ChemTypes.THIOCARBAMATE_ESTERS_AND_SALTS_DITHIOCARBAMATE_ESTERS_AND_SALTS,
+                        ChemTypes.ESTERS_SULFATE_ESTERS_PHOSPHATE_ESTERS_THIOPHOSPHATE_ESTERS_AND_BORATE_ESTERS,
+                        ChemTypes.ETHERS, ChemTypes.METALS_AND_METAL_COMPOUNDS_TOXIC,
+                        ChemTypes.FLUORIDES_INORGANIC, ChemTypes.HYDROCARBONS_AROMATIC,
+                        ChemTypes.HALOGENATED_ORGANIC_COMPOUNDS, ChemTypes.ISOCYANATES_AND_ISOTHIOCYANATES,
+                        ChemTypes.KETONES, ChemTypes.SULFIDES_ORGANIC, ChemTypes.METALS_ALKALI_VERY_ACTIVE,
+                        ChemTypes.METALS_ELEMENTAL_AND_POWDER_ACTIVE,
+                        ChemTypes.METALS_LESS_REACTIVE, ChemTypes.DIAZONIUM_SALTS, ChemTypes.NITRILES,
+                        ChemTypes.NITRO_NITROSO_NITRATE_AND_NITRITE_COMPOUNDS_ORGANIC,
+                        ChemTypes.HYDROCARBONS_ALIPHATIC_SATURATED, ChemTypes.HYDROCARBONS_ALIPHATIC_UNSATURATED,
+                        ChemTypes.PEROXIDES_ORGANIC, ChemTypes.PHENOLS_AND_CRESOLS,
+                        ChemTypes.SULFONATES_PHOSPHONATES_AND_THIOPHOSPHONATES_ORGANIC,
+                        ChemTypes.SULFIDES_INORGANIC, ChemTypes.EPOXIDES,
+                        ChemTypes.METAL_HYDRIDES_METAL_ALKYLS_METAL_ARYLS_AND_SILANES, ChemTypes.ANHYDRIDES,
+                        ChemTypes.SALTS_ACIDIC, ChemTypes.SALTS_BASIC,
+                        ChemTypes.ACYL_HALIDES_SULFONYL_HALIDES_AND_CHLOROFORMATES,
+                        ChemTypes.ORGANOMETALLICS, ChemTypes.OXIDIZING_AGENTS_STRONG, ChemTypes.REDUCING_AGENTS_STRONG,
+                        ChemTypes.NON_REDOX_ACTIVE_INORGANIC_COMPOUNDS,
+                        ChemTypes.FLUORINATED_ORGANIC_COMPOUNDS, ChemTypes.FLUORIDE_SALTS_SOLUBLE,
+                        ChemTypes.OXIDIZING_AGENTS_WEAK, ChemTypes.REDUCING_AGENTS_WEAK,
+                        ChemTypes.NITRIDES_PHOSPHIDES_CARBIDES_AND_SILICIDES,
+                        ChemTypes.CHLOROSILANES, ChemTypes.SILOXANES, ChemTypes.HALOGENATING_AGENTS,
+                        ChemTypes.ACIDS_WEAK,
+                        ChemTypes.BASES_WEAK, ChemTypes.CARBONATE_SALTS,
+                        ChemTypes.ALKYNES_WITH_ACETYLENIC_HYDROGEN, ChemTypes.ALKYNES_WITH_NO_ACETYLENIC_HYDROGEN,
+                        ChemTypes.CONJUGATED_DIENES, ChemTypes.ARYL_HALIDES,
+                        ChemTypes.AMINES_AROMATIC, ChemTypes.NITRATE_AND_NITRITE_COMPOUNDS_INORGANIC,
+                        ChemTypes.ACETALS_KETALS_HEMIACETALS_AND_HEMIKETALS, ChemTypes.PHENOLIC_SALTS,
+                        ChemTypes.QUATERNARY_AMMONIUM_AND_PHOSPHONIUM_SALTS,
+                        ChemTypes.SULFITE_AND_THIOSULFATE_SALTS, ChemTypes.OXIMES, ChemTypes.POLYMERIZABLE_COMPOUNDS,
+                        ChemTypes.NOT_CHEMICALLY_REACTIVE,
+                        ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION, ChemTypes.WATER_AND_AQUEOUS_SOLUTIONS,
+                        ChemTypes.REAL, ChemTypes.NAT, ChemTypes.MODULE}
 
-    naive_types = {ChemTypes.REAL, ChemTypes.MAT, ChemTypes.NAT, ChemTypes.MODULE}
+    _naive_types = {ChemTypes.REAL, ChemTypes.MAT, ChemTypes.NAT, ChemTypes.MODULE}
+
+    @staticmethod
+    def numbers():
+        return copy.deepcopy(ChemTypeResolver._numbers)
+
+    @staticmethod
+    def materials():
+        return copy.deepcopy(ChemTypeResolver._materials)
 
     @staticmethod
     def is_mat(value: ChemTypes):
-        return value in ChemTypeResolver.materials
+        return value in ChemTypeResolver._materials
 
     @staticmethod
     def is_number(value: ChemTypes):
-        return value in ChemTypeResolver.numbers
+        return value in ChemTypeResolver._numbers
 
     @staticmethod
-    def is_mat_in_set(value: set):
-        raise Exception("start here")
+    def is_only_numeric(value: Set) -> bool:
+        return ChemTypeResolver.is_number_in_set(value) and not ChemTypeResolver.is_mat_in_set(value)
 
     @staticmethod
-    def is_number_in_set(value: set):
-        pass
+    def is_only_material(value: Set) -> bool:
+        return ChemTypeResolver.is_mat_in_set(value) and not ChemTypeResolver.is_number_in_set(value)
+
+    @staticmethod
+    def is_mat_in_set(value: Set) -> bool:
+        return bool(value.intersection(ChemTypeResolver._materials))
+
+    @staticmethod
+    def is_number_in_set(value: Set) -> bool:
+        return bool(value.intersection(ChemTypeResolver._numbers))
 
     @staticmethod
     def string_to_type(chemtype: str) -> ChemTypes:

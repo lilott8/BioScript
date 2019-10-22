@@ -1,0 +1,20 @@
+{
+    "problem": "storage",
+    "storage": [
+        [
+            {
+                "chemical": "Tetracholoroethylene",
+                "reactive_groups": [17, 28],
+                "current_volume": 25,
+                "total_volume": 100
+            }
+        ]
+    ],
+    "manifest": [
+        {
+            "chemical": "Nitric_Acid",
+            "reactive_groups": [33],
+            "volume": 50
+        }
+    ]
+}

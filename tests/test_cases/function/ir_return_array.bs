@@ -1,0 +1,12 @@
+manifest aaa
+
+functions:
+
+function foo() {
+    x[2] = 3
+    return x
+}
+
+instructions:
+
+a = foo()

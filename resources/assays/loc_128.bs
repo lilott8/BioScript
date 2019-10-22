@@ -1,0 +1,204 @@
+manifest a1
+manifest a2
+manifest a3
+manifest a4
+manifest a5
+manifest a6
+manifest a7
+manifest a8
+manifest a9
+manifest a10
+manifest a11
+manifest a12
+manifest a13
+manifest a14
+manifest a15
+manifest a16
+manifest a17
+manifest a18
+manifest a19
+manifest a20
+manifest a21
+manifest a22
+manifest a23
+manifest a24
+manifest a25
+manifest a26
+manifest a27
+manifest a28
+manifest a29
+manifest a30
+manifest a31
+manifest a32
+manifest a33
+manifest a34
+manifest a35
+manifest a36
+manifest a37
+manifest a38
+manifest a39
+manifest a40
+manifest a41
+manifest a42
+manifest a43
+manifest a44
+manifest a45
+manifest a46
+manifest a47
+manifest a48
+manifest a49
+manifest a50
+manifest a51
+manifest a52
+manifest a53
+manifest a54
+manifest a55
+manifest a56
+manifest a57
+manifest a58
+manifest a59
+manifest a60
+manifest a61
+manifest a62
+manifest a63
+manifest a64
+
+
+
+instructions:
+
+m1 = dispense a1
+m2 = dispense a2
+m3 = dispense a3
+m4 = dispense a4
+m5 = dispense a5
+m6 = dispense a6
+m7 = dispense a7
+m8 = dispense a8
+m9 = dispense a9
+m10 = dispense a10
+m11 = dispense a11
+m12 = dispense a12
+m13 = dispense a13
+m14 = dispense a14
+m15 = dispense a15
+m16 = dispense a16
+m17 = dispense a17
+m18 = dispense a18
+m19 = dispense a19
+m20 = dispense a20
+m21 = dispense a21
+m22 = dispense a22
+m23 = dispense a23
+m24 = dispense a24
+m25 = dispense a25
+m26 = dispense a26
+m27 = dispense a27
+m28 = dispense a28
+m29 = dispense a29
+m30 = dispense a30
+m31 = dispense a31
+m32 = dispense a32
+m33 = dispense a33
+m34 = dispense a34
+m35 = dispense a35
+m36 = dispense a36
+m37 = dispense a37
+m38 = dispense a38
+m39 = dispense a39
+m40 = dispense a40
+m41 = dispense a41
+m42 = dispense a42
+m43 = dispense a43
+m44 = dispense a44
+m45 = dispense a45
+m46 = dispense a46
+m47 = dispense a47
+m48 = dispense a48
+m49 = dispense a49
+m50 = dispense a50
+m51 = dispense a51
+m52 = dispense a52
+m53 = dispense a53
+m54 = dispense a54
+m55 = dispense a55
+m56 = dispense a56
+m57 = dispense a57
+m58 = dispense a58
+m59 = dispense a59
+m60 = dispense a60
+m61 = dispense a61
+m62 = dispense a62
+m63 = dispense a63
+m64 = dispense a64
+
+t1 = mix m1 with m2
+t2 = mix m3 with m4
+t3 = mix m5 with m6
+t4 = mix m7 with m8
+t5 = mix m9 with m10
+t6 = mix m11 with m12
+t7 = mix m13 with m14
+t8 = mix m15 with m16
+t9 = mix m17 with m18
+t10 = mix m19 with m20
+t11 = mix m21 with m22
+t12 = mix m23 with m24
+t13 = mix m25 with m26
+t14 = mix m27 with m28
+t15 = mix m29 with m30
+t16 = mix m31 with m32
+t17 = mix m33 with m34
+t18 = mix m35 with m36
+t19 = mix m37 with m38
+t20 = mix m39 with m40
+t21 = mix m41 with m42
+t22 = mix m43 with m44
+t23 = mix m45 with m46
+t24 = mix m47 with m48
+t25 = mix m49 with m50
+t26 = mix m51 with m52
+t27 = mix m53 with m54
+t28 = mix m55 with m56
+t29 = mix m57 with m58
+t30 = mix m59 with m60
+t31 = mix m61 with m62
+t32 = mix m63 with m64
+
+s1 = mix t1 with t2
+s2 = mix t3 with t4
+s3 = mix t5 with t6
+s4 = mix t7 with t8
+s5 = mix t9 with t10
+s6 = mix t11 with t12
+s7 = mix t13 with t14
+s8 = mix t15 with t16
+s9 = mix t17 with t18
+s10 = mix t19 with t20
+s11 = mix t21 with t22
+s12 = mix t23 with t24
+s13 = mix t25 with t26
+s14 = mix t27 with t28
+s15 = mix t29 with t30
+s16 = mix t31 with t32
+
+e1 = mix s1 with s2
+e2 = mix s3 with s4
+e3 = mix s5 with s6
+e4 = mix s7 with s8
+e5 = mix s9 with s10
+e6 = mix s11 with s12
+e7 = mix s13 with s14
+e8 = mix s15 with s16
+
+f1 = mix e1 with e2
+f2 = mix e3 with e4
+f3 = mix e5 with e6
+f4 = mix e7 with e8
+
+finish1 = mix f1 with f2
+finish2 = mix f3 with f4
+
+final = mix finish1 with finish2
+
+dispose final

@@ -1,0 +1,9 @@
+manifest aaa
+manifest bbb
+
+instructions:
+
+a = dispense aaa
+b = 3+3
+
+c = gradient a with b range 1.0, 2.0 at 1.0

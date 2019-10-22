@@ -1,0 +1,27 @@
+module fluorescence
+
+manifest heroin_enzyme
+manifest heroin_conjugate
+manifest urine_sample
+manifest tmb_substrate
+manifest distilled_water
+manifest stop_reagent
+
+instructions:
+
+a = mix 20uL of urine_sample with 1uL of heroin_enzyme for 10s
+a = mix 100uL of heroin_conjugate with a for 60s
+heat a at 23c for 60m
+dispose a
+
+repeat 6 times {
+    b = mix 350uL of distilled_water with heroin_enzyme for 45s
+    dispose heroin_enzyme
+}
+
+cc = mix 100uL of tmb_substrate with heroin_enzyme
+heat cc at 23c for 30m
+cc = mix stop_reagent with 100uL of cc for 60s
+
+urine_reading = detect fluorescence on cc for 30m
+dispose cc
