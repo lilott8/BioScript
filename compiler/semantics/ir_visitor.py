@@ -200,10 +200,10 @@ class IRVisitor(BSBaseVisitor):
         # This oddly specific check handles the case where a while loop nested in an if block
         # wouldn't have its false edge connect to the if block's false node.  This, in particular,
         # removes the naive edge that is added as there are still conditional statements that follow.
-        if "_f" in self.current_block.label.label and len(self.control_stack) == 1 and \
-                self.graph.out_edges(self.current_block.nid):
-            if (self.current_block.nid, self.control_stack[-1].nid) in self.graph.out_edges(self.current_block.nid):
-                self.graph.remove_edge(self.current_block.nid, self.control_stack[-1].nid)
+        # if "_f" in self.current_block.label.label and len(self.control_stack) == 1 and \
+        #         self.graph.out_edges(self.current_block.nid):
+        #     if (self.current_block.nid, self.control_stack[-1].nid) in self.graph.out_edges(self.current_block.nid):
+        #         self.graph.remove_edge(self.current_block.nid, self.control_stack[-1].nid)
 
         # Build the conditional for this statement.
         cond = self.visitParExpression(ctx.parExpression())
@@ -255,11 +255,21 @@ class IRVisitor(BSBaseVisitor):
 
         join_block = self.control_stack.pop()
 
+        '''
+        Marked for deletion.
         # This check guarantees that a true block will not jump to a join
         # while dealing with nested conditionals.  If the number of out
         # edges is greater than 0, then we
-        if len(self.graph.edges(true_block.nid)) == 0:
-            true_block.add(Jump(join_block.label))
+        # if len(self.graph.edges(true_block.nid)) == 0:
+        #     true_block.add(Jump(join_block.label))
+        #     self.graph.add_edge(true_block.nid, join_block.nid)
+        '''
+
+        if self.control_stack and len(self.graph.edges(true_block.nid)) == 0:
+            # true_block.add(Jump(join_block.label))
+            self.graph.add_edge(true_block.nid, join_block.nid)
+        elif len(self.control_stack) == 0 and len(self.graph.edges(true_block.nid)) == 0:
+            # true_block.add(Jump(join_block.label))
             self.graph.add_edge(true_block.nid, join_block.nid)
 
         if ctx.ELSE():
@@ -307,7 +317,7 @@ class IRVisitor(BSBaseVisitor):
         # We have a directed edge from current block to the header.
         self.graph.add_edge(self.current_block.nid, header_block.nid)
         # The current block jumps to the subsequent header block.
-        self.current_block.add(Jump(header_block.label))
+        # self.current_block.add(Jump(header_block.label))
 
         # The condition goes in the header.
         cond = self.visitParExpression(ctx.parExpression())
@@ -334,12 +344,12 @@ class IRVisitor(BSBaseVisitor):
 
         # The block statement may contain nested conditionals.
         # If so, the current block is the last false block created for the inner-most conditional
-        # otherwise, the current block is the true_block created above.
+        #   otherwise, the current block is the true_block created above.
         # Either way, we can pop the control stack to find where to place the back edge
-        # and immediately make the back edge (from 'current block') to the parent.
+        #   and immediately make the back edge (from 'current block') to the parent.
         parent_block = self.control_stack.pop()
         self.graph.add_edge(self.current_block.nid, parent_block.nid)
-        self.current_block.add(Jump(parent_block.label))
+        # self.current_block.add(Jump(parent_block.label))
 
         # We now deal with the false branch.
         false_block = BasicBlock()
@@ -360,9 +370,9 @@ class IRVisitor(BSBaseVisitor):
         # need to exist.  If we don't need it (see the crazy restrictive
         # conditional in the visitIfStatement function), then it will be
         # removed.
-        if self.control_stack:
-            self.graph.add_edge(false_block.nid, self.control_stack[-1].nid)
-            false_block.add(Jump(self.control_stack[-1].label))
+        # if self.control_stack:
+        #     self.graph.add_edge(false_block.nid, self.control_stack[-1].nid)
+        #     false_block.add(Jump(self.control_stack[-1].label))
 
         self.current_block = false_block
 

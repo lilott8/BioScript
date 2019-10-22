@@ -1,5 +1,5 @@
 // correct ssa
-// single branch
+// if then while
 
 module mod
 stationary stat
@@ -13,11 +13,19 @@ functions:
 instructions:
 
 x = dispense aaa
+x = dispense ddd
+x = dispense aaa
 
 if (3 > 3)
 {
     x = dispense bbb
-    heat x at 45f
+
+    while (4 > 4)
+    {
+        x = dispense ccc
+    }
+
+    a = detect mod on x
 }
 
 b = detect mod on x

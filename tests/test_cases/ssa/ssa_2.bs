@@ -13,10 +13,13 @@ functions:
 instructions:
 
 x = dispense aaa
+x = dispense bbb
+x = dispense aaa
 
 if (3 > 3)
 {
-    x = dispense bbb
+    x = dispense ccc
+    x = dispense ddd
     heat x at 45f
 }
 

@@ -1,0 +1,18 @@
+manifest aaa
+
+instructions:
+
+i = dispense aaa
+j = dispense aaa
+k = dispense aaa
+z = dispense aaa
+
+while (k < 100) {
+    if (j < 20) {
+        j = mix i with z
+        k = mix k with z
+    } else {
+        j = mix k with z
+        k = mix k with z
+    }
+}

@@ -112,9 +112,25 @@ class IR(metaclass=ABCMeta):
         self.op = op
         self.name = op.name
         self.iid = IR.get_next_id()
-        self.uses = list()
-        self.defs = None
+        self._uses = list()
+        self._defs = None
         self.meta = list()
+
+    @property
+    def uses(self):
+        return self._uses
+
+    @uses.setter
+    def uses(self, items: List):
+        self._uses.extend(items)
+
+    @property
+    def defs(self):
+        return self._defs
+
+    @defs.setter
+    def defs(self, deff):
+        self._defs = deff
 
     @abstractmethod
     def expand(self) -> List:

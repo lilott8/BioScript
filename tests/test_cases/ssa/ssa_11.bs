@@ -1,5 +1,5 @@
 // correct ssa
-// nested while
+// while if else
 
 module mod
 stationary stat
@@ -13,21 +13,27 @@ functions:
 instructions:
 
 x = dispense aaa
-x = dispense ddd
+x = dispense bbb
 x = dispense aaa
 
 while (3 > 3)
 {
+    x = dispense aaa
     x = dispense bbb
+    x = dispense aaa
 
-    while (4 > 4)
+    if (3 > 3)
     {
         x = dispense ccc
+        heat x at 45f
+    }
+    else
+    {
+        x = dispense ddd
     }
 
-    a = detect mod on x
+    b = detect mod on x
 }
 
-b = detect mod on x
 
 

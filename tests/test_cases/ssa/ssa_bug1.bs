@@ -1,6 +1,3 @@
-// correct ssa
-// single branch
-
 module mod
 stationary stat
 manifest aaa
@@ -13,11 +10,8 @@ functions:
 instructions:
 
 x = dispense aaa
-
-if (3 > 3)
-{
+if (3 > 3) {
     x = dispense bbb
     heat x at 45f
 }
-
 b = detect mod on x

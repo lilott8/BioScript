@@ -1,0 +1,45 @@
+// correct ssa
+// if else series
+
+module mod
+stationary stat
+manifest aaa
+manifest bbb
+manifest ccc
+manifest ddd
+
+functions:
+
+instructions:
+
+x = dispense aaa
+x = dispense bbb
+x = dispense aaa
+
+if (3 > 3)
+{
+    x = dispense ccc
+    heat x at 45f
+}
+else
+{
+    x = dispense ddd
+}
+
+a = detect mod on x
+
+x = dispense aaa
+x = dispense bbb
+x = dispense aaa
+
+if (3 > 3)
+{
+    x = dispense ccc
+    heat x at 45f
+}
+else
+{
+    x = dispense ddd
+}
+
+b = detect mod on x

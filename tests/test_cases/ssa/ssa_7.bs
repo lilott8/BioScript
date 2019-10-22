@@ -1,5 +1,5 @@
 // correct ssa
-// single branch
+// repeat
 
 module mod
 stationary stat
@@ -14,7 +14,7 @@ instructions:
 
 x = dispense aaa
 
-if (3 > 3)
+repeat 7 times
 {
     x = dispense bbb
     heat x at 45f

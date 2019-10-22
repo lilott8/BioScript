@@ -43,7 +43,7 @@ class IRTarget(BaseTarget):
                         self.compiled += "{}[{}] = {}".format(instruction.defs['name'],
                                                               instruction.defs['offset'], instruction.value)
                     elif instruction.op == iri.PHI:
-                        self.compiled += f"PHI {instruction.defs} = {{"
+                        self.compiled += f"PHI {instruction.defs['name']} = {{"
                         self.compiled += ",".join(instruction.uses)
                         self.compiled += "}"
                     elif instruction.op == iri.MATH:
@@ -73,8 +73,8 @@ class IRTarget(BaseTarget):
                         self.compiled = self.compiled[:-2]
                         self.compiled += ")"
                     elif instruction.op == iri.CONDITIONAL:
-                        use_1 = self.program.symbol_table.get_symbol(instruction.left['name'], root)
-                        use_2 = self.program.symbol_table.get_symbol(instruction.right['name'], root)
+                        use_1 = self.program.symbol_table.get_symbol(instruction.uses[0]['name'], root)
+                        use_2 = self.program.symbol_table.get_symbol(instruction.uses[1]['name'], root)
                         self.compiled += "if "
                         if "CONST_" in use_1.name:
                             self.compiled += "{}".format(use_1.value.value[instruction.left['offset']])
