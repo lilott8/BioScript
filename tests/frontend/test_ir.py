@@ -346,7 +346,7 @@ class TestIfElse(FrontEndBase):
         file = "test_cases/control/ir_if_two_numbers.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "bsbbif_2_t:\n\tb[0] = 1\n\tjump: bsbbif_3_f\nbsbbif_3_f:\n\tNOP\nmain:\n\t" \
+        expected = "bsbbif_2_t:\n\tb[0] = 1\nbsbbif_3_f:\n\tNOP\nmain:\n\t" \
                    "if 3 > 3\t|\ttrue: jump bsbbif_2_t\t|\tfalse: jump bsbbif_3_f"
         assert expected == ir.compiled.rstrip()
 
@@ -354,7 +354,7 @@ class TestIfElse(FrontEndBase):
         file = "test_cases/control/ir_if_var_number.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "bsbbif_2_t:\n\tb[0] = 1\n\tjump: bsbbif_3_f\nbsbbif_3_f:\n\tNOP\nmain:\n\ta[0] = 3\n\t" \
+        expected = "bsbbif_2_t:\n\tb[0] = 1\nbsbbif_3_f:\n\tNOP\nmain:\n\ta[0] = 3\n\t" \
                    "if a[0] > 3\t|\ttrue: jump bsbbif_2_t\t|\tfalse: jump bsbbif_3_f"
         assert expected == ir.compiled.rstrip()
 
@@ -362,7 +362,7 @@ class TestIfElse(FrontEndBase):
         file = "test_cases/control/ir_if_var_no_index_size_one.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "bsbbif_2_t:\n\tdispose(a[0])\n\tjump: bsbbif_3_f\nbsbbif_3_f:\n\tNOP\n" \
+        expected = "bsbbif_2_t:\n\tdispose(a[0])\nbsbbif_3_f:\n\tNOP\n" \
                    "main:\n\ta[0] = dispense(aaa)\n\tif a[0] == 8\t|\ttrue: jump bsbbif_2_t\t|\tfalse: jump bsbbif_3_f"
         assert expected == ir.compiled.rstrip()
 
@@ -370,7 +370,7 @@ class TestIfElse(FrontEndBase):
         file = "test_cases/control/ir_if_var_with_index.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "bsbbif_2_t:\n\tdispose(a[0])\n\tjump: bsbbif_3_f\nbsbbif_3_f:\n\tNOP\n" \
+        expected = "bsbbif_2_t:\n\tdispose(a[0])\nbsbbif_3_f:\n\tNOP\n" \
                    "main:\n\ta[0] = dispense(aaa)\n\ta[1] = dispense(aaa)\n\t" \
                    "if a[1] == 8\t|\ttrue: jump bsbbif_2_t\t|\tfalse: jump bsbbif_3_f"
         assert expected == ir.compiled.rstrip()
@@ -391,15 +391,15 @@ class TestIfElse(FrontEndBase):
 
         expected = "bsbbif_2_t:\n\tif 4 < 2\t|\ttrue: jump bsbbif_4_t\t|\tfalse: jump bsbbif_5_f\n" \
                    "bsbbif_3_f:\n\tdispose(a[1])\n\tNOP\nmain:\n\ta[0] = dispense(aaa)\n\ta[1] = dispense(aaa)\n\t" \
-                   "if 2 < 4\t|\ttrue: jump bsbbif_2_t\t|\tfalse: jump bsbbif_3_f\nbsbbif_4_t:\n\tdispose(a[0])\n\t" \
-                   "jump: bsbbif_5_f\nbsbbif_5_f:\n\tjump: bsbbif_3_f"
+                   "if 2 < 4\t|\ttrue: jump bsbbif_2_t\t|\tfalse: jump bsbbif_3_f\nbsbbif_4_t:\n\tdispose(a[0])\n" \
+                   "bsbbif_5_f:\n\tjump: bsbbif_3_f"
         assert expected == ir.compiled.rstrip()
 
     def test_if_else(self, get_visitor):
         file = "test_cases/control/ir_if_else.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "bsbbif_2_t:\n\tx[0] = 3\n\tjump: bsbbif_4_j\nbsbbif_3_f:\n\tx[0] = 3\n\t" \
+        expected = "bsbbif_2_t:\n\tx[0] = 3\nbsbbif_3_f:\n\tx[0] = 3\n\t" \
                    "jump: bsbbif_4_j\nbsbbif_4_j:\n\tdispose(a[0])\n\tNOP\nmain:\n\t" \
                    "a[0] = dispense(aaa)\n\tif 3 > 3\t|\ttrue: jump bsbbif_2_t\t|\tfalse: jump bsbbif_3_f"
 
@@ -409,11 +409,11 @@ class TestIfElse(FrontEndBase):
         file = "test_cases/control/ir_if_nested_if_else.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "bsbbif_2_t:\n\tx[0] = 3\n\tjump: bsbbif_4_j\nbsbbif_3_f:\n\tb[0] = dispense(aaa)\n\t" \
+        expected = "bsbbif_2_t:\n\tx[0] = 3\nbsbbif_3_f:\n\tb[0] = dispense(aaa)\n\t" \
                    "if 3 == 3\t|\ttrue: jump bsbbif_5_t\t|\tfalse: jump bsbbif_6_f\n" \
                    "bsbbif_4_j:\n\tdispose(a[0])\n\tNOP\nmain:\n\ta[0] = dispense(aaa)\n\tif 3 > 3\t|\t" \
-                   "true: jump bsbbif_2_t\t|\tfalse: jump bsbbif_3_f\nbsbbif_5_t:\n\tdispose(b[0])\n\t" \
-                   "jump: bsbbif_6_f\nbsbbif_6_f:\n\tx[0] = 3\n\tjump: bsbbif_4_j"
+                   "true: jump bsbbif_2_t\t|\tfalse: jump bsbbif_3_f\nbsbbif_5_t:\n\tdispose(b[0])\n" \
+                   "bsbbif_6_f:\n\tx[0] = 3\n\tjump: bsbbif_4_j"
 
         assert expected == ir.compiled.rstrip()
 
@@ -433,36 +433,35 @@ class TestWhileLoop(FrontEndBase):
         file = "test_cases/control/ir_while_sequential.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "main:\n\tjump: bsbbw_2_h\nbsbbw_2_h:\n\t" \
+        expected = "main:\nbsbbw_2_h:\n\t" \
                    "if 3 < 4\t|\ttrue: jump bsbbw_3_t\t|\tfalse: jump bsbbw_4_f\n" \
-                   "bsbbw_3_t:\n\ta[0] = dispense(aaa)\n\tdispose(a[0])\n\t" \
-                   "jump: bsbbw_2_h\nbsbbw_4_f:\n\tjump: bsbbw_5_h\nbsbbw_5_h:\n\t" \
+                   "bsbbw_3_t:\n\ta[0] = dispense(aaa)\n\tdispose(a[0])\n" \
+                   "bsbbw_4_f:\nbsbbw_5_h:\n\t" \
                    "if 3 < 4\t|\ttrue: jump bsbbw_6_t\t|\tfalse: jump bsbbw_7_f\n" \
-                   "bsbbw_6_t:\n\ta[0] = dispense(aaa)\n\tdispose(a[0])\n\tjump: bsbbw_5_h\nbsbbw_7_f:\n\tNOP"
+                   "bsbbw_6_t:\n\ta[0] = dispense(aaa)\n\tdispose(a[0])\nbsbbw_7_f:\n\tNOP"
         assert expected == ir.compiled.rstrip()
 
     def test_while(self, get_visitor):
         file = "test_cases/control/ir_while_single.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "main:\n\ta[0] = dispense(aaa)\n\tjump: bsbbw_2_h\nbsbbw_2_h:\n\t" \
+        expected = "main:\n\ta[0] = dispense(aaa)\nbsbbw_2_h:\n\t" \
                    "if 3 < 4\t|\ttrue: jump bsbbw_3_t\t|\tfalse: jump bsbbw_4_f\nbsbbw_3_t:\n\t" \
-                   "b[0] = dispense(aaa)\n\tdispose(b[0])\n\tjump: bsbbw_2_h\nbsbbw_4_f:\n\tdispose(a[0])\n\tNOP"
+                   "b[0] = dispense(aaa)\n\tdispose(b[0])\nbsbbw_4_f:\n\tdispose(a[0])\n\tNOP"
         assert expected == ir.compiled.rstrip()
 
     def test_nested_while(self, get_visitor):
         file = "test_cases/control/ir_while_nested_while.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "main:\n\tjump: bsbbw_2_h\nbsbbw_2_h:\n\t" \
+        expected = "main:\nbsbbw_2_h:\n\t" \
                    "if 3 < 4\t|\ttrue: jump bsbbw_3_t\t|\tfalse: jump bsbbw_10_f\n" \
-                   "bsbbw_3_t:\n\ta[0] = dispense(aaa)\n\tjump: bsbbw_4_h\nbsbbw_4_h:\n\t" \
+                   "bsbbw_3_t:\n\ta[0] = dispense(aaa)\nbsbbw_4_h:\n\t" \
                    "if 3 < 4\t|\ttrue: jump bsbbw_5_t\t|\tfalse: jump bsbbw_9_f\nbsbbw_5_t:\n\t" \
-                   "b[0] = dispense(aaa)\n\tjump: bsbbw_6_h\nbsbbw_6_h:\n\t" \
+                   "b[0] = dispense(aaa)\nbsbbw_6_h:\n\t" \
                    "if 3 < 4\t|\ttrue: jump bsbbw_7_t\t|\tfalse: jump bsbbw_8_f\nbsbbw_7_t:\n\t" \
-                   "c[0] = dispense(aaa)\n\tdispose(c[0])\n\tjump: bsbbw_6_h\nbsbbw_8_f:\n\t" \
-                   "dispose(b[0])\n\tjump: bsbbw_4_h\n\tjump: bsbbw_4_h\nbsbbw_9_f:\n\t" \
-                   "dispose(a[0])\n\tjump: bsbbw_2_h\n\tjump: bsbbw_2_h\nbsbbw_10_f:\n\tNOP"
+                   "c[0] = dispense(aaa)\n\tdispose(c[0])\nbsbbw_8_f:\n\t" \
+                   "dispose(b[0])\nbsbbw_9_f:\n\tdispose(a[0])\nbsbbw_10_f:\n\tNOP"
         assert expected == ir.compiled.rstrip()
 
 
@@ -475,23 +474,23 @@ class TestControlIntegration(FrontEndBase):
         file = "test_cases/integration/ir_if_while.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "bsbbif_2_t:\n\ta[0] = dispense(aaa)\n\tjump: bsbbw_4_h\nbsbbif_3_f:\n\tdispose(z[0])\n\tNOP\n" \
+        expected = "bsbbif_2_t:\n\ta[0] = dispense(aaa)\nbsbbif_3_f:\n\tdispose(z[0])\n\tNOP\n" \
                    "main:\n\tz[0] = dispense(aaa)\n\tif 3 < 4\t|\ttrue: jump bsbbif_2_t\t|\tfalse: jump bsbbif_3_f\n" \
                    "bsbbw_4_h:\n\tif 3 < 4\t|\ttrue: jump bsbbw_5_t\t|\tfalse: jump bsbbw_8_f\nbsbbw_5_t:\n\t" \
                    "b[0] = dispense(aaa)\n\tif 3 < 4\t|\ttrue: jump bsbbif_6_t\t|\tfalse: jump bsbbif_7_f\n" \
-                   "bsbbif_6_t:\n\tx[0] = 3\n\tjump: bsbbif_7_f\nbsbbif_7_f:\n\tdispose(b[0])\n\t" \
-                   "jump: bsbbw_4_h\n\tjump: bsbbw_4_h\nbsbbw_8_f:\n\tdispose(a[0])\n\tjump: bsbbif_3_f"
+                   "bsbbif_6_t:\n\tx[0] = 3\nbsbbif_7_f:\n\tdispose(b[0])\n\t" \
+                   "jump: bsbbw_4_h\nbsbbw_8_f:\n\tdispose(a[0])"
         assert expected == ir.compiled.rstrip()
 
     def test_while_if(self, get_visitor):
         file = "test_cases/integration/ir_while_if.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "main:\n\tjump: bsbbw_2_h\nbsbbw_2_h:\n\t" \
+        expected = "main:\nbsbbw_2_h:\n\t" \
                    "if 3 < 4\t|\ttrue: jump bsbbw_3_t\t|\tfalse: jump bsbbw_6_f\nbsbbw_3_t:\n\t" \
                    "b[0] = dispense(aaa)\n\tif 3 < 4\t|\ttrue: jump bsbbif_4_t\t|\tfalse: jump bsbbif_5_f\n" \
-                   "bsbbif_4_t:\n\ta[0] = dispense(aaa)\n\tdispose(a[0])\n\tjump: bsbbif_5_f\n" \
-                   "bsbbif_5_f:\n\tdispose(b[0])\n\tjump: bsbbw_2_h\n\tjump: bsbbw_2_h\nbsbbw_6_f:\n\tNOP"
+                   "bsbbif_4_t:\n\ta[0] = dispense(aaa)\n\tdispose(a[0])\n" \
+                   "bsbbif_5_f:\n\tdispose(b[0])\n\tjump: bsbbw_2_h\nbsbbw_6_f:\n\tNOP"
 
         assert expected == ir.compiled.rstrip()
 
