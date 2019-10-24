@@ -49,12 +49,13 @@ class BSCompiler(object):
         times['target'] = timer() - start
 
         if self.config.target == TargetSelector.INKWELL and self.config.validate_schema:
-            pass
-            # planar = nx.check_planarity(self.program.functions['main']['graph'], True)
-            # if planar[0]:
-            #     self.log.debug(f"{self.config.input} is planar.")
-            # else:
-            #     self.log.debug(f"{self.config.input} is not planar.")
+            for root in self.program.functions:
+
+                planar = nx.check_planarity(self.program.functions[root]['graph'], True)
+                if planar[0]:
+                    self.log.debug(f"{self.config.input}'s {root} function is planar.")
+                else:
+                    self.log.warning(f"{self.config.input}'s {root} is not planar.")
 
         times['write'] = 0
         if self.config.write_out:

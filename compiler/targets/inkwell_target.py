@@ -130,7 +130,7 @@ class InkwellTarget(BaseTarget):
                                                          f"{self.program.name}_{root}_{nid}_dag.dot",
                                                          graph, WritableType.GRAPH)
                 self.program.functions[root]['blocks'][nid].dag = graph
-                # self.program.functions[root]['graph'] = graph
+                self.program.functions[root]['graph'] = graph
                 self.dags[root][nid] = graph
 
     def transform(self, verify: bool = False):
