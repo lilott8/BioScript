@@ -1,0 +1,21 @@
+// simple dynamic example
+
+manifest aaa
+manifest bbb
+manifest ccc
+
+instructions:
+
+// def
+a = dispense aaa
+b = dispense bbb
+c = dispense ccc
+
+// conditional use
+if(1 < 2)
+{
+    d = mix a with b
+}
+
+e = mix a with c  // a may have been used
+

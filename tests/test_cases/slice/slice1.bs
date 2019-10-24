@@ -1,0 +1,20 @@
+// simple static example
+
+manifest aaa
+manifest bbb
+manifest ccc
+manifest ddd
+
+instructions:
+
+// defs
+a = dispense aaa
+b = dispense bbb
+c = dispense ccc
+d = dispense ddd
+
+// uses
+w = mix a with b
+x = mix a with c  // a has already been used
+y = mix d with b  // b has already been used
+z = mix d with c  // d and c has already been used
