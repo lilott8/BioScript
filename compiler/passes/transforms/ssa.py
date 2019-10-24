@@ -109,8 +109,8 @@ class SSA(BSTransform):
         """
         for variable in self.program.symbol_table.scope_map[root].locals:
             self.bookkeeper[variable] = {'count': 0, 'stack': [0], 'renamed': defaultdict(lambda: 0)}
-        for variable in self.program.symbol_table.globals:
-            self.bookkeeper[variable] = {'count': 0, 'stack': [0]}
+        # for variable in self.program.symbol_table.globals:
+        #     self.bookkeeper[variable] = {'count': 0, 'stack': [0]}
         self.rename(self.program.functions[root]['blocks'][self.program.functions[root]['entry']], root)
 
     def rename(self, block: BasicBlock, root: str):
@@ -124,6 +124,8 @@ class SSA(BSTransform):
         for instruction in block.instructions:
             if instruction.op != IRInstruction.PHI:
                 for x, use in enumerate(instruction.uses):
+                    if self.program.symbol_table.is_global(use['name']):
+                        continue
                     renamed = {'name': use['name'] + str(self.bookkeeper[use['name']]['stack'][-1]),
                                'offset': use['offset'], 'size': use['size'], 'var': None}
                     renamed_var = RenamedSymbol(renamed['name'],
@@ -151,9 +153,9 @@ class SSA(BSTransform):
                 # replace deff with deff_i in instruction
                 renamed['var'] = renamed_var
                 instruction.defs = renamed
-            if instruction.op == IRInstruction.HEAT:
+            if instruction.op in {IRInstruction.HEAT, IRInstruction.DISPOSE}:
                 '''
-                This exists because a heat doesn't create a new definition.
+                This exists because a heat and dispose don't create new definitions.
                 In other words, it doesn't consume any variable, just changes
                 an attribute about a material.
                 Because of this fact, we set the def to the renamed use. 

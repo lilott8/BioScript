@@ -722,9 +722,11 @@ class IRVisitor(BSBaseVisitor):
         use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
         self.check_bounds({'index': use['index'], 'name': use['name'], 'var': use_var.value})
 
+        offset = 0 if use['index'] == -1 and use_var.value.size == 1 else use['index']
         split_num = int(ctx.INTEGER_LITERAL().__str__())
 
-        ir = Split({'name': deff['name'], 'offset': -1}, {'name': use['name'], 'offset': use['index']}, split_num)
+        ir = Split({'name': deff['name'], 'offset': -1, 'size': split_num, 'var': symbol},
+                   {'name': use['name'], 'offset': offset, 'size': use_var.value.size, 'var': use_var}, split_num)
         self.current_block.add(ir)
 
         if symbol.value is None:

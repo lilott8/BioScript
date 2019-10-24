@@ -126,12 +126,11 @@ class InkwellTarget(BaseTarget):
                                         edges.add(f"{sid}_{did}")
 
                 if self.config.write_cfg:
-                    self.program.write['cfg'] = Writable(self.program.name,
-                                                         "{}/{}_{}_{}_dag.dot".format(self.config.output,
-                                                                                      self.program.name, root, nid),
+                    self.program.write['cfg'] = Writable(self.program.name, f"{self.config.output}/"
+                                                         f"{self.program.name}_{root}_{nid}_dag.dot",
                                                          graph, WritableType.GRAPH)
-
                 self.program.functions[root]['blocks'][nid].dag = graph
+                # self.program.functions[root]['graph'] = graph
                 self.dags[root][nid] = graph
 
     def transform(self, verify: bool = False):
