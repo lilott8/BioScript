@@ -31,7 +31,7 @@ class IRTarget(BaseTarget):
                 for iid, instruction in enumerate(block.instructions):
                     self.compiled += self.tab
                     if instruction.op == iri.SPLIT:
-                        self.compiled += "{} = {}({}".format(instruction.defs['name'],
+                        self.compiled += "{}[{}] = {}({}".format(instruction.defs['name'], instruction.split_size,
                                                              instruction.op.name.lower(), instruction.uses[0]['name'])
                         if instruction.uses[0]['offset'] != -1:
                             self.compiled += "[{}]".format(instruction.uses[0]['offset'])

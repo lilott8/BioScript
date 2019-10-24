@@ -43,8 +43,8 @@ class InkwellTarget(BaseTarget):
             # Have we added the edge for this def yet?
 
             no_defs = {IRInstruction.NOP, IRInstruction.CONDITIONAL, IRInstruction.PHI}
+            graph = nx.DiGraph()
             for nid, block in self.program.functions[root]['blocks'].items():
-                graph = nx.DiGraph()
                 # Op nodes are defined as {output var, op}
                 # Var nodes are defined as {var}
                 for instruction in block.instructions:
@@ -125,13 +125,17 @@ class InkwellTarget(BaseTarget):
                                         graph.add_edge(sid, did)
                                         edges.add(f"{sid}_{did}")
 
-                if self.config.write_cfg:
-                    self.program.write['cfg'] = Writable(self.program.name, f"{self.config.output}/"
-                                                         f"{self.program.name}_{root}_{nid}_dag.dot",
-                                                         graph, WritableType.GRAPH)
-                self.program.functions[root]['blocks'][nid].dag = graph
-                self.program.functions[root]['graph'] = graph
-                self.dags[root][nid] = graph
+            if self.config.write_cfg:
+                self.program.write[root] = Writable(self.program.name, f"{self.config.output}/"
+                                                     f"{self.program.name}_{root}_dag.dot",
+                                                     graph, WritableType.GRAPH)
+
+            self.program.functions[root]['graph'] = graph
+            self.program.bb_graph = nx.compose(self.program.bb_graph, graph)
+        if self.config.write_cfg:
+            self.program.write['cfg'] = Writable(self.program.name,
+                                                 f"{self.config.output}/{self.program.name}_cfg.dot",
+                                                 self.program.bb_graph, WritableType.GRAPH)
 
     def transform(self, verify: bool = False):
         """
@@ -150,8 +154,8 @@ class InkwellTarget(BaseTarget):
         netlist = dict()
         for root in self.program.functions:
             sequences[root] = dict()
+            graph = self.program.functions[root]['graph']
             for bid, block in self.program.functions[root]['blocks'].items():
-                graph = block.dag
                 sequences[root][bid] = {"on": {}, "off": {}}
                 sinks = set()
 
@@ -219,7 +223,7 @@ class InkwellTarget(BaseTarget):
                                 self.components[component_name] = self.components[deff_name]
 
                 # Build the connections between those components.
-                for node in block.dag.nodes:
+                for node in self.program.functions[root]['graph'].nodes:
                     for name, offset in graph.nodes[node]['uses']:
                         use_name, use_offset = next(iter(graph.nodes[node]['uses']))
                         if self.program.symbol_table.is_global(use_name):

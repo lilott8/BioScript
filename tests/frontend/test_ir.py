@@ -172,14 +172,14 @@ class TestSplit(FrontEndBase):
         file = "test_cases/split/ir_sisd.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "main:\n\ta[0] = dispense(aaa)\n\tb = split(a[0], 4)\n\tNOP"
+        expected = "main:\n\ta[0] = dispense(aaa)\n\tb[4] = split(a[0], 4)\n\tNOP"
         assert expected == ir.compiled.rstrip()
 
     def test_simd(self, get_visitor):
         file = "test_cases/split/ir_simd.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "main:\n\ta[0] = dispense(aaa)\n\ta[1] = dispense(aaa)\n\tb = split(a, 4)\n\tNOP"
+        expected = "main:\n\ta[0] = dispense(aaa)\n\ta[1] = dispense(aaa)\n\tb[4] = split(a, 4)\n\tNOP"
         assert expected == ir.compiled.rstrip()
         assert ir.program.symbol_table.get_local('b', 'main').value.size == 8
 
@@ -187,7 +187,7 @@ class TestSplit(FrontEndBase):
         file = "test_cases/split/ir_sisd_index.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "main:\n\ta[0] = dispense(aaa)\n\ta[1] = dispense(aaa)\n\tb = split(a[1], 4)\n\tNOP"
+        expected = "main:\n\ta[0] = dispense(aaa)\n\ta[1] = dispense(aaa)\n\tb[4] = split(a[1], 4)\n\tNOP"
         assert expected == ir.compiled.rstrip()
 
     def test_sisd_out_of_bounds(self, get_visitor):

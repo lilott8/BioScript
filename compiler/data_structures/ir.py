@@ -90,9 +90,8 @@ class InstructionSet(metaclass=ABCMeta):
                     IRInstruction.DISPOSE, IRInstruction.HEAT, IRInstruction.CALL, IRInstruction.BINARYOP,
                     IRInstruction.GRADIENT}
 
-    assignment = {IRInstruction.MIX, IRInstruction.SPLIT, IRInstruction.SPLIT, IRInstruction.DISPENSE,
-                  IRInstruction.CALL, IRInstruction.MATH, IRInstruction.GRADIENT, IRInstruction.DETECT,
-                  IRInstruction.PHI}
+    assignment = {IRInstruction.MIX, IRInstruction.SPLIT, IRInstruction.DISPENSE, IRInstruction.PHI,
+                  IRInstruction.CALL, IRInstruction.MATH, IRInstruction.GRADIENT, IRInstruction.DETECT}
 
     BinaryOps = {BinaryOps.AND, BinaryOps.ADD, BinaryOps.DIVIDE, BinaryOps.MULTIPLE, BinaryOps.OR, BinaryOps.SUBTRACT}
 
