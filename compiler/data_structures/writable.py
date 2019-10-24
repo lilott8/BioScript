@@ -20,8 +20,9 @@ class Writable(object):
 
     def write(self):
         if self.write_type == WritableType.GRAPH:
-            pos = nx.nx_agraph.graphviz_layout(self.content)
-            nx.draw(self.content, pos=pos)
+            # pos = nx.nx_pydot.pydot_layout(self.content)
+            # nx.planar_layout(self.content)
+            # nx.draw(self.content, pos=pos)
             nx.drawing.nx_pydot.write_dot(self.content, self.path)
             pass
         elif self.write_type == WritableType.JSON:

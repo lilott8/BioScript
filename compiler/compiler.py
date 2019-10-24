@@ -50,7 +50,6 @@ class BSCompiler(object):
 
         if self.config.target == TargetSelector.INKWELL and self.config.validate_schema:
             for root in self.program.functions:
-
                 planar = nx.check_planarity(self.program.functions[root]['graph'], True)
                 if planar[0]:
                     self.log.debug(f"{self.config.input}'s {root} function is planar.")
