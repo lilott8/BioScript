@@ -172,7 +172,7 @@ class TestSplit(FrontEndBase):
         file = "test_cases/split/ir_sisd.bs"
         ir = self.get_compiled_ir(get_visitor(file))
 
-        expected = "main:\n\ta[0] = dispense(aaa)\n\tb = split(a, 4)\n\tNOP"
+        expected = "main:\n\ta[0] = dispense(aaa)\n\tb = split(a[0], 4)\n\tNOP"
         assert expected == ir.compiled.rstrip()
 
     def test_simd(self, get_visitor):

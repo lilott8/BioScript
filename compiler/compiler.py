@@ -17,6 +17,7 @@ from compiler.targets.target_selector import TargetSelector
 from grammar.parsers.python.BSLexer import BSLexer
 from grammar.parsers.python.BSParser import BSParser
 from solvers.z3_solver import Z3Solver
+import networkx as nx
 
 
 class BSCompiler(object):
@@ -46,6 +47,14 @@ class BSCompiler(object):
         start = timer()
         target = self.target(ir)
         times['target'] = timer() - start
+
+        if self.config.target == TargetSelector.INKWELL and self.config.validate_schema:
+            pass
+            # planar = nx.check_planarity(self.program.functions['main']['graph'], True)
+            # if planar[0]:
+            #     self.log.debug(f"{self.config.input} is planar.")
+            # else:
+            #     self.log.debug(f"{self.config.input} is not planar.")
 
         times['write'] = 0
         if self.config.write_out:
