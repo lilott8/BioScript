@@ -87,7 +87,7 @@ class Slicer(BSAnalysis):
         print("\npossible multi-uses:")
         for u in used:
             if len(used[u]) > 1:
-                print(u, " in block: ", 0, " at line: ", used[u][1:])
+                self.log.warn("{} in block: 0 at line: {} ".format(u, used[u][1:]))
 
         return [deps, defs, uses]
 

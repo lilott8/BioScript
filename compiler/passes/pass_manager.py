@@ -3,6 +3,7 @@ import networkx as nx
 
 from compiler.data_structures.program import Program
 from compiler.passes.analyses.call_graph import CallGraph
+from compiler.passes.analyses.slicer import Slicer
 from compiler.passes.analyses.def_use import DefUseChains
 from compiler.passes.transforms.inline import Inline
 from compiler.passes.transforms.split_edges import SplitEdges
@@ -50,6 +51,7 @@ class PassManager(object):
     def init_analysis(self):
         self.analysis['call_graph'] = CallGraph()
         self.analysis['def_use'] = DefUseChains()
+        self.analysis['slicer'] = Slicer()
         # self.dependencies['analysis'].add_node('call_graph')
 
     def init_transforms(self):
