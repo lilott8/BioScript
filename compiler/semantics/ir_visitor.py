@@ -1,5 +1,8 @@
 import networkx as nx
 
+
+from chemicals.chemtypes import ChemTypeResolver
+from compiler.data_structures.variable import Symbol
 from compiler.data_structures.basic_block import BasicBlock
 from compiler.data_structures.ir import *
 from compiler.data_structures.variable import Stationary, Number, Module, Dispensable, Movable
@@ -379,18 +382,17 @@ class IRVisitor(BSBaseVisitor):
         return NOP()
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
-        # get the (statically defined!) repeat value
-        if ctx.IDENTIFIER() is not None:
-            exp = self.symbol_table.get_local(ctx.IDENTIFIER().__str__())
-        else:
-            exp = Number("REPEAT_{}".format(ctx.INTEGER_LITERAL().__str__()), {},
-                         self.scope_stack[-1], value=float(ctx.INTEGER_LITERAL().__str__()), is_constant=True)
-        self.symbol_table.add_local(exp, self.scope_stack[-1])
+        # get the (statically defined!) repeat value and add to local symbol table
+        value = self.visitLiteral(ctx)
+        val = {'name': "REPEAT_{}".format(value), "index": 0,
+               'value': value, 'types': ChemTypeResolver.numbers()}
+
+        if 'value' in val.keys() and not self.symbol_table.get_local(val['name']):
+            localz = Symbol(val['name'], 'global', ChemTypeResolver.numbers())
+            localz.value = Number(val['name'], 1, val['value'])
+            self.symbol_table.add_local(localz)
 
         # finished with this block
-        # pre_loop_label = Label("bsbbw_{}_p".format(self.current_block.nid))
-        # self.labels[pre_loop_label.name] = self.current_block.nid
-        # self.current_block.add(pre_loop_label)
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
 
         # insert header block for the conditional
@@ -398,14 +400,15 @@ class IRVisitor(BSBaseVisitor):
         header_label = Label("bsbbr_{}_h".format(header_block.nid))
         self.labels[header_label.name] = header_block.nid
         header_block.add(header_label)
-        self.graph.add_node(header_block.nid, function=self.scope_stack[-1])
+        self.graph.add_node(header_block.nid, function=self.scope_stack[-1], label=header_label.label)
         self.functions[self.scope_stack[-1]]['blocks'][header_block.nid] = header_block
-
-        # we have a directed edge from current block to the header
         self.graph.add_edge(self.current_block.nid, header_block.nid)
 
-        # the condition goes in the header
-        condition = Conditional(RelationalOps.GT, exp, Number(Constant(0), is_constant=True))
+        zero = self.symbol_table.get_global('CONST_0')
+        op = BinaryOp(left={'name': val['name'], 'offset': 0, 'size': 1, 'var': self.symbol_table.get_local(val['name'])},
+                 right={'name': zero.name, 'offset': 0, 'size': 1, 'var': zero},
+                 op=RelationalOps.GT)
+        condition = Conditional(RelationalOps.GT, op.left, op.right)  #Number('Constant_{}'.format(0), 1, 0))
         header_block.add(condition)
 
         self.control_stack.append(header_block)
@@ -418,17 +421,17 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
         self.functions[self.scope_stack[-1]]['blocks'][true_block.nid] = true_block
         condition.true_branch = true_label
-
-        # we have a directed edge from header to true block
         self.graph.add_edge(header_block.nid, true_block.nid)
 
         self.current_block = true_block
-
         self.visitBlockStatement(ctx.blockStatement())
 
         # repeat is translated to a while loop as: while (exp > 0);
         # hence, we update exp by decrementing.
-        self.current_block.add(BinaryOp(exp, Number(Constant(1), is_constant=True), BinaryOps.SUBTRACT, exp))
+        one = self.symbol_table.get_global('CONST_1')
+        self.current_block.add(BinaryOp(left={'name': val['name'], 'offset': 0, 'size': 1, 'var': self.symbol_table.get_local(val['name'])},
+                                        right={'name': one.name, 'offset': 0, 'size': 1, 'var': one},
+                                        op=BinaryOps.SUBTRACT))
 
         # the block statement may contain nested loops
         # If so, the current block is the last false block created for the inner-most loop
@@ -700,7 +703,7 @@ class IRVisitor(BSBaseVisitor):
         ir = Heat(val, val)
         ir.meta.append(TempConstraint(IRInstruction.HEAT, temp['quantity'], temp['units']))
         if time is not None:
-            ir.meta.append(TimeConstraint(IRInstruction.HEAT, time[0], time[1]))
+            ir.meta.append(TimeConstraint(IRInstruction.HEAT, time['quantity'], time['units']))
         self.current_block.add(ir)
 
         # for x in range(use['index']):
