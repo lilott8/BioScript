@@ -1,0 +1,6 @@
+manifest aaa
+
+instructions:
+
+n = 20
+n = n - 1

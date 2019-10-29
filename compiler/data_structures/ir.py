@@ -93,6 +93,8 @@ class InstructionSet(metaclass=ABCMeta):
     assignment = {IRInstruction.MIX, IRInstruction.SPLIT, IRInstruction.DISPENSE, IRInstruction.PHI,
                   IRInstruction.CALL, IRInstruction.MATH, IRInstruction.GRADIENT, IRInstruction.DETECT}
 
+    numeric_assignment = {IRInstruction.CONSTANT, IRInstruction.MATH}
+
     BinaryOps = {BinaryOps.AND, BinaryOps.ADD, BinaryOps.DIVIDE, BinaryOps.MULTIPLE, BinaryOps.OR, BinaryOps.SUBTRACT}
 
     control_flow = {IRInstruction.CONDITIONAL, IRInstruction.JUMP}

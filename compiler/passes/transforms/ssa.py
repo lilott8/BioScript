@@ -134,7 +134,7 @@ class SSA(BSTransform):
                     renamed['var'] = renamed_var
                     instruction.uses[x] = renamed
                     pass
-            if instruction.op in InstructionSet.assignment:
+            if instruction.op in InstructionSet.assignment or instruction.op in InstructionSet.numeric_assignment:
                 if instruction.op == IRInstruction.PHI:
                     old = {'name': instruction.defs, 'offset': -1, 'size': -1, 'var': None}
                 else:
@@ -187,7 +187,7 @@ class SSA(BSTransform):
             '''
             self.rename(self.program.functions[root]['blocks'][successor], root)
         for instruction in block.instructions:
-            if instruction.defs:
+            if instruction.defs and instruction.op not in {IRInstruction.HEAT, IRInstruction.DISPOSE}:
                 # We must use the old points to name
                 # because we've lost it at this point.
                 self.bookkeeper[instruction.defs['var'].points_to.name]['stack'].pop()

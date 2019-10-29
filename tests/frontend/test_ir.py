@@ -271,6 +271,13 @@ class TestStore(FrontEndBase):
 @pytest.mark.math
 class TestMath(FrontEndBase):
 
+    def test_reuse_var(self, get_visitor):
+        file = "test_cases/math/ir_reuse_var.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\tn[0] = 20\n\tn[0] = n[0] - 1\n\tNOP"
+        assert expected == ir.compiled.rstrip()
+
     def test_sisd_assignment(self, get_visitor):
         file = "test_cases/math/ir_assignment_sisd.bs"
         ir = self.get_compiled_ir(get_visitor(file))

@@ -530,10 +530,15 @@ class IRVisitor(BSBaseVisitor):
     def visitMath(self, ctx: BSParser.MathContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
         deff_var = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
+        deff_offset = 0 if deff['index'] == -1 else deff['index']
+        size = 1 if deff['index'] == -1 else deff['index']
         # Has this variable been declared before?
         if deff_var.value is not None:
-            self.check_bounds({'name': deff['name'], 'index': deff['index'], 'var': deff_var})
-        deff_offset = 0 if deff['index'] == -1 else deff['index']
+            self.check_bounds({'name': deff['name'], 'index': deff['index'], 'var': deff_var.value})
+            deff_var = deff_var.value
+        else:
+            deff_var = Number(deff['name'], size)
+            self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = deff_var
 
         # Check to see if this is a constant or a variable
         op1 = self.visitPrimary(ctx.primary(0))
@@ -573,9 +578,9 @@ class IRVisitor(BSBaseVisitor):
             operand = BinaryOps.ADD
             outcome = op1_var.value[op1_offset] + op2_var.value[op2_offset]
 
-        ir = Math({'name': deff['name'], 'offset': deff_offset},
-                  {'name': op1_var.name, 'offset': op1_offset},
-                  {'name': op2_var.name, 'offset': op2_offset},
+        ir = Math({'name': deff['name'], 'offset': deff_offset, 'size': deff_var.size, 'var': deff_var},
+                  {'name': op1_var.name, 'offset': op1_offset, 'size': op1_var.size, 'var': op1_var},
+                  {'name': op2_var.name, 'offset': op2_offset, 'size': op2_var.size, 'var': op2_var},
                   operand)
         self.current_block.add(ir)
 

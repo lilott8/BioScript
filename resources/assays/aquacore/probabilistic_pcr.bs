@@ -4,8 +4,10 @@ manifest Buffer
 manifest PCRMix
 
 instructions:
+a = dispense 50 units of PCRMix
+b = dispense 50 units of Buffer
 
-PCR_Master_Mix = mix 50uL of PCRMix with 50uL of Buffer
+PCR_Master_Mix = mix a with b
 
 heat PCR_Master_Mix at 94c for 2m
 
