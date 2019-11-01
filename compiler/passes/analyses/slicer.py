@@ -30,7 +30,6 @@ class Slicer(BSAnalysis):
 
     def analyze(self, program: Program) -> dict:
         self.build_dependency_graph(program)
-        self.build_def_use_chain(program)
         return {'name': self.name, 'result': None}
 
     def build_dependency_graph(self, program: Program):
@@ -41,11 +40,9 @@ class Slicer(BSAnalysis):
 
         for root in program.functions:
             for nid, block in program.functions[root]['blocks'].items():
-                counter = 1
+                i_counter = 1
                 for instruction in block.instructions:
                     # self.log.info(instruction)
-                    # print(instruction)
-                    # print(type(instruction))
 
                     # DISPENSE
                     if str(type(instruction)) == "<class 'compiler.data_structures.ir.Dispense'>":
@@ -54,7 +51,7 @@ class Slicer(BSAnalysis):
                         exp = ins[1:]
 
                         deps[var] = exp
-                        defs[var] = counter
+                        defs[var] = (nid, i_counter)
 
                     # MIX
                     if str(type(instruction)) == "<class 'compiler.data_structures.ir.Mix'>":
@@ -64,34 +61,29 @@ class Slicer(BSAnalysis):
                         parts = str(exp)[7:-3].split(',')
 
                         deps[var] = exp
-                        defs[var] = counter
-                        uses.extend([(parts[0].strip(), counter), (parts[1].strip(), counter)])
+                        defs[var] = (nid, i_counter)
+                        uses.extend([(parts[0].strip(), (nid, i_counter)), (parts[1].strip(), (nid, i_counter))])
 
                     # Line Counter
-                    counter += 1
+                    i_counter += 1
 
         # This aligns out print statements with the log format info = green, warn = yellow, error = red
-        self.log.info("\nDeps: \n{} \nDefs: \n{} \nUses: \n{}".format(deps, defs, uses))
+        # self.log.info("\nDeps: \n{} \nDefs: \n{} \nUses: \n{}".format(deps, defs, uses))
 
-        # output data file
+        used = defaultdict(list)
+        multi_use = defaultdict(list)
+
+        # find the possible conflicts
         for u in uses:
-            def_use_json[u[0]] = "{},{}".format(u[1], defs[u[0]])
+            used[u[0]].append(u[1])
+        for u in used:
+            if len(used[u]) > 1:
+                # self.log.warn("{} in block: 0 at line: {} ".format(u, used[u][1:]))
+                multi_use[u].append(used[u][1:])
+        # output data file
+        for u in multi_use:
+            def_use_json[u] = "{}".format(multi_use[u])
         with open('data.txt', 'w') as outfile:
             json.dump(def_use_json, outfile)
 
-        # find the possible conflicts
-        used = defaultdict(list)
-        for u in uses:
-            used[u[0]].append(u[1])
-
-        print("\npossible multi-uses:")
-        for u in used:
-            if len(used[u]) > 1:
-                self.log.warn("{} in block: 0 at line: {} ".format(u, used[u][1:]))
-
         return [deps, defs, uses]
-
-    def build_def_use_chain(self, root: str):
-        pass
-
-
