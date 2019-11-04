@@ -15,6 +15,7 @@ from collections import defaultdict
 # Be aware of certain flow displays of mfsim
 # Goals: Build def-use chain, implicitly building the needed DAGs, Dependency Graph
 
+
 class Chain(object):
 
     def __init__(self, block: int, instruction: int):
@@ -26,25 +27,33 @@ class Slicer(BSAnalysis):
 
     def __init__(self):
         super().__init__("Slicer")
-        self.def_use_chain = dict()
+        self.multi_use = dict()
 
     def analyze(self, program: Program) -> dict:
-        self.build_dependency_graph(program)
+        self.multi_use = self.build_def_use_chain(program)
         return {'name': self.name, 'result': None}
 
-    def build_dependency_graph(self, program: Program):
+    def build_def_use_chain(self, program: Program) -> dict:
         deps = dict()
         defs = dict()
-        uses = list()  # list of maps
-        def_use_json = dict()
+        uses = list()
+        used = defaultdict(list)
+        many_use = defaultdict(list)
+        use_json = dict()
+        conds = dict()
 
         for root in program.functions:
-            for nid, block in program.functions[root]['blocks'].items():
-                i_counter = 1
-                for instruction in block.instructions:
-                    # self.log.info(instruction)
+            self.log.info("Function: {}".format(root))
 
-                    # DISPENSE
+            # sorted blocks so always same order each time
+            for nid, block in sorted(program.functions[root]['blocks'].items()):
+                i_counter = 1
+                self.log.info("\tBlock: {}".format(nid))
+
+                for instruction in block.instructions:
+                    self.log.info("\t\t{}".format(instruction))
+
+                    # DEF: DISPENSE, ...
                     if str(type(instruction)) == "<class 'compiler.data_structures.ir.Dispense'>":
                         ins = str(instruction).split('=')
                         var = ins[0].strip()
@@ -53,8 +62,11 @@ class Slicer(BSAnalysis):
                         deps[var] = exp
                         defs[var] = (nid, i_counter)
 
-                    # MIX
-                    if str(type(instruction)) == "<class 'compiler.data_structures.ir.Mix'>":
+                    # USE && DEF: MIX, HEAT, SPLIT, ...
+                    if (str(type(instruction)) == "<class 'compiler.data_structures.ir.Mix'>" or
+                            str(type(instruction)) == "<class 'compiler.data_structures.ir.Heat'>" or
+                            str(type(instruction)) == "<class 'compiler.data_structures.ir.Split'>"):
+
                         ins = str(instruction).split('=')
                         var = ins[0].strip()
                         exp = ins[1:]
@@ -64,26 +76,40 @@ class Slicer(BSAnalysis):
                         defs[var] = (nid, i_counter)
                         uses.extend([(parts[0].strip(), (nid, i_counter)), (parts[1].strip(), (nid, i_counter))])
 
+                    # CONTROL FLOW: CONDITIONAL
+                    if str(type(instruction)) == "<class 'compiler.data_structures.ir.Conditional'>":
+                        tmp = str(instruction).split('\t')
+                        data = (tmp[2].strip()[3:], tmp[3].strip()[3:])
+                        conds[(nid, i_counter)] = data
+
+                        # maybe recurse, or save where the branches are...
+                        # maybe if was a graph then could see where the join edges go
+                        # if 2 edges goto same node and both use a variable, mark the variable as used
+                        # if encountered again, then add
+
                     # Line Counter
                     i_counter += 1
-
-        # This aligns out print statements with the log format info = green, warn = yellow, error = red
-        # self.log.info("\nDeps: \n{} \nDefs: \n{} \nUses: \n{}".format(deps, defs, uses))
-
-        used = defaultdict(list)
-        multi_use = defaultdict(list)
 
         # find the possible conflicts
         for u in uses:
             used[u[0]].append(u[1])
         for u in used:
+            # TODO: figure out with conditionals
+            # check if multi use occurred one after the other,
+            # but not on the same level like in an if/else
             if len(used[u]) > 1:
-                # self.log.warn("{} in block: 0 at line: {} ".format(u, used[u][1:]))
-                multi_use[u].append(used[u][1:])
-        # output data file
-        for u in multi_use:
-            def_use_json[u] = "{}".format(multi_use[u])
-        with open('data.txt', 'w') as outfile:
-            json.dump(def_use_json, outfile)
+                self.log.warn("\n{}, {}".format(conds, used[u]))
+                many_use[u] = used[u]  # adds all uses, but usually need the last ones
 
-        return [deps, defs, uses]
+        # print statements with the log format info = green, warn = yellow, error = red
+        self.log.info("\nDeps: \n{} \nDefs: \n{} \nUses: \n{} \nUsed:  \n{} \nMulti-Used: \n{}"
+                      .format(deps, defs, uses, dict(used), dict(many_use)))
+
+        # output data file
+        for u in many_use:
+            use_json[u] = "{}".format(many_use[u])
+        with open('data.txt', 'w') as outfile:
+            json.dump(use_json, outfile)
+
+        return use_json
+
