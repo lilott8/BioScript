@@ -472,6 +472,28 @@ class TestWhileLoop(FrontEndBase):
         assert expected == ir.compiled.rstrip()
 
 
+@pytest.mark.repeat_loop
+@pytest.mark.frontend
+@pytest.mark.ir
+@pytest.mark.instructions
+class TestRepeatLoop(FrontEndBase):
+    """
+    Note:  Repeats are translated to while loops in the IR, so tests for while
+           loops should cover repeats, as long as the translation is correct.
+    """
+
+    def test_repeat(self, get_visitor):
+        file = "test_cases/control/ir_repeat_single.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta = dispense(aaa)\nbsbbr_2_h:\n\t" \
+                   "if REPEAT_3 > 0\t|\ttrue: jump bsbbr_3_t\t|" \
+                   "\tfalse: jump bsbbr_4_f\nbsbbr_3_t:\n\t" \
+                   "b = dispense(aaa)\n\tdispose(b)\n\t" \
+                   "REPEAT_3 = REPEAT3 - 1\nbsbbr_4_f:\n\tdispose(a)\n\tNOP"
+        assert expected == ir.compiled.rstrip()
+
+
 @pytest.mark.ir
 @pytest.mark.frontend
 @pytest.mark.integration

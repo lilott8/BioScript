@@ -127,6 +127,8 @@ class SymbolTableVisitor(BSBaseVisitor):
             globalz.value = Number('CONST_1', 1, 1)
             self.symbol_table.add_global(globalz)
 
+        self.visitChildren(ctx)
+
     def visitHeat(self, ctx: BSParser.HeatContext):
         name = self.visitVariable(ctx.variable())['name']
         use = self.symbol_table.get_local(name)
