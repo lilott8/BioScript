@@ -36,6 +36,7 @@ class SSA(BSTransform):
             self.log.debug("Done inserting phi nodes.")
             self.log.debug("Renaming variables.")
             self.rename_variables(root)
+            self.update_block_def_use(root)
             self.log.debug("Done renaming variables.")
             self.log.debug("Removing direct copy phi nodes.")
             self.remove_copies(root)
@@ -134,7 +135,7 @@ class SSA(BSTransform):
                     renamed['var'] = renamed_var
                     instruction.uses[x] = renamed
                     pass
-            if instruction.op in InstructionSet.assignment:
+            if instruction.op in InstructionSet.assignment or instruction.op in InstructionSet.numeric_assignment:
                 if instruction.op == IRInstruction.PHI:
                     old = {'name': instruction.defs, 'offset': -1, 'size': -1, 'var': None}
                 else:
@@ -187,26 +188,50 @@ class SSA(BSTransform):
             '''
             self.rename(self.program.functions[root]['blocks'][successor], root)
         for instruction in block.instructions:
-            if instruction.defs:
+            if instruction.defs and instruction.op not in {IRInstruction.HEAT, IRInstruction.DISPOSE}:
                 # We must use the old points to name
                 # because we've lost it at this point.
                 self.bookkeeper[instruction.defs['var'].points_to.name]['stack'].pop()
 
+    def update_block_def_use(self, root: str):
+        for nid, block in self.program.functions[root]['blocks'].items():
+            block.defs = set()
+            block.uses = set()
+            for instruction in block.instructions:
+                if instruction.op in {IRInstruction.PHI}:
+                    continue
+                for use in instruction.uses:
+                    block.uses.add(use['name'])
+                if instruction.op in {IRInstruction.HEAT, IRInstruction.DISPOSE}:
+                    continue
+                if instruction.defs:
+                    block.defs.add(instruction.defs['name'])
+
+
     def remove_copies(self, root: str):
+        # TODO [review]: I'm unconvinced that this does what you think it does, with the current implementation.
+        #  It seems either checking for ...uses[0] == ...uses[1] may be the correct check, but there are more issues.
+        #  In any case, it may be easier to simply _not insert a PHI node_ if it is a simple copy operation,
+        #   rather than trying to remove it later.  This requires not only the removal of the node,
+        #   but should also, in the case where the PHI node is the _only_ instruction in the block,
+        #   remove the block from the graph, connecting preds with succs.
         for nid, block in self.program.functions[root]['blocks'].items():
             if block.phis:
                 x = 0
                 while x < len(block.phis):
                     if block.instructions[x].op == IRInstruction.PHI:
                         if len(block.instructions[x].uses) == 2:
-                            for use in block.instructions[x].uses:
-                                if use[-1] == '0':
-                                    block.instructions.pop(x)
-                                    # We subtract one because popping reduces
-                                    # the size of the array.  This prevents the
-                                    # case where you pop an instruction and try
-                                    # to reference an index out of bounds.
-                                    x -= 1
+                            if block.instructions[x].uses[0] == block.instructions[x].uses[1]:
+                            # for use in block.instructions[x].uses:
+                            #     if use[-1] == '0':
+                                phi = block.instructions[x]
+                                block.instructions.pop(x)
+                                block.phis.remove(phi)
+                                # We subtract one because popping reduces
+                                # the size of the array.  This prevents the
+                                # case where you pop an instruction and try
+                                # to reference an index out of bounds.
+                                x -= 1
                     else:
                         break
                     x += 1

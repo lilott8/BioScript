@@ -272,6 +272,8 @@ class InkwellTarget(BaseTarget):
                                                            "{}/{}.json".format(self.config.output, netlist_name),
                                                            netlist[root], WritableType.JSON)
 
+        return True
+
     def json_to_graph(self, spec, function_name):
         graph = nx.DiGraph()
         for component in spec['components']:

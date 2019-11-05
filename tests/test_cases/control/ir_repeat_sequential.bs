@@ -1,0 +1,13 @@
+manifest aaa
+
+instructions:
+
+repeat 3 times {
+    a = dispense aaa
+    dispose a
+}
+
+repeat 3 times {
+    a = dispense aaa
+    dispose a
+}

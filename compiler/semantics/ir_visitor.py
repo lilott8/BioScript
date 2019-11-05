@@ -1,5 +1,8 @@
 import networkx as nx
 
+
+from chemicals.chemtypes import ChemTypeResolver
+from compiler.data_structures.variable import Symbol
 from compiler.data_structures.basic_block import BasicBlock
 from compiler.data_structures.ir import *
 from compiler.data_structures.variable import Stationary, Number, Module, Dispensable, Movable
@@ -379,18 +382,17 @@ class IRVisitor(BSBaseVisitor):
         return NOP()
 
     def visitRepeat(self, ctx: BSParser.RepeatContext):
-        # get the (statically defined!) repeat value
-        if ctx.IDENTIFIER() is not None:
-            exp = self.symbol_table.get_local(ctx.IDENTIFIER().__str__())
-        else:
-            exp = Number("REPEAT_{}".format(ctx.INTEGER_LITERAL().__str__()), {},
-                         self.scope_stack[-1], value=float(ctx.INTEGER_LITERAL().__str__()), is_constant=True)
-        self.symbol_table.add_local(exp, self.scope_stack[-1])
+        # get the (statically defined!) repeat value and add to local symbol table
+        value = self.visitLiteral(ctx)
+        val = {'name': "REPEAT_{}".format(value), "index": 0,
+               'value': value, 'types': ChemTypeResolver.numbers()}
+
+        if 'value' in val.keys() and not self.symbol_table.get_local(val['name']):
+            localz = Symbol(val['name'], 'global', ChemTypeResolver.numbers())
+            localz.value = Number(val['name'], 1, val['value'])
+            self.symbol_table.add_local(localz)
 
         # finished with this block
-        # pre_loop_label = Label("bsbbw_{}_p".format(self.current_block.nid))
-        # self.labels[pre_loop_label.name] = self.current_block.nid
-        # self.current_block.add(pre_loop_label)
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
 
         # insert header block for the conditional
@@ -398,14 +400,15 @@ class IRVisitor(BSBaseVisitor):
         header_label = Label("bsbbr_{}_h".format(header_block.nid))
         self.labels[header_label.name] = header_block.nid
         header_block.add(header_label)
-        self.graph.add_node(header_block.nid, function=self.scope_stack[-1])
+        self.graph.add_node(header_block.nid, function=self.scope_stack[-1], label=header_label.label)
         self.functions[self.scope_stack[-1]]['blocks'][header_block.nid] = header_block
-
-        # we have a directed edge from current block to the header
         self.graph.add_edge(self.current_block.nid, header_block.nid)
 
-        # the condition goes in the header
-        condition = Conditional(RelationalOps.GT, exp, Number(Constant(0), is_constant=True))
+        zero = self.symbol_table.get_global('CONST_0')
+        op = BinaryOp(left={'name': val['name'], 'offset': 0, 'size': 1, 'var': self.symbol_table.get_local(val['name'])},
+                 right={'name': zero.name, 'offset': 0, 'size': 1, 'var': zero},
+                 op=RelationalOps.GT)
+        condition = Conditional(RelationalOps.GT, op.left, op.right)  #Number('Constant_{}'.format(0), 1, 0))
         header_block.add(condition)
 
         self.control_stack.append(header_block)
@@ -418,17 +421,21 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_node(true_block.nid, function=self.scope_stack[-1])
         self.functions[self.scope_stack[-1]]['blocks'][true_block.nid] = true_block
         condition.true_branch = true_label
-
-        # we have a directed edge from header to true block
         self.graph.add_edge(header_block.nid, true_block.nid)
 
         self.current_block = true_block
-
         self.visitBlockStatement(ctx.blockStatement())
 
         # repeat is translated to a while loop as: while (exp > 0);
         # hence, we update exp by decrementing.
-        self.current_block.add(BinaryOp(exp, Number(Constant(1), is_constant=True), BinaryOps.SUBTRACT, exp))
+        one = self.symbol_table.get_global('CONST_1')
+
+        ir = Math({'name': val['name'], 'offset': 0, 'size': 1, 'var': self.symbol_table.get_local(val['name'])},
+                  {'name': val['name'], 'offset': 0, 'size': 1, 'var': self.symbol_table.get_local(val['name'])},
+                  {'name': one.name, 'offset': 0, 'size': 1, 'var': one},
+                  BinaryOps.SUBTRACT)
+
+        self.current_block.add(ir)
 
         # the block statement may contain nested loops
         # If so, the current block is the last false block created for the inner-most loop
@@ -527,10 +534,15 @@ class IRVisitor(BSBaseVisitor):
     def visitMath(self, ctx: BSParser.MathContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
         deff_var = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
+        deff_offset = 0 if deff['index'] == -1 else deff['index']
+        size = 1 if deff['index'] == -1 else deff['index']
         # Has this variable been declared before?
         if deff_var.value is not None:
-            self.check_bounds({'name': deff['name'], 'index': deff['index'], 'var': deff_var})
-        deff_offset = 0 if deff['index'] == -1 else deff['index']
+            self.check_bounds({'name': deff['name'], 'index': deff['index'], 'var': deff_var.value})
+            deff_var = deff_var.value
+        else:
+            deff_var = Number(deff['name'], size)
+            self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = deff_var
 
         # Check to see if this is a constant or a variable
         op1 = self.visitPrimary(ctx.primary(0))
@@ -570,9 +582,9 @@ class IRVisitor(BSBaseVisitor):
             operand = BinaryOps.ADD
             outcome = op1_var.value[op1_offset] + op2_var.value[op2_offset]
 
-        ir = Math({'name': deff['name'], 'offset': deff_offset},
-                  {'name': op1_var.name, 'offset': op1_offset},
-                  {'name': op2_var.name, 'offset': op2_offset},
+        ir = Math({'name': deff['name'], 'offset': deff_offset, 'size': deff_var.size, 'var': deff_var},
+                  {'name': op1_var.name, 'offset': op1_offset, 'size': op1_var.size, 'var': op1_var},
+                  {'name': op2_var.name, 'offset': op2_offset, 'size': op2_var.size, 'var': op2_var},
                   operand)
         self.current_block.add(ir)
 
@@ -700,7 +712,7 @@ class IRVisitor(BSBaseVisitor):
         ir = Heat(val, val)
         ir.meta.append(TempConstraint(IRInstruction.HEAT, temp['quantity'], temp['units']))
         if time is not None:
-            ir.meta.append(TimeConstraint(IRInstruction.HEAT, time[0], time[1]))
+            ir.meta.append(TimeConstraint(IRInstruction.HEAT, time['quantity'], time['units']))
         self.current_block.add(ir)
 
         # for x in range(use['index']):

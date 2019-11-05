@@ -113,6 +113,22 @@ class SymbolTableVisitor(BSBaseVisitor):
             globalz.value = Number(op2['name'], 1, op2['value'])
             self.symbol_table.add_global(globalz)
 
+    def visitRepeat(self, ctx: BSParser.RepeatContext):
+        # 'repeat value times' is translated in the IR as while (value > 0), with a decrement
+        #   appended to the end of the expression block; hence,
+        #    to ease translation later, we add a global for const(0) and const(1)
+        if not self.symbol_table.get_global('CONST_0'):
+            globalz = Symbol('CONST_0', 'global', ChemTypeResolver.numbers())
+            globalz.value = Number('CONST_0', 1, 0)
+            self.symbol_table.add_global(globalz)
+
+        if not self.symbol_table.get_global('CONST_1'):
+            globalz = Symbol('CONST_1', 'global', ChemTypeResolver.numbers())
+            globalz.value = Number('CONST_1', 1, 1)
+            self.symbol_table.add_global(globalz)
+
+        self.visitChildren(ctx)
+
     def visitHeat(self, ctx: BSParser.HeatContext):
         name = self.visitVariable(ctx.variable())['name']
         use = self.symbol_table.get_local(name)
