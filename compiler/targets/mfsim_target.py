@@ -1,9 +1,8 @@
 from compiler.targets.base_target import BaseTarget
 from compiler.data_structures import IRInstruction
 from compiler.data_structures.ir import Conditional
-from compiler.data_structures import RenamedVar
+from compiler.data_structures.variable import *
 from compiler.data_structures import RelationalOps
-from collections import deque
 import networkx as nx
 
 
@@ -15,6 +14,9 @@ class TransferNode:
         self.name = name
         self.bid = bid
         self.type = ttype
+
+    def __str__(self):
+        return "{}: {}->{}".format(self.name, self.bid, self.tid)
 
 
 class MFSimTarget(BaseTarget):
@@ -32,7 +34,7 @@ class MFSimTarget(BaseTarget):
         self.loop_headers = dict()
         # start transfer nodes from id 100.
         if self.config.debug:
-            self.log.warn("Statically starting transfer IDs from 100. This could be an issue for very large assays.")
+            self.log.debug("Statically starting transfer IDs from 100. This could be an issue for very large assays.")
         self.tid = 100
 
     def build_cfg(self):
@@ -59,8 +61,8 @@ class MFSimTarget(BaseTarget):
                 write = True
                 dag = nx.DiGraph()
                 for instruction in block.instructions:
-                    # if self.config.debug:
-                    # self.log.info(instruction)
+                    if instruction.op is IRInstruction.NOP:
+                        continue
 
                     # deal with conditionals
                     if instruction.op is IRInstruction.CONDITIONAL:
@@ -82,74 +84,83 @@ class MFSimTarget(BaseTarget):
                                     false_block = bbid
                                 continue
 
-                        if instruction.cond_type in ['repeat', 'while']:
-                            if bid in self.loop_headers:
-                                self.loop_headers[bid].add({'instr': instruction, 't': true_block, 'f': false_block})
-                            else:
+                        if bid in self.loop_headers:
+                            self.loop_headers[bid].add({'instr': instruction, 't': true_block, 'f': false_block})
+                        else:
+                            if not true_label.startswith('bsbbif'):
                                 self.loop_headers[bid] = {'instr': instruction, 't': true_block, 'f': false_block}
 
                         curr[instruction.iid] = dict()
                         curr[instruction.iid] = {'instr': instruction, 'f': false_block,
                                                  't': true_block}
-                        if instruction.left.name.startswith("REPEAT"):
+                        if instruction.left['var'].name.startswith("REPEAT"):
                             curr[instruction.iid]['c'] = 'repeat'
-                            curr[instruction.iid]['repeat'] = instruction.left.value
+                            curr[instruction.iid]['repeat'] = instruction.left['var'].value
                         else:  # could be nested conditional
                             curr[instruction.iid]['c'] = instruction.relop
                             if self.config.debug:
-                                self.log.warn("TEST non-repeat CONDITIONALS")
+                                self.log.warn("TEST non-repeat/nested CONDITIONALS")
                     #  non-conditionals
                     elif hasattr(instruction, 'uses'):
                         # Case x = op y (dispense, heat, dispose, store)
                         if len(instruction.uses) == 1:
                             # Look at the r-value.
+                            if instruction.name == "DISPOSE":  # if we dispose this droplet, then we do not need to transfer
+                                if self.config.debug:
+                                    self.log.warn("Removing outgoing cfg edges from block {}; verify .cfg file has "
+                                                  "correct edges when multiple droplets exist in a dag including a "
+                                                  "dispose.".format(bid))
+                                remove_edges_from.add(bid)
                             use = next(iter(instruction.uses))
-                            if use.name not in leafs:
-                                dag.add_node(use.name, type="variable")
-                                leafs.add(use.name)
-                                leaf = use.name
+                            if use['name'] not in leafs:
+                                dag.add_node(use['name'], type="variable")
+                                leafs.add(use['name'])
+                                leaf = use['name']
                             else:
-                                leaf = use.name
+                                leaf = use['name']
                             # Do the same thing, except for the l-value.
                             if instruction.defs:
-                                if instruction.defs.name not in tags:
+                                if instruction.defs['name'] not in tags:
                                     dag.add_node(leaf, iid=instruction.iid, op=instruction.op.name, type="register")
-                                    var_def = instruction.defs.name
-                                    tags[instruction.defs.name] = var_def
+                                    var_def = instruction.defs['name']
+                                    tags[instruction.defs['name']] = var_def
                                 else:
-                                    var_def = instruction.defs.name
+                                    var_def = instruction.defs['name']
                                 dag.add_edge(leaf, var_def)
                         else:
                             # Case x = y op z (mix, split, arithmetic)
-                            var_def = instruction.defs.name
+                            var_def = instruction.defs['name']
                             dag.add_node(var_def, iid=instruction.iid, op=instruction.op.name, type="register")
                             tags[var_def] = var_def
                             for use in instruction.uses:
-                                leaf = use.name
+                                if instruction.op is IRInstruction.PHI:
+                                    leaf = use
+                                else:
+                                    leaf = use['name']
                                 if leaf not in leafs:
                                     dag.add_node(leaf, type="variable")
                                     leafs.add(leaf)
                                 dag.add_edge(leaf, var_def)
 
-                    else: # what instruction is being missed
+                    else:  # what instruction is being missed
                         if self.config.debug:
                             self.log.info(instruction)
 
                     # if a material is disposed, it should not define a new material for later use
-                    if instruction.op is IRInstruction.DISPOSE:
-                        defined = instruction.defs.name
-                        #instruction.defs.name = 'gone!'
-                        block.defs.remove(defined)
-                        #predecessors = list(dag.predecessors(defined))
-                        #for pred in predecessors:
-                        #    dag.remove_edge(pred, defined)
-                        #in the case where the only def in a block has been removed because it was a dipose,
-                        #   we do not need any outgoing edges.
-                        # TODO: test case: transfer_in A, B; dispose A (do nothing with B).
-                        #   if this fails, we could explicitly add a def to the block for transfer_ins prior to
-                        #   running these checks (in transform())
-                        if len(block.defs) is 0:
-                            remove_edges_from.add(bid)
+                    # if instruction.op is IRInstruction.DISPOSE:
+                    #     defined = instruction.defs['var'].name
+                    #     #instruction.defs.name = 'gone!'
+                    #     block.defs.remove(defined)
+                    #     #predecessors = list(dag.predecessors(defined))
+                    #     #for pred in predecessors:
+                    #     #    dag.remove_edge(pred, defined)
+                    #     #in the case where the only def in a block has been removed because it was a dipose,
+                    #     #   we do not need any outgoing edges.
+                    #     # TODO: test case: transfer_in A, B; dispose A (do nothing with B).
+                    #     #   if this fails, we could explicitly add a def to the block for transfer_ins prior to
+                    #     #   running these checks (in transform())
+                    #     if len(block.defs) is 0:
+                    #         remove_edges_from.add(bid)
 
                 if write:
                     self.program.functions[root]['blocks'][bid].dag = dag
@@ -164,27 +175,28 @@ class MFSimTarget(BaseTarget):
                 for s in succ:
                     self.cfg['graph'].remove_edge(remove, s)
 
-
         return False
 
-
-    """
-       when a droplet has multiple successors in the DAG, and is not a split, then there is a use that does not consume
-       the droplet.  In this case, we must find the successor that uses the droplet without consuming.  this is the
-       instruction that should receive the edge
-    """
     def get_dependent_instr(self, instr, uses):
+        """
+           when a droplet has multiple successors in the DAG, and is not a split, then there is a use that does not consume
+           the droplet.  In this case, we must find the successor that uses the droplet without consuming.  this is the
+           instruction that should receive the edge
+        :param instr:
+        :param uses:
+        :return:
+        """
         _ret = list()
         check = instr.defs.points_to
         for i in self.cblock.instructions:
-            if i.defs.name in uses: # this instruction is one of the uses
+            if i.defs.name in uses:  # this instruction is one of the uses
                 if i.defs.points_to != check:
                     _ret.append(i.defs.name)
 
         if len(_ret) < 1:
-            # should not reach here!
             self.log.fatal("A non-split instruction has multiple successors!")
             exit(-1)
+
         return _ret
 
     @staticmethod
@@ -199,61 +211,62 @@ class MFSimTarget(BaseTarget):
             pass
         return "EDGE (%s, %s)\n" % (_from, _to)
 
-    """
-        An MFSim MIX node has 5 parameters:
-          nodeid, "MIX", number of input drops, time, mixName
-          number of input drops must be >= 2
-          mixName from [Mix, Vortex, Tap, Invert, Suspend, Stir]  <- this means nothing to MFSim
-    """
-
     def write_mix(self, instr) -> str:
+        """
+              An MFSim MIX node has 5 parameters:
+              nodeid, "MIX", number of input drops, time, mixName
+              number of input drops must be >= 2
+              mixName from [Mix, Vortex, Tap, Invert, Suspend, Stir]  <- this means nothing to MFSim
+        :param instr:
+        :return:
+        """
         _ret = "NODE (%s, MIX, " % str(self.opid)
 
         if self.config.debug:
             self.log.warn("Using default time and mixType values -- these should be IRInstruction attributes discovered"
-                      "during parsing")
+                          "during parsing")
         time = 10
-        mixType = '_'.join([x.name for x in instr.uses])
+        # mixType = '_'.join([x['var'].name for x in instr.uses])
 
         # MFSim supports >= 2 input droplets, but BS requires distinct mix operations for every 2 droplets,
         #  hence, we can safely assume every mix has exactly 2 inputs
-        _ret += "2, %s, %s)\n" % (str(time), mixType)
+        _ret += "2, %s, %s)\n" % (str(time), instr.defs['var'].points_to.name)
 
-        # _ret += self.write_edge(self.opid, self.cblock.dag.nodes[instr.defs.name]['iid'])
-        to = list(self.cblock.dag.successors(instr.defs.name))
-        # _succ[instr.defs.name]
+        to = list(self.cblock.dag.successors(instr.defs['var'].name))
 
         if len(to) > 1:
             to = self.get_dependent_instr(instr, to)
 
         for key in to:
-            to_instr = [x for x in self.cblock.instructions if x.defs.name is key]
+            to_instr = [x for x in self.cblock.instructions if x.defs['var'].name is key]
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
 
         return _ret
 
-    """
-        An MFSim SPLIT node has 5 parameters:
-          nodeid, "SPLIT", number of output drops, time, nodeName
-          number of output drops must be >= 2
-          nodeName  <- this means nothing to MFSim
-    """
-
     def write_split(self, instr) -> str:
+        """
+                An MFSim SPLIT node has 5 parameters:
+                  nodeid, "SPLIT", number of output drops, time, nodeName
+                  number of output drops must be >= 2
+                  nodeName  <- this means nothing to MFSim
+        :param instr:
+        :return:
+        """
         _ret = "NODE (%s, SPLIT, " % str(self.opid)
 
         if self.config.debug:
             self.log.warn("Using default numDrops and time value for SPLIT; at least numDrops should be a Split "
-                      "instruction attribute discovered during parsing")
+                          "instruction attribute discovered during parsing")
         numDrops = 2
         time = 2
 
         _ret += "%s, %s, SPLIT)\n" % (str(numDrops), str(time))
 
         if self.config.debug:
-            self.log.warn("Verify split instruction semantics for MFSim target. Not all out edges are correctly built as"
-                      "the split does not maintain addressibility to created droplets")
+            self.log.warn(
+                "Verify split instruction semantics for MFSim target. Not all out edges are correctly built as"
+                "the split does not maintain addressibility to created droplets")
 
         # TODO: when splits correctly build an array, this must be updated to build edges to proper successors
         # something like:
@@ -263,124 +276,108 @@ class MFSimTarget(BaseTarget):
         _ret += self.write_edge(self.opid, self.cblock.dag.nodes[instr.defs.name]['iid'])
         return _ret
 
-    """
-        An MFSim DETECT node has 5 parameters:
-          nodeid, "DETECT", number of input drops, time, nodeName
-          BS syntax only supports 1 input drop currently
-          nodeName  <- this means nothing to MFSim
-    """
-
     def write_detect(self, instr) -> str:
+        """
+            An MFSim DETECT node has 5 parameters:
+              nodeid, "DETECT", number of input drops, time, nodeName
+              BS syntax only supports 1 input drop currently
+              nodeName  <- this means nothing to MFSim
+        :param instr:
+        :return:
+        """
         _ret = "NODE (%s, DETECT, 1, " % str(self.opid)
 
         if self.config.debug:
             self.log.warn("Using default time for DETECT; time should be an IRInstruction attribute discovered "
-                      "during parsing")
+                          "during parsing")
         time = 10
 
-        _ret += "%s, detect)\n" % str(time)
-
-        # MFSim expects an edge between a use during a detect and the next use
-        # if self.cblock.dag.nodes[instr.uses[0].name]:
-        #     _ret += self.write_edge(self.opid, self.cblock.dag.nodes[instr.uses[0].name]['iid'])
-
-        # detects use materials, but do not alter them directly.
-        to = [x for x in instr.uses]
-        for key in to:
-            # if this is the result of the detect
-            if key is instr.defs.name:
-                continue
-            to_instr = [y for y in self.cblock.instructions for x in y.uses if x.name == key.name and y is not instr]
-            if to_instr:
-                for ti in to_instr:
-                    _ret += self.write_edge(self.opid, ti.iid)
-            else:
-                if self.config.debug:
-                    self.log.warn("writing transfer out from detect here")
-                _ret += self.write_edge(instr.iid, self.tid)
-                _ret += self.write_transfer(self.tid, instr.uses[0].points_to, True)
-                tn = TransferNode(self.tid, self.cblock.nid, instr.uses[0].points_to, 'out')
-                self.tid += 1
-                if self.cblock.nid in self.block_transfers:
-                    self.block_transfers[self.cblock.nid].add(tn)
-                else:
-                    self.block_transfers[self.cblock.nid] = {tn}
-
-        # else:
-        #    _ret += "transfer out detect"
+        _ret += "%s, %s(%s))\n" % (str(time), instr.defs['var'].points_to.name, instr.uses[1]['var'].points_to.name)
 
         return _ret
 
-    """
-        An MFSim HEAT node has 4 parameters:
-          nodeid, "HEAT", time, nodeName
-          nodeName  <- this means nothing to MFSim
-    """
-
     def write_heat(self, instr) -> str:
+        """
+             An MFSim HEAT node has 4 parameters:
+                  nodeid, "HEAT", time, nodeName
+                  nodeName  <- this means nothing to MFSim
+        :param instr:
+        :return:
+        """
         _ret = "NODE (%s, HEAT, " % str(self.opid)
 
         if self.config.debug:
             self.log.warn("Using default time for HEAT; time should be an IRInstruction attribute discovered "
-                      "during parsing")
+                          "during parsing")
         time = 10
 
-        _ret += "%s, heat)\n" % str(time)
-        # if node is used in this dag, write edge, else write transfer
-       # if self.cblock.dag.nodes[instr.defs.name]:
-       #     _ret += self.write_edge(self.opid, self.cblock.dag.nodes[instr.defs.name]['iid'])
-        # else:
-        #    _ret += "transfer out heat"
+        _ret += "{}, {})\n".format(str(time), instr.uses[0]['var'].points_to.name)
 
-        to = list(self.cblock.dag.successors(instr.defs.name))
-        # _succ[instr.defs.name]
+        to = list(self.cblock.dag.successors(instr.defs['var'].name))
 
         if len(to) > 1:
             to = self.get_dependent_instr(instr, to)
 
         for key in to:
-            to_instr = [x for x in self.cblock.instructions if x.defs.name is key]
+            to_instr = []
+            # as long as order of instructions is maintained this works.
+            # ideally, the SSA form would have explicit defs for all heats
+            found_instr = False
+            for x in self.cblock.instructions:
+                if x is instr:
+                    found_instr = True
+                    continue
+                if not found_instr:
+                    continue
+                if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
+                    for y in x.uses:
+                        if y['var'].name == key:
+                            to_instr.append(x)
+                            break
+
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
 
         return _ret
 
-    """
-        An MFSim DISPOSE (output) node has 4 parameters:
-          nodeid, type, sinkName, nodeName
-          nodeName  <- this means nothing to MFSim
-    """
-
     def write_dispose(self, instr) -> str:
-        _ret = "NODE (%s, OUTPUT, null, drain)\n" % str(self.opid)
+        """
+               An MFSim DISPOSE (output) node has 4 parameters:
+              nodeid, type, sinkName, nodeName
+              nodeName  <- this means nothing to MFSim
+        :return:
+        """
+        _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].points_to.name)
 
         if self.config.debug:
-            self.log.warn("DISPOSE for mfsim requires to sinkname and type (drain, save, etc).  Using default for now.")
+            self.log.warn(
+                "DISPOSE for mfsim requires the sinkname and type (drain, save, etc).  Using default for now.")
         return _ret
 
-    """
-        An MFSim DISPENSE node has 5 parameters:
-          nodeid, type, fluidName, volume, nodeName
-          nodeName  <- this means nothing to MFSim
-    """
-
     def write_dispense(self, instr) -> str:
+        """
+             An MFSim DISPENSE node has 5 parameters:
+              nodeid, type, fluidName, volume, nodeName
+              nodeName  <- this means nothing to MFSim
+        :param instr:
+        :return:
+        """
         _ret = "NODE (%s, DISPENSE, " % str(self.opid)
 
         if self.config.debug:
             self.log.warn("Using default volume for DISPENSE; this should be an IRInstruction attribute discovered "
-                      "during parsing")
+                          "during parsing")
         volume = 10
 
-        _ret += "%s, %s, %s)\n" % (instr.uses[0].name, str(volume), instr.defs.points_to)
+        _ret += "%s, %s, %s)\n" % (instr.uses[0]['name'], str(volume), instr.defs['var'].points_to.name)
 
-        to = list(self.cblock.dag._succ[instr.defs.name])
+        to = list(self.cblock.dag._succ[instr.defs['var'].name])
 
         if len(to) > 1:
             to = self.get_dependent_instr(instr, to)
 
         for key in to:
-            to_instr = [x for x in self.cblock.instructions if x.defs is not None and x.defs.name is key]
+            to_instr = [x for x in self.cblock.instructions if x.defs is not None and x.defs['var'].name is key]
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
 
@@ -411,52 +408,50 @@ class MFSimTarget(BaseTarget):
         if cond_type is 'UNCOND':
             _ret += "TRUE, UNCOND, DAG%s)\n" % str(from_dag)
         elif cond_type is 'LOOP':
-            if cond.cond_type is 'repeat':
-                _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(to_dag), int(cond.left.value))
+            if cond.left['name'].startswith('REPEAT'):  # .cond_type is 'repeat':
+                _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(to_dag), int(cond.left['var'].value.value[0]))
             else:  # must be a while?
                 _ret += "while\n"
         elif cond_type is 'IF':
-            if cond.cond_type is 'if':
-                # ONE_SENSOR, relop, depDag, depNodeID, value)
-                relop = "Unrecognized relationtional operator"
-                if cond.relop is RelationalOps.LTE:
-                    relop = "LoE"
-                elif cond.relop is RelationalOps.GTE:
-                    relop = "GoE"
-                elif cond.relop is RelationalOps.GT:
-                    relop = "GT"
-                elif cond.relop is RelationalOps.LT:
-                    relop = "LT"
-                elif cond.relop is RelationalOps.EQUALITY:
-                    relop = "EQ"
-                cond_var = None
-                for v in cond.uses:
-                    if isinstance(v, RenamedVar):
-                        cond_var = v
+            # ONE_SENSOR, relop, depDag, depNodeID, value)
+            relop = "Unrecognized relational operator"
+            if cond.relop is RelationalOps.LTE:
+                relop = "LoE"
+            elif cond.relop is RelationalOps.GTE:
+                relop = "GoE"
+            elif cond.relop is RelationalOps.GT:
+                relop = "GT"
+            elif cond.relop is RelationalOps.LT:
+                relop = "LT"
+            elif cond.relop is RelationalOps.EQUALITY:
+                relop = "EQ"
+            cond_var = None
+            for v in cond.uses:
+                if isinstance(v['var'], RenamedSymbol):
+                    cond_var = v
+                    break
+            if cond_var is None:
+                self.log.fatal("Could not find a conditional variable")
+                exit(-1)
+
+            depDag = None
+            # current block has the definition to this conditional variable
+            if cond_var['var'].name in self.cblock.defs:
+                depDag = from_dag
+            else:
+                if self.config.debug:
+                    self.log.warn("need to find block where condition variable is")
+                raise NotImplementedError("the current block does not have the definition to this conditional variable")
+
+            dep_node_id = -1
+            for instr in self.cblock.instructions:
+                if instr.defs is not None:
+                    if instr.defs['var'].points_to is cond_var['var'].points_to:
+                        dep_node_id = instr.iid
                         break
-                if cond_var is None:
-                    self.log.fatal("Could not find a conditional variable")
-                    exit(-1)
 
-                depDag = None
-                # current block has the definition to this conditional variable
-                if cond_var.name in self.cblock.defs:
-                    depDag = from_dag
-                else:
-                    if self.config.debug:
-                        self.log.warn("need to find block where condition variable is")
-                    exit(-1)
-
-                dep_node_id = -1
-                for instr in self.cblock.instructions:
-                    if instr.defs is not None:
-                        if instr.defs.points_to is cond_var.points_to:
-                            dep_node_id = instr.iid
-                            break
-
-                _ret += "ONE_SENSOR, %s, DAG%s, %s, %s)\n" % (relop, str(depDag), str(dep_node_id), int(cond.right.value))
-            elif cond.cond_type is 'else':
-                _ret += "else\n"
+            _ret += "ONE_SENSOR, %s, DAG%s, %s, %s)\n" % (
+            relop, str(depDag), str(dep_node_id), int(cond.right['var'].value.value[0]))
 
         # transfer droplets if necessary
         _ret += self.write_td(from_dag, to_dag)
@@ -488,14 +483,10 @@ class MFSimTarget(BaseTarget):
         elif cond_type is 'IF':
             _ret += self.write_exp(cond, exp_id, dep_dags[0], branch_dags[0], 'IF')
 
-        # buid transfer droplet(s), if any
-
         return _ret
 
     def transform(self):
         self.build_cfg()
-        # if self.config.debug:
-        # self.log.debug("MFSimTarget not yet implemented!")
         for root in self.program.functions:
             self.root = root
             exp_name = self.config.input.rsplit('/', 1)[1][:-3]  # get file input name -'.bs'
@@ -532,40 +523,43 @@ class MFSimTarget(BaseTarget):
                 #
                 #         each transfer droplet will have a corresponding TRANSFER_OUT/_IN in the appropriate dags,
                 #     """
-                #     # TODO: conditionals translation
 
                 cfg_file.write("DAG(DAG%s)\n" % str(bid))
 
-                queue = deque()
-                globalz = dict()
-                #self.program.write['mfsimcfg'] = Writable(self.program.name,
-                #                                         "{}/{}_DAG{}.dag".format(self.config.output,
-                #                                                                      exp_name, str(bid)),
-                #                                         str, WritableType.OTHER)
                 dag_file = open("%s/%s_DAG%s.dag" % (self.config.output, exp_name, str(bid)), "w")
                 dag_file.write("DagName (DAG%s)\n" % str(bid))
 
-                # for all uses without defs, we must transfer in droplets
+                # for all uses without defs, we must transfer in
                 already_transferred_in = dict()
+                dispenses = set()
+                for node in block.instructions:
+                    if node.name in ['DISPENSE']:
+                        dispenses.add(node.defs['var'].points_to.name)
                 for node in block.instructions:
 
-                    if node.name in ['BINARYOP', 'CONDITIONAL', 'DISPENSE']:
+                    if node.name in ['BINARYOP', 'CONDITIONAL', 'DISPENSE', 'MATH']:
                         continue
 
-                    # as SSA renaming is not correct, we must work around the names to find proper transfer nodes
-                    # TODO: update transfer_in discovery when SSA renaming is fixed -- will simplify this a lot
-                    # for each use, we must check if predecessors in this block defined it (original name, SSA is broken)
-                    #  if no def from predecessor, then
+                    # for each use, we must check if predecessors in this block defined it
+                    #  if no def from predecessor in this block, then must transfer in
                     for use in node.uses:
                         tn = None
-                        if use.points_to in already_transferred_in:
+                        if type(use['var'].value) in {Module}:
+                            continue
+                        use = use['var']
+                        if isinstance(use, RenamedSymbol):
+                            points_to = use.points_to.name
+                        else:
+                            points_to = use.name
+                        # points_to = use.name
+                        if points_to in dispenses or points_to in already_transferred_in:
                             continue
                         if use.name not in block.defs:
-                            already_transferred_in[use.points_to] = True
-                            dag_file.write(self.write_transfer(self.tid, use.points_to, False))
+                            already_transferred_in[points_to] = True
+                            dag_file.write(self.write_transfer(self.tid, points_to, False))
                             dag_file.write(self.write_edge(self.tid, node.iid))
-                            tn = TransferNode(self.tid, bid, use.points_to, 'in')
-                            block.defs.add(use.points_to)
+                            tn = TransferNode(self.tid, bid, points_to, 'in')
+                            block.defs.add(use.name)
                             self.tid += 1
                         if tn is not None:
                             if bid in self.block_transfers:
@@ -594,65 +588,87 @@ class MFSimTarget(BaseTarget):
                         if self.config.debug:
                             self.log.warn("Unrecognized/unsupported instruction type: %s" % node.name)
 
-                # this is a bit of a hack, because SSA renaming is not working properly atm.
-                # TODO: update transfer_out discovery when SSA renaming is fixed -- will simplify this a lot
+                # this is a bit of a hack, because SSA renaming doesn't quite work how we might hope for heats/detects
                 # for all defs without uses, we must transfer out (if used elsewhere)
                 #   or dispose (if never used again)
-                # For now, for each __def in the block, we get the original variable name (_def) and instruction (i)
-                #  Then, we check if __def is used in the block (we do not need to transfer)
+
+                # For now, for each rdef in the block, we get the original variable name (_def) and instruction (i)
+                #  Then, we check if rdef is used in the block (we do not need to transfer) AFTER this instruction
                 #    if not, we check each successor block (succ): for each instruction si in succ, we check
                 #    if their uses points to _def, if so, we must transfer.
                 for rdef in block.defs:
                     _def = None
                     skip = False
-                    for i in block.instructions:
-                        if i.name in ['PHI', 'BINARYOP', 'CONDITIONAL', 'DISPOSE', 'DETECT']:
+                    defIndex = -1
+                    for index in range(len(block.instructions)):
+                        i = block.instructions[index]
+                        if i.name in ['PHI', 'BINARYOP', 'CONDITIONAL', 'DISPOSE', 'MATH', 'NOP', 'DETECT']:
                             skip = True
                             continue
-                        if i.defs.name is rdef:
-                            skip = False
-                            _def = i.defs.points_to
-                            instr = i
+                        if defIndex == -1:
+                            if rdef is i.defs['name']:
+                                defIndex = index
+                                skip = False
+                                # find the points_to def
+                                _def = i.defs['var'].points_to.name
+                                instr = i
+                                break
+                            continue
+
+                    # after finding the definition point, we traverse in reverse order to find the
+                    #  last use.  if it is not used after define, or if the last use is a detect/heat, we must transfer
+                    for index in reversed(range(len(block.instructions))):
+                        if index == defIndex:
                             break
-                        # elif i.name is 'DETECT' and rdef in already_transferred_in:
-                        #      skip = False
-                        #      _def = rdef
-                        #      instr = i
-                        #      break
+                        i = block.instructions[index]
+                        # heat and detects use the droplet, but do not consume it, so may need to transfer still
+                        if i.name in ['HEAT', 'DETECT'] and rdef in [x['name'] for x in i.uses]:
+                            skip = False
+                            if _def is None:
+                                x = [x for x in i.uses if x['name'] == rdef]
+                                _def = x[0]['var'].points_to.name
+                            break
+                        x = [x for x in i.uses if x['name'] == rdef]
+                        if x:  # we use this variable after it is defined in this block
+                            skip = True
+                            break
 
                     if skip:
                         continue
 
                     transferred = False
                     tn = None
-                    if rdef not in block.uses:
-                        # check if used in any successor blocks
-                        if block.dag is not None:
-                            # list of reachable block ids
-                            reachable = (
-                               {x for v in dict(nx.bfs_successors(self.cfg['graph'], bid)).values() for x in v})
-                            for s in reachable:
+                    # we've made it here, we must transfer this rdef
+                    if block.dag is not None:
+                        # list of reachable block ids
+                        reachable = (
+                            {x for v in dict(nx.bfs_successors(self.cfg['graph'], bid)).values() for x in v})
+                        for s in reachable:
+                            if transferred:
+                                break
+                            # get successor block
+                            sblock = self.program.functions[root]['blocks'][s]
+                            for si in sblock.instructions:
+                                if si.op in {IRInstruction.PHI}:
+                                    continue
                                 if transferred:
                                     break
-                                # get successor block
-                                sblock = self.program.functions[root]['blocks'][s]
-                                for si in sblock.instructions:
-                                    if transferred:
-                                        break
-                                    for use in si.uses:
-                                        if isinstance(use, RenamedVar) and _def is use.points_to:
-                                            dag_file.write(self.write_edge(instr.iid, self.tid))
-                                            dag_file.write(self.write_transfer(self.tid, _def, True))
-                                            tn = TransferNode(self.tid, bid, _def, 'out')
-                                            self.tid += 1
-                                            transferred = True
-                                            break
+                                x = [x['var'].points_to.name for x in si.uses if type(x['var']) is not Symbol]
+                                if _def in x:
+                                    dag_file.write(self.write_edge(instr.iid, self.tid))
+                                    dag_file.write(self.write_transfer(self.tid, _def, True))
+                                    tn = TransferNode(self.tid, bid, _def, 'out')
+                                    self.tid += 1
+                                    transferred = True
+                                    break
 
                     else:
                         transferred = True
-                    if not transferred:  # need to dispose
+                    if not transferred:  # what to do with this droplet?
                         if self.config.debug:
-                            self.log.debug("need to dispose {}".format(rdef))
+                            self.log.warn(
+                                "No more operations for {}, warning will appear in {}".format(_def, dag_file.name))
+                        dag_file.write("// **NO MORE OPERATIONS FOR {}; SHOULD SAVE OR DISPOSE**".format(_def))
                     if tn is not None:
                         if bid in self.block_transfers:
                             self.block_transfers[bid].add(tn)
@@ -702,9 +718,10 @@ class MFSimTarget(BaseTarget):
                         #   succ->true              :   [no translation]
                         #   succ->false             :   true->false
                         #   back-edge(s) to succ    :   back1->true...backn->true
-     #                   for succ_id in self.program.functions[root]['graph'].succ[bid]:
+                        #                   for succ_id in self.program.functions[root]['graph'].succ[bid]:
                         for succ_id in self.cfg['graph'].successors(bid):
-                            # we know there is an edge from bid to succ_id, need to check if bid or succ_id is a loop header
+                            # we know there is an edge from bid to succ_id, need to check if bid or succ_id is a loop
+                            # header
                             if (bid, succ_id) not in edges_not_translated:
                                 continue
                             if bid in self.loop_headers:
@@ -714,10 +731,11 @@ class MFSimTarget(BaseTarget):
                             elif succ_id in self.loop_headers:
                                 # unconditional branch into loop (MFSim interprets all loops as do-while)
                                 conditional_groups[self.cgid] = []
-                                conditional_groups[self.cgid].append(self.write_cond(self.loop_headers[succ_id]['instr'],
-                                                                                     self.cgid, [bid], 1,
-                                                                                     [self.loop_headers[succ_id]['t']],
-                                                                                     self.expid, 1))
+                                conditional_groups[self.cgid].append(
+                                    self.write_cond(self.loop_headers[succ_id]['instr'],
+                                                    self.cgid, [bid], 1,
+                                                    [self.loop_headers[succ_id]['t']],
+                                                    self.expid, 1))
                                 edges_not_translated.remove((bid, succ_id))
                                 edges_not_translated.remove((succ_id, self.loop_headers[succ_id]['t']))
                                 self.cgid += 1
@@ -734,14 +752,15 @@ class MFSimTarget(BaseTarget):
                                     edges_not_translated.remove((be[0], succ_id))
 
                                 # deal with exit from loop
-                                conditional_groups[self.cgid].append(self.write_cond(self.loop_headers[succ_id]['instr'],
-                                                                                     self.cgid,
-                                                                                     [self.loop_headers[succ_id]['t']], 1,
-                                                                                     [self.loop_headers[succ_id]['f']],
-                                                                                     self.expid, 1, ))
+                                conditional_groups[self.cgid].append(
+                                    self.write_cond(self.loop_headers[succ_id]['instr'],
+                                                    self.cgid,
+                                                    [self.loop_headers[succ_id]['t']], 1,
+                                                    [self.loop_headers[succ_id]['f']],
+                                                    self.expid, 1, ))
                                 edges_not_translated.remove((succ_id, self.loop_headers[succ_id]['f']))
                                 self.cgid += 1
-                            else: #dealing with if conditional
+                            else:  # dealing with if conditional
                                 if cond and executable:
                                     self.cblock = block
                                     conditional_groups[self.cgid] = []
@@ -760,7 +779,6 @@ class MFSimTarget(BaseTarget):
                                                                     [self.cfg[bid][instr.iid]['f']],
                                                                     self.expid, 1))
                                                 edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
-                                    print("what to do")
                                     self.cgid += 1
 
             cfg_file.write("\nNUMCGS(%s)\n\n" % conditional_groups.__len__())
