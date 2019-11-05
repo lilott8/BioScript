@@ -51,9 +51,9 @@ class TypeCheckVisitor(BSBaseVisitor):
 
     def build_declares(self):
         if self.types_used == TypesUsed.COMPLEX:
-            types = ChemTypeResolver.available_types
+            types = ChemTypeResolver._available_types
         else:
-            types = ChemTypeResolver.naive_types
+            types = ChemTypeResolver._naive_types
             types.add(ChemTypes.UNKNOWN)
 
         declares = ""
