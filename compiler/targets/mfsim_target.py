@@ -105,12 +105,12 @@ class MFSimTarget(BaseTarget):
                         # Case x = op y (dispense, heat, dispose, store)
                         if len(instruction.uses) == 1:
                             # Look at the r-value.
-                            if instruction.name == "DISPOSE":  # if we dispose this droplet, then we do not need to transfer
-                                if self.config.debug:
-                                    self.log.warn("Removing outgoing cfg edges from block {}; verify .cfg file has "
-                                                  "correct edges when multiple droplets exist in a dag including a "
-                                                  "dispose.".format(bid))
-                                remove_edges_from.add(bid)
+                            # if instruction.name == "DISPOSE":  # if we dispose this droplet, then we do not need to transfer
+                            #     if self.config.debug:
+                            #         self.log.warn("Removing outgoing cfg edges from block {}; verify .cfg file has "
+                            #                       "correct edges when multiple droplets exist in a dag including a "
+                            #                       "dispose.".format(bid))
+                            #     remove_edges_from.add(bid)
                             use = next(iter(instruction.uses))
                             if use['name'] not in leafs:
                                 dag.add_node(use['name'], type="variable")
@@ -187,11 +187,11 @@ class MFSimTarget(BaseTarget):
         :return:
         """
         _ret = list()
-        check = instr.defs.points_to
+        check = instr.defs['var'].points_to
         for i in self.cblock.instructions:
-            if i.defs.name in uses:  # this instruction is one of the uses
-                if i.defs.points_to != check:
-                    _ret.append(i.defs.name)
+            if i.defs['name'] in uses:  # this instruction is one of the uses
+                if i.defs['var'].points_to != check:
+                    _ret.append(i.defs['var'].points_to.name)
 
         if len(_ret) < 1:
             self.log.fatal("A non-split instruction has multiple successors!")
@@ -238,7 +238,7 @@ class MFSimTarget(BaseTarget):
             to = self.get_dependent_instr(instr, to)
 
         for key in to:
-            to_instr = [x for x in self.cblock.instructions if x.defs['var'].name is key]
+            to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].name is key]
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
 
@@ -270,10 +270,31 @@ class MFSimTarget(BaseTarget):
 
         # TODO: when splits correctly build an array, this must be updated to build edges to proper successors
         # something like:
-        #   for succ in self.cblock.dag.nodes[instr.defs.name]['iid']:
+        #   for succ in self.cblock.dag.nodes[instr.defs['name']]['iid']:
         #    _ret += self.write_edge(self.opid, succ)
 
-        _ret += self.write_edge(self.opid, self.cblock.dag.nodes[instr.defs.name]['iid'])
+        to = list(self.cblock.dag.successors(instr.defs['var'].name))
+        to = [x for x in to if x == instr.defs['name']]
+
+        for key in to:
+            to_instr = []
+            # as long as order of instructions is maintained this works.
+            found_instr = False
+            for x in self.cblock.instructions:
+                if x is instr:
+                    found_instr = True
+                    continue
+                if not found_instr:
+                    continue
+                if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
+                    for y in x.uses:
+                        if y['var'].name == key:
+                            to_instr.append(x)
+                            break
+
+            for ti in to_instr:
+                _ret += self.write_edge(self.opid, ti.iid)
+
         return _ret
 
     def write_detect(self, instr) -> str:
