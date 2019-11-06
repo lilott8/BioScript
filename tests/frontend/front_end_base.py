@@ -10,7 +10,10 @@ from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
 from compiler.passes.transforms.simd_expansion import SIMDExpansion
+from compiler.passes.pass_manager import PassManager
 from compiler.targets.ir_target import IRTarget
+from compiler.targets.mfsim_target import MFSimTarget
+from compiler.compiler import BSCompiler
 
 
 class FrontEndBase(metaclass=ABCMeta):
@@ -64,3 +67,19 @@ class FrontEndBase(metaclass=ABCMeta):
                                   config=CompilerCLI(["-d", "-t", "ir", "-i", "TEST_FILE"]).config)))
         target.transform()
         return target
+
+    def get_compiled_mfsim(self, tree, file):
+        BasicBlock.id_counter = 1
+        ir = self.get_ir(tree)
+        ir = Program(functions=ir.functions, config=CompilerCLI(["-d", "-t", "mfsim", "-i", file, "-o", "output/"]).config,
+                       symbol_table=ir.symbol_table, bb_graph=ir.graph, name=file, calls=ir.calls)
+        pm = PassManager(ir)
+        pm.run_analysis()
+        pm.run_transformations()
+        prog = pm.program
+
+        target = MFSimTarget(prog)
+        target.transform()
+        return str([target.num_cgs, target.num_transfers, target.num_dags, target.num_detects,
+                target.num_dispense, target.num_dispose, target.num_edges, target.num_heats,
+                target.num_mixes, target.num_splits])

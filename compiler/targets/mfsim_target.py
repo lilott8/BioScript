@@ -35,7 +35,20 @@ class MFSimTarget(BaseTarget):
         # start transfer nodes from id 100.
         if self.config.debug:
             self.log.debug("Statically starting transfer IDs from 100. This could be an issue for very large assays.")
+        if not self.config.output:
+            self.log.fatal("MFSim target requires an output path to be specified.  Include \"-o <path/to/output/>\" in arguments list.")
+            exit(-1)
         self.tid = 100
+        self.num_dags = 0
+        self.num_cgs = 0
+        self.num_edges = 0
+        self.num_mixes = 0
+        self.num_splits = 0
+        self.num_detects = 0
+        self.num_heats = 0
+        self.num_transfers = 0
+        self.num_dispense = 0
+        self.num_dispose = 0
 
     def build_cfg(self):
         for root in self.program.functions:
@@ -199,8 +212,8 @@ class MFSimTarget(BaseTarget):
 
         return _ret
 
-    @staticmethod
-    def write_transfer(id, name, out=False) -> str:
+    def write_transfer(self, id, name, out=False) -> str:
+        self.num_transfers += 1
         return "NODE (%s, %s, %s)\n" % (str(id), "TRANSFER_OUT" if out else "TRANSFER_IN", name)
 
     def write_edge(self, _from, _to) -> str:
@@ -209,6 +222,7 @@ class MFSimTarget(BaseTarget):
             if self.config.debug:
                 self.log.warn("write edge returning without writing an edge")
             pass
+        self.num_edges += 1
         return "EDGE (%s, %s)\n" % (_from, _to)
 
     def write_mix(self, instr) -> str:
@@ -242,6 +256,7 @@ class MFSimTarget(BaseTarget):
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
 
+        self.num_mixes += 1
         return _ret
 
     def write_split(self, instr) -> str:
@@ -295,6 +310,7 @@ class MFSimTarget(BaseTarget):
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
 
+        self.num_splits += 1
         return _ret
 
     def write_detect(self, instr) -> str:
@@ -315,6 +331,7 @@ class MFSimTarget(BaseTarget):
 
         _ret += "%s, %s(%s))\n" % (str(time), instr.defs['var'].points_to.name, instr.uses[1]['var'].points_to.name)
 
+        self.num_detects += 1
         return _ret
 
     def write_heat(self, instr) -> str:
@@ -359,6 +376,7 @@ class MFSimTarget(BaseTarget):
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
 
+        self.num_heats += 1
         return _ret
 
     def write_dispose(self, instr) -> str:
@@ -373,6 +391,7 @@ class MFSimTarget(BaseTarget):
         if self.config.debug:
             self.log.warn(
                 "DISPOSE for mfsim requires the sinkname and type (drain, save, etc).  Using default for now.")
+        self.num_dispose += 1
         return _ret
 
     def write_dispense(self, instr) -> str:
@@ -402,6 +421,7 @@ class MFSimTarget(BaseTarget):
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
 
+        self.num_dispense += 1
         return _ret
 
     def write_td(self, from_dag, to_dag) -> str:
@@ -660,19 +680,23 @@ class MFSimTarget(BaseTarget):
                     transferred = False
                     tn = None
                     # we've made it here, we must transfer this rdef
-                    if block.dag is not None:
-                        # list of reachable block ids
-                        reachable = (
-                            {x for v in dict(nx.bfs_successors(self.cfg['graph'], bid)).values() for x in v})
+
+                    def transfer_(trans):
+                        try:
+                            reachable = (
+                                {x for v in dict(nx.bfs_successors(self.cfg['graph'], bid)).values() for x in v})
+                        except nx.NetworkXError as e:
+                            # self.log.warn("Droplet {} is not being disposed or saved.".format(_def))
+                            return trans
                         for s in reachable:
-                            if transferred:
+                            if trans:
                                 break
                             # get successor block
                             sblock = self.program.functions[root]['blocks'][s]
                             for si in sblock.instructions:
                                 if si.op in {IRInstruction.PHI}:
                                     continue
-                                if transferred:
+                                if trans:
                                     break
                                 x = [x['var'].points_to.name for x in si.uses if type(x['var']) is not Symbol]
                                 if _def in x:
@@ -680,8 +704,13 @@ class MFSimTarget(BaseTarget):
                                     dag_file.write(self.write_transfer(self.tid, _def, True))
                                     tn = TransferNode(self.tid, bid, _def, 'out')
                                     self.tid += 1
-                                    transferred = True
+                                    trans = True
                                     break
+                        return trans
+
+                    if block.dag is not None:
+                        # list of reachable block ids
+                        transferred = transfer_(transferred)
 
                     else:
                         transferred = True
@@ -697,6 +726,7 @@ class MFSimTarget(BaseTarget):
                             self.block_transfers[bid] = {tn}
 
                 dag_file.close()
+                self.num_dags += 1
 
             # now build the conditions, with their expressions and potential transfer droplets
             # COND/EXP cases:
@@ -802,7 +832,8 @@ class MFSimTarget(BaseTarget):
                                                 edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
                                     self.cgid += 1
 
-            cfg_file.write("\nNUMCGS(%s)\n\n" % conditional_groups.__len__())
+            self.num_cgs = conditional_groups.__len__()
+            cfg_file.write("\nNUMCGS(%s)\n\n" % self.num_cgs)
 
             for cg in conditional_groups.values():
                 for val in cg:
