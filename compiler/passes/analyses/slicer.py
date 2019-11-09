@@ -1,3 +1,5 @@
+from colorlog import logging
+
 from compiler.data_structures import Program
 from compiler.passes.analyses.bs_analysis import BSAnalysis
 
@@ -5,7 +7,7 @@ import networkx as nx
 import json
 import matplotlib.pyplot as plt
 from itertools import count
-
+import colorlog.logging
 
 # Internet code to properly import
 try:
@@ -54,6 +56,10 @@ class Slicer(BSAnalysis):
         return {'name': self.name, 'result': None}
 
     def build_def_use_chain(self, program: Program) -> dict:
+        # Trust me, keep this line
+        # Needs colorlog.logging I believe, I used pycharm to import
+        logging.getLogger('matplotlib.font_manager').disabled = True
+
         deps = dict()
         defs = dict()
         uses = list()
@@ -110,21 +116,20 @@ class Slicer(BSAnalysis):
                     # Line Counter
                     i_counter += 1
                     ################### Graph Code ##############################
-                    # "Wait, this just grabs the graph in each block...."
-                    # "Won't this spam picture shows when run on slice2.bs?"
 
-                    # "Yes"
                     pg = program.functions[root]['graph']
-                    for n in pg:
-                        # The actual name 'color' is not needed, we're just getting a numerical
+                    # for n in pg:
                         # Attribute
-                        self.log.warn(pg[n])
+                        # self.log.warn(pg[n])
+                        # The actual name 'color' is not needed, we're just getting a numerical
 
                         # n['color'] = 0
+
+
                     # This does the structural stuff to convert all the values to a colorbar
 
-                    groups = set(nx.get_node_attributes(pg, 'color').values())
-                    mapping = dict(zip(sorted(groups), count()))
+                    #groups = set(nx.get_node_attributes(pg, 'color').values())
+                    # mapping = dict(zip(sorted(groups), count()))
                     nodes = pg.nodes()
                     # If we actually cared about coloring nodes we would do this
                     # colors = [mapping[pg.node[n]['color']] for n in nodes]
@@ -148,19 +153,20 @@ class Slicer(BSAnalysis):
                     #
                     # patchwork - filter
                     # for tree maps
-                    pos = graphviz_layout(pg, prog='patchwork', args='')
-                    # Draws Edges
-                    ec = nx.draw_networkx_edges(pg, pos, alpha=0.2)
-                    # Draws Nodes
-                    # If we actually cared about colors, node_color = colors
-                    nc = nx.draw_networkx_nodes(pg, pos, nodelist=nodes, node_color="blue",
-                                                with_labels=False, node_size=10, cmap=plt.cm.jet)
-                plt.colorbar(nc)
-                plt.axis('off')
-                plt.show()
-                # This might be helpful if you need higher quality, also available in pdf
-                # plt.savefig('slice.png')
-                ##############################################################
+
+            pos = graphviz_layout(pg, prog='dot', args='')
+            # Draws Edges
+            ec = nx.draw_networkx_edges(pg, pos, alpha=0.2)
+            # Draws Nodes
+            # If we actually cared about colors, node_color = colors
+            nc = nx.draw_networkx_nodes(pg, pos, nodelist=nodes, node_color="blue",
+                                        with_labels=False, node_size=10, cmap=plt.cm.jet)
+            plt.colorbar(nc)
+            plt.axis('off')
+            plt.show()
+            # This might be helpful if you need higher quality, also available in pdf
+            # plt.savefig('slice.png')
+            ##############################################################
         # find the possible conflicts
         for u in uses:
             used[u[0]].append(u[1])
