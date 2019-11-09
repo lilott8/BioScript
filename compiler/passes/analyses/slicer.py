@@ -3,7 +3,27 @@ from compiler.passes.analyses.bs_analysis import BSAnalysis
 
 import networkx as nx
 import json
+import matplotlib.pyplot as plt
+from itertools import count
+
+
+# Internet code to properly import
+try:
+    import pygraphviz
+    from networkx.drawing.nx_agraph import graphviz_layout
+except ImportError:
+    try:
+        import pydot
+        from networkx.drawing.nx_pydot import graphviz_layout
+    except ImportError:
+        raise ImportError("This example needs Graphviz and either "
+                          "PyGraphviz or pydot")
+
 from collections import defaultdict
+#TODO: ENSURE YOU HAVE THE ABOVE PACKAGES INSTALLED
+# install graphviz package (apt-get) THEN graphviz(pip) or
+# Install python-graphviz (That should work)
+
 
 # Use-def chain
 # https://en.wikipedia.org/wiki/Use-define_chain
@@ -89,7 +109,58 @@ class Slicer(BSAnalysis):
 
                     # Line Counter
                     i_counter += 1
+                    ################### Graph Code ##############################
+                    # "Wait, this just grabs the graph in each block...."
+                    # "Won't this spam picture shows when run on slice2.bs?"
 
+                    # "Yes"
+                    pg = program.functions[root]['graph']
+                    for n in pg:
+                        # The actual name 'color' is not needed, we're just getting a numerical
+                        # Attribute
+                        self.log.warn(pg[n])
+
+                        # n['color'] = 0
+                    # This does the structural stuff to convert all the values to a colorbar
+
+                    groups = set(nx.get_node_attributes(pg, 'color').values())
+                    mapping = dict(zip(sorted(groups), count()))
+                    nodes = pg.nodes()
+                    # If we actually cared about coloring nodes we would do this
+                    # colors = [mapping[pg.node[n]['color']] for n in nodes]
+                    # dot - filter
+                    # for drawing directed graphs
+                    #
+                    # neato - filter
+                    # for drawing undirected graphs
+                    #
+                    # twopi - filter
+                    # for radial layouts of graphs
+                    #
+                    # circo - filter
+                    # for circular layout of graphs
+                    #
+                    # fdp - filter
+                    # for drawing undirected graphs
+                    #
+                    # sfdp - filter
+                    # for drawing large undirected graphs
+                    #
+                    # patchwork - filter
+                    # for tree maps
+                    pos = graphviz_layout(pg, prog='patchwork', args='')
+                    # Draws Edges
+                    ec = nx.draw_networkx_edges(pg, pos, alpha=0.2)
+                    # Draws Nodes
+                    # If we actually cared about colors, node_color = colors
+                    nc = nx.draw_networkx_nodes(pg, pos, nodelist=nodes, node_color="blue",
+                                                with_labels=False, node_size=10, cmap=plt.cm.jet)
+                plt.colorbar(nc)
+                plt.axis('off')
+                plt.show()
+                # This might be helpful if you need higher quality, also available in pdf
+                # plt.savefig('slice.png')
+                ##############################################################
         # find the possible conflicts
         for u in uses:
             used[u[0]].append(u[1])
