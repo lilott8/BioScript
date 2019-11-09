@@ -20,6 +20,9 @@ except ImportError:
                           "PyGraphviz or pydot")
 
 from collections import defaultdict
+#TODO: ENSURE YOU HAVE THE ABOVE PACKAGES INSTALLED
+# install graphviz package (apt-get) THEN graphviz(pip) or
+# Install python-graphviz (That should work)
 
 # Use-def chain
 # https://en.wikipedia.org/wiki/Use-define_chain
