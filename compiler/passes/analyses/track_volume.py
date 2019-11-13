@@ -11,8 +11,9 @@ class VolumeTracker(BSAnalysis):
     def analyze(self, program: Program) -> dict: # The main function of the class
         print("Now tracking volume...")          # Debugging statement
 
-        for n, d in program.bb_graph.nodes(data=True): # Try and iterate through the basic blocks in program
-            print(n)
-            print(str("Type of d: " + str(type(d))))
-            print(d)
+        for root in self.program.functions:
+            for nid, block in self.program.functions[root]['blocks'].items():
+                print(type(nid))
+                print(block.instructions)
+
         return {'name': self.name, 'result': None} # Not sure what is going on here, but its needed to prevent a crash
