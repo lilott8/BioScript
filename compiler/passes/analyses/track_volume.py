@@ -11,9 +11,11 @@ class VolumeTracker(BSAnalysis):
     def analyze(self, program: Program) -> dict: # The main function of the class
         print("Now tracking volume...")          # Debugging statement
 
-        for root in self.program.functions:
-            for nid, block in self.program.functions[root]['blocks'].items():
-                print(type(nid))
+        for root in program.functions:
+            for nid, block in program.functions[root]['blocks'].items():
+                print(nid)
                 print(block.instructions)
+                print("Defs: " + str(block.defs))
+                print("Uses: " + str(block.uses))
 
         return {'name': self.name, 'result': None} # Not sure what is going on here, but its needed to prevent a crash
