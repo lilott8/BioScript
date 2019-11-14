@@ -92,14 +92,12 @@ class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
         types = set()
         for t in ctx.typeType():
             types.add(self.visitTypeType(t))
-        x = 1
         return types
 
     def visitTypeType(self, ctx: BSParser.TypeTypeContext):
         if ctx.primitiveType():
             return ChemTypeResolver.string_to_type(self.visitPrimitiveType(ctx.primitiveType()))
         else:
-            x = 1
             return self.visitChemicalType(ctx.chemicalType())
 
     def visitPrimitiveType(self, ctx: BSParser.PrimitiveTypeContext):
@@ -120,7 +118,6 @@ class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
         except ValueError:
             self.log.warning(ctx.INTEGER_LITERAL().__str__() + " has no associated ChemType.  Assigning type UNKNOWN.")
             value = ChemTypes.UNKNOWN
-        x = 1
         return value
 
     # def visitExpression(self, ctx: BSParser.ExpressionContext):
