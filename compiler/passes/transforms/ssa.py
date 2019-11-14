@@ -31,15 +31,15 @@ class SSA(BSTransform):
         self.log.debug(f"Beginning SSA conversion for: {self.program.name}")
         for root in self.program.functions:
             self.build_dominators(root)
-            self.log.debug("Inserting phi nodes.")
+            # self.log.debug("Inserting phi nodes.")
             self.insert_phi_functions(root)
-            self.log.debug("Done inserting phi nodes.")
-            self.log.debug("Renaming variables.")
+            # self.log.debug("Done inserting phi nodes.")
+            # self.log.debug("Renaming variables.")
             self.rename_variables(root)
-            self.log.debug("Done renaming variables.")
-            self.log.debug("Removing direct copy phi nodes.")
+            # self.log.debug("Done renaming variables.")
+            # self.log.debug("Removing direct copy phi nodes.")
             self.remove_copies(root)
-            self.log.debug("Done removing blind copies.")
+            # self.log.debug("Done removing blind copies.")
         self.log.debug(f"Done converting {self.program.name} to SSA form.")
         return self.program
 

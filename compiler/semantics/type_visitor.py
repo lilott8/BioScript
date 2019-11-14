@@ -1,4 +1,3 @@
-import copy
 from enum import IntEnum
 
 from chemicals.chemtypes import ChemTypeResolver, ChemTypes
@@ -25,7 +24,7 @@ class TypeCheckVisitor(BSBaseVisitor):
     def __init__(self, symbol_table, combiner: Combiner, types_used: TypesUsed = TypesUsed.SIMPLE):
         # We deep copy symbol table because we don't
         # want to affect change on the created one.
-        super().__init__(copy.deepcopy(symbol_table), "Type Visitor")
+        super().__init__(symbol_table, "Type Visitor")
         self.smt_string = ""
         self.tab = "\t"
         self.output = None
@@ -148,16 +147,16 @@ class TypeCheckVisitor(BSBaseVisitor):
         self.add_smt(asserts)
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
+        self.log.info(self.symbol_table)
         self.scope_stack.append("main")
 
-        self.visitModuleDeclaration(ctx.moduleDeclaration())
-        self.visitManifestDeclaration(ctx.manifestDeclaration())
-        self.visitStationaryDeclaration(ctx.stationaryDeclaration())
+        # for header in ctx.globalDeclarations():
+        #     self.visitGlobalDeclarations(header)
 
         smt = ""
 
-        for func in ctx.functionDeclaration():
-            smt += self.visitFunctionDeclaration(func)
+        if ctx.functions():
+            self.visitFunctions(ctx.functions())
 
         for statement in ctx.statements():
             smt += self.visitStatements(statement)

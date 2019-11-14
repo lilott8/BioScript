@@ -25,12 +25,18 @@ class HeaderVisitor(BSBaseVisitor):
                                             {ChemTypes.MODULE}))
 
     def visitManifestDeclaration(self, ctx: BSParser.ManifestDeclarationContext):
-        self.symbol_table.add_global(Symbol(ctx.IDENTIFIER().__str__(), self.symbol_table.global_scope,
-                                            self.identifier.identify(ctx.IDENTIFIER().__str__())))
+        symbol = Symbol(ctx.IDENTIFIER().__str__(), self.symbol_table.global_scope, set())
+        if ctx.unionType():
+            symbol.types.update(self.visitUnionType(ctx.unionType()))
+        symbol.types.update(self.identifier.identify(symbol.name, symbol.types))
+        self.symbol_table.add_global(symbol)
 
     def visitStationaryDeclaration(self, ctx: BSParser.StationaryDeclarationContext):
-        self.symbol_table.add_global(Symbol(ctx.IDENTIFIER().__str__(), self.symbol_table.global_scope,
-                                            self.identifier.identify(ctx.IDENTIFIER().__str__())))
+        symbol = Symbol(ctx.IDENTIFIER().__str__(), self.symbol_table.global_scope, set())
+        if ctx.unionType():
+            symbol.types.update(self.visitUnionType(ctx.unionType()))
+        symbol.types.update(self.identifier.identify(symbol.name, symbol.types))
+        self.symbol_table.add_global(symbol)
 
     def visitFunctions(self, ctx: BSParser.FunctionsContext):
         for func in ctx.functionDeclaration():

@@ -6,7 +6,7 @@ from grammar.parsers.python.BSLexer import BSLexer
 from grammar.parsers.python.BSParser import BSParser
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def get_visitor():
     # This allows us to accept arguments to the fixture.
     def _filename(filename: str):
@@ -19,7 +19,7 @@ def get_visitor():
     return _filename
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def get_config():
     def _get_config(args: str):
         if not args:

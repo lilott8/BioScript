@@ -1,6 +1,7 @@
 from timeit import default_timer as timer
 
 import colorlog
+import networkx as nx
 from antlr4 import *
 
 import compiler.config.config as config
@@ -17,7 +18,6 @@ from compiler.targets.target_selector import TargetSelector
 from grammar.parsers.python.BSLexer import BSLexer
 from grammar.parsers.python.BSParser import BSParser
 from solvers.z3_solver import Z3Solver
-import networkx as nx
 
 
 class BSCompiler(object):
@@ -25,7 +25,8 @@ class BSCompiler(object):
     def __init__(self, configuration: config.Config):
         self.config = configuration
         self.log = colorlog.getLogger(self.__class__.__name__)
-        self.log.warning(self.config.input)
+        if self.config.debug:
+            self.log.debug(self.config.input)
         # The symbol table is built in phases,
         # And used in many place, hence it's globalness.
         self.symbol_table = None
@@ -97,18 +98,21 @@ class BSCompiler(object):
         symbol_table = SymbolTable()
         identifier = self.config.identify.get_identifier()
 
+        # Order matters, don't mess with the order, it should be Header, Symbol, Method.
         visitor_passes = [HeaderVisitor(symbol_table, identifier), SymbolTableVisitor(symbol_table, identifier),
                           MethodVisitor(symbol_table)]
 
+        # Then we can add what we need.
         if self.config.typecheck:
             visitor_passes.append(TypeCheckVisitor(symbol_table, self.config.combine.get_combiner(
                 self.config.epa_defs, self.config.abstract_interaction), self.config.types_used))
 
+        # The last should always be the IR.
         visitor_passes.append(IRVisitor(symbol_table))
 
         for visitor in visitor_passes:
             if self.config.debug:
-                self.log.info("Running {} pass.".format(visitor.visitor_name))
+                self.log.debug("Running {} pass.".format(visitor.visitor_name))
             visitor.visit(tree)
 
         ir = visitor_passes[-1]

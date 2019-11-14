@@ -71,10 +71,11 @@ class CompilerCLI(BaseCLI):
         self.config = Config(self.args)
         self.validate_config()
 
-        self.log.warning(self.config.input)
+        if self.config.debug:
+            self.log.debug(self.config.input)
 
     def validate_config(self):
         if self.args.debug:
-            self.log.info('Running in debug mode')
+            self.log.debug('Running in debug mode')
 
         self.log.error("Don't forget to validate configs.")

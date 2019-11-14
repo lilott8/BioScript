@@ -112,7 +112,7 @@ class NaiveIdentifier(Identifier):
     def __init__(self):
         super().__init__()
 
-    def identify(self, search_for: str, types: Set = set()) -> Set:
+    def identify(self, search_for: str, types: Set = set()) -> Set[ChemTypes]:
         if not ChemTypeResolver.is_mat_in_set(types):
             types.add(ChemTypes.MAT)
         return types
