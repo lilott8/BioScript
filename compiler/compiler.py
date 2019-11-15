@@ -17,7 +17,7 @@ from compiler.semantics.type_visitor import TypeCheckVisitor
 from compiler.targets.target_selector import TargetSelector
 from grammar.parsers.python.BSLexer import BSLexer
 from grammar.parsers.python.BSParser import BSParser
-from solvers.z3_solver import Z3Solver
+from z3 import Solver
 
 
 class BSCompiler(object):
@@ -34,14 +34,13 @@ class BSCompiler(object):
         self.program = None
 
     def compile(self):
-        times = {"sa": 0, "opts": 0, "target": 0}
+        times = {"sa": 0, "opts": 0, "target": 0, "tc": 0}
 
         start = timer()
         ir = self.translate(self.config.input)
         times['sa'] = timer() - start
 
         start = timer()
-        # self.log.error("Turning off all optimizations")
         prog = self.optimizations(self.program)
         times['opts'] = timer() - start
 
@@ -100,15 +99,7 @@ class BSCompiler(object):
 
         # Order matters, don't mess with the order, it should be Header, Symbol, Method.
         visitor_passes = [HeaderVisitor(symbol_table, identifier), SymbolTableVisitor(symbol_table, identifier),
-                          MethodVisitor(symbol_table)]
-
-        # Then we can add what we need.
-        if self.config.typecheck:
-            visitor_passes.append(TypeCheckVisitor(symbol_table, self.config.combine.get_combiner(
-                self.config.epa_defs, self.config.abstract_interaction), self.config.types_used))
-
-        # The last should always be the IR.
-        visitor_passes.append(IRVisitor(symbol_table))
+                          MethodVisitor(symbol_table), IRVisitor(symbol_table)]
 
         for visitor in visitor_passes:
             if self.config.debug:
@@ -119,6 +110,8 @@ class BSCompiler(object):
         self.program = Program(functions=ir.functions, config=self.config,
                                symbol_table=ir.symbol_table, bb_graph=ir.graph,
                                name=self.config.input_file, calls=ir.calls)
+
+        self.visit_type_check(tree, ir.symbol_table)
 
         if self.config.write_cfg:
             for root in self.program.functions:
@@ -166,9 +159,21 @@ class BSCompiler(object):
             combiner = self.config.combine.get_combiner(self.config.epa_defs, self.config.abstract_interaction)
             type_checker = TypeCheckVisitor(symbol_table, combiner, self.config.types_used)
             type_checker.visit(tree)
-            z3 = Z3Solver()
-            self.log.info(type_checker.smt_string)
-            if not z3.solve(type_checker.smt_string):
-                raise TypeError("The BioScript program could not be safely type checked.")
+            try:
+                z3 = Solver()
+                z3.set(unsat_core=True)
+                self.log.info(type_checker.smt_string)
+                z3.from_string(type_checker.smt_string)
+
+                if not z3.check():
+                    raise TypeError(f"The program {self.config.input_file}.bs could not be safely type checked.")
+                else:
+                    self.log.info(z3.model())
+            except AttributeError as e:
+                self.log.error(e)
+            except TypeError as a:
+                self.log.critical(a)
+                exit(123)
+
         else:
             self.log.debug("Type checking has been disabled.")
