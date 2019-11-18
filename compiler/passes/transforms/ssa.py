@@ -38,7 +38,7 @@ class SSA(BSTransform):
             self.rename_variables(root)
             self.log.debug("Done renaming variables.")
             self.log.debug("Removing direct copy phi nodes.")
-            self.remove_copies(root)
+            # self.remove_copies(root)
             self.log.debug("Done removing blind copies.")
         self.log.debug(f"Done converting {self.program.name} to SSA form.")
         return self.program
@@ -197,7 +197,7 @@ class SSA(BSTransform):
             if block.phis:
                 x = 0
                 while x < len(block.phis):
-                    if block.instructions[x].op == IRInstruction.PHI:
+                    if block.instructions[x].op == IRInstruction.PHI:  # can cause IndexError: list index out of range
                         if len(block.instructions[x].uses) == 2:
                             for use in block.instructions[x].uses:
                                 if use[-1] == '0':

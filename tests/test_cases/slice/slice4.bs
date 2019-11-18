@@ -1,0 +1,48 @@
+// simple dynamic example
+
+manifest aaa
+manifest bbb
+manifest ccc
+manifest ddd
+manifest eee
+
+instructions:
+
+// def
+a = dispense aaa
+b = dispense bbb
+c = dispense ccc
+d = dispense ddd
+e = dispense eee
+
+// one branch will be taken
+// so used: a, b, c
+if(1 < 2)
+{
+    ab = mix a with b
+
+    if(2 < 3)
+    {
+        cd = mix c with d
+    }
+    else
+    {
+        ce = mix c with e
+    }
+}
+else
+{
+    ac = mix a with c
+
+    if(3 < 4)
+    {
+        bd = mix b with d
+    }
+    else
+    {
+        bd = mix b with e
+    }
+}
+
+f = mix b with c
+

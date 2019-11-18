@@ -138,7 +138,13 @@ class Slicer(BSAnalysis):
             # Draws Nodes
             # If we actually cared about colors, node_color = colors
             nc = nx.draw_networkx_nodes(pg, pos, nodelist=nodes, node_color="blue",
-                                        with_labels=False, node_size=10, cmap=plt.cm.jet)
+                                        with_labels=True, node_size=10, cmap=plt.cm.jet)
+
+            labels = dict()
+            for i in range(1, len(nodes)+1):
+                labels[i] = str(i)
+            nx.draw_networkx_labels(pg, pos, labels, font_size=16)
+
             plt.colorbar(nc)
             plt.axis('off')
             # plt.show()
@@ -167,6 +173,11 @@ class Slicer(BSAnalysis):
             pg = program.functions[root]['graph']
             start = list(pg.nodes())[0]
             finish = list(pg.nodes())[-1]
+            for nid, block in sorted(program.functions[root]['blocks'].items()):
+                for b in block.instructions:
+                    if b.op == IRInstruction.NOP:
+                        finish = list(pg.nodes())[nid-1]
+            # all paths from entry to end of block
             paths = list(nx.all_simple_paths(pg, start, finish))
             if paths == list():  # special case for straight line programs
                 paths = [[1]]
@@ -186,8 +197,8 @@ class Slicer(BSAnalysis):
             total[m] = (remake, mini_use[m])
 
         # print statements with the log format info = green, warn = yellow, error = red
-        # self.log.info("\nDeps: \n{} \nDefs: \n{} \nUses: \n{} \nUsed:  \n{} \nMulti-Used: \n{}\nMini-Used: \n{}\nFinal: \n{}"
-        #               .format(deps, defs, uses, dict(used), dict(many_use), dict(mini_use), total))
+        self.log.info("\nDeps: \n{} \nDefs: \n{} \nUses: \n{} \nUsed:  \n{} \nMulti-Used: \n{}\nMini-Used: \n{}\nFinal: \n{}"
+                      .format(deps, defs, uses, dict(used), dict(many_use), dict(mini_use), total))
 
         # output JSON data file
         for t in total:
