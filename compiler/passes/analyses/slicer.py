@@ -132,18 +132,18 @@ class Slicer(BSAnalysis):
                     # patchwork - filter
                     # for tree maps
 
-            pos = graphviz_layout(pg, prog='dot', args='')
-            # Draws Edges
-            ec = nx.draw_networkx_edges(pg, pos, alpha=0.2)
-            # Draws Nodes
-            # If we actually cared about colors, node_color = colors
-            nc = nx.draw_networkx_nodes(pg, pos, nodelist=nodes, node_color="blue",
-                                        with_labels=False, node_size=10, cmap=plt.cm.jet)
-            plt.colorbar(nc)
-            plt.axis('off')
-            # plt.show()
-            # This might be helpful if you need higher quality, also available in pdf
-            plt.savefig('slice.png')
+            # pos = graphviz_layout(pg, prog='dot', args='')
+            # # Draws Edges
+            # ec = nx.draw_networkx_edges(pg, pos, alpha=0.2)
+            # # Draws Nodes
+            # # If we actually cared about colors, node_color = colors
+            # nc = nx.draw_networkx_nodes(pg, pos, nodelist=nodes, node_color="blue",
+            #                             with_labels=False, node_size=10, cmap=plt.cm.jet)
+            # plt.colorbar(nc)
+            # plt.axis('off')
+            # # plt.show()
+            # # This might be helpful if you need higher quality, also available in pdf
+            # plt.savefig('slice.png')
             ##############################################################
 
         # find the possible conflicts
@@ -181,19 +181,23 @@ class Slicer(BSAnalysis):
 
         # var : (instructions, position)
         total = dict()
+        total['Double-Use Instructions'] = []
         for m in mini_use:
             remake = [d.strip() for d in deps[m]]
-            total[m] = (remake, mini_use[m])
+            total['Double-Use Instructions'].append({
+            'Variable Name':m,
+            'Define-Instruction':remake,
+            'Use-Instruction (Block, Line)': list(mini_use[m])})
 
         # print statements with the log format info = green, warn = yellow, error = red
         # self.log.info("\nDeps: \n{} \nDefs: \n{} \nUses: \n{} \nUsed:  \n{} \nMulti-Used: \n{}\nMini-Used: \n{}\nFinal: \n{}"
         #               .format(deps, defs, uses, dict(used), dict(many_use), dict(mini_use), total))
 
         # output JSON data file
-        for t in total:
-            use_json[t] = "{}".format(total[t])
-        with open('data.txt', 'w') as outfile:
-            json.dump(use_json, outfile)
+        # for t in total:
+        #     use_json[t] = "{}".format(total[t])
+        with open('data.json', 'w') as outfile:
+            json.dump(total, outfile)
 
         return use_json
 
