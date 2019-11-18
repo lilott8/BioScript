@@ -95,42 +95,9 @@ class Slicer(BSAnalysis):
                     # Line Counter
                     i_counter += 1
 
-                    ################### Graph Code ##############################
+            # -------------------- Graph Code -------------------- #
                     pg = program.functions[root]['graph']
-                    # for n in pg:
-                        # Attribute
-                        # self.log.warn(pg[n])
-                        # The actual name 'color' is not needed, we're just getting a numerical
-
-                        # n['color'] = 0
-
-                    # This does the structural stuff to convert all the values to a colorbar
-
-                    #groups = set(nx.get_node_attributes(pg, 'color').values())
-                    # mapping = dict(zip(sorted(groups), count()))
                     nodes = pg.nodes()
-                    # If we actually cared about coloring nodes we would do this
-                    # colors = [mapping[pg.node[n]['color']] for n in nodes]
-                    # dot - filter
-                    # for drawing directed graphs
-                    #
-                    # neato - filter
-                    # for drawing undirected graphs
-                    #
-                    # twopi - filter
-                    # for radial layouts of graphs
-                    #
-                    # circo - filter
-                    # for circular layout of graphs
-                    #
-                    # fdp - filter
-                    # for drawing undirected graphs
-                    #
-                    # sfdp - filter
-                    # for drawing large undirected graphs
-                    #
-                    # patchwork - filter
-                    # for tree maps
 
             pos = graphviz_layout(pg, prog='dot', args='')
             # Draws Edges
@@ -150,7 +117,7 @@ class Slicer(BSAnalysis):
             # plt.show()
             # This might be helpful if you need higher quality, also available in pdf
             plt.savefig('slice.png')
-            ##############################################################
+            # -------------------- Graph Code -------------------- #
 
         # find the possible conflicts
         for u in uses:
@@ -192,19 +159,23 @@ class Slicer(BSAnalysis):
 
         # var : (instructions, position)
         total = dict()
+        total['Double-Use Instructions'] = []
         for m in mini_use:
             remake = [d.strip() for d in deps[m]]
-            total[m] = (remake, mini_use[m])
+            total['Double-Use Instructions'].append({
+            'Variable Name':m,
+            'Define-Instruction':remake,
+            'Use-Instruction (Block, Line)': list(mini_use[m])})
 
         # print statements with the log format info = green, warn = yellow, error = red
         self.log.info("\nDeps: \n{} \nDefs: \n{} \nUses: \n{} \nUsed:  \n{} \nMulti-Used: \n{}\nMini-Used: \n{}\nFinal: \n{}"
                       .format(deps, defs, uses, dict(used), dict(many_use), dict(mini_use), total))
 
         # output JSON data file
-        for t in total:
-            use_json[t] = "{}".format(total[t])
-        with open('data.txt', 'w') as outfile:
-            json.dump(use_json, outfile)
+        # for t in total:
+        #     use_json[t] = "{}".format(total[t])
+        with open('data.json', 'w') as outfile:
+            json.dump(total, outfile)
 
         return use_json
 
