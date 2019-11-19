@@ -1,0 +1,34 @@
+module mod
+manifest pcr_mixture
+manifest buffer
+
+functions:
+
+instructions:
+
+buf = dispense buffer
+PCRMix = dispense pcr_mixture
+
+pcr_master_mix = mix PCRMix with buf for 10s
+
+heat pcr_master_mix at 80f for 110s
+
+repeat 20 times {
+   heat pcr_master_mix at 60f for 7s
+   heat pcr_master_mix at 90f for 7s
+}
+
+x = detect mod on pcr_master_mix for 30s
+
+if (x <= 1) {
+   dispose pcr_master_mix
+}
+
+repeat 20 times {
+   heat pcr_master_mix at 60f for 5s
+   heat pcr_master_mix at 90f for 6s
+}
+
+heat pcr_master_mix at 80f for 18s
+
+dispose pcr_master_mix

@@ -76,6 +76,9 @@ class Config(object):
         # self.log.warning(args)
         self.debug = args.debug
         self.output = args.output
+        # makes directory if it doesn't exist
+        if args.output:
+            os.makedirs(self.output, exist_ok=True)
         self.print_stats = args.stats
         self.path = os.path.dirname(sys.modules['__main__'].__file__)
         if args.output:

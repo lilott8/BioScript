@@ -271,6 +271,13 @@ class TestStore(FrontEndBase):
 @pytest.mark.math
 class TestMath(FrontEndBase):
 
+    def test_reuse_var(self, get_visitor):
+        file = "test_cases/math/ir_reuse_var.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\tn[0] = 20\n\tn[0] = n[0] - 1\n\tNOP"
+        assert expected == ir.compiled.rstrip()
+
     def test_sisd_assignment(self, get_visitor):
         file = "test_cases/math/ir_assignment_sisd.bs"
         ir = self.get_compiled_ir(get_visitor(file))
@@ -462,6 +469,62 @@ class TestWhileLoop(FrontEndBase):
                    "if 3 < 4\t|\ttrue: jump bsbbw_7_t\t|\tfalse: jump bsbbw_8_f\nbsbbw_7_t:\n\t" \
                    "c[0] = dispense(aaa)\n\tdispose(c[0])\nbsbbw_8_f:\n\t" \
                    "dispose(b[0])\nbsbbw_9_f:\n\tdispose(a[0])\nbsbbw_10_f:\n\tNOP"
+        assert expected == ir.compiled.rstrip()
+
+
+@pytest.mark.repeat_loop
+@pytest.mark.frontend
+@pytest.mark.ir
+@pytest.mark.instructions
+class TestRepeatLoop(FrontEndBase):
+    """
+    Note:  Repeats are translated to while loops in the IR, so tests for while
+           loops should cover repeats, as long as the translation is correct.
+    """
+
+    def test_repeat(self, get_visitor):
+        file = "test_cases/control/ir_repeat_single.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\n\ta[0] = dispense(aaa)\nbsbbr_2_h:\n\t" \
+                   "if REPEAT_3[0] > 0\t|\ttrue: jump bsbbr_3_t\t|" \
+                   "\tfalse: jump bsbbr_4_f\nbsbbr_3_t:\n\t" \
+                   "b[0] = dispense(aaa)\n\tdispose(b[0])\n\t" \
+                   "REPEAT_3[0] = REPEAT_3[0] - 1\nbsbbr_4_f:\n\tdispose(a[0])\n\tNOP"
+        assert expected == ir.compiled.rstrip()
+
+    def test_repeat_sequential(self, get_visitor):
+        file = "test_cases/control/ir_repeat_sequential.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\nbsbbr_2_h:\n\t" \
+                   "if REPEAT_3[0] > 0\t|\ttrue: jump bsbbr_3_t\t|\tfalse: jump bsbbr_4_f\n" \
+                   "bsbbr_3_t:\n\ta[0] = dispense(aaa)\n\tdispose(a[0])\n\t" \
+                   "REPEAT_3[0] = REPEAT_3[0] - 1\n" \
+                   "bsbbr_4_f:\nbsbbr_5_h:\n\t" \
+                   "if REPEAT_3[0] > 0\t|\ttrue: jump bsbbr_6_t\t|\tfalse: jump bsbbr_7_f\n" \
+                   "bsbbr_6_t:\n\ta[0] = dispense(aaa)\n\tdispose(a[0])\n\t" \
+                   "REPEAT_3[0] = REPEAT_3[0] - 1\n" \
+                   "bsbbr_7_f:\n\tNOP"
+
+        assert expected == ir.compiled.rstrip()
+
+    def test_nested_repeat(self, get_visitor):
+        file = "test_cases/control/ir_repeat_nested_repeat.bs"
+        ir = self.get_compiled_ir(get_visitor(file))
+
+        expected = "main:\nbsbbr_2_h:\n\t" \
+                   "if REPEAT_3[0] > 0\t|\ttrue: jump bsbbr_3_t\t|\tfalse: jump bsbbr_10_f\n" \
+                   "bsbbr_3_t:\n\ta[0] = dispense(aaa)\nbsbbr_4_h:\n\t" \
+                   "if REPEAT_3[0] > 0\t|\ttrue: jump bsbbr_5_t\t|\tfalse: jump bsbbr_9_f\n" \
+                   "bsbbr_5_t:\n\tb[0] = dispense(aaa)\nbsbbr_6_h:\n\t" \
+                   "if REPEAT_3[0] > 0\t|\ttrue: jump bsbbr_7_t\t|\tfalse: jump bsbbr_8_f\n" \
+                   "bsbbr_7_t:\n\tc[0] = dispense(aaa)\n\tdispose(c[0])\n\t" \
+                   "REPEAT_3[0] = REPEAT_3[0] - 1\nbsbbr_8_f:\n\t" \
+                   "dispose(b[0])\n\tREPEAT_3[0] = REPEAT_3[0] - 1\nbsbbr_9_f:\n\t" \
+                   "dispose(a[0])\n\tREPEAT_3[0] = REPEAT_3[0] - 1\n" \
+                   "bsbbr_10_f:\n\tNOP"
+
         assert expected == ir.compiled.rstrip()
 
 

@@ -1,11 +1,11 @@
 module fluorescence
-manifest PCR_Master_Mix
 manifest Buffer
 manifest PCRMix
 
 instructions:
-
-PCR_Master_Mix = mix 50uL of PCRMix with 50uL of Buffer
+a = dispense 50 units of PCRMix
+b = dispense 50 units of Buffer
+PCR_Master_Mix = mix a with b
 
 heat PCR_Master_Mix at 94c for 2m
 
@@ -13,7 +13,9 @@ repeat 20 times {
     heat PCR_Master_Mix at 94c for 20s
     heat PCR_Master_Mix at 50c for 40s
 }
+
 DNA_Sensor = detect fluorescence on PCR_Master_Mix for 30s
+
 if (DNA_Sensor <= 85) {
     dispose PCR_Master_Mix
 }
@@ -22,4 +24,5 @@ repeat 20 times {
     heat PCR_Master_Mix at 94c for 20s
     heat PCR_Master_Mix at 50c for 40s
 }
+
 heat PCR_Master_Mix at 70c for 5m
