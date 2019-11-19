@@ -169,7 +169,7 @@ class ChemTypeResolver(object):
                         ChemTypes.SULFITE_AND_THIOSULFATE_SALTS, ChemTypes.OXIMES, ChemTypes.POLYMERIZABLE_COMPOUNDS,
                         ChemTypes.NOT_CHEMICALLY_REACTIVE,
                         ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION, ChemTypes.WATER_AND_AQUEOUS_SOLUTIONS,
-                        ChemTypes.REAL, ChemTypes.NAT, ChemTypes.MODULE}
+                        ChemTypes.REAL, ChemTypes.NAT, ChemTypes.MODULE, ChemTypes.MAT}
 
     _naive_types = {ChemTypes.REAL, ChemTypes.MAT, ChemTypes.NAT, ChemTypes.MODULE}
 

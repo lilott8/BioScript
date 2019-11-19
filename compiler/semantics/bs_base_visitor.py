@@ -205,7 +205,7 @@ class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
         else:
             return self.symbol_table.scope_map[name]
 
-    def resolve_types(self, var: Dict) -> Set:
+    def resolve_types(self, var: Dict, *argv) -> Set:
         """
         Build the typing information for a variable.
         :param var: The variable needing typing information.

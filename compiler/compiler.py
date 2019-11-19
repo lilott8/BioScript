@@ -3,6 +3,7 @@ from timeit import default_timer as timer
 import colorlog
 import networkx as nx
 from antlr4 import *
+from z3 import Solver
 
 import compiler.config.config as config
 from compiler.data_structures.program import Program
@@ -17,7 +18,6 @@ from compiler.semantics.type_visitor import TypeCheckVisitor
 from compiler.targets.target_selector import TargetSelector
 from grammar.parsers.python.BSLexer import BSLexer
 from grammar.parsers.python.BSParser import BSParser
-from z3 import Solver
 
 
 class BSCompiler(object):
@@ -66,7 +66,8 @@ class BSCompiler(object):
             self.log.warning("Not writing any output to disk.")
             if self.log.debug:
                 for key, writable in self.program.write.items():
-                    self.log.info('{}: \n{}'.format(key, writable.content))
+                    # self.log.info('{}: \n{}'.format(key, writable.content))
+                    pass
 
         if self.config.print_stats:
             stats = "\n"
@@ -168,7 +169,7 @@ class BSCompiler(object):
                 if not z3.check():
                     raise TypeError(f"The program {self.config.input_file}.bs could not be safely type checked.")
                 else:
-                    self.log.info(z3.model())
+                    self.log.info(f"The model: \n{z3.model()}")
             except AttributeError as e:
                 self.log.error(e)
             except TypeError as a:

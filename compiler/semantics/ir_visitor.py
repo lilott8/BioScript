@@ -700,7 +700,7 @@ class IRVisitor(BSBaseVisitor):
         ir = Heat(val, val)
         ir.meta.append(TempConstraint(IRInstruction.HEAT, temp['quantity'], temp['units']))
         if time is not None:
-            ir.meta.append(TimeConstraint(IRInstruction.HEAT, time[0], time[1]))
+            ir.meta.append(TimeConstraint(IRInstruction.HEAT, time['quantity'], time['units']))
         self.current_block.add(ir)
 
         # for x in range(use['index']):

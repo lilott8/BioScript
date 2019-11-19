@@ -187,7 +187,7 @@ class SSA(BSTransform):
             '''
             self.rename(self.program.functions[root]['blocks'][successor], root)
         for instruction in block.instructions:
-            if instruction.defs:
+            if instruction.defs and instruction.op != IRInstruction.HEAT:
                 # We must use the old points to name
                 # because we've lost it at this point.
                 self.bookkeeper[instruction.defs['var'].points_to.name]['stack'].pop()

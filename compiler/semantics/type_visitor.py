@@ -35,7 +35,7 @@ class TypeCheckVisitor(BSBaseVisitor):
         self.build_declares()
 
     def get_smt_name(self, var: Symbol, chemtype: ChemTypes = set()) -> str:
-        self.log.info(var)
+        # self.log.info(var)
         string = "{}_{}".format(var.scope, var.name)
         if chemtype:
             string += "_{}".format(chemtype.name)
@@ -61,19 +61,13 @@ class TypeCheckVisitor(BSBaseVisitor):
         asserts = ""
 
         for name, var in self.symbol_table.globals.items():
-            self.log.critical("ADD MAT TO THE LIST OF TYPES.")
             """
             Declare the constants for all global variables.
             """
-            if ChemTypes.UNKNOWN in var.types and ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION in var.types:
-                if len(var.types) > 2:
-                    var.types.remove(ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION)
-                    var.types.remove(ChemTypes.UNKNOWN)
-            else:
-                if ChemTypes.UNKNOWN in var.types and len(var.types) > 1:
-                    var.types.remove(ChemTypes.UNKNOWN)
-                elif ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION in var.types and len(var.types) > 1:
-                    var.types.remove(ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION)
+            if ChemTypes.UNKNOWN in var.types:
+                var.types.remove(ChemTypes.UNKNOWN)
+            if ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION in var.types:
+                var.types.remove(ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION)
 
             declares += f"; Declaring constants for: {self.get_smt_name(var).upper()}{self.nl}"
             for enum in types:
@@ -157,12 +151,12 @@ class TypeCheckVisitor(BSBaseVisitor):
         smt = ""
 
         if ctx.functions():
-            self.visitFunctions(ctx.functions())
+            smt += self.visitFunctions(ctx.functions())
 
         for statement in ctx.statements():
             smt += self.visitStatements(statement)
 
-        smt += "(check-sat)"
+        smt += f"{self.nl}(check-sat)"
         self.add_smt(smt)
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
@@ -368,22 +362,23 @@ class TypeCheckVisitor(BSBaseVisitor):
         return super().visitPrimitiveType(ctx)
 
     def assert_material(self, var: Symbol, is_mat: bool = True) -> str:
-        mats = "; {} is ".format(self.get_smt_name(var))
-        knot1 = knot2 = ""
+        mats = f"; {self.get_smt_name(var)} is a "
+        knot1 = ""
+        knot2 = ""
 
         if is_mat:
-            mats += "a MAT{}".format(self.nl)
+            mats += "MAT{}".format(self.nl)
             knot1 = "{}(not{}".format(self.tab, self.nl)
             knot2 = "{}{}){}".format(self.tab, self.tab, self.nl)
         else:
-            mats += "a NAT/REAL{}".format(self.nl)
+            mats += "NAT/REAL{}".format(self.nl)
 
-        mats += "(assert{}".format(self.nl)
+        mats += f"(assert{self.nl}"
         if is_mat:
             mats += knot1
-        mats += "(or{}{}{}(= {} true)".format(self.tab, self.tab, self.tab, self.get_smt_name(var, ChemTypes.REAL))
-        mats += "{}{}{}(= {} true)".format(self.nl, self.tab, self.tab, self.get_smt_name(var, ChemTypes.NAT))
+        mats += f"{self.tab}{self.tab}(or{self.nl}{self.tab}{self.tab}{self.tab}(= {self.get_smt_name(var, ChemTypes.REAL)} true)"
+        mats += f"{self.nl}{self.tab}{self.tab}{self.tab}(= {self.get_smt_name(var, ChemTypes.NAT)} true){self.nl}"
         if is_mat:
             mats += knot2
-        mats += "{}{}){})".format(self.tab, self.tab, self.nl)
+        mats += "{}){})".format(self.tab, self.nl)
         return mats

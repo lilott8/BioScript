@@ -1,20 +1,26 @@
 manifest ion_exchange_beads
 manifest fluoride_ions_f
 manifest mecn_solution
-manifest VEXZGXHMUGYJMC-UHFFFAOYSA-N
+manifest hydrochloric_acid
 
 instructions:
 
-aa = mix 10uL of ion_exchange_beads with 10uL of fluoride_ions_f for 30s
+ieb = dispense 10 units of ion_exchange_beads
+fif = dispense 10 units of fluoride_ions_f
+
+aa = mix ieb with fif for 30s
 
 heat aa at 100c for 30s
 heat aa at 120c for 30s
 heat aa at 135c for 3m
 
-aa = mix aa with 10uL of mecn_solution for 30s
+ms = dispense 10 units of mecn_solution
+bb = mix aa with ms for 30s
 
-heat aa at 100c for 30s
-heat aa at 120c for 50s
+heat bb at 100c for 30s
+heat bb at 120c for 50s
 
-aa = mix aa with 10uL of VEXZGXHMUGYJMC-UHFFFAOYSA-N for 60s
-heat aa at 60c for 60s
+hcl = dispense 10 units of hydrochloric_acid
+
+cc = mix bb with hcl for 60s
+heat cc at 60c for 60s
