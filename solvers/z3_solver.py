@@ -4,6 +4,7 @@ import z3
 import json
 from functools import reduce
 
+
 class Z3Solver:#(BaseSolver):
 
     def __init__(self):
