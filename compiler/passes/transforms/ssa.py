@@ -101,6 +101,7 @@ class SSA(BSTransform):
                             seen_block.add(dominator)
                     except:
                         print("error1")
+                        print(dominator, needs_phi, seen_block)
                         pass  # FIXME
 
     def rename_variables(self, root: str):
@@ -205,6 +206,7 @@ class SSA(BSTransform):
                 self.rename(self.program.functions[root]['blocks'][successor], root)
             except:
                 print("error2")
+                print(successor, self.dominator_tree[root][block.nid])
                 pass  # FIXME
         for instruction in block.instructions:
             if instruction.defs:
@@ -212,29 +214,26 @@ class SSA(BSTransform):
                 # because we've lost it at this point.
                 try:
                     self.bookkeeper[instruction.defs['var'].points_to.name]['stack'].pop()
-                except:
+                except: # AttributeError: 'Number' object has no attribute 'points_to'
                     print("error3")
+                    print(instruction, self.bookkeeper)
                     pass  # FIXME
 
     def remove_copies(self, root: str):
         for nid, block in self.program.functions[root]['blocks'].items():
             if block.phis:
                 x = 0
-                while x < len(block.phis):
-                    try:
-                        if block.instructions[x].op == IRInstruction.PHI:  # FIXME - can cause IndexError: list index out of range
-                            if len(block.instructions[x].uses) == 2:
-                                for use in block.instructions[x].uses:
-                                    if use[-1] == '0':
-                                        block.instructions.pop(x)
-                                        # We subtract one because popping reduces
-                                        # the size of the array.  This prevents the
-                                        # case where you pop an instruction and try
-                                        # to reference an index out of bounds.
-                                        x -= 1
-                        else:
-                            break
-                    except:
-                        print("error4")
-                        pass  # FIXME
+                while x < len(block.phis) and block.instructions:
+                    if block.instructions[x].op == IRInstruction.PHI:
+                        if len(block.instructions[x].uses) == 2:
+                            for use in block.instructions[x].uses:
+                                if use[-1] == '0':
+                                    block.instructions.pop(x)
+                                    # We subtract one because popping reduces
+                                    # the size of the array.  This prevents the
+                                    # case where you pop an instruction and try
+                                    # to reference an index out of bounds.
+                                    x -= 1
+                    else:
+                        break
                     x += 1

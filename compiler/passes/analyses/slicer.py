@@ -117,7 +117,7 @@ class Slicer(BSAnalysis):
             plt.axis('off')
             # plt.show()
             # This might be helpful if you need higher quality, also available in pdf
-            plt.savefig('slice.png')
+            # plt.savefig('slice.png')
             # -------------------- Graph Code -------------------- #
 
         # TODO: figure out with conditionals, loops, and functions
