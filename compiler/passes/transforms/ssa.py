@@ -101,6 +101,7 @@ class SSA(BSTransform):
                             seen_block.add(dominator)
                     except:
                         print("error1")
+                        print(__import__('sys').exc_info())
                         print(dominator, needs_phi, seen_block)
                         pass  # FIXME
 
@@ -202,12 +203,9 @@ class SSA(BSTransform):
             '''
             This is a child -- or an outgoing edge within the dominator tree.
             '''
-            try:
+            # only do the successors in the same function, prevent KeyError
+            if successor in self.program.functions[root]['blocks']:
                 self.rename(self.program.functions[root]['blocks'][successor], root)
-            except:
-                print("error2")
-                print(successor, self.dominator_tree[root][block.nid])
-                pass  # FIXME
         for instruction in block.instructions:
             if instruction.defs:
                 # We must use the old points to name
@@ -215,8 +213,9 @@ class SSA(BSTransform):
                 try:
                     self.bookkeeper[instruction.defs['var'].points_to.name]['stack'].pop()
                 except: # AttributeError: 'Number' object has no attribute 'points_to'
-                    print("error3")
-                    print(instruction, self.bookkeeper)
+                    print("error2")
+                    print(__import__('sys').exc_info())
+                    print("{}\n{}\n{}\n".format(instruction, instruction.defs, self.bookkeeper))
                     pass  # FIXME
 
     def remove_copies(self, root: str):

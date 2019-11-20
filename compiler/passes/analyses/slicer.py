@@ -24,7 +24,7 @@ except ImportError:
                           "PyGraphviz or pydot")
 
 
-#TODO: ENSURE YOU HAVE THE ABOVE PACKAGES INSTALLED
+# NOTE: ENSURE YOU HAVE THE ABOVE PACKAGES INSTALLED
 # install graphviz package (apt-get) THEN graphviz(pip) or
 # Install python-graphviz (That should work)
 
@@ -82,7 +82,7 @@ class Slicer(BSAnalysis):
                         deps[var] = exp
                         defs[var] = (nid, i_counter)
 
-                    # USE && DEF: MIX, HEAT, SPLIT, ...
+                    # USE && DEF: MIX, HEAT, SPLIT, ... CALL?
                     if instruction.op == IRInstruction.MIX:
                         ins = str(instruction).split('=')
                         var = ins[0].strip()
@@ -93,34 +93,37 @@ class Slicer(BSAnalysis):
                         defs[var] = (nid, i_counter)
                         uses.extend([(parts[0].strip(), (nid, i_counter)), (parts[1].strip(), (nid, i_counter))])
 
+                    if instruction.op == IRInstruction.CALL:
+                        print(str(instruction))
+
                     # Line Counter
                     i_counter += 1
 
             # -------------------- Graph Code -------------------- #
-                    pg = program.functions[root]['graph']
-                    nodes = pg.nodes()
-
-            pos = graphviz_layout(pg, prog='dot', args='')
-            # Draws Edges
-            ec = nx.draw_networkx_edges(pg, pos, alpha=0.2)
-            # Draws Nodes
-            # If we actually cared about colors, node_color = colors
-            nc = nx.draw_networkx_nodes(pg, pos, nodelist=nodes, node_color="blue",
-                                        with_labels=True, node_size=10, cmap=plt.cm.jet)
-
-            labels = dict()
-            for i in range(1, len(nodes)+1):
-                labels[i] = str(i)
-            nx.draw_networkx_labels(pg, pos, labels, font_size=16)
-
-            plt.colorbar(nc)
-            plt.axis('off')
-            # plt.show()
-            # This might be helpful if you need higher quality, also available in pdf
+            #         pg = program.functions[root]['graph']
+            #         nodes = pg.nodes()
+            #
+            # pos = graphviz_layout(pg, prog='dot', args='')
+            # # Draws Edges
+            # ec = nx.draw_networkx_edges(pg, pos, alpha=0.2)
+            # # Draws Nodes
+            # # If we actually cared about colors, node_color = colors
+            # nc = nx.draw_networkx_nodes(pg, pos, nodelist=nodes, node_color="blue",
+            #                             with_labels=True, node_size=10, cmap=plt.cm.jet)
+            #
+            # labels = dict()
+            # for i in range(1, len(nodes)+1):
+            #     labels[i] = str(i)
+            # nx.draw_networkx_labels(pg, pos, labels, font_size=16)
+            #
+            # plt.colorbar(nc)
+            # plt.axis('off')
+            # # plt.show()
+            # # This might be helpful if you need higher quality, also available in pdf
             # plt.savefig('slice.png')
             # -------------------- Graph Code -------------------- #
 
-        # TODO: figure out with conditionals, loops, and functions
+        # TODO: figure out with loops, and functions
         # find the possible conflicts
         for u in uses:
             used[u[0]].append(u[1])
@@ -140,14 +143,14 @@ class Slicer(BSAnalysis):
             pg = program.functions[root]['graph']
             start = list(pg.nodes())[0]
             finish = list(pg.nodes())[-1]  # initially set to the end
-            print(list(sorted(program.functions[root]['blocks'].items())))
+            print(root, list(sorted(program.functions[root]['blocks'].items())))
             for nid, block in sorted(program.functions[root]['blocks'].items()):
                 for b in block.instructions:
                     try:
                         if b.op == IRInstruction.NOP:
                             finish = list(pg.nodes())[nid-1]
                     except:  # out of range errors?
-                        print("help", nid, list(pg.nodes()))
+                        print("SLICE NOP HELP!!", nid, list(pg.nodes()))
                         pass  # FIXME
             # all paths from entry to end of block
             paths = list(nx.all_simple_paths(pg, start, finish))
