@@ -3,9 +3,11 @@ manifest fluid_b
 
 instructions:
 
-a = dispense fluid_a
+a = dispense 50 units of fluid_a
 b = dispense fluid_b
 a_ = dispense fluid_a
+
+heat a at 50c for 10s
 
 c = mix a with b for 10s
 d = mix a with a_ for 10s
