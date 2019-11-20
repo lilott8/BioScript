@@ -4,4 +4,4 @@ instructions:
 
 a = dispense fluid_a
 
-dispose a
+b = split a into 5

@@ -60,22 +60,25 @@ def handle_dispense(self, instructions : dict):
 
     quantity = 10; # This is the default value. I don't have a way of tracking custom volumes, so we will assume everything is default for now.
 
-    if(self.variable_volume.get(instructions['name'], None) != None):
-        
-        if (self.variable_volume[instructions['name']] <= 0):
-            print("Violation found! Cannot dispense into a variable that has already been disposed!")
-            self.violation_found = true;
-            return;
+    # Initialize the structures we will use later on
+    entry = dict() # The dict that will hold our new entry in the variable_volume ds
+    volumes = list() # The list that will holds the volumes stored at each index
 
-        self.variable_volume[instructions['name']] += quantity # There was existing tracking information for the variable, so add 'quantity' to the existing volume
-        print("Appending existing volume...")
-    else:
-        self.variable_volume[instructions['name']] = quantity  # There was no existing tracking information for the variable, so add it to the tracker and initialize its volume to 'quantity'
+
+    volumes.append(quantity)
+
+    # Build the entry dict
+    entry['size'] = instructions['size']
+    entry['volumes'] = volumes
+
+    self.variable_volume[instructions['name']] = entry
+
     print("Handling dispense...")
 
 def handle_dispose(self, instructions : dict):
     if(self.variable_volume.get(instructions['name'], None) != None):
-        self.variable_volume['name'] = -1;
+        self.variable_volume[instructions['name']]['volumes'] = [-1]; # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
+        self.variable_volume[instructions['name']]['size']    = 0;    # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
     else:
         self.violation_found = True;
         print("Violation found! Cannot dispose of a variable that has not been declared")
