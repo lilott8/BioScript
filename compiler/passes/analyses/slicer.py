@@ -59,7 +59,8 @@ class Slicer(BSAnalysis):
         uses = list()
         used = defaultdict(list)
         many_use = defaultdict(list)
-        use_json = dict()
+        mini_use = defaultdict(set)
+        total = dict()
 
         for root in program.functions:
             self.log.info("Function: {}".format(root))
@@ -119,11 +120,11 @@ class Slicer(BSAnalysis):
             plt.savefig('slice.png')
             # -------------------- Graph Code -------------------- #
 
+        # TODO: figure out with conditionals, loops, and functions
         # find the possible conflicts
         for u in uses:
             used[u[0]].append(u[1])
         for u in used:
-            # TODO: figure out with conditionals/loops
             # check if multi use occurred one after the other,
             # but not on the same level like in an if/else
             if len(used[u]) > 1:
@@ -135,15 +136,19 @@ class Slicer(BSAnalysis):
         # take the union of the extra uses on each path
         # if 2 edges goto same node and both use a variable, mark the variable as used
         # if encountered again, then add
-        mini_use = defaultdict(set)
         for root in program.functions:
             pg = program.functions[root]['graph']
             start = list(pg.nodes())[0]
-            finish = list(pg.nodes())[-1]
+            finish = list(pg.nodes())[-1]  # initially set to the end
+            print(list(sorted(program.functions[root]['blocks'].items())))
             for nid, block in sorted(program.functions[root]['blocks'].items()):
                 for b in block.instructions:
-                    if b.op == IRInstruction.NOP:
-                        finish = list(pg.nodes())[nid-1]
+                    try:
+                        if b.op == IRInstruction.NOP:
+                            finish = list(pg.nodes())[nid-1]
+                    except:  # out of range errors?
+                        print("help", nid, list(pg.nodes()))
+                        pass  # FIXME
             # all paths from entry to end of block
             paths = list(nx.all_simple_paths(pg, start, finish))
             if paths == list():  # special case for straight line programs
@@ -158,24 +163,21 @@ class Slicer(BSAnalysis):
                             first_u = True
 
         # var : (instructions, position)
-        total = dict()
         total['Double-Use Instructions'] = []
         for m in mini_use:
             remake = [d.strip() for d in deps[m]]
             total['Double-Use Instructions'].append({
-            'Variable Name':m,
-            'Define-Instruction':remake,
-            'Use-Instruction (Block, Line)': list(mini_use[m])})
+                'Variable Name': m,
+                'Define-Instruction': remake,
+                'Use-Instruction (Block, Line)': list(mini_use[m])})
 
         # print statements with the log format info = green, warn = yellow, error = red
         self.log.info("\nDeps: \n{} \nDefs: \n{} \nUses: \n{} \nUsed:  \n{} \nMulti-Used: \n{}\nMini-Used: \n{}\nFinal: \n{}"
                       .format(deps, defs, uses, dict(used), dict(many_use), dict(mini_use), total))
 
         # output JSON data file
-        # for t in total:
-        #     use_json[t] = "{}".format(total[t])
         with open('data.json', 'w') as outfile:
             json.dump(total, outfile)
 
-        return use_json
+        return total
 

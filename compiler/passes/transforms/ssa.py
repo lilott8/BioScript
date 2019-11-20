@@ -38,7 +38,7 @@ class SSA(BSTransform):
             self.rename_variables(root)
             self.log.debug("Done renaming variables.")
             self.log.debug("Removing direct copy phi nodes.")
-            # self.remove_copies(root)
+            self.remove_copies(root)
             self.log.debug("Done removing blind copies.")
         self.log.debug(f"Done converting {self.program.name} to SSA form.")
         return self.program
@@ -90,14 +90,18 @@ class SSA(BSTransform):
                 # This is Appel's y \in DF[n]
                 for dominator in self.frontier[root][nid]:
                     # This is Appel's a \notin A_{phi}[y]
-                    if dominator not in needs_phi:
-                        phi = Phi(var, [var for x in range(len(self.program.bb_graph.in_edges(dominator)))])
-                        self.program.functions[root]['blocks'][dominator].phis.add(phi)
-                        self.program.functions[root]['blocks'][dominator].instructions.insert(0, phi)
-                        needs_phi.add(dominator)
-                    if dominator not in seen_block:
-                        work_list.add(dominator)
-                        seen_block.add(dominator)
+                    try:
+                        if dominator not in needs_phi:
+                            phi = Phi(var, [var for x in range(len(self.program.bb_graph.in_edges(dominator)))])
+                            self.program.functions[root]['blocks'][dominator].phis.add(phi)
+                            self.program.functions[root]['blocks'][dominator].instructions.insert(0, phi)
+                            needs_phi.add(dominator)
+                        if dominator not in seen_block:
+                            work_list.add(dominator)
+                            seen_block.add(dominator)
+                    except:
+                        print("error1")
+                        pass  # FIXME
 
     def rename_variables(self, root: str):
         """
@@ -126,8 +130,12 @@ class SSA(BSTransform):
                 for x, use in enumerate(instruction.uses):
                     if self.program.symbol_table.is_global(use['name']):
                         continue
-                    renamed = {'name': use['name'] + str(self.bookkeeper[use['name']]['stack'][-1]),
-                               'offset': use['offset'], 'size': use['size'], 'var': None}
+                    try:  # catch errors when use['size'] not in the object
+                        renamed = {'name': use['name'] + str(self.bookkeeper[use['name']]['stack'][-1]),
+                                   'offset': use['offset'], 'size': use['size'], 'var': None}
+                    except:
+                        renamed = {'name': use['name'] + str(self.bookkeeper[use['name']]['stack'][-1]),
+                                   'offset': use['offset'], 'size': -1, 'var': None}
                     renamed_var = RenamedSymbol(renamed['name'],
                                                 self.program.symbol_table.get_symbol(use['name'], root))
                     self.program.symbol_table.add_local_to_scope(renamed_var, root)
@@ -143,11 +151,14 @@ class SSA(BSTransform):
                 # count[deff] = count[deff] + 1
                 # i = count[deff]
                 # stack[deff].push(i)
-                self.bookkeeper[old['name']]['count'] += 1
+                self.bookkeeper[old['name']]['count'] += 1  # might have key errors
                 self.bookkeeper[old['name']]['stack'].append(self.bookkeeper[old['name']]['count'])
-
-                renamed = {'name': old['name'] + str(self.bookkeeper[old['name']]['stack'][-1]),
-                           'offset': old['offset'], 'size': old['size'], 'var': None}
+                try:  # catch errors when old['size'] not in the object
+                    renamed = {'name': old['name'] + str(self.bookkeeper[old['name']]['stack'][-1]),
+                               'offset': old['offset'], 'size': old['size'], 'var': None}
+                except:
+                    renamed = {'name': old['name'] + str(self.bookkeeper[old['name']]['stack'][-1]),
+                               'offset': old['offset'], 'size': -1, 'var': None}
                 renamed_var = RenamedSymbol(renamed['name'], self.program.symbol_table.get_symbol(old['name'], root))
                 self.program.symbol_table.add_local_to_scope(renamed_var, root)
                 # replace deff with deff_i in instruction
@@ -165,7 +176,12 @@ class SSA(BSTransform):
             '''
             This successor is a successor -- or an outgoing edge within the CFG. 
             '''
-            succ_block = self.program.functions[root]['blocks'][successor[1]]
+            # loop until finds the right out edges
+            for func in self.program.functions:
+                try:
+                    succ_block = self.program.functions[func]['blocks'][successor[1]]
+                except:   # try the next function
+                    pass  # actually should do nothing
             # We only care about the PHI nodes of this block
             for instruction in list(filter(lambda instr: instr.op == IRInstruction.PHI, succ_block.instructions)):
                 if isinstance(instruction.defs, dict):
@@ -185,28 +201,40 @@ class SSA(BSTransform):
             '''
             This is a child -- or an outgoing edge within the dominator tree.
             '''
-            self.rename(self.program.functions[root]['blocks'][successor], root)
+            try:
+                self.rename(self.program.functions[root]['blocks'][successor], root)
+            except:
+                print("error2")
+                pass  # FIXME
         for instruction in block.instructions:
             if instruction.defs:
                 # We must use the old points to name
                 # because we've lost it at this point.
-                self.bookkeeper[instruction.defs['var'].points_to.name]['stack'].pop()
+                try:
+                    self.bookkeeper[instruction.defs['var'].points_to.name]['stack'].pop()
+                except:
+                    print("error3")
+                    pass  # FIXME
 
     def remove_copies(self, root: str):
         for nid, block in self.program.functions[root]['blocks'].items():
             if block.phis:
                 x = 0
                 while x < len(block.phis):
-                    if block.instructions[x].op == IRInstruction.PHI:  # can cause IndexError: list index out of range
-                        if len(block.instructions[x].uses) == 2:
-                            for use in block.instructions[x].uses:
-                                if use[-1] == '0':
-                                    block.instructions.pop(x)
-                                    # We subtract one because popping reduces
-                                    # the size of the array.  This prevents the
-                                    # case where you pop an instruction and try
-                                    # to reference an index out of bounds.
-                                    x -= 1
-                    else:
-                        break
+                    try:
+                        if block.instructions[x].op == IRInstruction.PHI:  # FIXME - can cause IndexError: list index out of range
+                            if len(block.instructions[x].uses) == 2:
+                                for use in block.instructions[x].uses:
+                                    if use[-1] == '0':
+                                        block.instructions.pop(x)
+                                        # We subtract one because popping reduces
+                                        # the size of the array.  This prevents the
+                                        # case where you pop an instruction and try
+                                        # to reference an index out of bounds.
+                                        x -= 1
+                        else:
+                            break
+                    except:
+                        print("error4")
+                        pass  # FIXME
                     x += 1

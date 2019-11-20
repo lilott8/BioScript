@@ -222,7 +222,7 @@ class Call(Expression):
         self.label = Label(self.function.name)
 
     def __str__(self):
-        return "{} = {}({})".format(self.defs.name, self.function.name, self.uses)
+        return "{} = {}({})".format(self.defs['name'], self.function.name, self.uses)
 
     def __repr__(self):
         return self.__str__()
