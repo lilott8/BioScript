@@ -1,0 +1,7 @@
+manifest fluid_a
+
+instructions:
+
+a = dispsense fluid_a
+
+a = dispense fluid_a
