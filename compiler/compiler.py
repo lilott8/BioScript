@@ -45,7 +45,7 @@ class BSCompiler(object):
         times['opts'] = timer() - start
 
         start = timer()
-        target = self.target(ir)
+        target = self.target(prog)
         times['target'] = timer() - start
 
         if self.config.target == TargetSelector.INKWELL and self.config.validate_schema:
@@ -133,7 +133,6 @@ class BSCompiler(object):
         passes = PassManager(self.program)
         passes.run_analysis()
         passes.run_transformations()
-        # return passes
         return passes.program
 
     def target(self, program: Program):
