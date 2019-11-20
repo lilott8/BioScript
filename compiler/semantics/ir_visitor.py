@@ -1,11 +1,10 @@
 import networkx as nx
 
-
 from chemicals.chemtypes import ChemTypeResolver
-from compiler.data_structures.variable import Symbol
 from compiler.data_structures.basic_block import BasicBlock
 from compiler.data_structures.ir import *
 from compiler.data_structures.variable import Stationary, Number, Module, Dispensable, Movable
+from compiler.data_structures.variable import Symbol
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import InvalidOperation
@@ -151,8 +150,10 @@ class IRVisitor(BSBaseVisitor):
             self.check_bounds(var)
             if var['index'] == -1 and var['var'].size > 1:
                 var['offset'] = -1
+                var['size'] = var['var'].size
             else:
                 var['offset'] = 0 if var['index'] == -1 else var['index']
+                var['size'] = 1
         return var
 
     def visitParExpression(self, ctx: BSParser.ParExpressionContext):
