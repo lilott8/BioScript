@@ -31,7 +31,16 @@ class VolumeTracker(BSAnalysis):
                     #print(i.defs)
                     #print(i.uses)
                     handle(self, i)
+
+                    if (self.violation_found):
+                        print("Exiting...")
+                        break;
+
                     print(self.variable_volume)
+
+            if (self.violation_found):
+                        print("Exiting...")
+                        break;
 
         return {'name': self.name, 'result': None} # Not sure what is going on here, but its needed to prevent a crash
 
@@ -86,8 +95,47 @@ def handle_dispose(self, instructions : IR):
 def handle_mix(self, instructions : IR):
     print("Handling mix...")
 
-    print("Mixing " + str(instructions.uses[0]['name']) + " and " + str(instructions.uses[1]['name']))
+    # Quantities. This needs to be parsed from somewhere else, but the support doesn't exist. We will assume that the default value is requested for now.
+    quantity_0 = 10 # The quantity of material 0 that is being mixed
+    quantity_1 = 10 # The quantity of variable 1 that is being mixed
 
+    if (instructions.uses[0]['offset'] >= 0):
+        if (quantity_0 > self.variable_volume[instructions.uses[0]['name']]['volumes'][instructions.uses[0]['offset']]):
+            self.violation_found = True;
+            print("Violation found!")
+            return
+    else:
+        if (quantity_0 > sum(self.variable_volume[instructions.uses[0]['name']]['volumes'])):
+            self.violation_found = True;
+            print("Violation found!")
+            return
+
+    if (instructions.uses[1]['offset'] >= 0):
+        if (quantity_1 > self.variable_volume[instructions.uses[1]['name']]['volumes'][instructions.uses[1]['offset']]):
+            self.violation_found = True;
+            print("Violation found!")
+            return
+
+    else:
+        if (quantity_1 > sum(self.variable_volume[instructions.uses[1]['name']]['volumes'])):
+            self.violation_found = True;
+            print("Violation found!")
+            return
+
+    #print("Mixing " + str(instructions.uses[0]['name']) + " and " + str(instructions.uses[1]['name']))
+
+    # Initialize the structures we will use later on
+    entry = dict() # The dict that will hold our new entry in the variable_volume ds
+    volumes = list() # The list that will holds the volumes stored at each index
+
+    volumes.append(quantity_0 + quantity_1) # Add the dispense'd quantity to the volumes list. In this case we assume that size is always 1, so we only do it a single time.
+
+    # Build the entry dict
+    entry['size'] = instructions.defs['size']
+    entry['volumes'] = volumes
+
+    # Add the entry to the volume tracker
+    self.variable_volume[instructions.defs['name']] = entry
 
 def handle_split(self, instructions : IR):
     print("Handling split...")
