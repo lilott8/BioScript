@@ -26,9 +26,10 @@ class VolumeTracker(BSAnalysis):
                 print(program.functions[root]['blocks'][node])
 
                 for i in program.functions[root]['blocks'][node].instructions:
-                    print(type(i))
+                    #print(type(i))
                     #print(i)
-                    print(i.defs)
+                    #print(i.defs)
+                    #print(i.uses)
                     handle(self, i)
                     print(self.variable_volume)
 
@@ -37,56 +38,56 @@ class VolumeTracker(BSAnalysis):
 
 def handle(self, instruction : IR): # The meat of the logic. Just ferries out the functions based on the type of instruction.
     if (type(instruction) == Dispense):
-        handle_dispense(self, instruction.defs)
+        handle_dispense(self, instruction)
         return
 
     if (type(instruction) == Dispose):
-        handle_dispose(self, instruction.defs)
+        handle_dispose(self, instruction)
         return
 
     if (type(instruction) == Mix):
-        handle_mix(self, instruction.defs)
+        handle_mix(self, instruction)
         return
 
     if (type(instruction) == Split):
-        handle_split(self, instruction.defs)
+        handle_split(self, instruction)
         return
 
 
 
 
 
-def handle_dispense(self, instructions : dict):
-
+def handle_dispense(self, instructions : IR):
+    print("Handling dispense...")
     quantity = 10; # This is the default value. I don't have a way of tracking custom volumes, so we will assume everything is default for now.
 
     # Initialize the structures we will use later on
     entry = dict() # The dict that will hold our new entry in the variable_volume ds
     volumes = list() # The list that will holds the volumes stored at each index
 
-
-    volumes.append(quantity)
+    volumes.append(quantity) # Add the dispense'd quantity toi the volumes list. In this case we assume that size is always 1, so we only do it a single time.
 
     # Build the entry dict
-    entry['size'] = instructions['size']
+    entry['size'] = instructions.defs['size']
     entry['volumes'] = volumes
 
-    self.variable_volume[instructions['name']] = entry
+    # Add the entry to the volume tracker
+    self.variable_volume[instructions.defs['name']] = entry
 
-    print("Handling dispense...")
-
-def handle_dispose(self, instructions : dict):
-    if(self.variable_volume.get(instructions['name'], None) != None):
-        self.variable_volume[instructions['name']]['volumes'] = [-1]; # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
-        self.variable_volume[instructions['name']]['size']    = 0;    # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
+def handle_dispose(self, instructions : IR):
+    print("Handling dispose...")
+    if(self.variable_volume.get(instructions.defs['name'], None) != None):
+        self.variable_volume[instructions.defs['name']]['volumes'] = [-1]; # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
+        self.variable_volume[instructions.defs['name']]['size']    = 0;    # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
     else:
         self.violation_found = True;
-        print("Violation found! Cannot dispose of a variable that has not been declared")
+        print("Violation found! Cannot dispose of a variable that has not been declared")    
 
-    print("Handling dispose...")
-
-def handle_mix(self, instructions : dict):
+def handle_mix(self, instructions : IR):
     print("Handling mix...")
 
-def handle_split(self, instructions : dict):
+    print("Mixing " + str(instructions.uses[0]['name']) + " and " + str(instructions.uses[1]['name']))
+
+
+def handle_split(self, instructions : IR):
     print("Handling split...")
