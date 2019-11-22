@@ -1,5 +1,3 @@
-// simple dynamic example
-
 manifest aaa
 manifest bbb
 manifest ccc

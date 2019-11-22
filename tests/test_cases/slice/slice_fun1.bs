@@ -11,4 +11,4 @@ instructions:
 
 a = dispense aaa
 b = foo(a)
-c = foo(a)
+c = foo(a)  // a was already used

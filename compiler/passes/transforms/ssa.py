@@ -93,16 +93,16 @@ class SSA(BSTransform):
                     try:
                         if dominator not in needs_phi:
                             phi = Phi(var, [var for x in range(len(self.program.bb_graph.in_edges(dominator)))])
-                            self.program.functions[root]['blocks'][dominator].phis.add(phi)
+                            self.program.functions[root]['blocks'][dominator].phis.add(phi)  # KeyError here
                             self.program.functions[root]['blocks'][dominator].instructions.insert(0, phi)
                             needs_phi.add(dominator)
                         if dominator not in seen_block:
                             work_list.add(dominator)
                             seen_block.add(dominator)
                     except:
-                        print("error1")
-                        print(__import__('sys').exc_info())
-                        print(dominator, needs_phi, seen_block)
+                        # print("error1")
+                        # print(__import__('sys').exc_info())
+                        # print(dominator, needs_phi, seen_block)
                         pass  # FIXME
 
     def rename_variables(self, root: str):
@@ -117,7 +117,15 @@ class SSA(BSTransform):
             self.bookkeeper[variable] = {'count': 0, 'stack': [0], 'renamed': defaultdict(lambda: 0)}
         # for variable in self.program.symbol_table.globals:
         #     self.bookkeeper[variable] = {'count': 0, 'stack': [0]}
-        self.rename(self.program.functions[root]['blocks'][self.program.functions[root]['entry']], root)
+
+        # want to go over all blocks not just the entry
+        # self.rename(self.program.functions[root]['blocks'][self.program.functions[root]['entry']], root)
+        for b in list(sorted(self.program.functions[root]['blocks'])):
+            try:
+                self.rename(self.program.functions[root]['blocks'][b], root)
+            except:
+                print('what block?')
+                print(b)
 
     def rename(self, block: BasicBlock, root: str):
         """
@@ -128,10 +136,16 @@ class SSA(BSTransform):
         """
         # For each phi function and x = y op z.
         for instruction in block.instructions:
+            print("i: ", instruction)
             if instruction.op != IRInstruction.PHI:
+                print("uses: ", instruction.uses, '\n')
                 for x, use in enumerate(instruction.uses):
                     if self.program.symbol_table.is_global(use['name']):
                         continue
+                    else:
+                        print("hmmm")
+                        print(self.bookkeeper)
+                        print(use, '\n')
                     try:  # catch errors when use['size'] not in the object
                         renamed = {'name': use['name'] + str(self.bookkeeper[use['name']]['stack'][-1]),
                                    'offset': use['offset'], 'size': use['size'], 'var': None}
@@ -143,13 +157,13 @@ class SSA(BSTransform):
                     self.program.symbol_table.add_local_to_scope(renamed_var, root)
                     renamed['var'] = renamed_var
                     instruction.uses[x] = renamed
-                    pass
             if instruction.op in InstructionSet.assignment:
+                print("befr: ", instruction)
                 if instruction.op == IRInstruction.PHI:
                     old = {'name': instruction.defs, 'offset': -1, 'size': -1, 'var': None}
                 else:
                     old = instruction.defs
-
+                print("old : ", old)
                 # count[deff] = count[deff] + 1
                 # i = count[deff]
                 # stack[deff].push(i)
@@ -166,6 +180,7 @@ class SSA(BSTransform):
                 # replace deff with deff_i in instruction
                 renamed['var'] = renamed_var
                 instruction.defs = renamed
+                print("aftr: ", instruction, '\n')
             if instruction.op in {IRInstruction.HEAT, IRInstruction.DISPOSE}:
                 '''
                 This exists because a heat and dispose don't create new definitions.
@@ -184,10 +199,19 @@ class SSA(BSTransform):
                     succ_block = self.program.functions[func]['blocks'][successor[1]]
                 except:   # try the next function
                     pass  # actually should do nothing
+            # print(block)
+            # print(succ_block)
+            # print(succ_block.instructions, '\n')
+
             # We only care about the PHI nodes of this block
             for instruction in list(filter(lambda instr: instr.op == IRInstruction.PHI, succ_block.instructions)):
+            # for instruction in list(succ_block.instructions):
                 if isinstance(instruction.defs, dict):
-                    original_var = instruction.defs['var'].points_to.name
+                    try:
+                        original_var = instruction.defs['var'].points_to.name
+                    except:
+                        original_var = instruction.defs
+                        print("except:\n", instruction.defs, '\n', self.bookkeeper, '\n')
                 else:
                     original_var = instruction.defs
                 use_count = len(instruction.uses)
@@ -195,34 +219,39 @@ class SSA(BSTransform):
                 # replace use[i] with use[i]_i
                 # If the variable has been replaced already,
                 # we don't need to look at this phi node.
-                if self.bookkeeper[original_var]['renamed'][instruction.iid] < use_count:
-                    next_id = self.bookkeeper[original_var]['renamed'][instruction.iid]
-                    instruction.uses[next_id] = f"{original_var}{self.bookkeeper[original_var]['stack'][-1]}"
-                    self.bookkeeper[original_var]['renamed'][instruction.iid] += 1
+                try:
+                    if self.bookkeeper[original_var]['renamed'][instruction.iid] < use_count:
+                        next_id = self.bookkeeper[original_var]['renamed'][instruction.iid]
+                        instruction.uses[next_id] = f"{original_var}{self.bookkeeper[original_var]['stack'][-1]}"
+                        self.bookkeeper[original_var]['renamed'][instruction.iid] += 1
+                except:
+                    pass
         for successor in self.dominator_tree[root][block.nid]:
             '''
             This is a child -- or an outgoing edge within the dominator tree.
             '''
+            print("succs: ", successor, self.program.functions[root]['blocks'])
             # only do the successors in the same function, prevent KeyError
             if successor in self.program.functions[root]['blocks']:
                 self.rename(self.program.functions[root]['blocks'][successor], root)
-        for instruction in block.instructions:
-            if instruction.defs:
-                # We must use the old points to name
-                # because we've lost it at this point.
-                try:
-                    self.bookkeeper[instruction.defs['var'].points_to.name]['stack'].pop()
-                except: # AttributeError: 'Number' object has no attribute 'points_to'
-                    print("error2")
-                    print(__import__('sys').exc_info())
-                    print("{}\n{}\n{}\n".format(instruction, instruction.defs, self.bookkeeper))
-                    pass  # FIXME
+        # for instruction in block.instructions:  # AVOID FOR NOW WHEN DEALING WITH FUNCTIONS...
+        #     if instruction.defs:
+        #         # We must use the old points to name
+        #         # because we've lost it at this point.
+        #         print("d: ", instruction.defs['var'], instruction)
+        #         try:
+        #             self.bookkeeper[instruction.defs['var'].points_to.name]['stack'].pop()
+        #         except: # AttributeError: 'Number' object has no attribute 'points_to'
+        #             # print("error2")
+        #             # print(__import__('sys').exc_info())
+        #             # print("{}\n{}\n{}\n".format(instruction, instruction.defs, self.bookkeeper))
+        #             pass  # FIXME
 
     def remove_copies(self, root: str):
         for nid, block in self.program.functions[root]['blocks'].items():
             if block.phis:
                 x = 0
-                while x < len(block.phis) and block.instructions:
+                while x < len(block.phis) and x < len(block.instructions):  # prevent out of range errors
                     if block.instructions[x].op == IRInstruction.PHI:
                         if len(block.instructions[x].uses) == 2:
                             for use in block.instructions[x].uses:

@@ -94,7 +94,18 @@ class Slicer(BSAnalysis):
                         uses.extend([(parts[0].strip(), (nid, i_counter)), (parts[1].strip(), (nid, i_counter))])
 
                     if instruction.op == IRInstruction.CALL:
-                        print(str(instruction))
+                        ins = str(instruction).split('=')
+                        var = ins[0].strip()
+                        fun = instruction.name
+                        user = list()
+                        for u in instruction.uses:
+                            user.append(u['name'])
+                        exp = fun + '(' + ','.join(user) + ')'
+
+                        deps[var] = exp
+                        defs[var] = (nid, i_counter)
+                        for u in user:
+                            uses.append( (u.strip(), (nid, i_counter)) )
 
                     # Line Counter
                     i_counter += 1
@@ -143,17 +154,23 @@ class Slicer(BSAnalysis):
             pg = program.functions[root]['graph']
             start = list(pg.nodes())[0]
             finish = list(pg.nodes())[-1]  # initially set to the end
+            print("nodes: ", pg.nodes())
             print(root, list(sorted(program.functions[root]['blocks'].items())))
             for nid, block in sorted(program.functions[root]['blocks'].items()):
                 for b in block.instructions:
                     try:
                         if b.op == IRInstruction.NOP:
+                            print(nid, block)
                             finish = list(pg.nodes())[nid-1]
                     except:  # out of range errors?
+                        print(__import__('sys').exc_info())
                         print("SLICE NOP HELP!!", nid, list(pg.nodes()))
+                        finish = start
                         pass  # FIXME
+
             # all paths from entry to end of block
             paths = list(nx.all_simple_paths(pg, start, finish))
+            print(paths)
             if paths == list():  # special case for straight line programs
                 paths = [[1]]
             for var in many_use:             # each func

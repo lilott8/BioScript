@@ -1,0 +1,25 @@
+manifest aaa
+manifest bbb
+manifest ccc
+manifest ddd
+
+instructions:
+
+// def
+a = dispense aaa
+b = dispense bbb
+
+// both branch could be taken
+
+if(1 < 2)
+{
+    c = mix a with b
+    dispose c
+}
+
+if(2 < 3) // a may have been used above
+{
+    d = mix a with b
+    dispose d
+}
+
