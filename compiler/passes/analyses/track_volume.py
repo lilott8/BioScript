@@ -86,21 +86,31 @@ def handle_dispense(self, instructions : IR):
 def handle_dispose(self, instructions : IR): # This is the function that is called when a dispose instruction is found. TODO: Add support for discrete elements in an array
     print("Handling dispose...")
 
-    if(self.variable_volume.get(instructions.defs['name'], None) != None):
+    if (instructions['offset'] >=0):
+        if(self.variable_volume.get(instructions.defs['name'], None) != None):
+            self.variable_volume[instructions.defs['name']]['volumes'][instructions['offset']] = -1 # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
+            #self.variable_volume[instructions['name']]['size']    = 0;    # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
+        else:
+            self.violation_found = True;
+            print("Violation found! Cannot dispose of a variable that has not been declared")   
+    else:
         self.variable_volume[instructions.defs['name']]['volumes'] = [-1]; # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
         self.variable_volume[instructions.defs['name']]['size']    = 0;    # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
-    else:
-        self.violation_found = True;
-        print("Violation found! Cannot dispose of a variable that has not been declared")
 
 def handle_dispose(self, instructions : dict): # This is an internal simulation of the proper dispose function. It is used internally by mix and split when the host variable(s) are destroyed by the execution of the instruction
     print("Handling dispose...")
-    if(self.variable_volume.get(instructions['name'], None) != None):
+    print(instructions)
+
+    if (instructions['offset'] >=0):
+        if(self.variable_volume.get(instructions['name'], None) != None):
+            self.variable_volume[instructions['name']]['volumes'][instructions['offset']] = -1 # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
+            #self.variable_volume[instructions['name']]['size']    = 0;    # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
+        else:
+            self.violation_found = True;
+            print("Violation found! Cannot dispose of a variable that has not been declared")   
+    else:
         self.variable_volume[instructions['name']]['volumes'] = [-1]; # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
         self.variable_volume[instructions['name']]['size']    = 0;    # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
-    else:
-        self.violation_found = True;
-        print("Violation found! Cannot dispose of a variable that has not been declared")   
 
 def handle_mix(self, instructions : IR):
     print("Handling mix...")
