@@ -6,20 +6,20 @@ def test_z3solver():
     table = Z3Tests.build_interaction_table('resources/abstract-interaction.txt')
     safe = functools.partial(Z3Tests.validate, table)
 
-    a = Z3Solver.solve_constraints('resources/chemstor/tetracholorethylene_and_nitric_acid.json', safe)
-    b = Z3Solver.solve_constraints('resources/chemstor/hexane_explosion.json', safe)
-    c = Z3Solver.solve_constraints('resources/chemstor/methanol_and_nitric_acid.json', safe)
-    d = Z3Solver.solve_constraints('resources/chemstor/full_cabinet.json', safe)
-    e = Z3Solver.solve_constraints('resources/chemstor/benzene_urea_benzotricholoride.json', safe_funct=lambda x,y:True, sol=False)
-    f = Z3Solver.solve_constraints('resources/chemstor/combine_two_tests.json', safe_funct=lambda x,y:True)
-    g = Z3Solver.solve_constraints('resources/chemstor/lithium_aluminum_hydride_fire.json')
-    h = Z3Solver.solve_constraints('resources/chemstor/lithium_aluminum_hydride_fire.json', safe_funct=lambda x,y:True)
-    i = Z3Solver.solve_constraints('resources/chemstor/hydrogen_peroxide_sulfuric_acid_acetone.json', safe_funct=lambda x,y:True)
-    j = Z3Solver.solve_constraints('resources/chemstor/hydrogen_peroxide_sulfuric_acid_acetone.json', safe_funct=lambda x,y:False)
-    k = Z3Solver.solve_constraints('resources/chemstor/benzene_formaldehyde.json', safe_funct=lambda x,y:True)
-    l = Z3Solver.solve_constraints('resources/chemstor/benzene_formaldehyde.json', safe_funct=lambda x,y:False)
-    m = Z3Solver.solve_constraints('resources/chemstor/sodium_hydroxide_allyl_ethyl_ether_cycloheptatriene_chlorotrifluormethane_isopropyl_alcohol.json', safe_funct=lambda x,y:True)
-    n = Z3Solver.solve_constraints('resources/chemstor/sodium_hydroxide_allyl_ethyl_ether_cycloheptatriene_chlorotrifluormethane_isopropyl_alcohol.json', safe_funct=lambda x,y:False)
+    a = Z3Solver.solve_constraints('resources/chemstor/tetracholorethylene_and_nitric_acid.json', safe, sol=True)
+    b = Z3Solver.solve_constraints('resources/chemstor/hexane_explosion.json', safe, sol=True)
+    c = Z3Solver.solve_constraints('resources/chemstor/methanol_and_nitric_acid.json', safe, sol=True)
+    d = Z3Solver.solve_constraints('resources/chemstor/full_cabinet.json', safe, sol=True)
+    e = Z3Solver.solve_constraints('resources/chemstor/benzene_urea_benzotricholoride.json', safe_funct=lambda x,y:True, sol=True)
+    f = Z3Solver.solve_constraints('resources/chemstor/combine_two_tests.json', safe_funct=lambda x,y:True, sol=True)
+    g = Z3Solver.solve_constraints('resources/chemstor/lithium_aluminum_hydride_fire.json', sol=True)
+    h = Z3Solver.solve_constraints('resources/chemstor/lithium_aluminum_hydride_fire.json', safe_funct=lambda x,y:True, sol=True)
+    i = Z3Solver.solve_constraints('resources/chemstor/hydrogen_peroxide_sulfuric_acid_acetone.json', safe_funct=lambda x,y:True, sol=True)
+    j = Z3Solver.solve_constraints('resources/chemstor/hydrogen_peroxide_sulfuric_acid_acetone.json', safe_funct=lambda x,y:False, sol=True)
+    k = Z3Solver.solve_constraints('resources/chemstor/benzene_formaldehyde.json', safe_funct=lambda x,y:True, sol=True)
+    l = Z3Solver.solve_constraints('resources/chemstor/benzene_formaldehyde.json', safe_funct=lambda x,y:False, sol=True)
+    m = Z3Solver.solve_constraints('resources/chemstor/sodium_hydroxide_allyl_ethyl_ether_cycloheptatriene_chlorotrifluormethane_isopropyl_alcohol.json', safe_funct=lambda x,y:True, sol=True)
+    n = Z3Solver.solve_constraints('resources/chemstor/sodium_hydroxide_allyl_ethyl_ether_cycloheptatriene_chlorotrifluormethane_isopropyl_alcohol.json', safe_funct=lambda x,y:False, sol=True)
     assert not a
     assert not b
     assert not c
@@ -34,8 +34,7 @@ def test_z3solver():
     assert not l
     assert m
     assert not n
-
-
+    return e, f, h, i, k, m
 
 
 #@pytest.mark.skip
@@ -85,7 +84,5 @@ class Z3Tests(object):
             if t1 in table[t2]:
                 return False
         return True
-
-
 
 
