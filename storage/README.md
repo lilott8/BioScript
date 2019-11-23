@@ -1,7 +1,7 @@
 # ChemStor
 An SMT-based solution for safely storing and disposing of chemicals.
 
-##Usage
+## Usage
 
 usage: 
 ```

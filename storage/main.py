@@ -5,6 +5,19 @@ import colorlog
 
 from storage.config.chemstor_cli import ChemStorCLI
 from storage.solvers.z3_solver import Z3Solver
+from tests.convert.z3_test import *
+
+
+def test():
+
+    array = test_z3solver()
+
+    for test in array:
+        print('TEST')
+        for t in test:
+            (color, volume) = t
+            print('    [BIN] color: %s, volume: %s' % (color, volume))
+        print('\n\n')
 
 
 def main(args):
@@ -21,3 +34,5 @@ if __name__ == '__main__':
 
     # We don't need the first argument.
     main(sys.argv[1:])
+
+
