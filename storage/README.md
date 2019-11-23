@@ -35,7 +35,7 @@ main.py [-h] -i INPUT [-d] [-wd WORKING_DIRECTORY] [-o OUTPUT]
 | --dbaddr          | {IP, Host}    | Address of database.                      |
 | --dbdriver        | {mysql,odbc}  | Database driver.                          |
 
-* The database options aren't really used here.
+\* The database options aren't really used here.
 
 ## Setup
 Please see the installation page for [BioScript](https://github.com/lilott8/BioScript)
