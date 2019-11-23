@@ -1,6 +1,7 @@
-import pytest
 import functools
-from solvers.z3_solver import Z3Solver
+
+from storage.solvers.z3_solver import Z3Solver
+
 
 def test_z3solver():
     table = Z3Tests.build_interaction_table('resources/abstract-interaction.txt')
