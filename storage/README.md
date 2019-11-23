@@ -38,6 +38,7 @@ main.py [-h] -i INPUT [-d] [-wd WORKING_DIRECTORY] [-o OUTPUT]
 \* The database options aren't really used here.
 
 ## Setup
+
 Please see the installation page for [BioScript](https://github.com/lilott8/BioScript)
 
 ## Example Usages
@@ -48,8 +49,16 @@ Provide a simple input: `simple_test.json` and this is ready to go.
 
 This particular test will emit the following:
 
- `[(0,0)]`
+ `{
+    'locations': [(0, 0)], 
+    'chemicals': [
+        volume_of_Ammonium Hydrosulfide_0 = 0,
+        color_of_Ammonium Hydrosulfide_0 = 0
+    ]
+ }`
  
  This is to say, that all input is capable of being stored in the same cabinet on the same shelf.
  There are only two chemicals and one cabinet in this simple example.
  Both are given the "color" of `0`, meaning they are safe should they interact.
+ The output only states that `Ammonium Hydrosulfide` is safe to store in the cabinet given (as there is only one cabinet).  
+ 

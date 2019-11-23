@@ -157,4 +157,5 @@ class Z3Solver(BaseSolver):
                 return str(answer)
             else:
                 model = solver.model()
-                return [(model.evaluate(col), model.evaluate(vol)) for col, vol in zip(color, volume)]
+                return {'locations': [(model.evaluate(col), model.evaluate(vol)) for col, vol in zip(color, volume)],
+                        'chemicals': model}
