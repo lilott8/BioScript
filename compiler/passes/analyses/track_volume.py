@@ -164,4 +164,32 @@ def handle_mix(self, instructions : IR):
     handle_dispose(self, instructions.uses[1])
 
 def handle_split(self, instructions : IR):
+
+    if (get_volume(self, instructions.uses[0]) % instructions.defs['offset'] != 0):
+        self.violation_found = True;
+        print("Violation found!")
+        return
+
     print("Handling split...")
+
+    # Initialize the structures we will use later on
+    entry = dict() # The dict that will hold our new entry in the variable_volume ds
+    volumes = list() # The list that will holds the volumes stored at each index
+    
+    for i in range(instructions.defs['size']): # Since a split should evenly break a variable into a given set of sub-variables, this loop puts volume/num_split of the use into each sub-variable of the def
+        volumes.append(get_volume(self, instructions.uses[0]) / instructions.defs['size'])
+
+    # Build the entry dict
+    entry['size'] = instructions.defs['size']
+    entry['volumes'] = volumes
+
+    # Add the entry to the volume tracker
+    self.variable_volume[instructions.defs['name']] = entry
+
+   
+def get_volume(self, var : dict) -> int: # A helper function that fetch's the volume associated with a given variable's offset. This is not user-guarded, so use sparingly.
+    if (var['offset'] >= 0):
+        return self.variable_volume[var['name']]['volumes'][var['offset']];
+    else:
+        return sum(self.variable_volume[var['name']]['volumes'])
+
