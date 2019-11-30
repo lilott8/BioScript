@@ -1,6 +1,15 @@
 # ChemStor
 An SMT-based solution for safely storing and disposing of chemicals.
 
+## Disclaimer
+
+This is research-grade code.
+While CheStor does have strong mathematical guarantees, the supporting code is intended as an artifact for the accompanying paper.
+In short: use at your own risk, we are not responsible for any negative consequences of using this code in the current form it resides in.
+
+We acknowledge that the input and output is arcane and difficult to decipher.
+We are working to make this easier to use, and easier to understand the output.
+
 ## Usage
 
 usage: 
@@ -43,7 +52,10 @@ Please see the installation page for [BioScript](https://github.com/lilott8/BioS
 
 ## Example Usages
 
-Provide a simple input: `simple_test.json` and this is ready to go.
+We now provide a few simple cases detailing ChemStor's ability to correctly identify a valid storage solution and notify the user that a valid solution doesn't exists.
+
+### Valid Solution
+Provide a simple input: `simple_test.json`:
 
 ```python path/to/BioScript/storage/main.py -i resources/chemstor/simple_test.json```
 
@@ -62,3 +74,19 @@ This particular test will emit the following:
  Both are given the "color" of `0`, meaning they are safe should they interact.
  The output only states that `Ammonium Hydrosulfide` is safe to store in the cabinet given (as there is only one cabinet).  
  
+ ### No Possible Solution
+ 
+ Provide a simple input: `methanol_nitric_acid.json`:
+ 
+ ```python /path/to/BioScript/storage/main.py -i resources/chemstor/methanol_nitric_acid.json```
+ 
+ This particular test will emit the following:
+ 
+ ```
+ChemStore couldn't find a safe, valid solution.
+``` 
+
+ Which is to say that given the constraints, ChemStor couldn't find any configuration that safely stores the input.
+ ### Additional Tests:
+ 
+ [BioScript's resource directory](https://github.com/lilott8/BioScript/tree/master/resources/chemstor) houses the rest of the test cases we use. 
