@@ -23,7 +23,7 @@ class VolumeTracker(BSAnalysis):
 
             print("Functions from graph: ")
             for node, data in program.bb_graph.nodes(data=True):
-                print(program.functions[root]['blocks'][node])
+                #print(program.functions[root]['blocks'][node])
 
                 for i in program.functions[root]['blocks'][node].instructions:
                     #print(type(i))
@@ -123,25 +123,26 @@ def handle_mix(self, instructions : IR):
     if (instructions.uses[0]['offset'] >= 0): # In this case, a discrete offset of 'volumes' is used. Therefore, the value of 'volumes['offset']' must be at least quantity_0
         if (quantity_0 > self.variable_volume[instructions.uses[0]['name']]['volumes'][instructions.uses[0]['offset']]):
             self.violation_found = True;
-            print("Violation found!")
+            print("Violation found! Not enough to mix")
             return
+            
     else: # In this case, offset is -1. That means that we need to use every single drop in whichever index in 'volumes'. Therefore, the sumation of 'volumes' must be at least quantity_0.
         if (quantity_0 > sum(self.variable_volume[instructions.uses[0]['name']]['volumes'])):
             self.violation_found = True;
-            print("Violation found!")
+            print("Violation found! Not enough to mix")
             return
 
     # Perform the same checks for the other use
     if (instructions.uses[1]['offset'] >= 0):
         if (quantity_1 > self.variable_volume[instructions.uses[1]['name']]['volumes'][instructions.uses[1]['offset']]):
             self.violation_found = True;
-            print("Violation found!")
+            print("Violation found! Not enough to mix")
             return
 
     else:
         if (quantity_1 > sum(self.variable_volume[instructions.uses[1]['name']]['volumes'])):
             self.violation_found = True;
-            print("Violation found!")
+            print("Violation found! Not enough to mix")
             return
 
     #print("Mixing " + str(instructions.uses[0]['name']) + " and " + str(instructions.uses[1]['name']))
@@ -185,6 +186,8 @@ def handle_split(self, instructions : IR):
 
     # Add the entry to the volume tracker
     self.variable_volume[instructions.defs['name']] = entry
+
+    handle_dispose(self, instructions.uses[0])
 
    
 def get_volume(self, var : dict) -> int: # A helper function that fetch's the volume associated with a given variable's offset. This is not user-guarded, so use sparingly.

@@ -1,3 +1,4 @@
+manifest expect_pass
 manifest fluid_a
 
 instructions:

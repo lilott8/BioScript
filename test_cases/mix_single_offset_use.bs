@@ -1,0 +1,13 @@
+manifest expect_pass
+
+manifest fluid_a
+manifest fluid_b
+
+instructions:
+
+a = dispense fluid_a
+a_s = split a into 2
+
+b = dispense fluid_b
+
+c = mix a[0] with b
