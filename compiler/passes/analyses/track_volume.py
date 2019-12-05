@@ -86,6 +86,11 @@ def handle_dispense(self, instructions : IR):
 def handle_dispose(self, instructions : IR): # This is the function that is called when a dispose instruction is found. TODO: Add support for discrete elements in an array
     print("Handling dispose...")
 
+    if (instructions.uses[0]['size'] < 1 or get_volume(self, instructions.uses[0]) < 1):
+        self.violation_found = True;
+        print("Violation found! Cannot dispose of an empty variable")
+        return
+
     if (instructions.uses[0]['offset'] >=0):
         if(self.variable_volume.get(instructions.defs['name'], None) != None):
             self.variable_volume[instructions.defs['name']]['volumes'][instructions['offset']] = -1 # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
