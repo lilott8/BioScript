@@ -7,3 +7,5 @@ instructions:
 a = dispense fluid_a
 
 b = split a into 3
+
+dispose b

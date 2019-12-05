@@ -7,3 +7,5 @@ instructions:
 a = dispense fluid_a
 b = dispense fluid_b
 c = mix a with b
+
+dispose c

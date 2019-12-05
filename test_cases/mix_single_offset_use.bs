@@ -1,4 +1,4 @@
-manifest expect_fail
+manifest expect_pass
 
 manifest fluid_a
 manifest fluid_b
@@ -6,8 +6,15 @@ manifest fluid_b
 instructions:
 
 a = dispense fluid_a
-a_s = split a into 2
+a_2 = dispense fluid_a
+
+a_3 = mix a with a_2
+
+a_s = split a_3 into 2
 
 b = dispense fluid_b
 
-c = mix a[0] with b
+c = mix a_s[0] with b
+
+dispose c
+dispose a_s
