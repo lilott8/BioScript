@@ -166,6 +166,11 @@ def handle_mix(self, instructions : IR):
 
 def handle_split(self, instructions : IR):
 
+    if(get_volume(self, instructions.uses[0]) <= 0):
+        self.violation_found = True;
+        print("Violation found!")
+        return;
+
     if (get_volume(self, instructions.uses[0]) % instructions.defs['offset'] != 0):
         self.violation_found = True;
         print("Violation found!")

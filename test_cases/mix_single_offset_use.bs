@@ -1,4 +1,4 @@
-manifest expect_pass
+manifest expect_fail
 
 manifest fluid_a
 manifest fluid_b
