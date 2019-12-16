@@ -2,10 +2,10 @@ manifest fluid_a
 
 instructions:
 
-if (3>3) {
-	a = dispense 10 units of fluid_a
-} else {
+if (3<=3) {
 	a = dispense 5 units of fluid_a
+} else {
+	a = dispense 10 units of fluid_a
 }
 
 b = split a into 5
