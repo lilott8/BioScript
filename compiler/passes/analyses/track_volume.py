@@ -29,10 +29,15 @@ class VolumeTracker(BSAnalysis):
                 #print(program.functions[root]['blocks'][node])
 
                 for i in program.functions[root]['blocks'][node].instructions:
-                    #print(type(i))
-                    #print(i)
-                    #print(i.defs)
-                    #print(i.uses)
+                    #print("type of i: " + str(type(i)))
+
+                    if (type(i) == Phi):
+                        print("Found a Phi node!")
+                        print(i)
+                    #print("i: " + str(i))
+                    #print("defs: " + str(i.defs))
+                    #print("uses: " + str(i.uses))
+
                     handle(self, i)
 
                     if (self.violation_found):
@@ -65,7 +70,32 @@ def handle(self, instruction : IR): # The meat of the logic. Just ferries out th
     if (type(instruction) == Split):
         handle_split(self, instruction)
         return
+    if (type(instruction) == Phi):
+        handle_phi(self, instruction)
 
+# We assume that the variable being created here has the minimum possible volume. This way, the compiler only proceeeds when volume is guarenteed to be correct
+def handle_phi(self, instructions : IR):
+    print("Handling phi...")
+
+    print("defs: " + str(instructions.defs))
+    print("uses: " + str(instructions.uses))
+
+    possible_volumes = []
+
+    for i in range(len(instructions.uses)):
+        possible_volumes.append(min(self.variable_volume[instructions.uses[i]]['volumes']))
+
+    entry = dict() # The dict that will hold our new entry in the variable_volume ds
+    volumes = list() # The list that will holds the volumes stored at each index
+
+    volumes.append(min(possible_volumes)) # Add the dispense'd quantity toi the volumes list. In this case we assume that size is always 1, so we only do it a single time.
+
+    # Build the entry dict
+    entry['size'] = 1
+    entry['volumes'] = volumes
+
+    # Add the entry to the volume tracker
+    self.variable_volume[instructions.defs['name']] = entry
 
 
 def handle_dispense(self, instructions : IR):
