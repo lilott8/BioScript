@@ -11,12 +11,15 @@ class VolumeTracker(BSAnalysis):
 
     violation_found = False
 
+    _program = None;
+
     def __init__(self):
         super().__init__("Volume Tracking") # Sets the name to Volume Tracking?
 
     def analyze(self, program: Program) -> dict: # The main function of the class
-        print("Now tracking volume...")          # Debugging statement
+        print("Now tracking volume...")          # Debugging statement   
 
+        self._program = program
         
 
         for root in program.functions:
@@ -45,6 +48,7 @@ class VolumeTracker(BSAnalysis):
         return {'name': self.name, 'result': None} # Not sure what is going on here, but its needed to prevent a crash
 
 
+
 def handle(self, instruction : IR): # The meat of the logic. Just ferries out the functions based on the type of instruction.
     if (type(instruction) == Dispense):
         handle_dispense(self, instruction)
@@ -64,11 +68,13 @@ def handle(self, instruction : IR): # The meat of the logic. Just ferries out th
 
 
 
-
-
 def handle_dispense(self, instructions : IR):
     print("Handling dispense...")
-    quantity = 10; # This is the default value. I don't have a way of tracking custom volumes, so we will assume everything is default for now.
+
+    #print(type(self._program.symbol_table))
+    quantity = self._program.symbol_table.get_local(instructions.defs['name'], "main").value.volume['quantity']
+
+    #quantity = 10; # This is the default value. I don't have a way of tracking custom volumes, so we will assume everything is default for now.
 
     # Initialize the structures we will use later on
     entry = dict() # The dict that will hold our new entry in the variable_volume ds
@@ -82,6 +88,8 @@ def handle_dispense(self, instructions : IR):
 
     # Add the entry to the volume tracker
     self.variable_volume[instructions.defs['name']] = entry
+
+
 
 def handle_dispose(self, instructions : IR): # This is the function that is called when a dispose instruction is found. TODO: Add support for discrete elements in an array
     print("Handling dispose...")
@@ -102,6 +110,8 @@ def handle_dispose(self, instructions : IR): # This is the function that is call
         self.variable_volume[instructions.defs['name']]['volumes'] = [-1]; # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
         self.variable_volume[instructions.defs['name']]['size']    = 0;    # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
 
+
+
 def _handle_dispose(self, instructions : dict): # This is an internal simulation of the proper dispose function. It is used internally by mix and split when the host variable(s) are destroyed by the execution of the instruction
     print("Handling dispose...")
     #print(instructions)
@@ -118,6 +128,8 @@ def _handle_dispose(self, instructions : dict): # This is an internal simulation
     else:
         self.variable_volume[instructions['name']]['volumes'] = [-1]; # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
         self.variable_volume[instructions['name']]['size']    = 0;    # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
+
+
 
 def handle_mix(self, instructions : IR):
     print("Handling mix...")
@@ -152,8 +164,6 @@ def handle_mix(self, instructions : IR):
             print("Violation found! Not enough to mix")
             return
 
-    #print("Mixing " + str(instructions.uses[0]['name']) + " and " + str(instructions.uses[1]['name']))
-
     # Initialize the structures we will use later on
     entry = dict() # The dict that will hold our new entry in the variable_volume ds
     volumes = list() # The list that will holds the volumes stored at each index
@@ -170,6 +180,8 @@ def handle_mix(self, instructions : IR):
     # Destroy the entries for the two variables that were used
     _handle_dispose(self, instructions.uses[0]) 
     _handle_dispose(self, instructions.uses[1])
+
+
 
 def handle_split(self, instructions : IR):
     print("Handling split...")
@@ -200,7 +212,8 @@ def handle_split(self, instructions : IR):
 
     _handle_dispose(self, instructions.uses[0])
 
-   
+
+
 def get_volume(self, var : dict) -> int: # A helper function that fetch's the volume associated with a given variable's offset. This is not user-guarded, so use sparingly.
     if (var['offset'] >= 0):
         return self.variable_volume[var['name']]['volumes'][var['offset']];

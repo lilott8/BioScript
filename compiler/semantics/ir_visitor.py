@@ -751,10 +751,22 @@ class IRVisitor(BSBaseVisitor):
         else:
             size = deff['index']
 
+        # Grab the declared volume of the variable and store it
+        _volume = 0;
+        if (type(ctx.unitTracker()) != BSParser.UnitTrackerContext):
+            _volume = 10; # Default to 10 if the volume hasn't been explicitly declared
+        else:
+            _volume = int(ctx.unitTracker().INTEGER_LITERAL().__str__())
+
+        #print("Volume: " + str(_volume)) #DEBUG
+
         # We don't have to check here, because this is a dispense.
+
+        #print("Scope_Stack: " + str(self.scope_stack[-1]))
+
         self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = Movable(deff['name'],
                                                                                         size=size,
-                                                                                        volume=10.0)
+                                                                                        volume=_volume)
 
         offset = deff['index'] if deff['index'] != size else -1
 
