@@ -7,14 +7,14 @@ from compiler.data_structures.ir import *
 
 class VolumeTracker(BSAnalysis):
 
+    # Global variables. They need to be delcared out here in order to be accessible via self.*
     variable_volume = dict();                # The dict that will store the volumes of relevent variables
-
     violation_found = False
-
     _program = None;
 
     def __init__(self):
         super().__init__("Volume Tracking") # Sets the name to Volume Tracking?
+        
 
     def analyze(self, program: Program) -> dict: # The main function of the class
 
