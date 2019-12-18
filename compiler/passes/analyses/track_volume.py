@@ -17,34 +17,20 @@ class VolumeTracker(BSAnalysis):
         super().__init__("Volume Tracking") # Sets the name to Volume Tracking?
 
     def analyze(self, program: Program) -> dict: # The main function of the class
-        print("Now tracking volume...")          # Debugging statement   
 
         self._program = program
-        
 
         for root in program.functions:
 
-            print("Functions from graph: ")
             for node, data in program.bb_graph.nodes(data=True):
-                #print(program.functions[root]['blocks'][node])
 
                 for i in program.functions[root]['blocks'][node].instructions:
-                    #print("type of i: " + str(type(i)))
-
-                    if (type(i) == Phi):
-                        print("Found a Phi node!")
-                        print(i)
-                    #print("i: " + str(i))
-                    #print("defs: " + str(i.defs))
-                    #print("uses: " + str(i.uses))
 
                     handle(self, i)
 
                     if (self.violation_found):
                         print("Exiting...")
                         break;
-
-                    print(self.variable_volume)
 
             if (self.violation_found):
                         print("Exiting...")
@@ -75,10 +61,6 @@ def handle(self, instruction : IR): # The meat of the logic. Just ferries out th
 
 # We assume that the variable being created here has the minimum possible volume. This way, the compiler only proceeeds when volume is guarenteed to be correct
 def handle_phi(self, instructions : IR):
-    print("Handling phi...")
-
-    print("defs: " + str(instructions.defs))
-    print("uses: " + str(instructions.uses))
 
     possible_volumes = []
 
@@ -99,12 +81,8 @@ def handle_phi(self, instructions : IR):
 
 
 def handle_dispense(self, instructions : IR):
-    print("Handling dispense...")
 
-    #print(type(self._program.symbol_table))
     quantity = self._program.symbol_table.get_local(instructions.defs['name'], "main").value.volume['quantity']
-
-    #quantity = 10; # This is the default value. I don't have a way of tracking custom volumes, so we will assume everything is default for now.
 
     # Initialize the structures we will use later on
     entry = dict() # The dict that will hold our new entry in the variable_volume ds
@@ -122,20 +100,17 @@ def handle_dispense(self, instructions : IR):
 
 
 def handle_dispose(self, instructions : IR): # This is the function that is called when a dispose instruction is found. TODO: Add support for discrete elements in an array
-    print("Handling dispose...")
 
     if (instructions.uses[0]['size'] < 1 or get_volume(self, instructions.uses[0]) < 1):
         self.violation_found = True;
-        print("Violation found! Cannot dispose of an empty variable")
         return
 
     if (instructions.uses[0]['offset'] >=0):
         if(self.variable_volume.get(instructions.defs['name'], None) != None):
             self.variable_volume[instructions.defs['name']]['volumes'][instructions['offset']] = -1 # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
-            #self.variable_volume[instructions['name']]['size']    = 0;    # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
+
         else:
             self.violation_found = True;
-            print("Violation found! Cannot dispose of a variable that has not been declared")   
     else:
         self.variable_volume[instructions.defs['name']]['volumes'] = [-1]; # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
         self.variable_volume[instructions.defs['name']]['size']    = 0;    # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
@@ -143,10 +118,6 @@ def handle_dispose(self, instructions : IR): # This is the function that is call
 
 
 def _handle_dispose(self, instructions : dict): # This is an internal simulation of the proper dispose function. It is used internally by mix and split when the host variable(s) are destroyed by the execution of the instruction
-    print("Handling dispose...")
-    #print(instructions)
-
-    print(type(instructions))
 
     if (instructions['offset'] >=0):
         if(self.variable_volume.get(instructions['name'], None) != None):
@@ -154,7 +125,7 @@ def _handle_dispose(self, instructions : dict): # This is an internal simulation
             #self.variable_volume[instructions['name']]['size']    = 0;    # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
         else:
             self.violation_found = True;
-            print("Violation found! Cannot dispose of a variable that has not been declared")   
+
     else:
         self.variable_volume[instructions['name']]['volumes'] = [-1]; # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
         self.variable_volume[instructions['name']]['size']    = 0;    # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
@@ -162,7 +133,6 @@ def _handle_dispose(self, instructions : dict): # This is an internal simulation
 
 
 def handle_mix(self, instructions : IR):
-    print("Handling mix...")
 
     # Quantities. This needs to be parsed from somewhere else, but the support doesn't exist. We will assume that the default value is requested for now.
     quantity_0 = 10 # The quantity of material 0 that is being mixed
@@ -172,26 +142,22 @@ def handle_mix(self, instructions : IR):
     if (instructions.uses[0]['offset'] >= 0): # In this case, a discrete offset of 'volumes' is used. Therefore, the value of 'volumes['offset']' must be at least quantity_0
         if (quantity_0 > self.variable_volume[instructions.uses[0]['name']]['volumes'][instructions.uses[0]['offset']]):
             self.violation_found = True;
-            print("Violation found! Not enough to mix")
             return
             
     else: # In this case, offset is -1. That means that we need to use every single drop in whichever index in 'volumes'. Therefore, the sumation of 'volumes' must be at least quantity_0.
         if (quantity_0 > sum(self.variable_volume[instructions.uses[0]['name']]['volumes'])):
             self.violation_found = True;
-            print("Violation found! Not enough to mix")
             return
 
     # Perform the same checks for the other use
     if (instructions.uses[1]['offset'] >= 0):
         if (quantity_1 > self.variable_volume[instructions.uses[1]['name']]['volumes'][instructions.uses[1]['offset']]):
             self.violation_found = True;
-            print("Violation found! Not enough to mix")
             return
 
     else:
         if (quantity_1 > sum(self.variable_volume[instructions.uses[1]['name']]['volumes'])):
             self.violation_found = True;
-            print("Violation found! Not enough to mix")
             return
 
     # Initialize the structures we will use later on
@@ -214,15 +180,12 @@ def handle_mix(self, instructions : IR):
 
 
 def handle_split(self, instructions : IR):
-    print("Handling split...")
 
     if(get_volume(self, instructions.uses[0]) <= 0):
         self.violation_found = True;
-        print("Violation found!")
         return;
 
     if (get_volume(self, instructions.uses[0]) % instructions.defs['size'] != 0):
-        print("Violation found!")
         self.violation_found = True;
         return
 
