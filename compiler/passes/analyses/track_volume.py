@@ -29,14 +29,14 @@ class VolumeTracker(BSAnalysis):
                     handle(self, i)
 
                     if (self.violation_found):
-                        print("Exiting...")
+                        #print("Exiting...")
                         break;
 
             if (self.violation_found):
-                        print("Exiting...")
+                        #print("Exiting...")
                         break;
 
-        return {'name': self.name, 'result': None} # Not sure what is going on here, but its needed to prevent a crash
+        return {'name': self.name, 'result': [self.violation_found, self.variable_volume]} # Returns the relevent results
 
 
 

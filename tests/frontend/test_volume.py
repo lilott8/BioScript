@@ -9,3 +9,13 @@ from tests.frontend.front_end_base import FrontEndBase
 @pytest.mark.volume
 @pytest.mark.dispense
 class TestDispense(FrontEndBase):
+
+	def test_basic(self, get_visitor):
+		file = "test_cases/volume/dispense_volume.bs"
+
+		tree = get_visitor(file)
+
+		vol = self.get_volume(self, tree, file)
+
+		assert vol[0] == False
+		assert sum(vol[1]['a1']['volumes']) == 50

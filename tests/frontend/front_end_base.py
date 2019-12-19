@@ -64,3 +64,14 @@ class FrontEndBase(metaclass=ABCMeta):
                                   config=CompilerCLI(["-d", "-t", "ir", "-i", "TEST_FILE"]).config)))
         target.transform()
         return target
+
+    def get_volume(self, tree, file):
+        ir = self.get_ir(tree)
+        ir = Program(functions=ir.functions, config=CompilerCLI(["-d", "-t", "-i", file, "-o", "output/"]).config,
+                       symbol_table=ir.symbol_table, bb_graph=ir.graph, name=file, calls=ir.calls)
+        pm = PassManager(ir)
+        pm.run_analysis()
+        pm.run_transformations()
+        prog = pm.program
+
+        return prog.analysis['volume_tracking']
