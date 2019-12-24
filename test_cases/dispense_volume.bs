@@ -1,6 +1,0 @@
-manifest expect_pass
-manifest volume_a
-
-instructions:
-
-a = dispense 50 units of volume_a
