@@ -429,9 +429,13 @@ class IRVisitor(BSBaseVisitor):
         # repeat is translated to a while loop as: while (exp > 0);
         # hence, we update exp by decrementing.
         one = self.symbol_table.get_global('CONST_1')
-        self.current_block.add(BinaryOp(left={'name': val['name'], 'offset': 0, 'size': 1, 'var': self.symbol_table.get_local(val['name'])},
-                                        right={'name': one.name, 'offset': 0, 'size': 1, 'var': one},
-                                        op=BinaryOps.SUBTRACT))
+
+        ir = Math({'name': val['name'], 'offset': 0, 'size': 1, 'var': self.symbol_table.get_local(val['name'])},
+                  {'name': val['name'], 'offset': 0, 'size': 1, 'var': self.symbol_table.get_local(val['name'])},
+                  {'name': one.name, 'offset': 0, 'size': 1, 'var': one},
+                  BinaryOps.SUBTRACT)
+
+        self.current_block.add(ir)
 
         # the block statement may contain nested loops
         # If so, the current block is the last false block created for the inner-most loop
