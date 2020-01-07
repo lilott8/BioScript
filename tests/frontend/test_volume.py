@@ -19,3 +19,18 @@ class TestDispense(FrontEndBase):
 
 		assert vol[0] == False
 		assert sum(vol[1]['a1']['volumes']) == 50
+
+	def test_if_else(self, get_visitor):
+
+		file = "test_cases/volume/dispense_if_else.bs"
+
+		tree = get_visitor(file)
+
+		vol = self.get_volume(tree, file)
+
+		assert vol[0] == False
+
+		assert sum(vol[1]['a2']['volumes']) == 10
+
+		for i in range(5):
+			assert vol[1]['b1']['volumes'][i] == 2
