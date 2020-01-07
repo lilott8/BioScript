@@ -5,6 +5,7 @@ from compiler.config.compiler_cli import CompilerCLI
 from compiler.data_structures.basic_block import BasicBlock
 from compiler.data_structures.program import Program
 from compiler.data_structures.symbol_table import SymbolTable
+from compiler.passes.pass_manager import PassManager
 from compiler.semantics.header_visitor import HeaderVisitor
 from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor

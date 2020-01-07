@@ -15,7 +15,7 @@ class TestDispense(FrontEndBase):
 
 		tree = get_visitor(file)
 
-		vol = self.get_volume(self, tree, file)
+		vol = self.get_volume(tree, file)
 
 		assert vol[0] == False
 		assert sum(vol[1]['a1']['volumes']) == 50
