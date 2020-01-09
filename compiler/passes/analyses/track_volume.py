@@ -64,8 +64,7 @@ class VolumeTracker(BSAnalysis):
         entry = dict()  # The dict that will hold our new entry in the variable_volume ds
         volumes = list()  # The list that will holds the volumes stored at each index
 
-        volumes.append(min(
-            possible_volumes))  # Add the dispense'd quantity toi the volumes list. In this case we assume that size is always 1, so we only do it a single time.
+        volumes.append(min(possible_volumes))  # Add the dispense'd quantity toi the volumes list. In this case we assume that size is always 1, so we only do it a single time.
 
         # Build the entry dict
         entry['size'] = 1

@@ -595,6 +595,50 @@ class IRVisitor(BSBaseVisitor):
 
     def visitMix(self, ctx: BSParser.MixContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
+
+        print("Unit Tracker: ")
+        print(ctx.unitTracker())
+
+        # Start of volume parsing
+        _volume = []  # A list that holds all the (if any) units parsed.
+
+        if len(ctx.unitTracker()) == 0:
+            _volume = [10, 10]
+
+        if len(ctx.unitTracker()) == 1:
+
+            print("Children")
+            print(ctx.children)
+
+            pos_unit_tracker = -1;
+            pos_var_def = [];
+
+            for i in range(len(ctx.children)): # Find the relative position of the unit tracker context and variable contexts
+                if type(ctx.children[i]) == BSParser.VariableContext:
+                    pos_var_def.append(i)
+                if type(ctx.children[i]) == BSParser.UnitTrackerContext:
+                    pos_unit_tracker = i
+                print("child: " + str(type(ctx.children[i])))
+                print("pos_var_def: " + str(pos_var_def))
+
+            if min(pos_var_def) > pos_unit_tracker:
+                _volume.append(int(ctx.unitTracker()[0].INTEGER_LITERAL().__str__()))
+                _volume.append(10)
+
+            else:
+                _volume.append(10)
+                _volume.append(int(ctx.unitTracker()[0].INTEGER_LITERAL().__str__()))
+
+        if len(ctx.unitTracker()) == 2:
+            for i in range(2):  # Iterate through the contents of the list returned by unitTracker()
+                if type(ctx.unitTracker()[i]) != BSParser.UnitTrackerContext:
+                    _volume.append(10)  # Default to 10 if the volume hasn't been explicitly declared
+                else:
+                    _volume.append(int(ctx.unitTracker()[i].INTEGER_LITERAL().__str__()))
+
+        print(_volume)
+        # end of volume parsing
+
         symbol = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
 
         if ctx.timeIdentifier():
@@ -628,13 +672,14 @@ class IRVisitor(BSBaseVisitor):
 
         if not symbol.value:
             # Update the symbol in the symbol table with the new value.
-            symbol.value = Movable(deff['name'], size)
+            symbol.value = Movable(deff['name'], size, volume=_volume)
 
         ir = Mix({'name': deff['name'], 'offset': deff['index'], 'size': size, 'var': symbol},
                  {'name': use_a['var'].name, 'offset': use_a['index'], 'size': use_a['var'].size, 'var': use_a['var']},
                  {'name': use_b['var'].name, 'offset': use_b['index'], 'size': use_b['var'].size, 'var': use_b['var']})
         if time_meta:
             ir.meta.append(time_meta)
+
         self.current_block.add(ir)
 
         return None
