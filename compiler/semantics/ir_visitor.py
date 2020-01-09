@@ -1,6 +1,5 @@
 import networkx as nx
 
-
 from chemicals.chemtypes import ChemTypeResolver
 from compiler.data_structures.variable import Symbol
 from compiler.data_structures.basic_block import BasicBlock
@@ -405,10 +404,11 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_edge(self.current_block.nid, header_block.nid)
 
         zero = self.symbol_table.get_global('CONST_0')
-        op = BinaryOp(left={'name': val['name'], 'offset': 0, 'size': 1, 'var': self.symbol_table.get_local(val['name'])},
-                 right={'name': zero.name, 'offset': 0, 'size': 1, 'var': zero},
-                 op=RelationalOps.GT)
-        condition = Conditional(RelationalOps.GT, op.left, op.right)  #Number('Constant_{}'.format(0), 1, 0))
+        op = BinaryOp(
+            left={'name': val['name'], 'offset': 0, 'size': 1, 'var': self.symbol_table.get_local(val['name'])},
+            right={'name': zero.name, 'offset': 0, 'size': 1, 'var': zero},
+            op=RelationalOps.GT)
+        condition = Conditional(RelationalOps.GT, op.left, op.right)  # Number('Constant_{}'.format(0), 1, 0))
         header_block.add(condition)
 
         self.control_stack.append(header_block)
@@ -756,17 +756,13 @@ class IRVisitor(BSBaseVisitor):
             size = deff['index']
 
         # Grab the declared volume of the variable and store it
-        _volume = 0;
-        if (type(ctx.unitTracker()) != BSParser.UnitTrackerContext):
-            _volume = 10; # Default to 10 if the volume hasn't been explicitly declared
+        _volume = 0
+        if type(ctx.unitTracker()) != BSParser.UnitTrackerContext:
+            _volume = 10  # Default to 10 if the volume hasn't been explicitly declared
         else:
             _volume = int(ctx.unitTracker().INTEGER_LITERAL().__str__())
 
-        #print("Volume: " + str(_volume)) #DEBUG
-
         # We don't have to check here, because this is a dispense.
-
-        #print("Scope_Stack: " + str(self.scope_stack[-1]))
 
         self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = Movable(deff['name'],
                                                                                         size=size,
