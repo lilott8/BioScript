@@ -9,6 +9,3 @@ b = split a into 5
 
 c = split a into 5
 
-dispose b
-
-dispose c

@@ -8,4 +8,4 @@ a = dispense 30 units of fluid_a
 
 b = split a into 3
 
-dispose b
+
