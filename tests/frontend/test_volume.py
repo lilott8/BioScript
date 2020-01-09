@@ -135,3 +135,12 @@ class TestSplit(FrontEndBase):
         assert vol[1]['b1']['volumes'][0] == 10
         assert vol[1]['b1']['volumes'][1] == 10
         assert vol[1]['b1']['volumes'][2] == 10
+
+    def test_bad_num(self, get_visitor):
+        file = "test_cases/volume/split_bad_num.bs"
+
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        assert vol[0] == True
