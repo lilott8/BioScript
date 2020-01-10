@@ -19,7 +19,7 @@ class TestDispose(FrontEndBase):
         vol = self.get_volume(tree, file)
 
         assert vol[0] == False
-        assert sum(vol[1]['a1']['volumes']) == -1
+        assert sum(vol[1][-1]['a1']['volumes']) == -1
 
 
 @pytest.mark.frontend
@@ -35,7 +35,7 @@ class TestDispense(FrontEndBase):
         vol = self.get_volume(tree, file)
 
         assert vol[0] == False
-        assert sum(vol[1]['a1']['volumes']) == 50
+        assert sum(vol[1][-1]['a1']['volumes']) == 50
 
 
 
@@ -54,9 +54,9 @@ class TestMix(FrontEndBase):
 
         assert vol[0] == False
 
-        assert sum(vol[1]['a1']['volumes']) == -1
-        assert sum(vol[1]['b1']['volumes']) == -1
-        assert sum(vol[1]['c1']['volumes']) == 20
+        assert sum(vol[1][-1]['a1']['volumes']) == -1
+        assert sum(vol[1][-1]['b1']['volumes']) == -1
+        assert sum(vol[1][-1]['c1']['volumes']) == 20
 
     def test_offset(self, get_visitor):
         file = "test_cases/volume/mix_single_offset_use.bs"
@@ -65,13 +65,13 @@ class TestMix(FrontEndBase):
         vol = self.get_volume(tree, file)
 
         assert vol[0] == False
-        assert sum(vol[1]['a1']['volumes']) == -1
-        assert sum(vol[1]['a_21']['volumes']) == -1
-        assert sum(vol[1]['a_31']['volumes']) == -1
-        assert vol[1]['a_s1']['volumes'][0] == -1
-        assert vol[1]['a_s1']['volumes'][1] == 10
-        assert sum(vol[1]['b1']['volumes']) == -1
-        assert sum(vol[1]['c1']['volumes']) == 20
+        assert sum(vol[1][-1]['a1']['volumes']) == -1
+        assert sum(vol[1][-1]['a_21']['volumes']) == -1
+        assert sum(vol[1][-1]['a_31']['volumes']) == -1
+        assert vol[1][-1]['a_s1']['volumes'][0] == -1
+        assert vol[1][-1]['a_s1']['volumes'][1] == 10
+        assert sum(vol[1][-1]['b1']['volumes']) == -1
+        assert sum(vol[1][-1]['c1']['volumes']) == 20
 
     def test_double_var_use(self, get_visitor):
         file = "test_cases/volume/mix_var_double_use.bs"
@@ -92,11 +92,11 @@ class TestSplit(FrontEndBase):
         vol = self.get_volume(tree, file)
 
         assert vol[0] == False
-        assert sum(vol[1]['a1']['volumes']) == -1
-        assert sum(vol[1]['b1']['volumes']) == 10
+        assert sum(vol[1][-1]['a1']['volumes']) == -1
+        assert sum(vol[1][-1]['b1']['volumes']) == 10
 
         for i in range(5):
-            assert vol[1]['b1']['volumes'][i] == 2
+            assert vol[1][-1]['b1']['volumes'][i] == 2
 
     def test_double_use(self, get_visitor):
         file = "test_cases/volume/split_double_use.bs"
@@ -107,7 +107,7 @@ class TestSplit(FrontEndBase):
 
         assert vol[0] == True
 
-        assert sum(vol[1]['a1']['volumes']) == -1
+        assert sum(vol[1][-1]['a1']['volumes']) == -1
 
     def test_good_num(self, get_visitor):
         file = "test_cases/volume/split_good_num.bs"
@@ -118,11 +118,11 @@ class TestSplit(FrontEndBase):
 
         assert vol[0] == False
 
-        assert sum(vol[1]['a1']['volumes']) == -1
-        assert sum(vol[1]['b1']['volumes']) == 30
-        assert vol[1]['b1']['volumes'][0] == 10
-        assert vol[1]['b1']['volumes'][1] == 10
-        assert vol[1]['b1']['volumes'][2] == 10
+        assert sum(vol[1][-1]['a1']['volumes']) == -1
+        assert sum(vol[1][-1]['b1']['volumes']) == 30
+        assert vol[1][-1]['b1']['volumes'][0] == 10
+        assert vol[1][-1]['b1']['volumes'][1] == 10
+        assert vol[1][-1]['b1']['volumes'][2] == 10
 
     def test_bad_num(self, get_visitor):
         file = "test_cases/volume/split_bad_num.bs"
@@ -142,7 +142,7 @@ class TestSplit(FrontEndBase):
 
         assert vol[0] == False
 
-        assert sum(vol[1]['a2']['volumes']) == 10
+        assert sum(vol[1][-1]['a2']['volumes']) == 10
 
         for i in range(5):
-            assert vol[1]['b1']['volumes'][i] == 2
+            assert vol[1][-1]['b1']['volumes'][i] == 2

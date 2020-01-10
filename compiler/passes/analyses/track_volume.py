@@ -9,7 +9,8 @@ class VolumeTracker(BSAnalysis):
 
     def __init__(self):
         super().__init__("Volume Tracking")  # Sets the name to Volume Tracking?
-        self.variable_volume = dict();  # The dict that will store the volumes of relevent variables
+        self.variable_volume = dict()  # The dict that will store the current volumes of relevant variables
+        self.past_volumes = []     # Stores all past states of volumes
         self.violation_found = False
         self._program = None;
 
@@ -27,6 +28,8 @@ class VolumeTracker(BSAnalysis):
                     print(i)
                     print(self.variable_volume)
 
+                    self.past_volumes.append(self.variable_volume) # After every instruction has been handled, append the current state of the volume tracker to this list
+
                     if self.violation_found:
                         break;
 
@@ -34,7 +37,7 @@ class VolumeTracker(BSAnalysis):
                 break;
 
         return {'name': self.name,
-                'result': [self.violation_found, self.variable_volume]}  # Returns the relevant results
+                'result': [self.violation_found, self.past_volumes]}  # Returns the relevant results
 
     def handle(self,
                instruction: IR):  # The meat of the logic. Just ferries out the functions based on the type of instruction.
@@ -129,23 +132,15 @@ class VolumeTracker(BSAnalysis):
                 'size'] = 0  # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
 
     def handle_mix(self, instructions: IR):
-        # Quantities. This needs to be parsed from somewhere else, but the support doesn't exist. We will assume that the default value is requested for now.
-        encoded_quantity = self._program.symbol_table.get_local(instructions.defs['name'], "main").value.volume['quantity']
+        encoded_quantity = self._program.symbol_table.get_local(instructions.defs['name'], "main").value.volume['quantity'] # The quantity stored in an encoded float value.
 
-        encoded_str = str(int(encoded_quantity))
+        encoded_str = str(int(encoded_quantity)) # Convert to a string to make it easier to parse
 
-        print("Encoded Quantity: " + encoded_str)
+        num_digits_a = int(encoded_str[0]) # Grab the digit marker for the first value
+        num_digits_b = int(encoded_str[1]) # Grab the digit marker for the second value
 
-        print(encoded_str[0])
-        print(encoded_str[1])
-
-        num_digits_a = int(encoded_str[0])
-        num_digits_b = int(encoded_str[1])
-
-        print(encoded_str[2:num_digits_a + 2 - 1])
-
-        quantity_0 = int(encoded_str[2:num_digits_a + 2])
-        quantity_1 = int(encoded_str[num_digits_a + 2: num_digits_a + 2 + num_digits_b])
+        quantity_0 = int(encoded_str[2:num_digits_a + 2]) # Grab the first value
+        quantity_1 = int(encoded_str[num_digits_a + 2: num_digits_a + 2 + num_digits_b]) # Grab the second value
 
         # Check if there is enough volume in the two uses to support the operation
         if instructions.uses[0]['offset'] >= 0:  # In this case, a discrete offset of 'volumes' is used. Therefore, the value of 'volumes['offset']' must be at least quantity_0
@@ -184,9 +179,9 @@ class VolumeTracker(BSAnalysis):
 
         # Adjust the entries for the two variables that were used
         if quantity_0 == self.variable_volume[instructions.uses[0]['name']]['volumes'][instructions.uses[0]['offset']]:
-            self._handle_dispose(instructions.uses[0])
+            self._handle_dispose(instructions.uses[0]) # if the volume is completely used up, destroy the old var
         else:
-            self.variable_volume[instructions.uses[0]['name']]['volumes'][instructions.uses[0]['offset']] -= quantity_0
+            self.variable_volume[instructions.uses[0]['name']]['volumes'][instructions.uses[0]['offset']] -= quantity_0 # If the volume isn't totally used, simply reduce its volume appropriately
 
         if quantity_1 == self.variable_volume[instructions.uses[1]['name']]['volumes'][instructions.uses[1]['offset']]:
             self._handle_dispose(instructions.uses[1])
