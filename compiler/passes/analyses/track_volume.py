@@ -33,9 +33,11 @@ class VolumeTracker(BSAnalysis):
             if self.violation_found:
                 break;
 
-        return {'name': self.name, 'result': [self.violation_found, self.variable_volume]}  # Returns the relevant results
+        return {'name': self.name,
+                'result': [self.violation_found, self.variable_volume]}  # Returns the relevant results
 
-    def handle(self, instruction: IR):  # The meat of the logic. Just ferries out the functions based on the type of instruction.
+    def handle(self,
+               instruction: IR):  # The meat of the logic. Just ferries out the functions based on the type of instruction.
         if type(instruction) == Dispense:
             self.handle_dispense(instruction)
             return
@@ -64,7 +66,8 @@ class VolumeTracker(BSAnalysis):
         entry = dict()  # The dict that will hold our new entry in the variable_volume ds
         volumes = list()  # The list that will holds the volumes stored at each index
 
-        volumes.append(min(possible_volumes))  # Add the dispense'd quantity toi the volumes list. In this case we assume that size is always 1, so we only do it a single time.
+        volumes.append(min(
+            possible_volumes))  # Add the dispense'd quantity toi the volumes list. In this case we assume that size is always 1, so we only do it a single time.
 
         # Build the entry dict
         entry['size'] = 1
@@ -115,8 +118,7 @@ class VolumeTracker(BSAnalysis):
 
         if instructions['offset'] >= 0:
             if self.variable_volume.get(instructions['name'], None) is not None:
-                self.variable_volume[instructions['name']]['volumes'][instructions[
-                    'offset']] = -1  # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
+                self.variable_volume[instructions['name']]['volumes'][instructions['offset']] = -1  # Since volumes is a list, we wrap our single volume data in its own list. This is to avoid any issues when reading a disposed variable's entry down the line
             else:
                 self.violation_found = True
 
@@ -128,8 +130,22 @@ class VolumeTracker(BSAnalysis):
 
     def handle_mix(self, instructions: IR):
         # Quantities. This needs to be parsed from somewhere else, but the support doesn't exist. We will assume that the default value is requested for now.
-        quantity_0 = 10  # The quantity of material 0 that is being mixed
-        quantity_1 = 10  # The quantity of variable 1 that is being mixed
+        encoded_quantity = self._program.symbol_table.get_local(instructions.defs['name'], "main").value.volume['quantity']
+
+        encoded_str = str(int(encoded_quantity))
+
+        print("Encoded Quantity: " + encoded_str)
+
+        print(encoded_str[0])
+        print(encoded_str[1])
+
+        num_digits_a = int(encoded_str[0])
+        num_digits_b = int(encoded_str[1])
+
+        print(encoded_str[2:num_digits_a + 2 - 1])
+
+        quantity_0 = int(encoded_str[2:num_digits_a + 2])
+        quantity_1 = int(encoded_str[num_digits_a + 2: num_digits_a + 2 + num_digits_b])
 
         # Check if there is enough volume in the two uses to support the operation
         if instructions.uses[0]['offset'] >= 0:  # In this case, a discrete offset of 'volumes' is used. Therefore, the value of 'volumes['offset']' must be at least quantity_0
@@ -157,8 +173,7 @@ class VolumeTracker(BSAnalysis):
         entry = dict()  # The dict that will hold our new entry in the variable_volume ds
         volumes = list()  # The list that will holds the volumes stored at each index
 
-        volumes.append(
-            quantity_0 + quantity_1)  # Add the dispense'd quantity to the volumes list. In this case we assume that size is always 1, so we only do it a single time.
+        volumes.append(quantity_0 + quantity_1)  # Add the dispense'd quantity to the volumes list. In this case we assume that size is always 1, so we only do it a single time.
 
         # Build the entry dict
         entry['size'] = instructions.defs['size']
@@ -167,9 +182,16 @@ class VolumeTracker(BSAnalysis):
         # Add the entry to the volume tracker
         self.variable_volume[instructions.defs['name']] = entry
 
-        # Destroy the entries for the two variables that were used
-        self._handle_dispose(instructions.uses[0])
-        self._handle_dispose(instructions.uses[1])
+        # Adjust the entries for the two variables that were used
+        if quantity_0 == self.variable_volume[instructions.uses[0]['name']]['volumes'][instructions.uses[0]['offset']]:
+            self._handle_dispose(instructions.uses[0])
+        else:
+            self.variable_volume[instructions.uses[0]['name']]['volumes'][instructions.uses[0]['offset']] -= quantity_0
+
+        if quantity_1 == self.variable_volume[instructions.uses[1]['name']]['volumes'][instructions.uses[1]['offset']]:
+            self._handle_dispose(instructions.uses[1])
+        else:
+            self.variable_volume[instructions.uses[1]['name']]['volumes'][instructions.uses[1]['offset']] -= quantity_1
 
     def handle_split(self, instructions: IR):
         if self.get_volume(instructions.uses[0]) <= 0:

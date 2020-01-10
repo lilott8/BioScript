@@ -607,27 +607,28 @@ class IRVisitor(BSBaseVisitor):
 
         if len(ctx.unitTracker()) == 1:
 
-            print("Children")
-            print(ctx.children)
+            pos_unit_tracker = -1
+            pos_var_def = []
 
-            pos_unit_tracker = -1;
-            pos_var_def = [];
+            for i in range(
+                    len(ctx.children)):  # Find the relative position of the unit tracker context and variable contexts
 
-            for i in range(len(ctx.children)): # Find the relative position of the unit tracker context and variable contexts
                 if type(ctx.children[i]) == BSParser.VariableContext:
-                    pos_var_def.append(i)
-                if type(ctx.children[i]) == BSParser.UnitTrackerContext:
-                    pos_unit_tracker = i
-                print("child: " + str(type(ctx.children[i])))
-                print("pos_var_def: " + str(pos_var_def))
+                    pos_var_def.append(
+                        i)  # Record the position of all variable contexts. There should always and only be two.
 
-            if min(pos_var_def) > pos_unit_tracker:
-                _volume.append(int(ctx.unitTracker()[0].INTEGER_LITERAL().__str__()))
+                if type(ctx.children[i]) == BSParser.UnitTrackerContext:
+                    pos_unit_tracker = i  # Record the position of the unit tracker context. Since this is the case where only one parameter was passed,there should always and only be one instance in this case.
+
+            if min(pos_var_def) > pos_unit_tracker:  # If the unit tracker appears before the first variable definition
+                _volume.append(int(ctx.unitTracker()[
+                                       0].INTEGER_LITERAL().__str__()))  # Assume that the unit tracker is storing the parameter for the first variable
                 _volume.append(10)
 
             else:
                 _volume.append(10)
-                _volume.append(int(ctx.unitTracker()[0].INTEGER_LITERAL().__str__()))
+                _volume.append(int(ctx.unitTracker()[
+                                       0].INTEGER_LITERAL().__str__()))  # If it isn't the first variable's parameter, it must be the second's.
 
         if len(ctx.unitTracker()) == 2:
             for i in range(2):  # Iterate through the contents of the list returned by unitTracker()
@@ -672,7 +673,18 @@ class IRVisitor(BSBaseVisitor):
 
         if not symbol.value:
             # Update the symbol in the symbol table with the new value.
-            symbol.value = Movable(deff['name'], size, volume=_volume)
+
+            # Encode both volumes into a string. Code goes like so: xyaabb where x = num digits of first number and y equals num digits second number. aa is the first value and bb is the second value
+            # Notably, this format doesn't work for volumes that exceed 9 digits, but considering that is well outside the scope of the hardware, this should do fine.
+            digits_a = len(str(_volume[0]))
+            digits_b = len(str(_volume[1]))
+
+            value_a = str(_volume[0])
+            value_b = str(_volume[1])
+
+            encoded_num = str(digits_a) + str(digits_b) + value_a + value_b
+
+            symbol.value = Movable(deff['name'], size, volume=float(encoded_num)) # pass the encoded number into the symbol table for parsing later
 
         ir = Mix({'name': deff['name'], 'offset': deff['index'], 'size': size, 'var': symbol},
                  {'name': use_a['var'].name, 'offset': use_a['index'], 'size': use_a['var'].size, 'var': use_a['var']},
