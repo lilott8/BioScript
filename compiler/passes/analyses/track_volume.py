@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import networkx as nx
 
 from compiler.data_structures import Program
@@ -28,7 +30,7 @@ class VolumeTracker(BSAnalysis):
                     print(i)
                     print(self.variable_volume)
 
-                    self.past_volumes.append(self.variable_volume) # After every instruction has been handled, append the current state of the volume tracker to this list
+                    self.past_volumes.append(deepcopy(self.variable_volume)) # After every instruction has been handled, append the current state of the volume tracker to this list
 
                     if self.violation_found:
                         break;
@@ -36,6 +38,7 @@ class VolumeTracker(BSAnalysis):
             if self.violation_found:
                 break;
 
+        print(self.past_volumes)
         return {'name': self.name,
                 'result': [self.violation_found, self.past_volumes]}  # Returns the relevant results
 

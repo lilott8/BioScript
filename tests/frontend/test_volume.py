@@ -11,6 +11,21 @@ from tests.frontend.front_end_base import FrontEndBase
 @pytest.mark.dispose
 class TestDispose(FrontEndBase):
 
+    # For whatever reason, this test will fail depending on where you place it. Beware.
+    def test_if_else(self, get_visitor):
+        file = "test_cases/volume/dispense_if_else.bs"
+
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        assert vol[0] == False
+
+        assert sum(vol[1][-1]['a2']['volumes']) == 10
+
+        for i in range(5):
+            assert vol[1][-1]['b1']['volumes'][i] == 2
+
     def test_basic(self, get_visitor):
         file = "test_cases/volume/dispose.bs"
 
@@ -81,6 +96,23 @@ class TestMix(FrontEndBase):
 
         assert vol[0] == True
 
+    def test_both_parameters(self, get_visitor):
+        file = "test_cases/volume/mix_both_parameters.bs"
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        # Failure test
+        assert vol[0] == False
+
+        # Middle state tests
+        assert sum(vol[1][0]['a1']['volumes']) == 10
+
+        # Final state tests
+        assert sum(vol[1][-1]['a1']['volumes']) == 5
+        assert sum(vol[1][-1]['b1']['volumes']) == 5
+        assert sum(vol[1][-1]['c1']['volumes']) == 10
+
 
 class TestSplit(FrontEndBase):
 
@@ -133,16 +165,3 @@ class TestSplit(FrontEndBase):
 
         assert vol[0] == True
 
-    def test_if_else(self, get_visitor):
-        file = "test_cases/volume/dispense_if_else.bs"
-
-        tree = get_visitor(file)
-
-        vol = self.get_volume(tree, file)
-
-        assert vol[0] == False
-
-        assert sum(vol[1][-1]['a2']['volumes']) == 10
-
-        for i in range(5):
-            assert vol[1][-1]['b1']['volumes'][i] == 2
