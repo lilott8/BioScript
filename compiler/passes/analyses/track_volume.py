@@ -80,8 +80,6 @@ class VolumeTracker(BSAnalysis):
         self.variable_volume[instructions.defs['name']] = entry
 
     def handle_dispense(self, instructions: IR):
-        quantity = self._program.symbol_table.get_local(instructions.defs['name'], "main").value.volume['quantity']
-
         name_length = len(instructions.defs['name'])
         name_no_num = instructions.defs['name'][0 : name_length -1]
         name_num_only = instructions.defs['name'][-1]
