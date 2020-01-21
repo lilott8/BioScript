@@ -24,7 +24,7 @@ class TestDispose(FrontEndBase):
         assert sum(vol[1][-1]['a2']['volumes']) == 10
 
         for i in range(5):
-            assert vol[1][-1]['b1']['volumes'][i] == 2
+            assert vol[1][-1]['b1']['volumes'][i] == 1
 
     def test_basic(self, get_visitor):
         file = "test_cases/volume/dispose.bs"
@@ -96,6 +96,46 @@ class TestMix(FrontEndBase):
 
         assert vol[0] == True
 
+    def test_first_parameter(self, get_visitor):
+        file = "test_cases/volume/mix_only_first_parameter.bs"
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        # Failure test
+        assert vol[0] == False
+
+        # Middle state tests
+        assert sum(vol[1][0]['a1']['volumes']) == 10
+
+        assert sum(vol[1][1]['a1']['volumes']) == 10
+        assert sum(vol[1][1]['b1']['volumes']) == 10
+
+        # Final state tests
+        assert sum(vol[1][-1]['a1']['volumes']) == 5
+        assert sum(vol[1][-1]['b1']['volumes']) == -1
+        assert sum(vol[1][-1]['c1']['volumes']) == 15
+
+    def test_second_parameter(self, get_visitor):
+        file = "test_cases/volume/mix_only_last_parameter.bs"
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        # Failure test
+        assert vol[0] == False
+
+        # Middle state tests
+        assert sum(vol[1][0]['a1']['volumes']) == 10
+
+        assert sum(vol[1][1]['a1']['volumes']) == 10
+        assert sum(vol[1][1]['b1']['volumes']) == 10
+
+        # Final state tests
+        assert sum(vol[1][-1]['a1']['volumes']) == -1
+        assert sum(vol[1][-1]['b1']['volumes']) == 5
+        assert sum(vol[1][-1]['c1']['volumes']) == 15
+
     def test_both_parameters(self, get_visitor):
         file = "test_cases/volume/mix_both_parameters.bs"
         tree = get_visitor(file)
@@ -107,6 +147,9 @@ class TestMix(FrontEndBase):
 
         # Middle state tests
         assert sum(vol[1][0]['a1']['volumes']) == 10
+
+        assert sum(vol[1][1]['a1']['volumes']) == 10
+        assert sum(vol[1][1]['b1']['volumes']) == 10
 
         # Final state tests
         assert sum(vol[1][-1]['a1']['volumes']) == 5

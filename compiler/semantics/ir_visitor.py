@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import networkx as nx
 
 from chemicals.chemtypes import ChemTypeResolver
@@ -817,9 +819,14 @@ class IRVisitor(BSBaseVisitor):
         if type(ctx.unitTracker()) != BSParser.UnitTrackerContext:
             _volume = 10  # Default to 10 if the volume hasn't been explicitly declared
         else:
-            _volume = int(ctx.unitTracker().INTEGER_LITERAL().__str__())
+            _volume = deepcopy(int(ctx.unitTracker().INTEGER_LITERAL().__str__()))
 
         # We don't have to check here, because this is a dispense.
+
+        if deff['name'] in self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes:
+            self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes[deff['name']].append(_volume)
+        else:
+            self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes[deff['name']] = [_volume]
 
         self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = Movable(deff['name'],
                                                                                         size=size,

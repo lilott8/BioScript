@@ -67,13 +67,13 @@ class VolumeTracker(BSAnalysis):
         possible_volumes = []
 
         for i in range(len(instructions.uses)):
-            possible_volumes.append(min(self.variable_volume[instructions.uses[i]]['volumes']))
+
+            possible_volumes.append(deepcopy(min(self.variable_volume[instructions.uses[i]]['volumes'])))
 
         entry = dict()  # The dict that will hold our new entry in the variable_volume ds
         volumes = list()  # The list that will holds the volumes stored at each index
 
-        volumes.append(min(
-            possible_volumes))  # Add the dispense'd quantity toi the volumes list. In this case we assume that size is always 1, so we only do it a single time.
+        volumes.append(min(possible_volumes))  # Add the dispense'd quantity toi the volumes list. In this case we assume that size is always 1, so we only do it a single time.
 
         # Build the entry dict
         entry['size'] = 1
@@ -84,6 +84,15 @@ class VolumeTracker(BSAnalysis):
 
     def handle_dispense(self, instructions: IR):
         quantity = self._program.symbol_table.get_local(instructions.defs['name'], "main").value.volume['quantity']
+
+        name_length = len(instructions.defs['name'])
+        name_no_num = instructions.defs['name'][0 : name_length -1]
+        name_num_only = instructions.defs['name'][-1]
+
+        print("Volumes from symbol table")
+        print(self._program.symbol_table.get_local(instructions.defs['name'], "main").volumes)
+
+        quantity = self._program.symbol_table.get_local(instructions.defs['name'], "main").volumes[name_no_num][int(name_num_only) - 1]
 
         # Initialize the structures we will use later on
         entry = dict()  # The dict that will hold our new entry in the variable_volume ds
