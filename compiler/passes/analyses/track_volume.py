@@ -27,8 +27,6 @@ class VolumeTracker(BSAnalysis):
                 for i in program.functions[root]['blocks'][node].instructions:
 
                     self.handle(i)
-                    print(i)
-                    print(self.variable_volume)
 
                     self.past_volumes.append(deepcopy(self.variable_volume)) # After every instruction has been handled, append the current state of the volume tracker to this list
 
@@ -38,7 +36,6 @@ class VolumeTracker(BSAnalysis):
             if self.violation_found:
                 break;
 
-        print(self.past_volumes)
         return {'name': self.name,
                 'result': [self.violation_found, self.past_volumes]}  # Returns the relevant results
 
@@ -88,9 +85,6 @@ class VolumeTracker(BSAnalysis):
         name_length = len(instructions.defs['name'])
         name_no_num = instructions.defs['name'][0 : name_length -1]
         name_num_only = instructions.defs['name'][-1]
-
-        print("Volumes from symbol table")
-        print(self._program.symbol_table.get_local(instructions.defs['name'], "main").volumes)
 
         quantity = self._program.symbol_table.get_local(instructions.defs['name'], "main").volumes[name_no_num][int(name_num_only) - 1]
 
