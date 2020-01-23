@@ -24,8 +24,6 @@ class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
         self.nl = "\n"
         # Manages the scopes that we are in.
         self.scope_stack = list()
-        # Determines if renaming should happen.
-        self.rename = False
         self.const = 'CONST_'
         self.identifier = identifier
 
@@ -87,17 +85,20 @@ class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
         else:
             return ctx.STRING_LITERAL().__str__()
 
-    def visitTypeType(self, ctx: BSParser.TypeTypeContext):
-        return ChemTypeResolver.string_to_type(self.visitPrimitiveType(ctx.primitiveType()))
-
     def visitUnionType(self, ctx: BSParser.UnionTypeContext):
-        return self.visitUnionType(ctx)
+        return self.visitTypesList(ctx.typesList())
 
     def visitTypesList(self, ctx: BSParser.TypesListContext):
         types = set()
         for t in ctx.typeType():
-            types.add(ctx.typeType(t))
+            types.add(self.visitTypeType(t))
         return types
+
+    def visitTypeType(self, ctx: BSParser.TypeTypeContext):
+        if ctx.primitiveType():
+            return ChemTypeResolver.string_to_type(self.visitPrimitiveType(ctx.primitiveType()))
+        else:
+            return self.visitChemicalType(ctx.chemicalType())
 
     def visitPrimitiveType(self, ctx: BSParser.PrimitiveTypeContext):
         if ctx.MAT():
@@ -110,6 +111,14 @@ class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
             return "NAT"
         else:
             return "MAT"
+
+    def visitChemicalType(self, ctx: BSParser.ChemicalTypeContext):
+        try:
+            value = ChemTypes(int(ctx.INTEGER_LITERAL().__str__()))
+        except ValueError:
+            self.log.warning(ctx.INTEGER_LITERAL().__str__() + " has no associated ChemType.  Assigning type UNKNOWN.")
+            value = ChemTypes.UNKNOWN
+        return value
 
     # def visitExpression(self, ctx: BSParser.ExpressionContext):
     #     if ctx.primary():
@@ -196,7 +205,7 @@ class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
         else:
             return self.symbol_table.scope_map[name]
 
-    def resolve_types(self, var: Dict) -> Set:
+    def resolve_types(self, var: Dict, *argv) -> Set:
         """
         Build the typing information for a variable.
         :param var: The variable needing typing information.

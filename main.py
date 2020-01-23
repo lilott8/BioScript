@@ -18,3 +18,4 @@ if __name__ == '__main__':
                          format='%(log_color)s%(levelname)s:\t[%(name)s.%(funcName)s:%(lineno)d]\t %(message)s')
     # We don't need the first argument.
     main(sys.argv[1:])
+

@@ -1,9 +1,10 @@
-from compiler.targets.base_target import BaseTarget
+import networkx as nx
+
 from compiler.data_structures import IRInstruction
+from compiler.data_structures import RelationalOps
 from compiler.data_structures.ir import Conditional
 from compiler.data_structures.variable import *
-from compiler.data_structures import RelationalOps
-import networkx as nx
+from compiler.targets.base_target import BaseTarget
 
 
 class TransferNode:
@@ -189,6 +190,9 @@ class MFSimTarget(BaseTarget):
         _ret = list()
         check = instr.defs['var'].points_to
         for i in self.cblock.instructions:
+            if i.op == IRInstruction.NOP:
+                continue
+            self.log.info(i)
             if i.defs['name'] in uses:  # this instruction is one of the uses
                 if i.defs['var'].points_to != check:
                     _ret.append(i.defs['var'].points_to.name)

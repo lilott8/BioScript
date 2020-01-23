@@ -1,11 +1,11 @@
-manifest aaa
-manifest bbb
+manifest hcl
+manifest water
 
 
 
 instructions:
 
-a = dispense aaa
-b = dispense bbb
-c = mix a with b
-dispose c
+a = dispense 10 units of water
+b = dispense 10 units of hcl
+dilution = mix a with b
+dispose dilution

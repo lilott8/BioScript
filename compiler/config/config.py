@@ -8,6 +8,7 @@ import chemicals.combiner as combiner
 import chemicals.identifier as identifier
 import compiler.semantics.type_visitor as tv
 import compiler.targets.target_selector as targets
+from compiler.data_structures.properties import BSVolume
 from shared.components import FlowType
 
 
@@ -26,6 +27,7 @@ class Config(object):
         self.output = './'
         self.write_out = False
         self.print_stats = False
+        self.units = BSVolume.get_from_string(args.units)
 
         """
         Chemical Stuff

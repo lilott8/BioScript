@@ -1,5 +1,5 @@
-manifest aaa
-manifest bbb
+[58] manifest aaa
+[14; 22] manifest bbb
 
 instructions:
 

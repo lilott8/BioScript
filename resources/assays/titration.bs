@@ -1,0 +1,24 @@
+manifest hcl
+manifest naoh
+module ph
+
+instructions:
+
+acid[2] = dispense hcl
+base[2] = dispense naoh
+titration = mix acid[1] with base[1]
+reagent = split titration into 2
+acids = split acid[0] into 2
+bases = split base[0] into 2
+thirty_three = mix reagent[0] with bases[1]
+sixty_six = mix reagent[1] with acids[1]
+
+one = detect ph on acids[0]
+two = detect ph on bases[0]
+three = detect ph on thirty_three
+four = detect ph on sixty_six
+
+dispose acids[0]
+dispose bases[0]
+dispose thirty_three
+dispose sixty_six

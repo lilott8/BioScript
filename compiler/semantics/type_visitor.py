@@ -1,9 +1,8 @@
-import copy
 from enum import IntEnum
 
 from chemicals.chemtypes import ChemTypeResolver, ChemTypes
 from chemicals.combiner import Combiner
-from compiler.data_structures.variable import Variable
+from compiler.data_structures.variable import Symbol
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import UndefinedException
@@ -25,7 +24,7 @@ class TypeCheckVisitor(BSBaseVisitor):
     def __init__(self, symbol_table, combiner: Combiner, types_used: TypesUsed = TypesUsed.SIMPLE):
         # We deep copy symbol table because we don't
         # want to affect change on the created one.
-        super().__init__(copy.deepcopy(symbol_table), "Type Visitor")
+        super().__init__(symbol_table, "Type Visitor")
         self.smt_string = ""
         self.tab = "\t"
         self.output = None
@@ -35,7 +34,8 @@ class TypeCheckVisitor(BSBaseVisitor):
         self.types_used = types_used
         self.build_declares()
 
-    def get_smt_name(self, var: Variable, chemtype: ChemTypes = None) -> str:
+    def get_smt_name(self, var: Symbol, chemtype: ChemTypes = set()) -> str:
+        # self.log.info(var)
         string = "{}_{}".format(var.scope, var.name)
         if chemtype:
             string += "_{}".format(chemtype.name)
@@ -51,9 +51,9 @@ class TypeCheckVisitor(BSBaseVisitor):
 
     def build_declares(self):
         if self.types_used == TypesUsed.COMPLEX:
-            types = ChemTypeResolver.available_types
+            types = ChemTypeResolver._available_types
         else:
-            types = ChemTypeResolver.naive_types
+            types = ChemTypeResolver._naive_types
             types.add(ChemTypes.UNKNOWN)
 
         declares = ""
@@ -64,21 +64,16 @@ class TypeCheckVisitor(BSBaseVisitor):
             """
             Declare the constants for all global variables.
             """
-            if ChemTypes.UNKNOWN in var.types and ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION in var.types:
-                if len(var.types) > 2:
-                    var.types.remove(ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION)
-                    var.types.remove(ChemTypes.UNKNOWN)
-            else:
-                if ChemTypes.UNKNOWN in var.types and len(var.types) > 1:
-                    var.types.remove(ChemTypes.UNKNOWN)
-                elif ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION in var.types and len(var.types) > 1:
-                    var.types.remove(ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION)
+            if ChemTypes.UNKNOWN in var.types:
+                var.types.remove(ChemTypes.UNKNOWN)
+            if ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION in var.types:
+                var.types.remove(ChemTypes.INSUFFICIENT_INFORMATION_FOR_CLASSIFICATION)
 
-            declares += "; Declaring constants for: {}{}".format(self.get_smt_name(var).upper(), self.nl)
+            declares += f"; Declaring constants for: {self.get_smt_name(var).upper()}{self.nl}"
             for enum in types:
-                declares += "(declare-const {} Bool){}".format(self.get_smt_name(var, ChemTypes(enum)), self.nl)
+                declares += f"(declare-const {self.get_smt_name(var, ChemTypes(enum))} Bool){self.nl}"
             declares += self.nl
-            defines += "; Defining the assignment of: {}{}".format(self.get_smt_name(var).upper(), self.nl)
+            defines += f"; Defining the assignment of: {self.get_smt_name(var).upper()}{self.nl}"
             for t in var.types:
                 """
                 Now we actually state the typing assignment of each variable.
@@ -126,14 +121,14 @@ class TypeCheckVisitor(BSBaseVisitor):
                     """
                     defines += "; Ensure that {} is not unknown type{}".format(self.get_smt_name(var).upper(), self.nl)
                     defines += "(assert (= {} false)){}".format(self.get_smt_name(var, ChemTypes.UNKNOWN), self.nl)
-                if var.types & ChemTypeResolver.numbers:
+                if var.types & ChemTypeResolver.numbers():
                     """
                     Build the asserts for things that are numbers.
                     We will only check naively: in that if we intersect,
                     And we have something, then we know it's a number.
                     """
                     asserts += self.assert_material(var, False)
-                if var.types & ChemTypeResolver.materials:
+                if var.types & ChemTypeResolver.materials():
                     """
                     Build the asserts for things that are numbers.
                     We will only check naively: in that if we intersect,
@@ -150,19 +145,18 @@ class TypeCheckVisitor(BSBaseVisitor):
     def visitProgram(self, ctx: BSParser.ProgramContext):
         self.scope_stack.append("main")
 
-        self.visitModuleDeclaration(ctx.moduleDeclaration())
-        self.visitManifestDeclaration(ctx.manifestDeclaration())
-        self.visitStationaryDeclaration(ctx.stationaryDeclaration())
+        for header in ctx.globalDeclarations():
+            self.visitGlobalDeclarations(header)
 
         smt = ""
 
-        for func in ctx.functionDeclaration():
-            smt += self.visitFunctionDeclaration(func)
+        if ctx.functions():
+            smt += self.visitFunctions(ctx.functions())
 
         for statement in ctx.statements():
             smt += self.visitStatements(statement)
 
-        smt += "(check-sat)"
+        smt += f"{self.nl}(check-sat)"
         self.add_smt(smt)
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
@@ -207,7 +201,6 @@ class TypeCheckVisitor(BSBaseVisitor):
         return super().visitBlockStatement(ctx)
 
     def visitStatements(self, ctx: BSParser.StatementsContext):
-        self.log.info("Visiting: " + ctx.getText())
         return self.visitChildren(ctx)
 
     def visitIfStatement(self, ctx: BSParser.IfStatementContext):
@@ -224,8 +217,14 @@ class TypeCheckVisitor(BSBaseVisitor):
 
         vars = list()
 
-        for volume in ctx.volumeIdentifier():
-            vars.append(self.visit(volume)['variable'])
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        output = self.symbol_table.get_symbol(deff['name'], self.scope_stack[-1])
+
+        for volume in ctx.variable():
+            var = self.visitVariable(volume)
+            vars.append(self.symbol_table.get_symbol(var['name'], self.scope_stack[-1]))
+
+        self.log.info(vars)
 
         for var1 in vars:
             for var2 in vars:
@@ -248,7 +247,7 @@ class TypeCheckVisitor(BSBaseVisitor):
                                     self.tab, self.tab, self.nl)
                         for out_type in self.combiner.combine_types(t1, t2):
                             smt += "{}{}{}(= {} true){}".format(self.tab, self.tab, self.tab,
-                                                                self.get_smt_name(self.output, out_type),
+                                                                self.get_smt_name(output, out_type),
                                                                 self.nl)
                         smt += "{}{}){}{}){})".format(self.tab, self.tab, self.nl, self.tab, self.nl)
 
@@ -351,34 +350,35 @@ class TypeCheckVisitor(BSBaseVisitor):
 
     def visitLiteral(self, ctx: BSParser.LiteralContext):
         if ctx.INTEGER_LITERAL():
-            return Variable('literal', {ChemTypes.NAT}, self.scope_stack[-1])
+            return Symbol('literal', self.scope_stack[-1], {ChemTypes.NAT})
         elif ctx.BOOL_LITERAL():
-            return Variable('literal', {ChemTypes.BOOL}, self.scope_stack[-1])
+            return Symbol('literal', self.scope_stack[-1], {ChemTypes.BOOL})
         elif ctx.FLOAT_LITERAL():
-            return Variable('literal', {ChemTypes.REAL}, self.scope_stack[-1])
+            return Symbol('literal', self.scope_stack[-1], {ChemTypes.REAL})
         else:
-            return Variable('literal', {ChemTypes.CONST}, self.scope_stack[-1])
+            return Symbol('literal',  self.scope_stack[-1], {ChemTypes.CONST})
 
     def visitPrimitiveType(self, ctx: BSParser.PrimitiveTypeContext):
         return super().visitPrimitiveType(ctx)
 
-    def assert_material(self, var: Variable, is_mat: bool = True) -> str:
-        mats = "; {} is ".format(self.get_smt_name(var))
-        knot1 = knot2 = ""
+    def assert_material(self, var: Symbol, is_mat: bool = True) -> str:
+        mats = f"; {self.get_smt_name(var)} is a "
+        knot1 = ""
+        knot2 = ""
 
         if is_mat:
-            mats += "a MAT{}".format(self.nl)
+            mats += "MAT{}".format(self.nl)
             knot1 = "{}(not{}".format(self.tab, self.nl)
             knot2 = "{}{}){}".format(self.tab, self.tab, self.nl)
         else:
-            mats += "a NAT/REAL{}".format(self.nl)
+            mats += "NAT/REAL{}".format(self.nl)
 
-        mats += "(assert{}".format(self.nl)
+        mats += f"(assert{self.nl}"
         if is_mat:
             mats += knot1
-        mats += "(or{}{}{}(= {} true)".format(self.tab, self.tab, self.tab, self.get_smt_name(var, ChemTypes.REAL))
-        mats += "{}{}{}(= {} true)".format(self.nl, self.tab, self.tab, self.get_smt_name(var, ChemTypes.NAT))
+        mats += f"{self.tab}{self.tab}(or{self.nl}{self.tab}{self.tab}{self.tab}(= {self.get_smt_name(var, ChemTypes.REAL)} true)"
+        mats += f"{self.nl}{self.tab}{self.tab}{self.tab}(= {self.get_smt_name(var, ChemTypes.NAT)} true){self.nl}"
         if is_mat:
             mats += knot2
-        mats += "{}{}){})".format(self.tab, self.tab, self.nl)
+        mats += "{}){})".format(self.tab, self.nl)
         return mats

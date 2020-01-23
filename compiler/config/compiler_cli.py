@@ -25,6 +25,8 @@ class CompilerCLI(BaseCLI):
         self.parser.add_argument('-stats', '--stats', help="Print the stats", default=False,
                                  action='store_true')
 
+        self.parser.add_argument('-u', '--units', help="What does 1 unit equate to?", default="mL")
+
         self.parser.add_argument('-lu', '--loopunroll', help="Perform loop unrolling",
                                  default=False, action='store_true')
 
@@ -69,10 +71,11 @@ class CompilerCLI(BaseCLI):
         self.config = Config(self.args)
         self.validate_config()
 
-        self.log.warning(self.config.input)
+        if self.config.debug:
+            self.log.debug(self.config.input)
 
     def validate_config(self):
         if self.args.debug:
-            self.log.info('Running in debug mode')
+            self.log.debug('Running in debug mode')
 
         self.log.error("Don't forget to validate configs.")
