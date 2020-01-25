@@ -135,13 +135,6 @@ class VolumeTracker(BSAnalysis):
     def handle_mix(self, instructions: IR):
         quantity = self._program.symbol_table.get_local(instructions.defs['name'], "main").volumes[instructions.iid]
 
-        encoded_quantity = self._program.symbol_table.get_local(instructions.defs['name'], "main").value.volume['quantity'] # The quantity stored in an encoded float value.
-
-        encoded_str = str(int(encoded_quantity)) # Convert to a string to make it easier to parse
-
-        num_digits_a = int(encoded_str[0]) # Grab the digit marker for the first value
-        num_digits_b = int(encoded_str[1]) # Grab the digit marker for the second value
-
         quantity_0 = quantity[0] # Grab the first value
         quantity_1 = quantity[1] # Grab the second value
 

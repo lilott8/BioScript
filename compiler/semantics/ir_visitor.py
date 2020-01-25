@@ -675,20 +675,9 @@ class IRVisitor(BSBaseVisitor):
             size = 1
 
         if not symbol.value:
-            # Update the symbol in the symbol table with the new value.
+            # Update the symbol in the symbol table with the new value
 
-            # Encode both volumes into a string. Code goes like so: xyaabb where x = num digits of first number and y equals num digits second number. aa is the first value and bb is the second value
-            # Notably, this format doesn't work for volumes that exceed 9 digits, but considering that is well outside the scope of the hardware, this should do fine.
-            digits_a = len(str(_volume[0]))
-            digits_b = len(str(_volume[1]))
-
-            value_a = str(_volume[0])
-            value_b = str(_volume[1])
-
-            encoded_num = str(digits_a) + str(digits_b) + value_a + value_b
-
-            symbol.value = Movable(deff['name'], size, volume=float(
-                encoded_num))  # pass the encoded number into the symbol table for parsing later
+            symbol.value = Movable(deff['name'], size, volume=float(-1))
 
         ir = Mix({'name': deff['name'], 'offset': deff['index'], 'size': size, 'var': symbol},
                  {'name': use_a['var'].name, 'offset': use_a['index'], 'size': use_a['var'].size, 'var': use_a['var']},
