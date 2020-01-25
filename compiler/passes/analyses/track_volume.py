@@ -80,11 +80,8 @@ class VolumeTracker(BSAnalysis):
         self.variable_volume[instructions.defs['name']] = entry
 
     def handle_dispense(self, instructions: IR):
-        name_length = len(instructions.defs['name'])
-        name_no_num = instructions.defs['name'][0 : name_length -1]
-        name_num_only = instructions.defs['name'][-1]
 
-        quantity = self._program.symbol_table.get_local(instructions.defs['name'], "main").volumes[name_no_num][int(name_num_only) - 1]
+        quantity = min(self._program.symbol_table.get_local(instructions.defs['name'], "main").volumes[instructions.iid])
 
         # Initialize the structures we will use later on
         entry = dict()  # The dict that will hold our new entry in the variable_volume ds
@@ -136,6 +133,8 @@ class VolumeTracker(BSAnalysis):
                 'size'] = 0  # A disposed variable doesn't have a presence on the board. It's size is therefore zero.
 
     def handle_mix(self, instructions: IR):
+        quantity = self._program.symbol_table.get_local(instructions.defs['name'], "main").volumes[instructions.iid]
+
         encoded_quantity = self._program.symbol_table.get_local(instructions.defs['name'], "main").value.volume['quantity'] # The quantity stored in an encoded float value.
 
         encoded_str = str(int(encoded_quantity)) # Convert to a string to make it easier to parse
@@ -143,8 +142,8 @@ class VolumeTracker(BSAnalysis):
         num_digits_a = int(encoded_str[0]) # Grab the digit marker for the first value
         num_digits_b = int(encoded_str[1]) # Grab the digit marker for the second value
 
-        quantity_0 = int(encoded_str[2:num_digits_a + 2]) # Grab the first value
-        quantity_1 = int(encoded_str[num_digits_a + 2: num_digits_a + 2 + num_digits_b]) # Grab the second value
+        quantity_0 = quantity[0] # Grab the first value
+        quantity_1 = quantity[1] # Grab the second value
 
         # Check if there is enough volume in the two uses to support the operation
         if instructions.uses[0]['offset'] >= 0:  # In this case, a discrete offset of 'volumes' is used. Therefore, the value of 'volumes['offset']' must be at least quantity_0

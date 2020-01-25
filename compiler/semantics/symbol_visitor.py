@@ -205,15 +205,12 @@ class SymbolTableVisitor(BSBaseVisitor):
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
 
-        #print("CTX: " + str(ctx));
-
         deff = self.visitVariableDefinition(ctx.variableDefinition())
         deff['types'].update(self.symbol_table.get_global(ctx.IDENTIFIER().__str__()).types)
         self.symbol_table.add_local(Symbol(deff['name'], self.scope_stack[-1], self.resolve_types(deff)))
         if not self.symbol_table.get_global(ctx.IDENTIFIER().__str__()):
             raise UndefinedVariable("{} isn't declared in the manifest.".format(ctx.IDENTIFIER().__str__()))
-        
-        #print("deff: " + str(deff))
+
 
         return None
 

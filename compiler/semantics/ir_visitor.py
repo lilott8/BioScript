@@ -1,6 +1,5 @@
 from copy import deepcopy
 
-
 import networkx as nx
 from chemicals.chemtypes import ChemTypeResolver
 from compiler.data_structures.basic_block import BasicBlock
@@ -688,13 +687,16 @@ class IRVisitor(BSBaseVisitor):
 
             encoded_num = str(digits_a) + str(digits_b) + value_a + value_b
 
-            symbol.value = Movable(deff['name'], size, volume=float(encoded_num)) # pass the encoded number into the symbol table for parsing later
+            symbol.value = Movable(deff['name'], size, volume=float(
+                encoded_num))  # pass the encoded number into the symbol table for parsing later
 
         ir = Mix({'name': deff['name'], 'offset': deff['index'], 'size': size, 'var': symbol},
                  {'name': use_a['var'].name, 'offset': use_a['index'], 'size': use_a['var'].size, 'var': use_a['var']},
                  {'name': use_b['var'].name, 'offset': use_b['index'], 'size': use_b['var'].size, 'var': use_b['var']})
         if time_meta:
             ir.meta.append(time_meta)
+
+        self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes[ir.iid] = _volume
 
         self.current_block.add(ir)
 
@@ -825,20 +827,22 @@ class IRVisitor(BSBaseVisitor):
 
         # We don't have to check here, because this is a dispense.
 
-        if deff['name'] in self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes:
-            self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes[deff['name']].append(_volume)
-        else:
-            self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes[deff['name']] = [_volume]
+        offset = deff['index'] if deff['index'] != size else -1
 
         self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = Movable(deff['name'],
                                                                                         size=size,
                                                                                         volume=_volume)
 
-        offset = deff['index'] if deff['index'] != size else -1
-
         ir = Dispense({'name': deff['name'], 'offset': offset, 'size': size,
                        'var': self.symbol_table.get_local(deff['name'], self.scope_stack[-1])},
                       {'name': ctx.IDENTIFIER().__str__(), 'offset': 1, 'size': float("inf")})
+
+        if ir.iid in self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes:
+            self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes[ir.iid].append(_volume)
+        else:
+            self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes[ir.iid] = [_volume]
+
+
         self.current_block.add(ir)
         return None
 
