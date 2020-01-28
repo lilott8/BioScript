@@ -1,5 +1,7 @@
-import networkx as nx
+from copy import deepcopy
 
+import networkx as nx
+from networkx.classes.function import add_cycle
 from chemicals.chemtypes import ChemTypeResolver
 from compiler.data_structures.basic_block import BasicBlock
 from compiler.data_structures.ir import *
@@ -82,7 +84,8 @@ class IRVisitor(BSBaseVisitor):
         # Add the graph edges for function calls.
         for key, val in self.calls.items():
             for v in val:
-                self.graph.add_cycle([key, self.functions[v]['entry']])
+                add_cycle(self.graph, [key, self.functions[v]['entry']])
+                #self.graph.add_cycle([key, self.functions[v]['entry']])
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         name = ctx.IDENTIFIER().__str__()
@@ -406,10 +409,11 @@ class IRVisitor(BSBaseVisitor):
         self.graph.add_edge(self.current_block.nid, header_block.nid)
 
         zero = self.symbol_table.get_global('CONST_0')
-        op = BinaryOp(left={'name': val['name'], 'offset': 0, 'size': 1, 'var': self.symbol_table.get_local(val['name'])},
-                 right={'name': zero.name, 'offset': 0, 'size': 1, 'var': zero},
-                 op=RelationalOps.GT)
-        condition = Conditional(RelationalOps.GT, op.left, op.right)  #Number('Constant_{}'.format(0), 1, 0))
+        op = BinaryOp(
+            left={'name': val['name'], 'offset': 0, 'size': 1, 'var': self.symbol_table.get_local(val['name'])},
+            right={'name': zero.name, 'offset': 0, 'size': 1, 'var': zero},
+            op=RelationalOps.GT)
+        condition = Conditional(RelationalOps.GT, op.left, op.right)  # Number('Constant_{}'.format(0), 1, 0))
         header_block.add(condition)
 
         self.control_stack.append(header_block)
@@ -490,7 +494,8 @@ class IRVisitor(BSBaseVisitor):
         # Create the jump to the function.
         jump_location = self.get_entry_block(method_name)
         # Build the graph edge.
-        self.graph.add_cycle([self.current_block.nid, jump_location['nid']])
+        add_cycle(self.graph, [self.current_block.nid, jump_location['nid']])
+        #self.graph.add_cycle([self.current_block.nid, jump_location['nid']])
         # self.current_block.add(Jump(jump_location['label']))
         # Sve the block.
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
@@ -596,6 +601,48 @@ class IRVisitor(BSBaseVisitor):
 
     def visitMix(self, ctx: BSParser.MixContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
+
+        # Start of volume parsing
+        _volume = []  # A list that holds all the (if any) units parsed.
+
+        if len(ctx.unitTracker()) == 0:
+            _volume = [10, 10]
+
+        if len(ctx.unitTracker()) == 1:
+
+            pos_unit_tracker = -1
+            pos_var_def = []
+
+            for i in range(
+                    len(ctx.children)):  # Find the relative position of the unit tracker context and variable contexts
+
+                if type(ctx.children[i]) == BSParser.VariableContext:
+                    pos_var_def.append(
+                        i)  # Record the position of all variable contexts. There should always and only be two.
+
+                if type(ctx.children[i]) == BSParser.UnitTrackerContext:
+                    pos_unit_tracker = i  # Record the position of the unit tracker context. Since this is the case where only one parameter was passed,there should always and only be one instance in this case.
+
+            if min(pos_var_def) > pos_unit_tracker:  # If the unit tracker appears before the first variable definition
+                _volume.append(int(ctx.unitTracker()[
+                                       0].INTEGER_LITERAL().__str__()))  # Assume that the unit tracker is storing the parameter for the first variable
+                _volume.append(10)
+
+            else:
+                _volume.append(10)
+                _volume.append(int(ctx.unitTracker()[
+                                       0].INTEGER_LITERAL().__str__()))  # If it isn't the first variable's parameter, it must be the second's.
+
+        if len(ctx.unitTracker()) == 2:
+            for i in range(2):  # Iterate through the contents of the list returned by unitTracker()
+                if type(ctx.unitTracker()[i]) != BSParser.UnitTrackerContext:
+                    _volume.append(10)  # Default to 10 if the volume hasn't been explicitly declared
+                else:
+                    _volume.append(int(ctx.unitTracker()[i].INTEGER_LITERAL().__str__()))
+
+        #print(_volume)
+        # end of volume parsing
+
         symbol = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
 
         if ctx.timeIdentifier():
@@ -628,14 +675,17 @@ class IRVisitor(BSBaseVisitor):
             size = 1
 
         if not symbol.value:
-            # Update the symbol in the symbol table with the new value.
-            symbol.value = Movable(deff['name'], size)
+            # Update the symbol in the symbol table with the new value
+            symbol.value = Movable(deff['name'], size, volume=float(-1))
 
         ir = Mix({'name': deff['name'], 'offset': deff['index'], 'size': size, 'var': symbol},
                  {'name': use_a['var'].name, 'offset': use_a['index'], 'size': use_a['var'].size, 'var': use_a['var']},
                  {'name': use_b['var'].name, 'offset': use_b['index'], 'size': use_b['var'].size, 'var': use_b['var']})
         if time_meta:
             ir.meta.append(time_meta)
+
+        self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes[ir.iid] = _volume
+
         self.current_block.add(ir)
 
         return None
@@ -756,16 +806,30 @@ class IRVisitor(BSBaseVisitor):
         else:
             size = deff['index']
 
+        # Grab the declared volume of the variable and store it
+        _volume = 0
+        if type(ctx.unitTracker()) != BSParser.UnitTrackerContext:
+            _volume = 10  # Default to 10 if the volume hasn't been explicitly declared
+        else:
+            _volume = deepcopy(int(ctx.unitTracker().INTEGER_LITERAL().__str__()))
+
         # We don't have to check here, because this is a dispense.
-        self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = Movable(deff['name'],
-                                                                                        size=size,
-                                                                                        volume=10.0)
 
         offset = deff['index'] if deff['index'] != size else -1
+
+        self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).value = Movable(deff['name'],
+                                                                                        size=size,
+                                                                                        volume=_volume)
 
         ir = Dispense({'name': deff['name'], 'offset': offset, 'size': size,
                        'var': self.symbol_table.get_local(deff['name'], self.scope_stack[-1])},
                       {'name': ctx.IDENTIFIER().__str__(), 'offset': 1, 'size': float("inf")})
+
+        if ir.iid in self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes:
+            self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes[ir.iid].append(_volume)
+        else:
+            self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes[ir.iid] = [_volume]
+
         self.current_block.add(ir)
         return None
 

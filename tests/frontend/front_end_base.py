@@ -5,6 +5,7 @@ from compiler.config.compiler_cli import CompilerCLI
 from compiler.data_structures.basic_block import BasicBlock
 from compiler.data_structures.program import Program
 from compiler.data_structures.symbol_table import SymbolTable
+from compiler.passes.pass_manager import PassManager
 from compiler.semantics.header_visitor import HeaderVisitor
 from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
@@ -64,3 +65,14 @@ class FrontEndBase(metaclass=ABCMeta):
                                   config=CompilerCLI(["-d", "-t", "ir", "-i", "TEST_FILE"]).config)))
         target.transform()
         return target
+
+    def get_volume(self, tree, file):
+        ir = self.get_ir(tree)
+        ir = Program(functions=ir.functions, config=CompilerCLI(["-d", "-i", file, "-o", "output/"]).config,
+                       symbol_table=ir.symbol_table, bb_graph=ir.graph, name=file, calls=ir.calls)
+        pm = PassManager(ir)
+        pm.run_analysis()
+        pm.run_transformations()
+        prog = pm.program
+
+        return prog.analysis['volume_tracking']

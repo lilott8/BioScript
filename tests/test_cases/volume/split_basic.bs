@@ -1,0 +1,9 @@
+manifest expect_pass
+manifest fluid_a
+
+instructions:
+
+a = dispense fluid_a
+
+b = split a into 5
+

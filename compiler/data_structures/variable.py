@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+from copy import deepcopy
 from typing import Set, Any, Tuple
 
 import colorlog
@@ -19,6 +20,7 @@ class Symbol(object):
         self.scope = scope
         self.types = types
         self.value = None
+        self.volumes = dict()
 
     def __repr__(self):
         return "[{}]\t{}\t{}".format(self.scope, self.name, self.types)
@@ -32,6 +34,8 @@ class RenamedSymbol(Symbol):
         self.types = symbol.types
         self.points_to = symbol
         self.value = symbol.value
+        self.volumes = deepcopy(symbol.volumes)
+
 
 
 class Variable(metaclass=ABCMeta):
