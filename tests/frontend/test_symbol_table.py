@@ -34,8 +34,7 @@ class TestDispense(FrontEndBase):
         with pytest.raises(UndefinedVariable):
             file = "test_cases/dispense/symbol_table_undefined.bs"
             st = self.get_symbols(get_visitor(file))
-
-            output = st.get_local('a', 'main')
+            # This test should throw an UndefinedVariable error
 
     def test_defined_manifest(self, get_visitor):
         file = "test_cases/dispense/symbol_table_defined.bs"

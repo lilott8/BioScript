@@ -19,7 +19,7 @@ class TestDispose(FrontEndBase):
 
         vol = self.get_volume(tree, file)
 
-        assert vol[0] == False
+        assert not vol[0]  # == False
 
         assert sum(vol[1][-1]['a2']['volumes']) == 10
 
@@ -33,7 +33,7 @@ class TestDispose(FrontEndBase):
 
         vol = self.get_volume(tree, file)
 
-        assert vol[0] == False
+        assert not vol[0]  # == False
         assert sum(vol[1][-1]['a1']['volumes']) == -1
 
 
@@ -49,10 +49,8 @@ class TestDispense(FrontEndBase):
 
         vol = self.get_volume(tree, file)
 
-        assert vol[0] == False
+        assert not vol[0]  # == False
         assert sum(vol[1][-1]['a1']['volumes']) == 50
-
-
 
 
 @pytest.mark.frontend
@@ -67,7 +65,7 @@ class TestMix(FrontEndBase):
 
         vol = self.get_volume(tree, file)
 
-        assert vol[0] == False
+        assert not vol[0]  # == False
 
         assert sum(vol[1][-1]['a1']['volumes']) == -1
         assert sum(vol[1][-1]['b1']['volumes']) == -1
@@ -79,7 +77,7 @@ class TestMix(FrontEndBase):
 
         vol = self.get_volume(tree, file)
 
-        assert vol[0] == False
+        assert not vol[0]  # == False
         assert sum(vol[1][-1]['a1']['volumes']) == -1
         assert sum(vol[1][-1]['a_21']['volumes']) == -1
         assert sum(vol[1][-1]['a_31']['volumes']) == -1
@@ -94,7 +92,7 @@ class TestMix(FrontEndBase):
 
         vol = self.get_volume(tree, file)
 
-        assert vol[0] == True
+        assert vol[0]  # == True
 
     def test_first_parameter(self, get_visitor):
         file = "test_cases/volume/mix_only_first_parameter.bs"
@@ -103,7 +101,7 @@ class TestMix(FrontEndBase):
         vol = self.get_volume(tree, file)
 
         # Failure test
-        assert vol[0] == False
+        assert not vol[0]  # == False
 
         # Middle state tests
         assert sum(vol[1][0]['a1']['volumes']) == 10
@@ -123,7 +121,7 @@ class TestMix(FrontEndBase):
         vol = self.get_volume(tree, file)
 
         # Failure test
-        assert vol[0] == False
+        assert not vol[0]  # == False
 
         # Middle state tests
         assert sum(vol[1][0]['a1']['volumes']) == 10
@@ -143,7 +141,7 @@ class TestMix(FrontEndBase):
         vol = self.get_volume(tree, file)
 
         # Failure test
-        assert vol[0] == False
+        assert not vol[0]  # == False
 
         # Middle state tests
         assert sum(vol[1][0]['a1']['volumes']) == 10
@@ -166,7 +164,7 @@ class TestSplit(FrontEndBase):
 
         vol = self.get_volume(tree, file)
 
-        assert vol[0] == False
+        assert not vol[0]  # == False
         assert sum(vol[1][-1]['a1']['volumes']) == -1
         assert sum(vol[1][-1]['b1']['volumes']) == 10
 
@@ -180,7 +178,7 @@ class TestSplit(FrontEndBase):
 
         vol = self.get_volume(tree, file)
 
-        assert vol[0] == True
+        assert vol[0]  # == True
 
         assert sum(vol[1][-1]['a1']['volumes']) == -1
 
@@ -191,7 +189,7 @@ class TestSplit(FrontEndBase):
 
         vol = self.get_volume(tree, file)
 
-        assert vol[0] == False
+        assert not vol[0]  # == False
 
         assert sum(vol[1][-1]['a1']['volumes']) == -1
         assert sum(vol[1][-1]['b1']['volumes']) == 30
@@ -206,5 +204,4 @@ class TestSplit(FrontEndBase):
 
         vol = self.get_volume(tree, file)
 
-        assert vol[0] == True
-
+        assert vol[0]  # == True

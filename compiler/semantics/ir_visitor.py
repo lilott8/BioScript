@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 import networkx as nx
+from networkx.classes.function import add_cycle
 from chemicals.chemtypes import ChemTypeResolver
 from compiler.data_structures.basic_block import BasicBlock
 from compiler.data_structures.ir import *
@@ -83,7 +84,8 @@ class IRVisitor(BSBaseVisitor):
         # Add the graph edges for function calls.
         for key, val in self.calls.items():
             for v in val:
-                self.graph.add_cycle([key, self.functions[v]['entry']])
+                add_cycle(self.graph, [key, self.functions[v]['entry']])
+                #self.graph.add_cycle([key, self.functions[v]['entry']])
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         name = ctx.IDENTIFIER().__str__()
@@ -492,7 +494,8 @@ class IRVisitor(BSBaseVisitor):
         # Create the jump to the function.
         jump_location = self.get_entry_block(method_name)
         # Build the graph edge.
-        self.graph.add_cycle([self.current_block.nid, jump_location['nid']])
+        add_cycle(self.graph, [self.current_block.nid, jump_location['nid']])
+        #self.graph.add_cycle([self.current_block.nid, jump_location['nid']])
         # self.current_block.add(Jump(jump_location['label']))
         # Sve the block.
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
@@ -599,9 +602,6 @@ class IRVisitor(BSBaseVisitor):
     def visitMix(self, ctx: BSParser.MixContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
 
-        print("Unit Tracker: ")
-        print(ctx.unitTracker())
-
         # Start of volume parsing
         _volume = []  # A list that holds all the (if any) units parsed.
 
@@ -640,7 +640,7 @@ class IRVisitor(BSBaseVisitor):
                 else:
                     _volume.append(int(ctx.unitTracker()[i].INTEGER_LITERAL().__str__()))
 
-        print(_volume)
+        #print(_volume)
         # end of volume parsing
 
         symbol = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
@@ -676,7 +676,6 @@ class IRVisitor(BSBaseVisitor):
 
         if not symbol.value:
             # Update the symbol in the symbol table with the new value
-
             symbol.value = Movable(deff['name'], size, volume=float(-1))
 
         ir = Mix({'name': deff['name'], 'offset': deff['index'], 'size': size, 'var': symbol},
@@ -830,7 +829,6 @@ class IRVisitor(BSBaseVisitor):
             self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes[ir.iid].append(_volume)
         else:
             self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes[ir.iid] = [_volume]
-
 
         self.current_block.add(ir)
         return None
