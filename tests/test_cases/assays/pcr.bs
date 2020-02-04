@@ -2,6 +2,8 @@ module mod
 manifest pcr_mixture
 manifest buffer
 
+
+
 instructions:
 
 PCRMix = dispense pcr_mixture
@@ -9,6 +11,7 @@ heat PCRMix at 90f for 5s
 
 repeat 20 times {
     heat PCRMix at 60f for 15s
+    x = detect mod on PCRMix for 1s
     heat PCRMix at 90f for 10s
 }
 
