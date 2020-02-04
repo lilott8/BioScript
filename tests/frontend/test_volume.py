@@ -155,8 +155,10 @@ class TestMix(FrontEndBase):
         assert sum(vol[1][-1]['c1']['volumes']) == 10
 
 
+@pytest.mark.frontend
+@pytest.mark.volume
+@pytest.mark.split
 class TestSplit(FrontEndBase):
-
     def test_basic(self, get_visitor):
         file = "test_cases/volume/split_basic.bs"
 
@@ -205,3 +207,18 @@ class TestSplit(FrontEndBase):
         vol = self.get_volume(tree, file)
 
         assert vol[0]  # == True
+
+
+@pytest.mark.frontend
+@pytest.mark.volume
+@pytest.mark.repeat_loop
+class TestRepeat(FrontEndBase):
+    def test_prob_pcr(self, get_visitor):
+        file = "test_cases/assays/probabilistic_pcr.bs"
+
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        # TODO: after fixing volume tracking to deal with phi nodes generated from loops, add correct assertions
+        assert vol[0]

@@ -113,7 +113,7 @@ class MFSimTarget(BaseTarget):
                         else:  # could be nested conditional
                             curr[instruction.iid]['c'] = instruction.relop
                             if self.config.debug:
-                                self.log.warn("TEST non-repeat/nested CONDITIONALS")
+                                self.log.warning("TEST non-repeat/nested CONDITIONALS")
                     #  non-conditionals
                     elif hasattr(instruction, 'uses'):
                         # Case x = op y (dispense, heat, dispose, store)
@@ -121,7 +121,7 @@ class MFSimTarget(BaseTarget):
                             # Look at the r-value.
                             # if instruction.name == "DISPOSE":  # if we dispose this droplet, then we do not need to transfer
                             #     if self.config.debug:
-                            #         self.log.warn("Removing outgoing cfg edges from block {}; verify .cfg file has "
+                            #         self.log.warning("Removing outgoing cfg edges from block {}; verify .cfg file has "
                             #                       "correct edges when multiple droplets exist in a dag including a "
                             #                       "dispose.".format(bid))
                             #     remove_edges_from.add(bid)
@@ -224,7 +224,7 @@ class MFSimTarget(BaseTarget):
         # should not be trying to write an edge
         if self.cblock.dag is None:
             if self.config.debug:
-                self.log.warn("write edge returning without writing an edge")
+                self.log.warning("write edge returning without writing an edge")
             pass
         self.num_edges += 1
         return "EDGE (%s, %s)\n" % (_from, _to)
@@ -241,7 +241,7 @@ class MFSimTarget(BaseTarget):
         _ret = "NODE (%s, MIX, " % str(self.opid)
 
         if self.config.debug:
-            self.log.warn("Using default time and mixType values -- these should be IRInstruction attributes discovered"
+            self.log.warning("Using default time and mixType values -- these should be IRInstruction attributes discovered"
                           "during parsing")
         time = 10
         # mixType = '_'.join([x['var'].name for x in instr.uses])
@@ -275,7 +275,7 @@ class MFSimTarget(BaseTarget):
         _ret = "NODE (%s, SPLIT, " % str(self.opid)
 
         if self.config.debug:
-            self.log.warn("Using default numDrops and time value for SPLIT; at least numDrops should be a Split "
+            self.log.warning("Using default numDrops and time value for SPLIT; at least numDrops should be a Split "
                           "instruction attribute discovered during parsing")
         numDrops = 2
         time = 2
@@ -283,7 +283,7 @@ class MFSimTarget(BaseTarget):
         _ret += "%s, %s, SPLIT)\n" % (str(numDrops), str(time))
 
         if self.config.debug:
-            self.log.warn(
+            self.log.warning(
                 "Verify split instruction semantics for MFSim target. Not all out edges are correctly built as"
                 "the split does not maintain addressibility to created droplets")
 
@@ -329,7 +329,7 @@ class MFSimTarget(BaseTarget):
         _ret = "NODE (%s, DETECT, 1, " % str(self.opid)
 
         if self.config.debug:
-            self.log.warn("Using default time for DETECT; time should be an IRInstruction attribute discovered "
+            self.log.warning("Using default time for DETECT; time should be an IRInstruction attribute discovered "
                           "during parsing")
         time = 10
 
@@ -349,7 +349,7 @@ class MFSimTarget(BaseTarget):
         _ret = "NODE (%s, HEAT, " % str(self.opid)
 
         if self.config.debug:
-            self.log.warn("Using default time for HEAT; time should be an IRInstruction attribute discovered "
+            self.log.warning("Using default time for HEAT; time should be an IRInstruction attribute discovered "
                           "during parsing")
         time = 10
 
@@ -393,7 +393,7 @@ class MFSimTarget(BaseTarget):
         _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].points_to.name)
 
         if self.config.debug:
-            self.log.warn(
+            self.log.warning(
                 "DISPOSE for mfsim requires the sinkname and type (drain, save, etc).  Using default for now.")
         self.num_dispose += 1
         return _ret
@@ -409,7 +409,7 @@ class MFSimTarget(BaseTarget):
         _ret = "NODE (%s, DISPENSE, " % str(self.opid)
 
         if self.config.debug:
-            self.log.warn("Using default volume for DISPENSE; this should be an IRInstruction attribute discovered "
+            self.log.warning("Using default volume for DISPENSE; this should be an IRInstruction attribute discovered "
                           "during parsing")
         volume = 10
 
@@ -485,7 +485,7 @@ class MFSimTarget(BaseTarget):
                 depDag = from_dag
             else:
                 if self.config.debug:
-                    self.log.warn("need to find block where condition variable is")
+                    self.log.warning("need to find block where condition variable is")
                 raise NotImplementedError("the current block does not have the definition to this conditional variable")
 
             dep_node_id = -1
@@ -631,7 +631,7 @@ class MFSimTarget(BaseTarget):
                         continue
                     else:
                         if self.config.debug:
-                            self.log.warn("Unrecognized/unsupported instruction type: %s" % node.name)
+                            self.log.warning("Unrecognized/unsupported instruction type: %s" % node.name)
 
                 # this is a bit of a hack, because SSA renaming doesn't quite work how we might hope for heats/detects
                 # for all defs without uses, we must transfer out (if used elsewhere)
@@ -690,7 +690,7 @@ class MFSimTarget(BaseTarget):
                             reachable = (
                                 {x for v in dict(nx.bfs_successors(self.cfg['graph'], bid)).values() for x in v})
                         except nx.NetworkXError as e:
-                            # self.log.warn("Droplet {} is not being disposed or saved.".format(_def))
+                            # self.log.warning("Droplet {} is not being disposed or saved.".format(_def))
                             return trans
                         for s in reachable:
                             if trans:
@@ -720,7 +720,7 @@ class MFSimTarget(BaseTarget):
                         transferred = True
                     if not transferred:  # what to do with this droplet?
                         if self.config.debug:
-                            self.log.warn(
+                            self.log.warning(
                                 "No more operations for {}, warning will appear in {}".format(_def, dag_file.name))
                         dag_file.write("// **NO MORE OPERATIONS FOR {}; SHOULD SAVE OR DISPOSE**".format(_def))
                     if tn is not None:

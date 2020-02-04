@@ -2,6 +2,7 @@ from copy import deepcopy
 from compiler.data_structures import Program
 from compiler.passes.analyses.bs_analysis import BSAnalysis
 from compiler.data_structures.ir import *
+from compiler.data_structures.variable import Number
 
 
 class VolumeTracker(BSAnalysis):
@@ -58,8 +59,14 @@ class VolumeTracker(BSAnalysis):
     # We assume that the variable being created here has the minimum possible volume. This way, the compiler only proceeds when volume is guaranteed to be correct
     def handle_phi(self, instructions: IR):
         possible_volumes = []
+        # quick hack to ignore repeat instructions
+        if isinstance(instructions.defs['var'].points_to.value, Number):
+            return
 
         for i in range(len(instructions.uses)):
+            # TODO: this assumes 'worst case' as defined by a minimum possible volume; instead, we should track
+            #          the set of all possible volumes.
+
             possible_volumes.append(deepcopy(min(self.variable_volume[instructions.uses[i]]['volumes'])))
 
         entry = dict()  # The dict that will hold our new entry in the variable_volume ds
