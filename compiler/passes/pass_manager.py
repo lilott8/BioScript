@@ -40,12 +40,15 @@ class PassManager(object):
         for key, value in self.transforms.items():
             if key is 'loop_unroll' and not self.config.loopunroll:
                 continue
+
             self.program = value.transform(self.program)
 
     def run_analysis(self):
         self.init_analysis()
         # TODO: This should be handled through decorator.
         for key, value in self.analysis.items():
+            if key is 'volume_tracking' and not self.config.track_volume:
+                continue
             self.program.analysis[key] = value.analyze(self.program)['result']
 
     def init_analysis(self):
