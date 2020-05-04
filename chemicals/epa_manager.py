@@ -8,6 +8,9 @@ from chemicals.reactive_group import ReactiveGroup
 
 
 class EpaManager(object):
+    """
+    Update this to reflect: https://github.com/Sulstice/global-chem
+    """
 
     def __init__(self, epa_defs_file_name: str, interaction_file_name: str):
         self.log = colorlog.getLogger(self.__class__.__name__)
