@@ -5,6 +5,8 @@ from compiler.data_structures import RelationalOps
 from compiler.data_structures.ir import Conditional
 from compiler.data_structures.variable import *
 from compiler.targets.base_target import BaseTarget
+from compiler.data_structures.ir import TempConstraint
+from compiler.data_structures.ir import TimeConstraint
 
 
 class TransferNode:
@@ -240,10 +242,15 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, MIX, " % str(self.opid)
 
-        if self.config.debug:
-            self.log.warning("Using default time and mixType values -- these should be IRInstruction attributes discovered"
-                          "during parsing")
+        #if self.config.debug:
+        #    self.log.warning("Using default time and mixType values -- these should be IRInstruction attributes discovered"
+        #                  "during parsing")
         time = 10
+
+        for t in instr.meta:
+            if type(t) is TimeConstraint:
+                time = t.quantity
+                break
         # mixType = '_'.join([x['var'].name for x in instr.uses])
 
         # MFSim supports >= 2 input droplets, but BS requires distinct mix operations for every 2 droplets,
@@ -275,10 +282,15 @@ class MFSimTarget(BaseTarget):
         _ret = "NODE (%s, SPLIT, " % str(self.opid)
 
         if self.config.debug:
-            self.log.warning("Using default numDrops and time value for SPLIT; at least numDrops should be a Split "
+            self.log.warning("Using default numDrops and time value for SPLIT; at least numDrops should be a f "
                           "instruction attribute discovered during parsing")
         numDrops = 2
         time = 2
+
+        for t in instr.meta:
+            if type(t) is TimeConstraint:
+                time = t.quantity
+                break
 
         _ret += "%s, %s, SPLIT)\n" % (str(numDrops), str(time))
 
@@ -328,12 +340,45 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, DETECT, 1, " % str(self.opid)
 
-        if self.config.debug:
-            self.log.warning("Using default time for DETECT; time should be an IRInstruction attribute discovered "
-                          "during parsing")
+        #if self.config.debug:
+        #    self.log.warning("Using default time for DETECT; time should be an IRInstruction attribute discovered "
+        #                  "during parsing")
         time = 10
 
+        for t in instr.meta:
+            if type(t) is TimeConstraint:
+                time = t.quantity
+                break
+
         _ret += "%s, %s(%s))\n" % (str(time), instr.defs['var'].points_to.name, instr.uses[1]['var'].points_to.name)
+
+        #for ti in to_instr:
+         #   _ret += self.write_edge(self.opid, ti.iid) No to_instr found, debug and see what is available or just ask
+
+        to = list(self.cblock.dag.successors(instr.uses[1]['var'].name))
+
+        if len(to) > 1:
+            to = self.get_dependent_instr(instr, to)
+
+        for key in to:
+            to_instr = []
+            # as long as order of instructions is maintained this works.
+            # ideally, the SSA form would have explicit defs for all heats
+            found_instr = False
+            for x in self.cblock.instructions:
+                if x is instr:
+                    found_instr = True
+                    continue
+                if not found_instr:
+                    continue
+                if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
+                    for y in x.uses:
+                        if y['var'].points_to.name == key:
+                            to_instr.append(x)
+                            break
+
+            for ti in to_instr:
+                _ret += self.write_edge(self.opid, ti.iid)
 
         self.num_detects += 1
         return _ret
@@ -348,10 +393,15 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, HEAT, " % str(self.opid)
 
-        if self.config.debug:
-            self.log.warning("Using default time for HEAT; time should be an IRInstruction attribute discovered "
-                          "during parsing")
+        #if self.config.debug:
+        #    self.log.warning("Using default time for HEAT; time should be an IRInstruction attribute discovered "
+        #                  "during parsing")
         time = 10
+
+        for t in instr.meta:
+            if type(t) is TimeConstraint:
+                time = t.quantity
+                break
 
         _ret += "{}, {})\n".format(str(time), instr.uses[0]['var'].points_to.name)
 
@@ -392,9 +442,9 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].points_to.name)
 
-        if self.config.debug:
-            self.log.warning(
-                "DISPOSE for mfsim requires the sinkname and type (drain, save, etc).  Using default for now.")
+        #if self.config.debug:
+        #    self.log.warning(
+        #        "DISPOSE for mfsim requires the sinkname and type (drain, save, etc).  Using default for now. Only needed for archfile, defaults are fine currently")
         self.num_dispose += 1
         return _ret
 
@@ -408,10 +458,14 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, DISPENSE, " % str(self.opid)
 
-        if self.config.debug:
-            self.log.warning("Using default volume for DISPENSE; this should be an IRInstruction attribute discovered "
-                          "during parsing")
-        volume = 10
+        #if self.config.debug:
+        #    self.log.warning("Using default volume for DISPENSE; this should be an IRInstruction attribute discovered "
+        #                  "during parsing")
+        #volume = 10
+
+
+        capture = instr.defs['var'].volumes
+        volume = next(iter(capture.values()))
 
         _ret += "%s, %s, %s)\n" % (instr.uses[0]['name'], str(volume), instr.defs['var'].points_to.name)
 
@@ -627,7 +681,7 @@ class MFSimTarget(BaseTarget):
                         dag_file.write(self.write_dispose(node))
                     elif node.op is IRInstruction.DISPENSE:
                         dag_file.write(self.write_dispense(node))
-                    elif node.op is IRInstruction.PHI or node.op is IRInstruction.CONDITIONAL:
+                    elif node.op is IRInstruction.PHI or node.op is IRInstruction.CONDITIONAL or node.op is IRInstruction.MATH or node.op is IRInstruction.NOP:
                         continue
                     else:
                         if self.config.debug:
@@ -686,6 +740,7 @@ class MFSimTarget(BaseTarget):
                     # we've made it here, we must transfer this rdef
 
                     def transfer_(trans):
+                        tn = None   #TD was not always working before this was placed, tn wasn't defined by the end
                         try:
                             reachable = (
                                 {x for v in dict(nx.bfs_successors(self.cfg['graph'], bid)).values() for x in v})
@@ -710,6 +765,11 @@ class MFSimTarget(BaseTarget):
                                     self.tid += 1
                                     trans = True
                                     break
+                        if tn is not None:
+                            if bid in self.block_transfers:
+                                self.block_transfers[bid].add(tn)
+                            else:
+                                self.block_transfers[bid] = {tn}
                         return trans
 
                     if block.dag is not None:
