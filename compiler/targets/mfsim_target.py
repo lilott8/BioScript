@@ -203,14 +203,15 @@ class MFSimTarget(BaseTarget):
         :return:
         """
         _ret = list()
-        check = instr.defs['var'].points_to
+        check = instr.defs['var'].points_to   #original
+        #check = instr.uses[0]['name']        #try
         for i in self.cblock.instructions:
-            if i.op == IRInstruction.NOP:
+            if i.op in {IRInstruction.NOP, IRInstruction.CONDITIONAL}:  #if i.op in {IRInstruction.NOP, IRInstruction.CONDITIONAL}:
                 continue
             self.log.info(i)
             if i.defs['name'] in uses:  # this instruction is one of the uses
-                if i.defs['var'].points_to != check:
-                    _ret.append(i.defs['var'].points_to.name)
+                if i.defs['var'].points_to != check:   #if i.uses[0]['name'] != check:
+                    _ret.append(i.defs['var'].name) #_ret.append(i.defs['var'].points_to.name)
 
         if len(_ret) < 1:
             self.log.fatal("A non-split instruction has multiple successors!")
@@ -260,12 +261,38 @@ class MFSimTarget(BaseTarget):
         to = list(self.cblock.dag.successors(instr.defs['var'].name))
 
         if len(to) > 1:
+            found_instr = False
+            for x in self.cblock.instructions:  # added these
+                if x is instr:
+                    found_instr = True
+                    continue
+                if not found_instr:
+                    continue
+                if x.defs['var'].name == instr.defs['var'].name:
+                    to = list() #to = list(instr.defs['var'].name)
+                    to.append(instr.defs['var'].points_to.name) #used to be just .name
+                    break
+                break
+
+        if len(to) > 1:
             to = self.get_dependent_instr(instr, to)
+            to = list(dict.fromkeys(to))  # remove potential duplicates and keep order
 
         for key in to:
             to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].name is key]
             for ti in to_instr:
+                if ti.iid == self.opid: #added these
+                    continue
                 _ret += self.write_edge(self.opid, ti.iid)
+                break
+
+        for key in to:
+            to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].points_to.name is key]
+            for ti in to_instr:
+                if ti.iid == self.opid: #added these
+                    continue
+                _ret += self.write_edge(self.opid, ti.iid)
+                break
 
         self.num_mixes += 1
         return _ret
@@ -355,15 +382,16 @@ class MFSimTarget(BaseTarget):
         #for ti in to_instr:
          #   _ret += self.write_edge(self.opid, ti.iid) No to_instr found, debug and see what is available or just ask
 
-        to = list(self.cblock.dag.successors(instr.uses[1]['var'].name))
+        to = list(self.cblock.dag.successors(instr.uses[1]['name']))
+        to = [x for x in to if x != instr.defs['name']]
 
         if len(to) > 1:
             to = self.get_dependent_instr(instr, to)
+            to = list(dict.fromkeys(to))  # remove potential duplicates and keep order
 
         for key in to:
             to_instr = []
             # as long as order of instructions is maintained this works.
-            # ideally, the SSA form would have explicit defs for all heats
             found_instr = False
             for x in self.cblock.instructions:
                 if x is instr:
@@ -373,7 +401,7 @@ class MFSimTarget(BaseTarget):
                     continue
                 if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
                     for y in x.uses:
-                        if y['var'].points_to.name == key:
+                        if y['var'].name == key:
                             to_instr.append(x)
                             break
 
@@ -408,7 +436,22 @@ class MFSimTarget(BaseTarget):
         to = list(self.cblock.dag.successors(instr.defs['var'].name))
 
         if len(to) > 1:
+            found_instr = False
+            for x in self.cblock.instructions:  # added these
+                if x is instr:
+                    found_instr = True
+                    continue
+                if not found_instr:
+                    continue
+                if x.defs['var'].name == instr.defs['var'].name:
+                    to = list() #to = list(instr.defs['var'].name)
+                    to.append(instr.defs['var'].name) #used to be just .name
+                    break
+                break
+
+        if len(to) > 1:
             to = self.get_dependent_instr(instr, to)
+            to = list(dict.fromkeys(to))  # remove potential duplicates and keep order
 
         for key in to:
             to_instr = []
@@ -422,15 +465,18 @@ class MFSimTarget(BaseTarget):
                 if not found_instr:
                     continue
                 if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
-                    for y in x.uses:
-                        if y['var'].name == key:
-                            to_instr.append(x)
-                            break
+                    if x.defs['var'].name  == key: #for y in x.uses:
+                        #if y['var'].name == key:
+                        to_instr.append(x)
+                        break
 
             for ti in to_instr:
+                if ti.iid == self.opid: #added these
+                    continue
                 _ret += self.write_edge(self.opid, ti.iid)
+                break
 
-        self.num_heats += 1
+            self.num_heats += 1
         return _ret
 
     def write_dispose(self, instr) -> str:
@@ -478,6 +524,11 @@ class MFSimTarget(BaseTarget):
             to_instr = [x for x in self.cblock.instructions if x.defs is not None and x.defs['var'].name is key]
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
+
+        #for key in to:
+        #    to_instr = [x for x in self.cblock.instructions if x.defs is not None and x.defs['var'].points_to.name is key]
+        #    for ti in to_instr:
+        #        _ret += self.write_edge(self.opid, ti.iid)
 
         self.num_dispense += 1
         return _ret
@@ -636,7 +687,7 @@ class MFSimTarget(BaseTarget):
                         dispenses.add(node.defs['var'].points_to.name)
                 for node in block.instructions:
 
-                    if node.name in ['BINARYOP', 'CONDITIONAL', 'DISPENSE', 'MATH']:
+                    if node.name in ['PHI', 'BINARYOP', 'CONDITIONAL', 'DISPENSE', 'MATH']: #added PHI
                         continue
 
                     # for each use, we must check if predecessors in this block defined it
@@ -727,6 +778,8 @@ class MFSimTarget(BaseTarget):
                                 x = [x for x in i.uses if x['name'] == rdef]
                                 _def = x[0]['var'].points_to.name
                             break
+                        if i.name == 'PHI':
+                             break
                         x = [x for x in i.uses if x['name'] == rdef]
                         if x:  # we use this variable after it is defined in this block
                             skip = True
@@ -753,13 +806,22 @@ class MFSimTarget(BaseTarget):
                             # get successor block
                             sblock = self.program.functions[root]['blocks'][s]
                             for si in sblock.instructions:
-                                if si.op in {IRInstruction.PHI}:
+                                if si.op in {IRInstruction.PHI, IRInstruction.CONDITIONAL}:
                                     continue
                                 if trans:
                                     break
-                                x = [x['var'].points_to.name for x in si.uses if type(x['var']) is not Symbol]
+                                x = si.uses[0]['name'] # x = [x['var'].points_to.name for x in si.uses if type(x['var']) is not Symbol]
+                                z = instr #added this
                                 if _def in x:
-                                    dag_file.write(self.write_edge(instr.iid, self.tid))
+                                    done_instr = False
+                                    for x in self.cblock.instructions:
+                                        if x.name in ['PHI', 'BINARYOP', 'CONDITIONAL', 'DISPOSE', 'MATH', 'NOP']: #Loop through this block until the correct final instruction and hence it's id is found
+                                            done_instr = True
+                                            break
+                                        if not done_instr:
+                                            z = x
+                                            continue
+                                    dag_file.write(self.write_edge(z.iid, self.tid))
                                     dag_file.write(self.write_transfer(self.tid, _def, True))
                                     tn = TransferNode(self.tid, bid, _def, 'out')
                                     self.tid += 1
