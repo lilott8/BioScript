@@ -204,7 +204,6 @@ class SymbolTableVisitor(BSBaseVisitor):
         return None
 
     def visitDispense(self, ctx: BSParser.DispenseContext):
-
         deff = self.visitVariableDefinition(ctx.variableDefinition())
         if not self.symbol_table.get_global(ctx.IDENTIFIER().__str__()):
             raise UndefinedVariable("{} isn't declared in the manifest.".format(ctx.IDENTIFIER().__str__()))
