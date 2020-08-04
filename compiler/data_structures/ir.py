@@ -610,7 +610,7 @@ class UseIn(TimeConstraint):
         super().__init__(IRInstruction.USEIN, time, unit)
 
     def __repr__(self):
-        return "USEIN {}{}".format(self.quantity, self.unit.value)
+        return "{}{}".format(self.quantity, self.unit.name)
 
 
 class ExecuteFor(TimeConstraint):

@@ -651,6 +651,14 @@ class IRVisitor(BSBaseVisitor):
         else:
             time = (10, BSTime.SECOND)
 
+        if ctx.usein():
+            usein_time_temp = self.visitUsein(ctx.usein())
+            usein_time = (usein_time_temp['quantity'], usein_time_temp['units'])
+            #self.visit(ctx.usein())
+        #else:
+            #usein_time = (10, BSTime.SECOND)
+
+
         uses = list()
         for fluid in ctx.variable():
             use = self.visitVariable(fluid)
@@ -664,6 +672,12 @@ class IRVisitor(BSBaseVisitor):
         if ctx.timeIdentifier():
             time = self.visitTimeIdentifier(ctx.timeIdentifier())
             time_meta = TimeConstraint(IRInstruction.MIX, time['quantity'], time['units'])
+
+        # Get the usein time modifier, should one exist.
+        usein_time_meta = None
+        if ctx.usein():
+            usein_time = self.visitUsein(ctx.usein())
+            usein_time_meta = UseIn(usein_time['quantity'], usein_time['units'])
 
         if (use_a['index'] == -1 and use_a['var'].size > 1) and (use_b['index'] == -1 and use_b['var'].size > 1):
             if use_a['var'].size != use_b['var'].size:
@@ -683,6 +697,8 @@ class IRVisitor(BSBaseVisitor):
                  {'name': use_b['var'].name, 'offset': use_b['index'], 'size': use_b['var'].size, 'var': use_b['var']})
         if time_meta:
             ir.meta.append(time_meta)
+        if usein_time_meta:
+            ir.meta.append(usein_time_meta)
 
         self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes[ir.iid] = _volume
 
@@ -751,7 +767,20 @@ class IRVisitor(BSBaseVisitor):
         if ctx.timeIdentifier():
             time = self.visitTimeIdentifier(ctx.timeIdentifier())
 
+        if ctx.usein():
+            usein_time_temp = self.visitUsein(ctx.usein())
+            usein_time = (usein_time_temp['quantity'], usein_time_temp['units'])
+            #self.visit(ctx.usein())
+        #else:
+            #usein_time = (10, BSTime.SECOND)
+
         temp = self.visitTemperatureIdentifier(ctx.temperatureIdentifier())
+
+        # Get the usein time modifier, should one exist.
+        usein_time_meta = None
+        if ctx.usein():
+            usein_time = self.visitUsein(ctx.usein())
+            usein_time_meta = UseIn(usein_time['quantity'], usein_time['units'])
 
         self.check_bounds({'index': use['index'], 'name': use['name'], 'var': use_var.value})
         # if use['index'] == -1:
@@ -764,6 +793,8 @@ class IRVisitor(BSBaseVisitor):
         ir.meta.append(TempConstraint(IRInstruction.HEAT, temp['quantity'], temp['units']))
         if time is not None:
             ir.meta.append(TimeConstraint(IRInstruction.HEAT, time['quantity'], time['units']))
+        if usein_time_meta:
+            ir.meta.append(usein_time_meta)
         self.current_block.add(ir)
 
         # for x in range(use['index']):
@@ -776,6 +807,12 @@ class IRVisitor(BSBaseVisitor):
         # We don't need to add a value to whatever symbol is being used.
         # There is nothing being created, thus, no symbol to attach a value.
         return None
+
+    def visitUsein(self, ctx:BSParser.UseinContext):
+
+        time = self.visitTimeIdentifier(ctx.timeIdentifier())
+
+        return time
 
     def visitSplit(self, ctx: BSParser.SplitContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
