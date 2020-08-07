@@ -887,15 +887,3 @@ class IRVisitor(BSBaseVisitor):
         #     self.current_block.add(ir)
 
         return None
-
-    def visitUsein(self, ctx: BSParser.UseinContext):
-
-        # need ATSIGN and USEIN
-
-        deff = self.visitVariableDefinition(ctx.timeIdentifier())
-
-        ir = UseIn()
-
-        self.current_block.add(ir)
-
-        return None

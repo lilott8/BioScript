@@ -1,4 +1,5 @@
 import networkx as nx
+import json
 
 from compiler.data_structures import IRInstruction
 from compiler.data_structures import RelationalOps
@@ -7,6 +8,7 @@ from compiler.data_structures.variable import *
 from compiler.targets.base_target import BaseTarget
 from compiler.data_structures.ir import TempConstraint
 from compiler.data_structures.ir import TimeConstraint
+from compiler.data_structures.ir import UseIn
 
 
 class TransferNode:
@@ -35,6 +37,13 @@ class MFSimTarget(BaseTarget):
         self.cfg = dict()
         self.block_transfers = dict()
         self.loop_headers = dict()
+
+        # for generating usein constraints in json file, dictionaries and lists
+        self.constraints = []
+        self.useins = []
+        self.usein_data = {"constraints": self.constraints}
+        self.usein_subdata = {"useins": self.useins}
+
         # start transfer nodes from id 100.
         if self.config.debug:
             self.log.debug("Statically starting transfer IDs from 100. This could be an issue for very large assays.")
@@ -258,6 +267,11 @@ class MFSimTarget(BaseTarget):
         #  hence, we can safely assume every mix has exactly 2 inputs
         _ret += "2, %s, %s)\n" % (str(time), instr.defs['var'].points_to.name)
 
+        for meta in instr.meta:
+            if meta.name is "USEIN":
+                self.write_usein(instr)
+                break
+
         to = list(self.cblock.dag.successors(instr.defs['var'].name))
 
         if len(to) > 1:
@@ -433,6 +447,11 @@ class MFSimTarget(BaseTarget):
 
         _ret += "{}, {})\n".format(str(time), instr.uses[0]['var'].points_to.name)
 
+        for meta in instr.meta:
+            if meta.name is "USEIN":
+                self.write_usein(instr)
+                break
+
         to = list(self.cblock.dag.successors(instr.defs['var'].name))
 
         if len(to) > 1:
@@ -532,6 +551,20 @@ class MFSimTarget(BaseTarget):
 
         self.num_dispense += 1
         return _ret
+
+
+    def write_usein(self, instr) -> str:
+
+        for meta in instr.meta:
+            if meta.name is "USEIN":
+                node = self.opid
+                qty = meta.quantity
+                unit = meta.unit.name
+                temp = {"node": node, "quantity": qty, "unit": unit}
+                self.useins.append(temp)
+
+        return None
+
 
     def write_td(self, from_dag, to_dag) -> str:
         _ret = ""
@@ -966,6 +999,13 @@ class MFSimTarget(BaseTarget):
                     cfg_file.write(val)
 
             cfg_file.close()
+
+            # generate json file for usein constraint
+            self.constraints.append(self.usein_subdata)
+            exp_name = self.config.input.rsplit('/', 1)[1][:-3]  # get file input name -'.bs'
+            json_file = open("%s/%s.json" % (self.config.output, exp_name), "w")
+            json_file.write(json.dumps(self.usein_data, indent=4))
+            json_file.close()
 
         return True
 
