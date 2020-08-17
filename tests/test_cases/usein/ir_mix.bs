@@ -8,6 +8,3 @@ b = dispense bbb
 
 @usein 10s
 c = mix a with b
-
-@usein 10s
-heat c at 90c

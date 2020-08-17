@@ -1,0 +1,7 @@
+main:
+	a1[0] = dispense(droplet_a)
+	b1[0] = dispense(droplet_b)
+	c1[0] = mix(a1[0], b1[0]) @ 60.0SECOND usein 30.0SECOND
+	heat(c1[0]) @ 90.0CELSIUS @ 120.0SECOND usein 30.0SECOND
+	dispose(c1[0])
+	NOP

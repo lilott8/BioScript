@@ -1,0 +1,3 @@
+strict digraph  {
+1 [function=main, label=main];
+}

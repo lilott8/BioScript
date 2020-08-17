@@ -1,0 +1,28 @@
+// usein within 0s of the constraint time window
+
+manifest droplet_a
+manifest droplet_b
+manifest droplet_c
+manifest droplet_d
+
+instructions:
+
+a = dispense 10 units of droplet_a
+b = dispense 10 units of droplet_b
+c = dispense 10 units of droplet_c
+d = dispense 10 units of droplet_d
+
+@usein 20s
+ab = mix a with b for 10s
+
+@usein 20s
+cd = mix c with d for 20s
+
+@usein 10s
+heat ab at 90c for 20s
+
+heat cd at 90c for 10s
+
+abcd = mix ab with cd
+
+dispose abcd

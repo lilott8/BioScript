@@ -1,0 +1,13 @@
+{
+    "constraints": [
+        {
+            "useins": [
+                {
+                    "node": 11,
+                    "quantity": 30.0,
+                    "unit": "SECOND"
+                }
+            ]
+        }
+    ]
+}

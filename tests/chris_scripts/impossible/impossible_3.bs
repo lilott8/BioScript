@@ -1,0 +1,21 @@
+// 2 usein instructions, the former fails (@usein 30s)
+
+manifest droplet_a
+manifest droplet_b
+manifest droplet_c
+
+instructions:
+
+a = dispense 10 units of droplet_a
+b = dispense 10 units of droplet_b
+c = dispense 10 units of droplet_c
+
+@usein 30s
+ab = mix a with b for 30s
+
+@usein 45s
+heat c at 90c for 45s
+
+abc = mix ab with c for 10s
+
+dispose abc

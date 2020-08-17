@@ -1,0 +1,8 @@
+DagName (DAG1)
+NODE (31, DISPENSE, droplet_a, [10], a)
+EDGE (31, 33)
+NODE (32, DISPENSE, droplet_b, [10], b)
+EDGE (32, 33)
+NODE (33, MIX, 2, 10.0, ab)
+EDGE (33, 100)
+NODE (100, TRANSFER_OUT, ab)

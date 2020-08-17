@@ -1,0 +1,15 @@
+manifest aaa
+manifest bbb
+
+instructions:
+
+a = dispense 10 units of aaa
+b = dispense 10 units of bbb
+
+@usein 20s
+c = mix a with b for 1m
+
+@usein 40s
+heat c at 100c for 3m
+
+dispose c
