@@ -3,26 +3,32 @@ manifest Buffer
 manifest PCRMix
 
 instructions:
-a = dispense 50 units of PCRMix
-b = dispense 50 units of Buffer
+a = dispense 10 units of PCRMix
+b = dispense 10 units of Buffer
 PCR_Master_Mix = mix a with b
 
 heat PCR_Master_Mix at 94c for 2m
 
-repeat 20 times {
+repeat 5 times {
     heat PCR_Master_Mix at 94c for 20s
     heat PCR_Master_Mix at 50c for 40s
 }
 
 DNA_Sensor = detect fluorescence on PCR_Master_Mix for 30s
 
-if (DNA_Sensor <= 85) {
+if (DNA_Sensor <= 80) {
     dispose PCR_Master_Mix
 }
 
-repeat 20 times {
-    heat PCR_Master_Mix at 94c for 20s
-    heat PCR_Master_Mix at 50c for 40s
+repeat 4 times {
+heat PCR_Master_Mix at 94c for 20s
+heat PCR_Master_Mix at 50c for 40s
 }
 
-heat PCR_Master_Mix at 70c for 5m
+heat PCR_Master_Mix at 70c for 60s
+dispose PCR_Master_Mix
+
+d = dispense 10 units of PCRMix
+e = dispense 10 units of Buffer
+f = mix e with d
+dispose f

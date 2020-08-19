@@ -1,0 +1,16 @@
+manifest substance_a
+manifest dilutant1
+module fluorescence
+
+instructions:
+
+sa = dispense 10 units of substance_a
+d1 = dispense 1 units of dilutant1
+
+first_dilute = mix sa with d1 for 5s
+x = split first_dilute into 4
+dispose x[0]
+dispose x[1]
+urine_reading = detect fluorescence on x[2] for 5m
+dispose x[2]
+dispose x[3]

@@ -37,6 +37,10 @@ class MFSimTarget(BaseTarget):
         self.block_transfers = dict()
         self.loop_headers = dict()
         self.cgid_pair = dict() #ensure cgid stay consistent
+        self.live_droplets = list()
+        self.split_offset = list()
+        self.curr_split_offset = list()
+        #self.known_transfer = list()
         # start transfer nodes from id 100.
         if self.config.debug:
             self.log.debug("Statically starting transfer IDs from 100. This could be an issue for very large assays.")
@@ -240,10 +244,18 @@ class MFSimTarget(BaseTarget):
             if i.op in {IRInstruction.NOP, IRInstruction.CONDITIONAL}:  #if i.op in {IRInstruction.NOP, IRInstruction.CONDITIONAL}:
                 continue
             self.log.info(i)
-            if i.defs['name'] in uses:  # this instruction is one of the uses
-                if i.iid != check:  #if i.defs['var'].name != check:  #if i.uses[0]['name'] != check:
-                    if not _ret:
-                        _ret.append(i.defs['var'].name) #_ret.append(i.defs['var'].points_to.name)
+            #if i.op is IRInstruction.MIX: #Mix is a bit different, we are looking at the uses
+            if instr.op is IRInstruction.DETECT: #Detect is looking for uses we are looking at the uses
+                for use in i.uses:
+                    if use['name'] in uses:
+                        if i.iid != check:
+                            if not _ret:
+                                _ret.append(use['name'])
+            else:
+                if i.defs['name'] in uses:  # this instruction is one of the uses
+                    if i.iid != check:  #if i.defs['var'].name != check:  #if i.uses[0]['name'] != check:
+                        if not _ret:
+                            _ret.append(i.defs['var'].name) #_ret.append(i.defs['var'].points_to.name)
 
         if len(_ret) < 1:
             self.log.fatal("A non-split instruction has multiple successors!")
@@ -329,6 +341,57 @@ class MFSimTarget(BaseTarget):
         self.num_mixes += 1
         return _ret
 
+    def write_split_helper(self, instr):
+        if instr.split_size == 2:
+            _ret = self.write_split(instr)
+            return _ret
+
+        else:
+            _ret = "NODE (%s, SPLIT, " % str(self.opid)
+
+            numDrops = 2
+            time = 2
+
+            for t in instr.meta:
+                if type(t) is TimeConstraint:
+                    time = t.quantity
+                    break
+
+            n = instr.split_size
+            offset = n/2
+
+            _ret += "%s, %s, SPLIT)\n" % (str(numDrops), str(time))
+            _ret += self.write_edge(self.opid, self.opid + 1)
+            _ret += self.write_edge(self.opid, self.opid + int(offset))
+            self.num_splits += 1
+
+            valid = True
+            while n != 1 and n > 1:
+                if n % 2 != 0:
+                    valid = False
+                n = n / 2
+
+            if not valid:
+                self.log.fatal("A split instruction has an invalid number of successors!")
+                exit(-1)  # not a valid number
+            else: #number is valid, continue
+                #handle left and right sides
+                left_instr = deepcopy(instr)
+                left_instr.split_size = instr.split_size/2
+                left_instr.id_counter += 1
+                left_instr.iid += 1
+                left_instr.defs['size'] = left_instr.defs['size']/2
+                self.opid += 1
+                #_ret += self.write_edge(self.opid, self.opid + 1)
+                hold_left_and_right = self.write_split_helper(left_instr)
+                right_instr = deepcopy(left_instr)
+                right_instr.id_counter += 1
+                right_instr.iid += 1
+                self.opid += 1
+                hold_left_and_right += self.write_split_helper(right_instr)
+                _ret += hold_left_and_right
+                return _ret
+
     def write_split(self, instr) -> str:
         """
                 An MFSim SPLIT node has 5 parameters:
@@ -340,9 +403,9 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, SPLIT, " % str(self.opid)
 
-        if self.config.debug:
-            self.log.warning("Using default numDrops and time value for SPLIT; at least numDrops should be a f "
-                          "instruction attribute discovered during parsing")
+        #if self.config.debug:
+        #    self.log.warning("Using default numDrops and time value for SPLIT; at least numDrops should be a f "
+        #                  "instruction attribute discovered during parsing")
         numDrops = 2
         time = 2
 
@@ -353,10 +416,10 @@ class MFSimTarget(BaseTarget):
 
         _ret += "%s, %s, SPLIT)\n" % (str(numDrops), str(time))
 
-        if self.config.debug:
-            self.log.warning(
-                "Verify split instruction semantics for MFSim target. Not all out edges are correctly built as"
-                "the split does not maintain addressibility to created droplets")
+        #if self.config.debug:
+            #self.log.warning(
+                #"Verify split instruction semantics for MFSim target. Not all out edges are correctly built as"
+                #"the split does not maintain addressibility to created droplets")
 
         # TODO: when splits correctly build an array, this must be updated to build edges to proper successors
         # something like:
@@ -369,18 +432,41 @@ class MFSimTarget(BaseTarget):
         for key in to:
             to_instr = []
             # as long as order of instructions is maintained this works.
-            found_instr = False
-            for x in self.cblock.instructions:
-                if x is instr:
-                    found_instr = True
-                    continue
-                if not found_instr:
-                    continue
-                if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
-                    for y in x.uses:
-                        if y['var'].name == key:
-                            to_instr.append(x)
-                            break
+            #found_instr = False
+            counter = 0
+            while counter != 2:
+                found_instr = False
+                for x in self.cblock.instructions:
+                    if x.name is 'NOP':
+                        continue
+                    if x.uses[0]['name'] is instr.uses[0]['name'] and x.name is 'SPLIT':
+                        found_instr = True
+                        continue
+                    if not found_instr:
+                        continue
+                    if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
+                        for y in x.uses:
+                            if y['var'].name == key:
+                                if y['offset'] in self.split_offset or counter is 2:
+                                    continue
+                                if len(self.curr_split_offset) is 0:
+                                    if y['offset'] is 0:
+                                        self.curr_split_offset.append(y['offset'])
+                                        self.split_offset.append(y['offset'])
+                                        to_instr.append(x)
+                                        counter += 1
+                                        break
+                                    else:
+                                        continue
+                                if y['offset'] is self.curr_split_offset[0] + 1:
+                                    self.curr_split_offset = list()
+                                    self.curr_split_offset.append(y['offset'])
+                                else:
+                                    continue
+                                self.split_offset.append(y['offset'])
+                                to_instr.append(x)
+                                counter += 1
+                                break
 
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
@@ -439,6 +525,7 @@ class MFSimTarget(BaseTarget):
 
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
+                break
 
         self.num_detects += 1
         return _ret
@@ -496,7 +583,10 @@ class MFSimTarget(BaseTarget):
                     continue
                 if not found_instr:
                     continue
-                if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
+                if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH, IRInstruction.CONDITIONAL}:
+                    #NoneType = type(None)
+                    #if type(x) == NoneType:
+                        #continue
                     if x.defs['var'].name  == key: #for y in x.uses:
                         #if y['var'].name == key:
                         to_instr.append(x)
@@ -519,6 +609,11 @@ class MFSimTarget(BaseTarget):
         :return:
         """
         _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].points_to.name)
+
+        live_drops = list(self.live_droplets) #done to fix an issue with missing repeating droplets that should be removed
+        for a, b in live_drops:
+            if b == instr.uses[0]['var'].points_to.name:
+                self.live_droplets.remove((a, b))
 
         #if self.config.debug:
         #    self.log.warning(
@@ -628,15 +723,27 @@ class MFSimTarget(BaseTarget):
                 exit(-1)
 
             depDag = None
+            dep_node_id = -1
             # current block has the definition to this conditional variable
             if cond_var['var'].name in self.cblock.defs:
                 depDag = from_dag
             else:
-                if self.config.debug:
-                    self.log.warning("need to find block where condition variable is")
-                raise NotImplementedError("the current block does not have the definition to this conditional variable")
+                #predes = reversed(list(self.program.functions['main']['graph'].predecessors(exp_id)))
+                predes = reversed(list(self.program.functions['main']['blocks'])) #find the last def of this variable
+                for p in predes:
+                    block = self.program.functions['main']['blocks'][p]
+                    if cond_var['var'].name in block.defs:
+                        depDag = p
+                        for instr in block.instructions:
+                            if instr.defs is not None:
+                                if instr.defs['var'].points_to is cond_var['var'].points_to:
+                                    dep_node_id = instr.iid
+                                    break
+                #if self.config.debug:
+                    #self.log.warning("need to find block where condition variable is")
+                #raise NotImplementedError("the current block does not have the definition to this conditional variable")
 
-            dep_node_id = -1
+            #dep_node_id = -1
             for instr in self.cblock.instructions:
                 if instr.defs is not None:
                     if instr.defs['var'].points_to is cond_var['var'].points_to:
@@ -696,7 +803,7 @@ class MFSimTarget(BaseTarget):
             # conditional groups
             cgs = dict()
 
-            for bid, block in self.program.functions[root]['blocks'].items():
+            for bid, block in sorted(self.program.functions[root]['blocks'].items()):
                 self.cblock = block
 
                 write = False
@@ -767,6 +874,31 @@ class MFSimTarget(BaseTarget):
                             else:
                                 self.block_transfers[bid] = {tn}
 
+                for a, b in self.live_droplets:
+                    if b in dispenses or b in already_transferred_in:
+                        continue
+                    if b not in block.defs:
+                        already_transferred_in[b] = True
+                        dag_file.write(self.write_transfer(self.tid, b, False))
+                        tn = TransferNode(self.tid, bid, b, 'in')
+                        d = self.tid
+                        self.tid += 1
+                        dag_file.write(self.write_edge(d, self.tid))
+                        dag_file.write(self.write_transfer(self.tid, b, True))
+                        tn2 = TransferNode(self.tid, bid, b, 'out')
+                        self.tid += 1
+                        if tn is not None:
+                            if bid in self.block_transfers:
+                                self.block_transfers[bid].add(tn)
+                            else:
+                                self.block_transfers[bid] = {tn}
+                        if tn2 is not None:
+                            if bid in self.block_transfers:
+                                self.block_transfers[bid].add(tn2)
+                            else:
+                                self.block_transfers[bid] = {tn2}
+
+
                 for node in block.instructions:
                     self.opid = node.iid
 
@@ -775,7 +907,9 @@ class MFSimTarget(BaseTarget):
                     elif node.op is IRInstruction.MIX:
                         dag_file.write(self.write_mix(node))
                     elif node.op is IRInstruction.SPLIT:
-                        dag_file.write(self.write_split(node))
+                        dag_file.write(self.write_split_helper(node))
+                        self.split_offset = list()
+                        self.curr_split_offset = list()
                     elif node.op is IRInstruction.HEAT:
                         dag_file.write(self.write_heat(node))
                     elif node.op is IRInstruction.DISPOSE:
@@ -800,7 +934,7 @@ class MFSimTarget(BaseTarget):
                     _def = None
                     skip = False
                     defIndex = -1
-                    for index in range(len(block.instructions)):
+                    for index in range(len(block.instructions)): #reverse? reversed()
                         i = block.instructions[index]
                         if i.name in ['PHI', 'BINARYOP', 'CONDITIONAL', 'DISPOSE', 'MATH', 'NOP', 'DETECT']:
                             skip = True
@@ -823,6 +957,7 @@ class MFSimTarget(BaseTarget):
                         i = block.instructions[index]
                         # heat and detects use the droplet, but do not consume it, so may need to transfer still
                         if i.name in ['HEAT', 'DETECT'] and rdef in [x['name'] for x in i.uses]:
+                            instr = i
                             skip = False
                             if _def is None:
                                 x = [x for x in i.uses if x['name'] == rdef]
@@ -860,20 +995,27 @@ class MFSimTarget(BaseTarget):
                                     continue
                                 if trans:
                                     break
-                                x = si.uses[0]['name'] # x = [x['var'].points_to.name for x in si.uses if type(x['var']) is not Symbol]
+                                #for t in si.uses:
+                                    #x = t['name']
+                                if si.name is 'DISPENSE':
+                                    x = si.uses[0]['name']
+                                else:
+                                    x = [x['var'].points_to.name for x in si.uses if type(x['var']) is not Symbol]  #x = si.uses[len(si.uses) -1]['var'].points_to.name
                                 z = instr #added this
                                 if _def in x:
-                                    done_instr = False
-                                    for x in self.cblock.instructions:
-                                        if x.name in ['BINARYOP', 'CONDITIONAL', 'DISPOSE', 'MATH', 'NOP']: #Loop through this block until the correct final instruction and hence it's id is found
-                                            done_instr = True
-                                            break
-                                        if not done_instr:
-                                            z = x
-                                            continue
+                                    #done_instr = False
+                                    #for x in self.cblock.instructions:
+                                        #if x.name in ['BINARYOP', 'CONDITIONAL', 'DISPOSE', 'MATH', 'NOP']: #Loop through this block until the correct final instruction and hence it's id is found
+                                            #done_instr = True
+                                            #break
+                                        #if not done_instr:
+                                            #z = x
+                                            #continue
                                     dag_file.write(self.write_edge(z.iid, self.tid))
                                     dag_file.write(self.write_transfer(self.tid, _def, True))
                                     tn = TransferNode(self.tid, bid, _def, 'out')
+                                    self.live_droplets.append((bid, _def))
+                                    #self.known_transfer.append((bid, s))
                                     self.tid += 1
                                     trans = True
                                     break
@@ -983,14 +1125,23 @@ class MFSimTarget(BaseTarget):
 
                                 conditional_groups[self.cgid] = []
                                 # find all back edges -- this is probably wrong, as these may fall into different CGs
+                                iteration = 0
+                                prev_val = -1
+                                dup = False
                                 back_edges = [x for x in edges_not_translated if x[1] is succ_id and x[0] > x[1]]
                                 for be in back_edges:
+                                    if dup and iteration < 2: #allocate space for the duplicated instructions
+                                        conditional_groups[self.cgid] = []
+                                    iteration += 1
                                     val = be[0]
                                     if len(self.block_transfers.keys()) >= 1:
                                         if be[0] not in self.block_transfers.keys():
                                             val = val - 1
                                             while val not in self.block_transfers.keys() and val != -1: #this is here to drop down from a from dag that does not have its own dag file
                                                 val = val - 1
+                                    if prev_val is val:
+                                        val -= 1
+                                    prev_val = val
                                     # ensure cgid groups stay together
                                     cgid = self.cgid
                                     if val not in self.cgid_pair.keys():
@@ -999,15 +1150,34 @@ class MFSimTarget(BaseTarget):
                                         check = self.cgid_pair[val]
                                         if check != self.cgid:
                                             cgid = check
+                                    dup = False
+                                    #last_block = None
+                                    if be[0] not in self.block_transfers:#check if need to duplicate the back edge and out edge for a second conditional (else)
+                                        times_to_last_block = 0
+                                        for e in edges_not_translated:
+                                            if e[1] is be[0]:
+                                                times_to_last_block += 1
+                                                #last_block = e[0]
+                                        valid = True #False
+                                        #for instru in self.program.functions[root]['blocks'][last_block].instructions:
+                                            #if instru.name is 'CONDITIONAL':
+                                        #if len(self.program.functions[root]['blocks'][last_block].jumps) > 0:
+                                           #valid = True
+                                        if times_to_last_block is 2 and iteration < 2 and valid:
+                                            dup = True
+                                            back_edges.append(be)
                                     conditional_groups[self.cgid].append(
                                         self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
                                                         [val], 1,
                                                         [self.loop_headers[succ_id]['t']],
                                                         self.expid, 1, 'LOOP'))
                                     edges_not_translated.remove((be[0], succ_id))
+                                    if dup and iteration < 2:
+                                        edges_not_translated.append((be[0], succ_id))
                                     if len(self.block_transfers.keys()) >= 1:
                                         if self.loop_headers[succ_id]['f'] not in self.block_transfers.keys():
-                                            edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
+                                            if (be[1], self.loop_headers[succ_id]['f']) in edges_not_translated:
+                                                edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
                                             continue
 
                                     conditional_groups[self.cgid].append(
@@ -1016,6 +1186,9 @@ class MFSimTarget(BaseTarget):
                                                         [self.loop_headers[succ_id]['f']],
                                                         self.expid, 1, ))
                                     edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
+                                    if dup and iteration < 2:
+                                        edges_not_translated.append((be[1], self.loop_headers[succ_id]['f']))
+                                        self.cgid += 1
 
                                 # deal with exit from loop
                                 #check if this assay has TDs, if not, act normal, if so, change behavior of exits
@@ -1059,12 +1232,20 @@ class MFSimTarget(BaseTarget):
                                                                 self.expid, 1, 'IF'))
                                             edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['t']))
                                             if self.cfg[bid][instr.iid]['f'] is not None:
+                                                skip = False
+                                                if self.cfg[bid][instr.iid]['f'] not in self.block_transfers:
+                                                    skip = True
+                                                if skip:
+                                                    edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
+                                                    self.cgid += 1
+                                                    continue
                                                 conditional_groups[self.cgid].append(
                                                     self.write_cond(self.cfg[bid][instr.iid]['instr'],
                                                                     cgid, [bid], 1,
                                                                     [self.cfg[bid][instr.iid]['f']],
                                                                     self.expid, 1))
                                                 edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
+                                                #self.cgid += 1
                                     self.cgid += 1
                                 else: #unconditional exit from an if block
                                     #check to see if edge should be displayed at all
@@ -1073,6 +1254,8 @@ class MFSimTarget(BaseTarget):
                                         for to2 in to:
                                             if to2.type is 'out':
                                                 skip = False
+                                    if succ_id not in self.block_transfers:
+                                        skip = True
                                     if skip:
                                         conditional_groups[self.cgid] = []
                                         self.cgid += 1

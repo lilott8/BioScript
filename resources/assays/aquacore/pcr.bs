@@ -1,17 +1,13 @@
-module fluorescence
-manifest pcr_mixture
-
+// a goes unused after being heated (line 14)
+manifest droplet_a
+manifest droplet_b
+manifest droplet_c
 instructions:
-
-a = dispense pcr_mixture
-
-heat a at 95c for 5s
-
-repeat 20 times {
-    heat a at 53c for 15s
-    heat a at 72c for 10s
-}
-
-x = detect fluorescence on a for 3m
-
-dispose a
+a = dispense 10 units of droplet_a
+b = dispense 10 units of droplet_b
+c = dispense 10 units of droplet_c
+//@usein 30s
+heat a at 90c for 30s
+bc = mix b with c for 45s
+abc = mix a with bc
+dispose abc
