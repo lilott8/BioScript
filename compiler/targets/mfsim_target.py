@@ -699,7 +699,7 @@ class MFSimTarget(BaseTarget):
             if cond.left['name'].startswith('REPEAT'):  # .cond_type is 'repeat':
                 _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), int(cond.left['var'].value.value[0])) #changed str(to_dag) to str(from_dag)
             else:  # must be a while?
-                _ret += "while\n"
+                _ret += "while)\n"
         elif cond_type is 'IF':
             # ONE_SENSOR, relop, depDag, depNodeID, value)
             relop = "Unrecognized relational operator"
@@ -791,6 +791,604 @@ class MFSimTarget(BaseTarget):
             _ret += self.write_exp(cond, exp_id, dep_dags[0], branch_dags[0], 'IF')
 
         return _ret
+
+    def create_conditional_groups(self, edges_not_translated):
+        conditional_groups = dict()
+
+        edges_not_translated_save = deepcopy(edges_not_translated)
+
+        seen_pair = list()
+
+        no_trans = False
+        if len(self.block_transfers) == 0:
+            no_trans = True
+
+        if not no_trans:
+            no_trans = True
+            for a in self.block_transfers:
+                b = self.block_transfers[a]
+                for c in b:
+                    if c.type is 'out':
+                        no_trans = False
+
+        while len(edges_not_translated) > 0:
+            for bid, block in self.program.functions['main']['blocks'].items():
+                if block.instructions is None:
+                    for e in edges_not_translated:
+                        if e[0] == bid:
+                            edges_not_translated.remove(e)
+                    continue
+                cond = False
+                executable = False
+                if block.dag is not None:
+                    for instr in block.instructions:
+                        if cond and executable:
+                            break
+                        if instr.name is 'CONDITIONAL':
+                            cond = True
+                        if instr.name in ['MIX', 'DETECT', 'SPLIT', 'HEAT', 'DISPENSE', 'DISPOSE']:
+                            executable = True
+
+                    # deal with successor loop headers, which will take care of [current : translated]:
+                    #   bid->succ               :   bid->true
+                    #   succ->true              :   [no translation]
+                    #   succ->false             :   true->false
+                    #   back-edge(s) to succ    :   back1->true...backn->true
+                    #                   for succ_id in self.program.functions[root]['graph'].succ[bid]:
+                    for succ_id in self.cfg['graph'].successors(bid):
+                        # we know there is an edge from bid to succ_id, need to check if bid or succ_id is a loop
+                        # header
+                        if (bid, succ_id) not in edges_not_translated:
+                            continue
+                        if bid in self.loop_headers:
+                            # bid is loop header
+                            edges_not_translated.remove((bid, succ_id))
+                            #print("if I take care of everything already, then continue?") Simply remove in this case
+                            continue
+                        elif succ_id in self.loop_headers:
+                            #if len(edges_not_translated) == 1:  # catch a stragling condition that doesnt belong
+                                #edges_not_translated.remove((bid, succ_id))
+                                #continue
+                            # unconditional branch into loop (MFSim interprets all loops as do-while)
+                            # ensure cgid groups stay together
+                            cgid = self.cgid
+                            if not no_trans and bid not in self.block_transfers:
+                                edges_not_translated.remove((bid, succ_id))
+                                continue
+                            if bid not in self.cgid_pair.keys():
+                                self.cgid_pair[bid] = self.cgid
+                            else:
+                                check = self.cgid_pair[bid]
+                                if check != self.cgid:
+                                    cgid = check
+                            if self.loop_headers[succ_id]['t'] in self.block_transfers or no_trans:
+                                #if (succ_id, self.loop_headers[succ_id]['t']) not in edges_not_translated:
+                                    #edges_not_translated.remove((bid, succ_id))
+                                    #self.cgid += 1
+                                    #break
+                                if not no_trans:
+                                    out = False
+                                    for node in self.block_transfers[bid]:
+                                        if node.type is 'out':
+                                            out = True
+                                    if not out:
+                                        edges_not_translated.remove((bid, succ_id))
+                                        self.cgid_pair.pop(bid)
+                                        self.cgid += 1
+                                        continue
+                                    if (bid, self.loop_headers[succ_id]['t']) in seen_pair:
+                                        edges_not_translated.remove((bid, succ_id))
+                                        self.cgid += 1
+                                        continue
+                                conditional_groups[self.cgid] = []
+                                conditional_groups[self.cgid].append(
+                                self.write_cond(self.loop_headers[succ_id]['instr'],
+                                                cgid, [bid], 1,
+                                                [self.loop_headers[succ_id]['t']],
+                                                self.expid, 1))
+                                seen_pair.append((bid, self.loop_headers[succ_id]['t']))
+                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is not None:
+                                    conditional_groups[self.cgid].append(
+                                        self.write_cond(self.loop_headers[succ_id]['instr'],
+                                                        cgid, [bid], 1,
+                                                        [self.loop_headers[succ_id]['f']],
+                                                        self.expid, 1))
+                                    seen_pair.append((bid, self.loop_headers[succ_id]['f']))
+                                # if 'r' in str(self.program.functions['main']['blocks'][bid].label) and 'r' in str(self.program.functions['main']['blocks'][self.loop_headers[succ_id]['t']].label):
+                                #     if (self.loop_headers[succ_id]['t'], bid) not in seen_pair:
+                                #         self.cgid += 1
+                                #         if self.loop_headers[succ_id]['t'] not in self.cgid_pair.keys():
+                                #             self.cgid_pair[self.loop_headers[succ_id]['t']] = self.cgid
+                                #         else:
+                                #             check = self.cgid_pair[self.loop_headers[succ_id]['t']]
+                                #             if check != self.cgid:
+                                #                 cgid = check
+                                #         conditional_groups[self.cgid] = []
+                                #         conditional_groups[self.cgid].append(
+                                #             self.write_cond(self.loop_headers[succ_id]['instr'],
+                                #                             cgid, [self.loop_headers[succ_id]['t']], 1,
+                                #                             [bid],
+                                #                             self.expid, 1))
+                                #         seen_pair.append((self.loop_headers[succ_id]['t'], bid))
+                                edges_not_translated.remove((bid, succ_id))
+                                if edges_not_translated:
+                                    if (succ_id, self.loop_headers[succ_id]['t']) in edges_not_translated:
+                                        edges_not_translated.remove((succ_id, self.loop_headers[succ_id]['t']))
+                                    self.cgid += 1
+                                else:
+                                    continue
+                            elif self.loop_headers[succ_id]['t'] is None and bid == next(iter(self.block_transfers)):
+                                early_initialize = False
+                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is not None:
+                                    conditional_groups[self.cgid] = []
+                                    conditional_groups[self.cgid].append(
+                                        self.write_cond(self.loop_headers[succ_id]['instr'],
+                                                        cgid, [bid], 1,
+                                                        [self.loop_headers[succ_id]['f']],
+                                                        self.expid, 1))
+                                    seen_pair.append((bid, self.loop_headers[succ_id]['f']))
+                                    early_initialize = True
+                                val2 = succ_id
+                                if len(self.block_transfers.keys()) >= 1:
+                                    if succ_id not in self.block_transfers.keys():
+                                        val2 = val2 + 1
+                                        while val2 not in self.block_transfers.keys() and val2 != 20:  # this is here to move up to a dag that does have its own dag file
+                                            val2 = val2 + 1
+                                if not early_initialize:
+                                    conditional_groups[self.cgid] = []
+                                conditional_groups[self.cgid].append(
+                                    self.write_cond(self.loop_headers[succ_id]['instr'],
+                                                    cgid, [bid], 1,
+                                                    [val2],
+                                                    self.expid, 1))
+                                seen_pair.append((bid, val2))
+                                edges_not_translated.remove((bid, succ_id))
+                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label):
+                                    val2 = val2 + 1
+                                    while val2 not in self.block_transfers.keys() and val2 != 20:
+                                        val2 = val2 + 1
+                                    if (bid, val2) not in seen_pair:
+                                        conditional_groups[self.cgid].append(
+                                            self.write_cond(self.loop_headers[succ_id]['instr'],
+                                                            cgid, [bid], 1,
+                                                            [val2],
+                                                            self.expid, 1))
+                                        seen_pair.append((bid, val2))
+                                self.cgid += 1
+                                # if edges_not_translated:
+                                #     edges = edges_not_translated
+                                #     edges_to_remove = list()
+                                #     for e in edges:
+                                #         if e[0] == succ_id or e[1] == succ_id:
+                                #             edges_to_remove.append(e)
+                                #     for e in edges_to_remove:
+                                #         edges_not_translated.remove(e)
+                                #else:
+                                #   continue
+                            elif self.loop_headers[succ_id]['t'] is None:
+                                val2 = succ_id
+                                if len(self.block_transfers.keys()) >= 1:
+                                    if succ_id not in self.block_transfers.keys():
+                                        val2 = val2 + 1
+                                        while val2 not in self.block_transfers.keys() and val2 != 20:  # this is here to move up to a dag that does have its own dag file
+                                            val2 = val2 + 1
+                                last = True
+                                for l in self.block_transfers[val2]: #changin this from in to out and the true and false
+                                    if l.type == 'out':
+                                        last = False
+                                if last:
+                                    edges_not_translated.remove((bid, succ_id))
+                                    self.cgid += 1
+                                    break
+                                conditional_groups[self.cgid] = []
+                                conditional_groups[self.cgid].append(
+                                    self.write_cond(self.loop_headers[succ_id]['instr'],
+                                                    cgid, [bid], 1,
+                                                    [val2],
+                                                    self.expid, 1))
+                                seen_pair.append((bid, val2))
+                                edges_not_translated.remove((bid, succ_id))
+                                self.cgid += 1
+                                if edges_not_translated:
+                                    edges = edges_not_translated
+                                    edges_to_remove = list()
+                                    for e in edges:
+                                        if (e[0] == succ_id or e[1] == succ_id) and e[0] < e[1]: #don't want to remove back edges on accident
+                                            edges_to_remove.append(e)
+                                    for e in edges_to_remove:
+                                        edges_not_translated.remove(e)
+                                else:
+                                    continue
+                            else:
+                                transfers = list()
+                                for inst in edges_not_translated:
+                                    if inst[0] == self.loop_headers[succ_id]['t']:
+                                        transfers.append(inst[1])
+                                conditional_groups[self.cgid] = []
+                                for t in transfers:
+                                    if t not in self.block_transfers:
+                                        transfers.remove(t)
+                                        for inst in edges_not_translated:
+                                            if inst[0] == t and inst[1] in self.block_transfers:
+                                                transfers.append(inst[1])
+                                for t in transfers:
+                                    conditional_groups[self.cgid].append(
+                                        self.write_cond(self.loop_headers[succ_id]['instr'],
+                                                        cgid, [bid], 1,
+                                                        [t],
+                                                        self.expid, 1))
+                                    seen_pair.append((bid, t))
+                                edges_not_translated.remove((bid, succ_id))
+                                if edges_not_translated:
+                                    #if (succ_id, self.loop_headers[succ_id]['t']) in edges_not_translated:
+                                    edges_not_translated.remove((succ_id, self.loop_headers[succ_id]['t']))
+                                    self.cgid += 1
+                                else:
+                                    continue
+
+
+                            conditional_groups[self.cgid] = []
+                            # find all back edges -- this is probably wrong, as these may fall into different CGs
+                            iteration = 0
+                            prev_val = -1
+                            dup = False
+                            back_edges = [x for x in edges_not_translated if x[1] is succ_id and x[0] > x[1]]
+                            for be in back_edges:
+                                if dup and iteration < 2:  # allocate space for the duplicated instructions
+                                    conditional_groups[self.cgid] = []
+                                iteration += 1
+                                val = be[0]
+                                if len(self.block_transfers.keys()) >= 1:
+                                    if be[0] not in self.block_transfers.keys():
+                                        val = val - 1
+                                        while val not in self.block_transfers.keys() and val != -1:  # this is here to drop down from a from dag that does not have its own dag file
+                                            val = val - 1
+                                if prev_val is val:
+                                    val -= 1
+                                prev_val = val
+                                if val not in self.block_transfers and not no_trans: #if val not in block transfers, it's not a live dag and should be skipped in the cfg
+                                    conditional_groups.pop(self.cgid, None)
+                                    edges_not_translated.remove((be[0], succ_id))
+                                    edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
+                                    break
+                                # ensure cgid groups stay together
+                                cgid = self.cgid
+                                if val not in self.cgid_pair.keys():
+                                    self.cgid_pair[val] = self.cgid
+                                else:
+                                    check = self.cgid_pair[val]
+                                    if check != self.cgid:
+                                        cgid = check
+                                dup = False
+                                # last_block = None
+                                if be[0] not in self.block_transfers:  # check if need to duplicate the back edge and out edge for a second conditional (else)
+                                    times_to_last_block = 0
+                                    for e in edges_not_translated:
+                                        if e[1] is be[0]:
+                                            times_to_last_block += 1
+                                            # last_block = e[0]
+                                    valid = True  # False
+                                    # for instru in self.program.functions[root]['blocks'][last_block].instructions:
+                                    # if instru.name is 'CONDITIONAL':
+                                    # if len(self.program.functions[root]['blocks'][last_block].jumps) > 0:
+                                    # valid = True
+                                    if times_to_last_block is 2 and iteration < 2 and valid:
+                                        dup = True
+                                        back_edges.append(be)
+                                if self.loop_headers[succ_id]['t'] in self.block_transfers or no_trans:
+                                    conditional_groups[self.cgid].append(
+                                        self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
+                                                    [val], 1,
+                                                    [self.loop_headers[succ_id]['t']],
+                                                    self.expid, 1, 'LOOP'))
+                                    seen_pair.append((val, self.loop_headers[succ_id]['t']))
+                                    edges_not_translated.remove((be[0], succ_id))
+                                    if dup and iteration < 2:
+                                        edges_not_translated.append((be[0], succ_id))
+                                    if len(self.block_transfers.keys()) >= 1:
+                                        if self.loop_headers[succ_id]['f'] not in self.block_transfers.keys():
+                                            if (be[1], self.loop_headers[succ_id]['f']) in edges_not_translated:
+                                                edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
+                                            elif 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is None:
+                                                transfers4 = list()
+                                                for inst in edges_not_translated_save:
+                                                    if inst[0] == self.loop_headers[succ_id]['t']:
+                                                        transfers4.append(inst[1])
+                                                #conditional_groups[self.cgid] = []
+                                                for t in transfers4:
+                                                    if t not in self.block_transfers:
+                                                        transfers4.remove(t)
+                                                        for inst in edges_not_translated_save:
+                                                            if inst[0] == t:
+                                                                transfers4.append(inst[1])
+                                                for t in transfers4:
+                                                    if (val, t) in seen_pair:
+                                                        transfers4.remove(t)
+                                                for t in transfers4:
+                                                    conditional_groups[self.cgid].append(
+                                                        self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
+                                                                        [val], 1,
+                                                                        [t],
+                                                                        self.expid, 1, 'LOOP'))
+                                                    seen_pair.append((val, t))
+                                            continue
+
+                                    conditional_groups[self.cgid].append(
+                                        self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
+                                                    [val], 1,
+                                                    [self.loop_headers[succ_id]['f']],
+                                                    self.expid, 1, ))
+                                    seen_pair.append((val, self.loop_headers[succ_id]['f']))
+                                    edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
+                                    if dup and iteration < 2:
+                                        edges_not_translated.append((be[1], self.loop_headers[succ_id]['f']))
+                                        self.cgid += 1
+                                elif self.loop_headers[succ_id]['t'] is None and bid == next(iter(self.block_transfers)):
+                                    val2 = succ_id
+                                    if len(self.block_transfers.keys()) >= 1:
+                                        if succ_id not in self.block_transfers.keys():
+                                            val2 = val2 + 1
+                                            while val2 not in self.block_transfers.keys() and val2 != 20:  # this is here to move up to a dag that does have its own dag file
+                                                val2 = val2 + 1
+                                    conditional_groups[self.cgid].append(
+                                        self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
+                                                        [val], 1,
+                                                        [val2],
+                                                        self.expid, 1, ))
+                                    seen_pair.append((val, val2))
+                                    if 'w' in str(self.program.functions['main']['blocks'][val2].label):
+                                        val2 = val2 + 1
+                                        while val2 not in self.block_transfers.keys() and val2 != 20:  # this is here to move up to a dag that does have its own dag file
+                                            val2 = val2 + 1
+                                        if (val, val2) not in seen_pair:
+                                            conditional_groups[self.cgid].append(
+                                                self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
+                                                                [val], 1,
+                                                                [val2],
+                                                                self.expid, 1, ))
+                                            seen_pair.append((val, val2))
+                                    edges_not_translated.remove((be[0], succ_id))
+                                    if len(self.block_transfers.keys()) >= 1:
+                                        if self.loop_headers[succ_id]['f'] not in self.block_transfers.keys():
+                                            if (be[1], self.loop_headers[succ_id]['f']) in edges_not_translated:
+                                                edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
+                                            continue
+
+                                    conditional_groups[self.cgid].append(
+                                        self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
+                                                        [val], 1,
+                                                        [self.loop_headers[succ_id]['f']],
+                                                        self.expid, 1, ))
+                                    seen_pair.append((val, self.loop_headers[succ_id]['f']))
+                                    edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
+                                    if dup and iteration < 2:
+                                        edges_not_translated.append((be[1], self.loop_headers[succ_id]['f']))
+                                        self.cgid += 1
+                                elif self.loop_headers[succ_id]['t'] is None: #when a certain edge is missing (repeat)
+                                    if (val, val2) not in seen_pair:
+                                        conditional_groups[self.cgid].append(
+                                            self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
+                                                        [val], 1,
+                                                        [val2],
+                                                        self.expid, 1, ))
+                                        seen_pair.append((val, val2))
+                                    if 'w' in str(self.program.functions['main']['blocks'][val2].label):
+                                        val2 = val2 + 1
+                                        while val2 not in self.block_transfers.keys() and val2 != 20:  # this is here to move up to a dag that does have its own dag file
+                                            val2 = val2 + 1
+                                        if (val, val2) not in seen_pair:
+                                            conditional_groups[self.cgid].append(
+                                                self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
+                                                                [val], 1,
+                                                                [val2],
+                                                                self.expid, 1, ))
+                                            seen_pair.append((val, val2))
+                                    edges_not_translated.remove((be[0], succ_id))
+                                    if len(self.block_transfers.keys()) >= 1:
+                                        if self.loop_headers[succ_id]['f'] not in self.block_transfers.keys():
+                                            if (be[1], self.loop_headers[succ_id]['f']) in edges_not_translated:
+                                                edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
+                                            continue
+                                    self.cgid += 1
+                                else:
+                                    for t in transfers:
+                                        conditional_groups[self.cgid].append(
+                                            self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
+                                                        [val], 1,
+                                                        [t],
+                                                        self.expid, 1, 'LOOP'))
+                                        seen_pair.append((val, t))
+                                    if len(transfers) == 0:
+                                        val3 = self.loop_headers[succ_id]['t']
+                                        while val3 not in self.block_transfers.keys() and val3 != -1:  # this is here to drop down from a from dag that does not have its own dag file
+                                            val3 = val3 - 1
+                                        if val3 != 0 and (val, val3) not in seen_pair:
+                                            conditional_groups[self.cgid].append(
+                                                self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
+                                                                [val], 1,
+                                                                [val3],
+                                                                self.expid, 1, 'LOOP'))
+                                            seen_pair.append((val, val3))
+                                    edges_not_translated.remove((be[0], succ_id))
+                                    if dup and iteration < 2:
+                                        edges_not_translated.append((be[0], succ_id))
+                                    if len(self.block_transfers.keys()) >= 1:
+                                        if self.loop_headers[succ_id]['f'] not in self.block_transfers.keys():
+                                            if (be[1], self.loop_headers[succ_id]['f']) in edges_not_translated:
+                                                edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
+                                            continue
+
+                                    conditional_groups[self.cgid].append(
+                                        self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
+                                                        [val], 1,
+                                                        [self.loop_headers[succ_id]['f']],
+                                                        self.expid, 1, ))
+                                    seen_pair.append((val, self.loop_headers[succ_id]['f']))
+                                    edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
+                                    if dup and iteration < 2:
+                                        edges_not_translated.append((be[1], self.loop_headers[succ_id]['f']))
+                                        self.cgid += 1
+
+
+                            # deal with exit from loop
+                            # check if this assay has TDs, if not, act normal, if so, change behavior of exits
+                            # expID = self.expid
+                            # if self.loop_headers[succ_id]['t'] in self.block_transfers:
+                            # for to in [self.block_transfers[self.loop_headers[succ_id]['t']]]:
+                            # if isinstance(to, set):
+                            # expID = expID + 1000
+                            # for val in self.predecessor_edges:
+                            # if val[1] == self.loop_headers[succ_id]['f']:
+                            # string_key = 't'
+                            # if 2 <= len(self.program.functions[root]['blocks'][val[0]].jumps): #only currently checking if last block, not likely to work in all scenarios
+                            # string_key = 't'
+                            # conditional_groups[self.cgid].append(
+                            # self.write_cond(self.loop_headers[val[0]]['instr'],
+                            # self.cgid,
+                            # [self.loop_headers[val[0]][string_key]], 1,
+                            # [val[1]],
+                            # expID, 1, ))  #adding 1000 to diffentiate exps for entering and leaving loops #changed to self.loop_headers[val[0]]['f']
+                            # expID = expID +1
+                            # edges_not_translated.remove((succ_id, self.loop_headers[succ_id]['f']))
+                            self.cgid += 1
+                        else:  # dealing with if conditional
+                            if cond and executable:
+                                self.cblock = block
+                                #conditional_groups[self.cgid] = []
+                                for instr in self.program.functions['main']['blocks'][bid].instructions:
+                                    if instr.op is IRInstruction.CONDITIONAL:
+                                        # ensure cgid groups stay together
+                                        cgid = self.cgid
+                                        if bid not in self.cgid_pair.keys():
+                                            self.cgid_pair[bid] = self.cgid
+                                        else:
+                                            check = self.cgid_pair[bid]
+                                            if check != self.cgid:
+                                                cgid = check
+                                        if cgid == self.cgid:
+                                            conditional_groups[self.cgid] = []
+                                        conditional_groups[cgid].append(
+                                            self.write_cond(self.cfg[bid][instr.iid]['instr'],
+                                                            cgid, [bid], 1,
+                                                            [self.cfg[bid][instr.iid]['t']],
+                                                            self.expid, 1, 'IF'))
+                                        seen_pair.append((bid, self.cfg[bid][instr.iid]['t']))
+                                        edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['t']))
+                                        if self.cfg[bid][instr.iid]['f'] is not None:
+                                            skip = False
+                                            if self.cfg[bid][instr.iid]['f'] not in self.block_transfers:
+                                                skip = True
+                                            if skip:
+                                                transfers2 = list()
+                                                for inst2 in edges_not_translated:
+                                                    if inst2[0] == self.cfg[bid][instr.iid]['f']:
+                                                        transfers2.append(inst2[1])
+                                                #conditional_groups[self.cgid] = []
+                                                for t in transfers2:
+                                                    if t not in self.block_transfers:
+                                                        transfers2.remove(t)
+                                                        for inst in edges_not_translated: #not as sure about this one
+                                                            if inst[0] == t:
+                                                                transfers2.append(inst[1])
+                                                for t in transfers2:
+                                                    conditional_groups[self.cgid].append(
+                                                        self.write_cond(None,
+                                                                        cgid, [bid], 1,
+                                                                        [t],
+                                                                        self.expid, 1))
+                                                    seen_pair.append((bid, t))
+                                                edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
+                                                self.cgid += 1
+                                                continue
+                                                #edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
+                                                #self.cgid += 1
+                                                #continue
+                                            conditional_groups[self.cgid].append(
+                                                self.write_cond(self.cfg[bid][instr.iid]['instr'],
+                                                                cgid, [bid], 1,
+                                                                [self.cfg[bid][instr.iid]['f']],
+                                                                self.expid, 1))
+                                            seen_pair.append((bid, self.cfg[bid][instr.iid]['f']))
+                                            edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
+                                            # self.cgid += 1
+                                self.cgid += 1
+                            else:  # unconditional exit from an if block
+                                # check to see if edge should be displayed at all
+                                skip = True
+                                for to in [self.block_transfers[bid]]:
+                                    for to2 in to:
+                                        if to2.type is 'out':
+                                            skip = False
+                                if succ_id not in self.block_transfers:
+                                    skip = True
+                                if skip:
+                                    #conditional_groups[self.cgid] = []
+                                    if bid > succ_id:
+                                        cgid = self.cgid
+                                        if bid not in self.cgid_pair.keys():
+                                            self.cgid_pair[bid] = self.cgid
+                                        else:
+                                            check = self.cgid_pair[bid]
+                                            if check != self.cgid:
+                                                cgid = check
+                                        self.cblock = block
+                                        conditional_groups[self.cgid] = []
+                                        transfers3 = list()
+                                        for e in edges_not_translated_save:
+                                            if e[0] == succ_id:
+                                                for e1 in edges_not_translated_save:
+                                                    if e1[0] == e[1]:
+                                                        transfers3.append(e1[1])
+                                        t_to_remove = list()
+                                        for e in transfers3:
+                                            if e not in self.block_transfers:
+                                                t_to_remove.append(e)
+                                                for inst in edges_not_translated_save:
+                                                    if inst[0] == e:
+                                                        transfers3.append(inst[1])
+                                        for e in t_to_remove:
+                                            transfers3.remove(e)
+                                        for t in transfers3:
+                                            conditional_groups[self.cgid].append(
+                                                self.write_cond(None,
+                                                                cgid, [bid], 1,
+                                                                [t],
+                                                                self.expid, 1))
+                                            seen_pair.append((bid, t))
+                                        self.cgid += 1
+                                        edges_not_translated.remove((bid, succ_id))
+                                        continue
+                                    else:
+                                        self.cgid += 1
+                                        edges_not_translated.remove((bid, succ_id))
+                                        continue
+                                # ensure cgid groups stay together
+                                cgid = self.cgid
+                                if bid not in self.cgid_pair.keys():
+                                    self.cgid_pair[bid] = self.cgid
+                                else:
+                                    check = self.cgid_pair[bid]
+                                    if check != self.cgid:
+                                        cgid = check
+                                self.cblock = block
+                                conditional_groups[self.cgid] = []
+                                conditional_groups[self.cgid].append(
+                                    self.write_cond(None,
+                                                    cgid, [bid], 1,
+                                                    [succ_id],
+                                                    self.expid, 1))  # added cgid
+                                seen_pair.append((bid, succ_id))
+                                edges_not_translated.remove((bid, succ_id))
+                                self.cgid += 1
+                else:
+                    edges = list()
+                    for e in edges_not_translated:
+                        if e[0] == bid:
+                            edges.append(e)
+                    for e in edges:
+                        edges_not_translated.remove(e)
+
+        return conditional_groups
 
     def transform(self):
         self.build_cfg()
@@ -1065,22 +1663,24 @@ class MFSimTarget(BaseTarget):
 
             edges_not_translated = list(nx.edges(self.cfg['graph']))
 
-            conditional_groups = dict()
+            conditional_groups = self.create_conditional_groups(edges_not_translated)
 
-            while len(edges_not_translated) > 0:
-                for bid, block in self.program.functions[root]['blocks'].items():
-                    if block.instructions is None:
-                        continue
-                    cond = False
-                    executable = False
-                    if block.dag is not None:
-                        for instr in block.instructions:
-                            if cond and executable:
-                                break
-                            if instr.name is 'CONDITIONAL':
-                                cond = True
-                            if instr.name in ['MIX', 'DETECT', 'SPLIT', 'HEAT', 'DISPENSE', 'DISPOSE']:
-                                executable = True
+            # conditional_groups = dict()
+
+            # while len(edges_not_translated) > 0:
+            #     for bid, block in self.program.functions[root]['blocks'].items():
+            #         if block.instructions is None:
+            #             continue
+            #         cond = False
+            #         executable = False
+            #         if block.dag is not None:
+            #             for instr in block.instructions:
+            #                 if cond and executable:
+            #                     break
+            #                 if instr.name is 'CONDITIONAL':
+            #                     cond = True
+            #                 if instr.name in ['MIX', 'DETECT', 'SPLIT', 'HEAT', 'DISPENSE', 'DISPOSE']:
+            #                     executable = True
 
                         # deal with successor loop headers, which will take care of [current : translated]:
                         #   bid->succ               :   bid->true
@@ -1088,111 +1688,111 @@ class MFSimTarget(BaseTarget):
                         #   succ->false             :   true->false
                         #   back-edge(s) to succ    :   back1->true...backn->true
                         #                   for succ_id in self.program.functions[root]['graph'].succ[bid]:
-                        for succ_id in self.cfg['graph'].successors(bid):
+                       # for succ_id in self.cfg['graph'].successors(bid):
                             # we know there is an edge from bid to succ_id, need to check if bid or succ_id is a loop
                             # header
-                            if (bid, succ_id) not in edges_not_translated:
-                                continue
-                            if bid in self.loop_headers:
-                                # bid is loop header
-                                print("if I take care of everything already, then continue?")
-                                continue
-                            elif succ_id in self.loop_headers:
-                                if len(edges_not_translated) == 1:   #catch a stragling condition that doesnt belong
-                                    edges_not_translated.remove((bid, succ_id))
-                                    continue
+                            # if (bid, succ_id) not in edges_not_translated:
+                            #     continue
+                            # if bid in self.loop_headers:
+                            #     # bid is loop header
+                            #     print("if I take care of everything already, then continue?")
+                            #     continue
+                            # elif succ_id in self.loop_headers:
+                            #     if len(edges_not_translated) == 1:   #catch a stragling condition that doesnt belong
+                            #         edges_not_translated.remove((bid, succ_id))
+                            #         continue
                                 # unconditional branch into loop (MFSim interprets all loops as do-while)
                                 # ensure cgid groups stay together
-                                cgid = self.cgid
-                                if bid not in self.cgid_pair.keys():
-                                    self.cgid_pair[bid] = self.cgid
-                                else:
-                                    check = self.cgid_pair[bid]
-                                    if check != self.cgid:
-                                        cgid = check
-                                conditional_groups[self.cgid] = []
-                                conditional_groups[self.cgid].append(
-                                    self.write_cond(self.loop_headers[succ_id]['instr'],
-                                                    cgid, [bid], 1,
-                                                    [self.loop_headers[succ_id]['t']],
-                                                    self.expid, 1))
-                                edges_not_translated.remove((bid, succ_id))
-                                if edges_not_translated:
-                                    edges_not_translated.remove((succ_id, self.loop_headers[succ_id]['t']))
-                                    self.cgid += 1
-                                else:
-                                    continue
-
-                                conditional_groups[self.cgid] = []
+                                # cgid = self.cgid
+                                # if bid not in self.cgid_pair.keys():
+                                #     self.cgid_pair[bid] = self.cgid
+                                # else:
+                                #     check = self.cgid_pair[bid]
+                                #     if check != self.cgid:
+                                #         cgid = check
+                                # conditional_groups[self.cgid] = []
+                                # conditional_groups[self.cgid].append(
+                                #     self.write_cond(self.loop_headers[succ_id]['instr'],
+                                #                     cgid, [bid], 1,
+                                #                     [self.loop_headers[succ_id]['t']],
+                                #                     self.expid, 1))
+                                # edges_not_translated.remove((bid, succ_id))
+                                # if edges_not_translated:
+                                #     edges_not_translated.remove((succ_id, self.loop_headers[succ_id]['t']))
+                                #     self.cgid += 1
+                                # else:
+                                #     continue
+                                #
+                                # conditional_groups[self.cgid] = []
                                 # find all back edges -- this is probably wrong, as these may fall into different CGs
-                                iteration = 0
-                                prev_val = -1
-                                dup = False
-                                back_edges = [x for x in edges_not_translated if x[1] is succ_id and x[0] > x[1]]
-                                for be in back_edges:
-                                    if dup and iteration < 2: #allocate space for the duplicated instructions
-                                        conditional_groups[self.cgid] = []
-                                    iteration += 1
-                                    val = be[0]
-                                    if len(self.block_transfers.keys()) >= 1:
-                                        if be[0] not in self.block_transfers.keys():
-                                            val = val - 1
-                                            while val not in self.block_transfers.keys() and val != -1: #this is here to drop down from a from dag that does not have its own dag file
-                                                val = val - 1
-                                    if prev_val is val:
-                                        val -= 1
-                                    prev_val = val
+                                # iteration = 0
+                                # prev_val = -1
+                                # dup = False
+                                # back_edges = [x for x in edges_not_translated if x[1] is succ_id and x[0] > x[1]]
+                                # for be in back_edges:
+                                #     if dup and iteration < 2: #allocate space for the duplicated instructions
+                                #         conditional_groups[self.cgid] = []
+                                #     iteration += 1
+                                #     val = be[0]
+                                #     if len(self.block_transfers.keys()) >= 1:
+                                #         if be[0] not in self.block_transfers.keys():
+                                #             val = val - 1
+                                #             while val not in self.block_transfers.keys() and val != -1: #this is here to drop down from a from dag that does not have its own dag file
+                                #                 val = val - 1
+                                #     if prev_val is val:
+                                #         val -= 1
+                                #     prev_val = val
                                     # ensure cgid groups stay together
-                                    cgid = self.cgid
-                                    if val not in self.cgid_pair.keys():
-                                        self.cgid_pair[val] = self.cgid
-                                    else:
-                                        check = self.cgid_pair[val]
-                                        if check != self.cgid:
-                                            cgid = check
-                                    dup = False
+                                    # cgid = self.cgid
+                                    # if val not in self.cgid_pair.keys():
+                                    #     self.cgid_pair[val] = self.cgid
+                                    # else:
+                                    #     check = self.cgid_pair[val]
+                                    #     if check != self.cgid:
+                                    #         cgid = check
+                                    # dup = False
                                     #last_block = None
-                                    if be[0] not in self.block_transfers:#check if need to duplicate the back edge and out edge for a second conditional (else)
-                                        times_to_last_block = 0
-                                        for e in edges_not_translated:
-                                            if e[1] is be[0]:
-                                                times_to_last_block += 1
+                                    # if be[0] not in self.block_transfers:#check if need to duplicate the back edge and out edge for a second conditional (else)
+                                    #     times_to_last_block = 0
+                                    #     for e in edges_not_translated:
+                                    #         if e[1] is be[0]:
+                                    #             times_to_last_block += 1
                                                 #last_block = e[0]
-                                        valid = True #False
+                                        #valid = True #False
                                         #for instru in self.program.functions[root]['blocks'][last_block].instructions:
                                             #if instru.name is 'CONDITIONAL':
                                         #if len(self.program.functions[root]['blocks'][last_block].jumps) > 0:
                                            #valid = True
-                                        if times_to_last_block is 2 and iteration < 2 and valid:
-                                            dup = True
-                                            back_edges.append(be)
-                                    conditional_groups[self.cgid].append(
-                                        self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
-                                                        [val], 1,
-                                                        [self.loop_headers[succ_id]['t']],
-                                                        self.expid, 1, 'LOOP'))
-                                    edges_not_translated.remove((be[0], succ_id))
-                                    if dup and iteration < 2:
-                                        edges_not_translated.append((be[0], succ_id))
-                                    if len(self.block_transfers.keys()) >= 1:
-                                        if self.loop_headers[succ_id]['f'] not in self.block_transfers.keys():
-                                            if (be[1], self.loop_headers[succ_id]['f']) in edges_not_translated:
-                                                edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
-                                            continue
-
-                                    conditional_groups[self.cgid].append(
-                                        self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
-                                                        [val], 1,
-                                                        [self.loop_headers[succ_id]['f']],
-                                                        self.expid, 1, ))
-                                    edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
-                                    if dup and iteration < 2:
-                                        edges_not_translated.append((be[1], self.loop_headers[succ_id]['f']))
-                                        self.cgid += 1
+                                    #     if times_to_last_block is 2 and iteration < 2 and valid:
+                                    #         dup = True
+                                    #         back_edges.append(be)
+                                    # conditional_groups[self.cgid].append(
+                                    #     self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
+                                    #                     [val], 1,
+                                    #                     [self.loop_headers[succ_id]['t']],
+                                    #                     self.expid, 1, 'LOOP'))
+                                    # edges_not_translated.remove((be[0], succ_id))
+                                    # if dup and iteration < 2:
+                                    #     edges_not_translated.append((be[0], succ_id))
+                                    # if len(self.block_transfers.keys()) >= 1:
+                                    #     if self.loop_headers[succ_id]['f'] not in self.block_transfers.keys():
+                                    #         if (be[1], self.loop_headers[succ_id]['f']) in edges_not_translated:
+                                    #             edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
+                                    #         continue
+                                    #
+                                    # conditional_groups[self.cgid].append(
+                                    #     self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
+                                    #                     [val], 1,
+                                    #                     [self.loop_headers[succ_id]['f']],
+                                    #                     self.expid, 1, ))
+                                    # edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
+                                    # if dup and iteration < 2:
+                                    #     edges_not_translated.append((be[1], self.loop_headers[succ_id]['f']))
+                                    #     self.cgid += 1
 
                                 # deal with exit from loop
-                                #check if this assay has TDs, if not, act normal, if so, change behavior of exits
-                                #expID = self.expid
+                                # check if this assay has TDs, if not, act normal, if so, change behavior of exits
+                                # expID = self.expid
                                 #if self.loop_headers[succ_id]['t'] in self.block_transfers:
                                     #for to in [self.block_transfers[self.loop_headers[succ_id]['t']]]:
                                         #if isinstance(to, set):
@@ -1210,76 +1810,77 @@ class MFSimTarget(BaseTarget):
                                                     #expID, 1, ))  #adding 1000 to diffentiate exps for entering and leaving loops #changed to self.loop_headers[val[0]]['f']
                                         #expID = expID +1
                                 #edges_not_translated.remove((succ_id, self.loop_headers[succ_id]['f']))
-                                self.cgid += 1
-                            else:  # dealing with if conditional
-                                if cond and executable:
-                                    self.cblock = block
-                                    conditional_groups[self.cgid] = []
-                                    for instr in self.program.functions[root]['blocks'][bid].instructions:
-                                        if instr.op is IRInstruction.CONDITIONAL:
-                                            # ensure cgid groups stay together
-                                            cgid = self.cgid
-                                            if bid not in self.cgid_pair.keys():
-                                                self.cgid_pair[bid] = self.cgid
-                                            else:
-                                                check = self.cgid_pair[bid]
-                                                if check != self.cgid:
-                                                    cgid = check
-                                            conditional_groups[self.cgid].append(
-                                                self.write_cond(self.cfg[bid][instr.iid]['instr'],
-                                                                cgid, [bid], 1,
-                                                                [self.cfg[bid][instr.iid]['t']],
-                                                                self.expid, 1, 'IF'))
-                                            edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['t']))
-                                            if self.cfg[bid][instr.iid]['f'] is not None:
-                                                skip = False
-                                                if self.cfg[bid][instr.iid]['f'] not in self.block_transfers:
-                                                    skip = True
-                                                if skip:
-                                                    edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
-                                                    self.cgid += 1
-                                                    continue
-                                                conditional_groups[self.cgid].append(
-                                                    self.write_cond(self.cfg[bid][instr.iid]['instr'],
-                                                                    cgid, [bid], 1,
-                                                                    [self.cfg[bid][instr.iid]['f']],
-                                                                    self.expid, 1))
-                                                edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
+                            #     self.cgid += 1
+                            # else:  # dealing with if conditional
+                            #     if cond and executable:
+                            #         self.cblock = block
+                            #         conditional_groups[self.cgid] = []
+                            #         for instr in self.program.functions[root]['blocks'][bid].instructions:
+                            #             if instr.op is IRInstruction.CONDITIONAL:
+                            #                 # ensure cgid groups stay together
+                            #                 cgid = self.cgid
+                            #                 if bid not in self.cgid_pair.keys():
+                            #                     self.cgid_pair[bid] = self.cgid
+                            #                 else:
+                            #                     check = self.cgid_pair[bid]
+                            #                     if check != self.cgid:
+                            #                         cgid = check
+                            #                 conditional_groups[self.cgid].append(
+                            #                     self.write_cond(self.cfg[bid][instr.iid]['instr'],
+                            #                                     cgid, [bid], 1,
+                            #                                     [self.cfg[bid][instr.iid]['t']],
+                            #                                     self.expid, 1, 'IF'))
+                            #                 edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['t']))
+                            #                 if self.cfg[bid][instr.iid]['f'] is not None:
+                            #                     skip = False
+                            #                     if self.cfg[bid][instr.iid]['f'] not in self.block_transfers:
+                            #                         skip = True
+                            #                     if skip:
+                            #                         edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
+                            #                         self.cgid += 1
+                            #                         continue
+                            #                     conditional_groups[self.cgid].append(
+                            #                         self.write_cond(self.cfg[bid][instr.iid]['instr'],
+                            #                                         cgid, [bid], 1,
+                            #                                         [self.cfg[bid][instr.iid]['f']],
+                            #                                         self.expid, 1))
+                            #                     edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
                                                 #self.cgid += 1
-                                    self.cgid += 1
-                                else: #unconditional exit from an if block
+                            #        self.cgid += 1
+                            #    else: #unconditional exit from an if block
                                     #check to see if edge should be displayed at all
-                                    skip = True
-                                    for to in [self.block_transfers[bid]]:
-                                        for to2 in to:
-                                            if to2.type is 'out':
-                                                skip = False
-                                    if succ_id not in self.block_transfers:
-                                        skip = True
-                                    if skip:
-                                        conditional_groups[self.cgid] = []
-                                        self.cgid += 1
-                                        edges_not_translated.remove((bid, succ_id))
-                                        continue
+                                    # skip = True
+                                    # for to in [self.block_transfers[bid]]:
+                                    #     for to2 in to:
+                                    #         if to2.type is 'out':
+                                    #             skip = False
+                                    # if succ_id not in self.block_transfers:
+                                    #     skip = True
+                                    # if skip:
+                                    #     conditional_groups[self.cgid] = []
+                                    #     self.cgid += 1
+                                    #     edges_not_translated.remove((bid, succ_id))
+                                    #     continue
                                     # ensure cgid groups stay together
-                                    cgid = self.cgid
-                                    if bid not in self.cgid_pair.keys():
-                                        self.cgid_pair[bid] = self.cgid
-                                    else:
-                                        check = self.cgid_pair[bid]
-                                        if check != self.cgid:
-                                            cgid = check
-                                    self.cblock = block
-                                    conditional_groups[self.cgid] = []
-                                    conditional_groups[self.cgid].append(
-                                        self.write_cond(None,
-                                                        cgid, [bid], 1,
-                                                        [succ_id],
-                                                        self.expid, 1)) #added cgid
-                                    edges_not_translated.remove((bid, succ_id))
-                                    self.cgid += 1
+                                    # cgid = self.cgid
+                                    # if bid not in self.cgid_pair.keys():
+                                    #     self.cgid_pair[bid] = self.cgid
+                                    # else:
+                                    #     check = self.cgid_pair[bid]
+                                    #     if check != self.cgid:
+                                    #         cgid = check
+                                    # self.cblock = block
+                                    # conditional_groups[self.cgid] = []
+                                    # conditional_groups[self.cgid].append(
+                                    #     self.write_cond(None,
+                                    #                     cgid, [bid], 1,
+                                    #                     [succ_id],
+                                    #                     self.expid, 1)) #added cgid
+                                    # edges_not_translated.remove((bid, succ_id))
+                                    # self.cgid += 1
 
-            self.num_cgs = conditional_groups.__len__()
+            #self.num_cgs = conditional_groups.__len__()
+            self.num_cgs = len(self.cgid_pair)
             cfg_file.write("\nNUMCGS(%s)\n\n" % self.num_cgs)
 
             for cg in conditional_groups.values():

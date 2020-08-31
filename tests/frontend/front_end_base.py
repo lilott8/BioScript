@@ -93,4 +93,4 @@ class FrontEndBase(metaclass=ABCMeta):
         target.transform()
         return str([target.num_cgs, target.num_transfers, target.num_dags, target.num_detects,
                 target.num_dispense, target.num_dispose, target.num_edges, target.num_heats,
-                target.num_mixes, target.num_splits])
+                target.num_mixes, target.num_splits, target.expid])
