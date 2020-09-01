@@ -36,11 +36,10 @@ class MFSimTarget(BaseTarget):
         self.cfg = dict()
         self.block_transfers = dict()
         self.loop_headers = dict()
-        self.cgid_pair = dict() #ensure cgid stay consistent
-        self.live_droplets = list()
-        self.split_offset = list()
-        self.curr_split_offset = list()
-        #self.known_transfer = list()
+        self.cgid_pair = dict() #to ensure cgid stay consistent
+        self.live_droplets = list() #to ensure droplets are passed along accoringly
+        self.split_offset = list() #for split recursion
+        self.curr_split_offset = list() #for split recursion
         # start transfer nodes from id 100.
         if self.config.debug:
             self.log.debug("Statically starting transfer IDs from 100. This could be an issue for very large assays.")
@@ -67,28 +66,6 @@ class MFSimTarget(BaseTarget):
             self.cfg['graph'] = nx.DiGraph()
             remove_nodes = set()
             remove_edges_from = set()
-            #blocks_bot_to_top = list(self.program.functions[root]['blocks'].items())#
-            #blocks_bot_to_top.reverse()#
-            #for bid_e, block_e in blocks_bot_to_top:#
-                #predes = list(self.program.functions[root]['graph'].predecessors(bid_e))#
-                #predes.reverse()#
-                #or eid in predes:#
-                    #found_predecessor = False#
-                    #for v in self.program.functions[root]['blocks'][eid].defs: #commented these out
-                        #for u in block_e.uses:
-                            #if v == u:
-                    #if eid < bid_e:#
-                        #tup = (eid, bid_e) #removed the +1#
-                        #self.predecessor_edges.append(tup) # save edge from eid to bid_e#
-                        #found_predecessor = True#
-
-                    #if not found_predecessor:#
-                        #for v in self.program.functions[root]['blocks'][eid].uses:#
-                            #for u in block_e.uses:#
-                                #if v == u:#
-                                    #if eid < bid_e:#
-                                        #tup = (eid, bid_e+1) #hoping is fine#
-                                        #self.predecessor_edges.append(tup)  # save edge from eid to bid_e#
 
             for bid, block in self.program.functions[root]['blocks'].items():
                 if not block.instructions:
@@ -143,8 +120,8 @@ class MFSimTarget(BaseTarget):
                             curr[instruction.iid]['repeat'] = instruction.left['var'].value
                         else:  # could be nested conditional
                             curr[instruction.iid]['c'] = instruction.relop
-                            if self.config.debug:
-                                self.log.warning("TEST non-repeat/nested CONDITIONALS")
+                            #if self.config.debug:
+                                #self.log.warning("TEST non-repeat/nested CONDITIONALS")
                     #  non-conditionals
                     elif hasattr(instruction, 'uses'):
                         # Case x = op y (dispense, heat, dispose, store)
@@ -155,7 +132,7 @@ class MFSimTarget(BaseTarget):
                             #         self.log.warning("Removing outgoing cfg edges from block {}; verify .cfg file has "
                             #                       "correct edges when multiple droplets exist in a dag including a "
                             #                       "dispose.".format(bid))
-                            #     remove_edges_from.add(bid)
+                            #     remove_edges_from.add(bid) (Old)
                             use = next(iter(instruction.uses))
                             if use['name'] not in leafs:
                                 dag.add_node(use['name'], type="variable")
@@ -201,7 +178,7 @@ class MFSimTarget(BaseTarget):
                     #     #    dag.remove_edge(pred, defined)
                     #     #in the case where the only def in a block has been removed because it was a dipose,
                     #     #   we do not need any outgoing edges.
-                    #     # TODO: test case: transfer_in A, B; dispose A (do nothing with B).
+                    #     # old TO DO: test case: transfer_in A, B; dispose A (do nothing with B).
                     #     #   if this fails, we could explicitly add a def to the block for transfer_ins prior to
                     #     #   running these checks (in transform())
                     #     if len(block.defs) is 0:
@@ -232,8 +209,8 @@ class MFSimTarget(BaseTarget):
         :return:
         """
         _ret = list()
-        #check = instr.iid  #check = instr.defs['var'].name #original
-        check = instr.uses[0]['name']        #try
+        #used to be: check = instr.defs['var'].name
+        check = instr.uses[0]['name']
         found_instr = False
         for i in self.cblock.instructions:
             if i is instr:
@@ -241,11 +218,10 @@ class MFSimTarget(BaseTarget):
                 continue
             if not found_instr:
                 continue
-            if i.op in {IRInstruction.NOP, IRInstruction.CONDITIONAL}:  #if i.op in {IRInstruction.NOP, IRInstruction.CONDITIONAL}:
+            if i.op in {IRInstruction.NOP, IRInstruction.CONDITIONAL}:  #used to be NOP only
                 continue
             self.log.info(i)
-            #if i.op is IRInstruction.MIX: #Mix is a bit different, we are looking at the uses
-            if instr.op is IRInstruction.DETECT: #Detect is looking for uses we are looking at the uses
+            if instr.op is IRInstruction.DETECT: #Detect is looking for uses rather than defs
                 for use in i.uses:
                     if use['name'] in uses:
                         if i.iid != check:
@@ -253,9 +229,9 @@ class MFSimTarget(BaseTarget):
                                 _ret.append(use['name'])
             else:
                 if i.defs['name'] in uses:  # this instruction is one of the uses
-                    if i.iid != check:  #if i.defs['var'].name != check:  #if i.uses[0]['name'] != check:
+                    if i.iid != check:  #used to be either if i.defs['var'].name != check:  #if i.uses[0]['name'] != check:
                         if not _ret:
-                            _ret.append(i.defs['var'].name) #_ret.append(i.defs['var'].points_to.name)
+                            _ret.append(i.defs['var'].name) #used to be _ret.append(i.defs['var'].points_to.name)
 
         if len(_ret) < 1:
             self.log.fatal("A non-split instruction has multiple successors!")
@@ -289,7 +265,7 @@ class MFSimTarget(BaseTarget):
 
         #if self.config.debug:
         #    self.log.warning("Using default time and mixType values -- these should be IRInstruction attributes discovered"
-        #                  "during parsing")
+        #                  "during parsing") (Old)
         time = 10
 
         for t in instr.meta:
@@ -306,14 +282,14 @@ class MFSimTarget(BaseTarget):
 
         if len(to) > 1:
             found_instr = False
-            for x in self.cblock.instructions:  # added these
+            for x in self.cblock.instructions:
                 if x is instr:
                     found_instr = True
                     continue
                 if not found_instr:
                     continue
                 if x.defs['var'].name == instr.defs['var'].name:
-                    to = list() #to = list(instr.defs['var'].name)
+                    to = list() #used to be to = list(instr.defs['var'].name)
                     to.append(instr.defs['var'].points_to.name) #used to be just .name
                     break
                 break
@@ -325,7 +301,7 @@ class MFSimTarget(BaseTarget):
         for key in to:
             to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].name is key]
             for ti in to_instr:
-                if ti.iid == self.opid: #added these
+                if ti.iid == self.opid:
                     continue
                 _ret += self.write_edge(self.opid, ti.iid)
                 break
@@ -333,7 +309,7 @@ class MFSimTarget(BaseTarget):
         for key in to:
             to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].points_to.name is key]
             for ti in to_instr:
-                if ti.iid == self.opid: #added these
+                if ti.iid == self.opid:
                     continue
                 _ret += self.write_edge(self.opid, ti.iid)
                 break
@@ -342,6 +318,11 @@ class MFSimTarget(BaseTarget):
         return _ret
 
     def write_split_helper(self, instr):
+        """
+                      Helper function for split recursion
+                :param instr:
+                :return: chain of all splits as a str:
+                """
         if instr.split_size == 2:
             _ret = self.write_split(instr)
             return _ret
@@ -373,8 +354,8 @@ class MFSimTarget(BaseTarget):
 
             if not valid:
                 self.log.fatal("A split instruction has an invalid number of successors!")
-                exit(-1)  # not a valid number
-            else: #number is valid, continue
+                exit(-1)
+            else: #number is valid 2, 4, 8, ect, continue
                 #handle left and right sides
                 left_instr = deepcopy(instr)
                 left_instr.split_size = instr.split_size/2
@@ -396,7 +377,7 @@ class MFSimTarget(BaseTarget):
         """
                 An MFSim SPLIT node has 5 parameters:
                   nodeid, "SPLIT", number of output drops, time, nodeName
-                  number of output drops must be >= 2
+                  number of output drops must be >= 2 and an exponent of 2
                   nodeName  <- this means nothing to MFSim
         :param instr:
         :return:
@@ -405,7 +386,7 @@ class MFSimTarget(BaseTarget):
 
         #if self.config.debug:
         #    self.log.warning("Using default numDrops and time value for SPLIT; at least numDrops should be a f "
-        #                  "instruction attribute discovered during parsing")
+        #                  "instruction attribute discovered during parsing") (Old) Default time value is expected
         numDrops = 2
         time = 2
 
@@ -420,8 +401,9 @@ class MFSimTarget(BaseTarget):
             #self.log.warning(
                 #"Verify split instruction semantics for MFSim target. Not all out edges are correctly built as"
                 #"the split does not maintain addressibility to created droplets")
+                #(Old)
 
-        # TODO: when splits correctly build an array, this must be updated to build edges to proper successors
+        # Old TO DO: when splits correctly build an array, this must be updated to build edges to proper successors
         # something like:
         #   for succ in self.cblock.dag.nodes[instr.defs['name']]['iid']:
         #    _ret += self.write_edge(self.opid, succ)
@@ -487,7 +469,7 @@ class MFSimTarget(BaseTarget):
 
         #if self.config.debug:
         #    self.log.warning("Using default time for DETECT; time should be an IRInstruction attribute discovered "
-        #                  "during parsing")
+        #                  "during parsing") (Old)
         time = 10
 
         for t in instr.meta:
@@ -498,9 +480,9 @@ class MFSimTarget(BaseTarget):
         _ret += "%s, %s(%s))\n" % (str(time), instr.defs['var'].points_to.name, instr.uses[1]['var'].points_to.name)
 
         #for ti in to_instr:
-         #   _ret += self.write_edge(self.opid, ti.iid) No to_instr found, debug and see what is available or just ask
+         #   _ret += self.write_edge(self.opid, ti.iid) #Old method
 
-        to = list(self.cblock.dag.successors(instr.uses[1]['name']))
+        to = list(self.cblock.dag.successors(instr.uses[1]['name'])) #Better method
         to = [x for x in to if x != instr.defs['name']]
 
         if len(to) > 1:
@@ -542,7 +524,7 @@ class MFSimTarget(BaseTarget):
 
         #if self.config.debug:
         #    self.log.warning("Using default time for HEAT; time should be an IRInstruction attribute discovered "
-        #                  "during parsing")
+        #                  "during parsing") (Old)
         time = 10
 
         for t in instr.meta:
@@ -556,14 +538,14 @@ class MFSimTarget(BaseTarget):
 
         if len(to) > 1:
             found_instr = False
-            for x in self.cblock.instructions:  # added these
+            for x in self.cblock.instructions:
                 if x is instr:
                     found_instr = True
                     continue
                 if not found_instr:
                     continue
                 if x.defs['var'].name == instr.defs['var'].name:
-                    to = list() #to = list(instr.defs['var'].name)
+                    to = list() #old initialization to = list(instr.defs['var'].name)
                     to.append(instr.defs['var'].name) #used to be just .name
                     break
                 break
@@ -575,7 +557,7 @@ class MFSimTarget(BaseTarget):
         for key in to:
             to_instr = []
             # as long as order of instructions is maintained this works.
-            # ideally, the SSA form would have explicit defs for all heats
+            # ideally, the SSA form would have explicit defs for all heats, SSA is fixed now
             found_instr = False
             for x in self.cblock.instructions:
                 if x is instr:
@@ -584,16 +566,12 @@ class MFSimTarget(BaseTarget):
                 if not found_instr:
                     continue
                 if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH, IRInstruction.CONDITIONAL}:
-                    #NoneType = type(None)
-                    #if type(x) == NoneType:
-                        #continue
-                    if x.defs['var'].name  == key: #for y in x.uses:
-                        #if y['var'].name == key:
+                    if x.defs['var'].name  == key:
                         to_instr.append(x)
                         break
 
             for ti in to_instr:
-                if ti.iid == self.opid: #added these
+                if ti.iid == self.opid:
                     continue
                 _ret += self.write_edge(self.opid, ti.iid)
                 break
@@ -610,7 +588,7 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].points_to.name)
 
-        live_drops = list(self.live_droplets) #done to fix an issue with missing repeating droplets that should be removed
+        live_drops = list(self.live_droplets) #done to fix an issue when a droplet is "killed"
         for a, b in live_drops:
             if b == instr.uses[0]['var'].points_to.name:
                 self.live_droplets.remove((a, b))
@@ -633,7 +611,7 @@ class MFSimTarget(BaseTarget):
 
         #if self.config.debug:
         #    self.log.warning("Using default volume for DISPENSE; this should be an IRInstruction attribute discovered "
-        #                  "during parsing")
+        #                  "during parsing") (Old)
         #volume = 10
 
 
@@ -652,7 +630,7 @@ class MFSimTarget(BaseTarget):
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
 
-        #for key in to:
+        #for key in to: (not necessary)
         #    to_instr = [x for x in self.cblock.instructions if x.defs is not None and x.defs['var'].points_to.name is key]
         #    for ti in to_instr:
         #        _ret += self.write_edge(self.opid, ti.iid)
@@ -677,10 +655,6 @@ class MFSimTarget(BaseTarget):
     def write_exp(self, cond: Conditional, exp_id: int, from_dag, to_dag, cond_type='UNCOND') -> str:
         _ret = ""
 
-        #check = False
-        #if exp_id >= 1000:  # check if exp_id is < 1000, if so, proceed as normal(unconditional transfer in), if not, treat as a transfer out
-            #check = True
-            #exp_id = exp_id - 1000
 
         if cond_type is 'UNCOND':
             _ret += "EXP(%s, " % str(exp_id)
@@ -691,15 +665,12 @@ class MFSimTarget(BaseTarget):
             _ret += "EXP(%s, " % str(exp_id)
 
         if cond_type is 'UNCOND':
-            dagID = from_dag
-            #if check:
-                #dagID = to_dag
-            _ret += "TRUE, UNCOND, DAG%s)\n" % str(dagID) #changed to to_dag #changed back to from_dag
+            _ret += "TRUE, UNCOND, DAG%s)\n" % str(from_dag)
         elif cond_type is 'LOOP':
             if cond.left['name'].startswith('REPEAT'):  # .cond_type is 'repeat':
                 _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), int(cond.left['var'].value.value[0])) #changed str(to_dag) to str(from_dag)
             else:  # must be a while?
-                _ret += "while)\n"
+                _ret += "while)\n" #this is the simple while setup currently, can be changed to include more information
         elif cond_type is 'IF':
             # ONE_SENSOR, relop, depDag, depNodeID, value)
             relop = "Unrecognized relational operator"
@@ -728,7 +699,7 @@ class MFSimTarget(BaseTarget):
             if cond_var['var'].name in self.cblock.defs:
                 depDag = from_dag
             else:
-                #predes = reversed(list(self.program.functions['main']['graph'].predecessors(exp_id)))
+                #predes = reversed(list(self.program.functions['main']['graph'].predecessors(exp_id))) (Old method)
                 predes = reversed(list(self.program.functions['main']['blocks'])) #find the last def of this variable
                 for p in predes:
                     block = self.program.functions['main']['blocks'][p]
@@ -741,10 +712,9 @@ class MFSimTarget(BaseTarget):
                                     break
                 #if self.config.debug:
                     #self.log.warning("need to find block where condition variable is")
-                #raise NotImplementedError("the current block does not have the definition to this conditional variable")
+                #raise NotImplementedError("the current block does not have the definition to this conditional variable") (Old)
 
-            #dep_node_id = -1
-            for instr in self.cblock.instructions:
+            for instr in self.cblock.instructions: #find the source instr
                 if instr.defs is not None:
                     if instr.defs['var'].points_to is cond_var['var'].points_to:
                         dep_node_id = instr.iid
@@ -762,7 +732,7 @@ class MFSimTarget(BaseTarget):
 
     def write_cond(self, cond: Conditional, group_num: int, dep_dags, num_branch_dags: int, branch_dags, exp_id: int,
                    num_dep_dags=1, cond_type='UNCOND') -> str:
-        # TODO: implement compound expression translation to MFSim
+        # TO DO: implement compound expression translation to MFSim
         # we only implement single dependency with a single expression for now
         _ret = "COND(%s, %s, " % (str(group_num), str(num_dep_dags))
         for dag in dep_dags:
@@ -773,17 +743,11 @@ class MFSimTarget(BaseTarget):
         for dag in branch_dags:
             _ret += "DAG%s, " % dag
 
-        #check = False
-        #if exp_id >= 1000:#check if exp_id is < 1000, if so, proceed as normal(unconditional transfer in), if not, treat as a transfer out
-            #check = True
-            #exp_id = exp_id - 1000
 
         _ret += "%s)\n" % str(exp_id)
 
         # build expression(s)
         if cond_type is 'UNCOND':
-            #if check:
-                #exp_id = exp_id + 1000
             _ret += self.write_exp(cond, exp_id, dep_dags[0], branch_dags[0])
         elif cond_type is 'LOOP':
             _ret += self.write_exp(cond, exp_id, dep_dags[0], branch_dags[0], 'LOOP')
@@ -843,10 +807,10 @@ class MFSimTarget(BaseTarget):
                         if bid in self.loop_headers:
                             # bid is loop header
                             edges_not_translated.remove((bid, succ_id))
-                            #print("if I take care of everything already, then continue?") Simply remove in this case
+                            #print("if I take care of everything already, then continue?") - Simply remove in this case
                             continue
                         elif succ_id in self.loop_headers:
-                            #if len(edges_not_translated) == 1:  # catch a stragling condition that doesnt belong
+                            #if len(edges_not_translated) == 1:  # catch a stragling condition that doesnt belong (Old way of catching extra expression)
                                 #edges_not_translated.remove((bid, succ_id))
                                 #continue
                             # unconditional branch into loop (MFSim interprets all loops as do-while)
@@ -862,7 +826,7 @@ class MFSimTarget(BaseTarget):
                                 if check != self.cgid:
                                     cgid = check
                             if self.loop_headers[succ_id]['t'] in self.block_transfers or no_trans:
-                                #if (succ_id, self.loop_headers[succ_id]['t']) not in edges_not_translated:
+                                #if (succ_id, self.loop_headers[succ_id]['t']) not in edges_not_translated: (Old way of removing the edge if second edge doesn't exist, no longer an issue)
                                     #edges_not_translated.remove((bid, succ_id))
                                     #self.cgid += 1
                                     #break
@@ -871,12 +835,12 @@ class MFSimTarget(BaseTarget):
                                     for node in self.block_transfers[bid]:
                                         if node.type is 'out':
                                             out = True
-                                    if not out:
+                                    if not out: #this edge should not be here, remove
                                         edges_not_translated.remove((bid, succ_id))
                                         self.cgid_pair.pop(bid)
                                         self.cgid += 1
                                         continue
-                                    if (bid, self.loop_headers[succ_id]['t']) in seen_pair:
+                                    if (bid, self.loop_headers[succ_id]['t']) in seen_pair: #if already handled, move on
                                         edges_not_translated.remove((bid, succ_id))
                                         self.cgid += 1
                                         continue
@@ -887,39 +851,23 @@ class MFSimTarget(BaseTarget):
                                                 [self.loop_headers[succ_id]['t']],
                                                 self.expid, 1))
                                 seen_pair.append((bid, self.loop_headers[succ_id]['t']))
-                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is not None:
+                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is not None: #if conditional is a while, need a path to the false branch as well
                                     conditional_groups[self.cgid].append(
                                         self.write_cond(self.loop_headers[succ_id]['instr'],
                                                         cgid, [bid], 1,
                                                         [self.loop_headers[succ_id]['f']],
                                                         self.expid, 1))
                                     seen_pair.append((bid, self.loop_headers[succ_id]['f']))
-                                # if 'r' in str(self.program.functions['main']['blocks'][bid].label) and 'r' in str(self.program.functions['main']['blocks'][self.loop_headers[succ_id]['t']].label):
-                                #     if (self.loop_headers[succ_id]['t'], bid) not in seen_pair:
-                                #         self.cgid += 1
-                                #         if self.loop_headers[succ_id]['t'] not in self.cgid_pair.keys():
-                                #             self.cgid_pair[self.loop_headers[succ_id]['t']] = self.cgid
-                                #         else:
-                                #             check = self.cgid_pair[self.loop_headers[succ_id]['t']]
-                                #             if check != self.cgid:
-                                #                 cgid = check
-                                #         conditional_groups[self.cgid] = []
-                                #         conditional_groups[self.cgid].append(
-                                #             self.write_cond(self.loop_headers[succ_id]['instr'],
-                                #                             cgid, [self.loop_headers[succ_id]['t']], 1,
-                                #                             [bid],
-                                #                             self.expid, 1))
-                                #         seen_pair.append((self.loop_headers[succ_id]['t'], bid))
                                 edges_not_translated.remove((bid, succ_id))
                                 if edges_not_translated:
-                                    if (succ_id, self.loop_headers[succ_id]['t']) in edges_not_translated:
+                                    if (succ_id, self.loop_headers[succ_id]['t']) in edges_not_translated: #remove this edge if there
                                         edges_not_translated.remove((succ_id, self.loop_headers[succ_id]['t']))
                                     self.cgid += 1
                                 else:
                                     continue
-                            elif self.loop_headers[succ_id]['t'] is None and bid == next(iter(self.block_transfers)):
+                            elif self.loop_headers[succ_id]['t'] is None and bid == next(iter(self.block_transfers)): #this is here for instances of nested conditionals with non active dags such that 't' path is None
                                 early_initialize = False
-                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is not None:
+                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is not None: #if conditonal is also a while, must include path to the false branch
                                     conditional_groups[self.cgid] = []
                                     conditional_groups[self.cgid].append(
                                         self.write_cond(self.loop_headers[succ_id]['instr'],
@@ -932,7 +880,7 @@ class MFSimTarget(BaseTarget):
                                 if len(self.block_transfers.keys()) >= 1:
                                     if succ_id not in self.block_transfers.keys():
                                         val2 = val2 + 1
-                                        while val2 not in self.block_transfers.keys() and val2 != 20:  # this is here to move up to a dag that does have its own dag file
+                                        while val2 not in self.block_transfers.keys() and val2 != 20:  #move up to next available dag (20 used as a max for testing purposes)
                                             val2 = val2 + 1
                                 if not early_initialize:
                                     conditional_groups[self.cgid] = []
@@ -943,7 +891,7 @@ class MFSimTarget(BaseTarget):
                                                     self.expid, 1))
                                 seen_pair.append((bid, val2))
                                 edges_not_translated.remove((bid, succ_id))
-                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label):
+                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label): #if while, needs another edge
                                     val2 = val2 + 1
                                     while val2 not in self.block_transfers.keys() and val2 != 20:
                                         val2 = val2 + 1
@@ -955,28 +903,18 @@ class MFSimTarget(BaseTarget):
                                                             self.expid, 1))
                                         seen_pair.append((bid, val2))
                                 self.cgid += 1
-                                # if edges_not_translated:
-                                #     edges = edges_not_translated
-                                #     edges_to_remove = list()
-                                #     for e in edges:
-                                #         if e[0] == succ_id or e[1] == succ_id:
-                                #             edges_to_remove.append(e)
-                                #     for e in edges_to_remove:
-                                #         edges_not_translated.remove(e)
-                                #else:
-                                #   continue
-                            elif self.loop_headers[succ_id]['t'] is None:
+                            elif self.loop_headers[succ_id]['t'] is None: #case of non active dag, not from the first block transfer
                                 val2 = succ_id
                                 if len(self.block_transfers.keys()) >= 1:
                                     if succ_id not in self.block_transfers.keys():
                                         val2 = val2 + 1
-                                        while val2 not in self.block_transfers.keys() and val2 != 20:  # this is here to move up to a dag that does have its own dag file
+                                        while val2 not in self.block_transfers.keys() and val2 != 20:
                                             val2 = val2 + 1
                                 last = True
-                                for l in self.block_transfers[val2]: #changin this from in to out and the true and false
+                                for l in self.block_transfers[val2]:
                                     if l.type == 'out':
                                         last = False
-                                if last:
+                                if last: #if last transfer, skip
                                     edges_not_translated.remove((bid, succ_id))
                                     self.cgid += 1
                                     break
@@ -989,17 +927,17 @@ class MFSimTarget(BaseTarget):
                                 seen_pair.append((bid, val2))
                                 edges_not_translated.remove((bid, succ_id))
                                 self.cgid += 1
-                                if edges_not_translated:
+                                if edges_not_translated: #remove edges direcly related to this edge
                                     edges = edges_not_translated
                                     edges_to_remove = list()
                                     for e in edges:
-                                        if (e[0] == succ_id or e[1] == succ_id) and e[0] < e[1]: #don't want to remove back edges on accident
+                                        if (e[0] == succ_id or e[1] == succ_id) and e[0] < e[1]: #don't want to remove back edges
                                             edges_to_remove.append(e)
                                     for e in edges_to_remove:
                                         edges_not_translated.remove(e)
                                 else:
                                     continue
-                            else:
+                            else: #otherwise the t path is not none, it's simply not in block transfers, need to find transfers manually
                                 transfers = list()
                                 for inst in edges_not_translated:
                                     if inst[0] == self.loop_headers[succ_id]['t']:
@@ -1008,10 +946,10 @@ class MFSimTarget(BaseTarget):
                                 for t in transfers:
                                     if t not in self.block_transfers:
                                         transfers.remove(t)
-                                        for inst in edges_not_translated:
+                                        for inst in edges_not_translated: #append edges to blocks that are active
                                             if inst[0] == t and inst[1] in self.block_transfers:
                                                 transfers.append(inst[1])
-                                for t in transfers:
+                                for t in transfers: #for each transfer create a condtional group
                                     conditional_groups[self.cgid].append(
                                         self.write_cond(self.loop_headers[succ_id]['instr'],
                                                         cgid, [bid], 1,
@@ -1020,7 +958,7 @@ class MFSimTarget(BaseTarget):
                                     seen_pair.append((bid, t))
                                 edges_not_translated.remove((bid, succ_id))
                                 if edges_not_translated:
-                                    #if (succ_id, self.loop_headers[succ_id]['t']) in edges_not_translated:
+                                    #if (succ_id, self.loop_headers[succ_id]['t']) in edges_not_translated: (usually always present)
                                     edges_not_translated.remove((succ_id, self.loop_headers[succ_id]['t']))
                                     self.cgid += 1
                                 else:
@@ -1028,7 +966,7 @@ class MFSimTarget(BaseTarget):
 
 
                             conditional_groups[self.cgid] = []
-                            # find all back edges -- this is probably wrong, as these may fall into different CGs
+                            # find all back edges -- this is probably wrong, as these may fall into different CGs (Old warning)
                             iteration = 0
                             prev_val = -1
                             dup = False
@@ -1041,12 +979,12 @@ class MFSimTarget(BaseTarget):
                                 if len(self.block_transfers.keys()) >= 1:
                                     if be[0] not in self.block_transfers.keys():
                                         val = val - 1
-                                        while val not in self.block_transfers.keys() and val != -1:  # this is here to drop down from a from dag that does not have its own dag file
+                                        while val not in self.block_transfers.keys() and val != -1:  # drop down to active dag
                                             val = val - 1
                                 if prev_val is val:
                                     val -= 1
                                 prev_val = val
-                                if val not in self.block_transfers and not no_trans: #if val not in block transfers, it's not a live dag and should be skipped in the cfg
+                                if val not in self.block_transfers and not no_trans: #if val still not in block transfers, it's not a live dag and should be skipped in the cfg
                                     conditional_groups.pop(self.cgid, None)
                                     edges_not_translated.remove((be[0], succ_id))
                                     edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
@@ -1061,18 +999,12 @@ class MFSimTarget(BaseTarget):
                                         cgid = check
                                 dup = False
                                 # last_block = None
-                                if be[0] not in self.block_transfers:  # check if need to duplicate the back edge and out edge for a second conditional (else)
+                                if be[0] not in self.block_transfers:  # check the need to duplicate the back edge and out edge for a second conditional (else)
                                     times_to_last_block = 0
                                     for e in edges_not_translated:
                                         if e[1] is be[0]:
                                             times_to_last_block += 1
-                                            # last_block = e[0]
-                                    valid = True  # False
-                                    # for instru in self.program.functions[root]['blocks'][last_block].instructions:
-                                    # if instru.name is 'CONDITIONAL':
-                                    # if len(self.program.functions[root]['blocks'][last_block].jumps) > 0:
-                                    # valid = True
-                                    if times_to_last_block is 2 and iteration < 2 and valid:
+                                    if times_to_last_block is 2 and iteration < 2:
                                         dup = True
                                         back_edges.append(be)
                                 if self.loop_headers[succ_id]['t'] in self.block_transfers or no_trans:
@@ -1089,7 +1021,7 @@ class MFSimTarget(BaseTarget):
                                         if self.loop_headers[succ_id]['f'] not in self.block_transfers.keys():
                                             if (be[1], self.loop_headers[succ_id]['f']) in edges_not_translated:
                                                 edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
-                                            elif 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is None:
+                                            elif 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is None: #case for while where f path leads to an inactive dag
                                                 transfers4 = list()
                                                 for inst in edges_not_translated_save:
                                                     if inst[0] == self.loop_headers[succ_id]['t']:
@@ -1123,12 +1055,12 @@ class MFSimTarget(BaseTarget):
                                     if dup and iteration < 2:
                                         edges_not_translated.append((be[1], self.loop_headers[succ_id]['f']))
                                         self.cgid += 1
-                                elif self.loop_headers[succ_id]['t'] is None and bid == next(iter(self.block_transfers)):
+                                elif self.loop_headers[succ_id]['t'] is None and bid == next(iter(self.block_transfers)): #for instances of nested conditionals with non active dags such that 't' path is None
                                     val2 = succ_id
                                     if len(self.block_transfers.keys()) >= 1:
                                         if succ_id not in self.block_transfers.keys():
                                             val2 = val2 + 1
-                                            while val2 not in self.block_transfers.keys() and val2 != 20:  # this is here to move up to a dag that does have its own dag file
+                                            while val2 not in self.block_transfers.keys() and val2 != 20:
                                                 val2 = val2 + 1
                                     conditional_groups[self.cgid].append(
                                         self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
@@ -1136,9 +1068,9 @@ class MFSimTarget(BaseTarget):
                                                         [val2],
                                                         self.expid, 1, ))
                                     seen_pair.append((val, val2))
-                                    if 'w' in str(self.program.functions['main']['blocks'][val2].label):
+                                    if 'w' in str(self.program.functions['main']['blocks'][val2].label): #if a while, needs extra edge
                                         val2 = val2 + 1
-                                        while val2 not in self.block_transfers.keys() and val2 != 20:  # this is here to move up to a dag that does have its own dag file
+                                        while val2 not in self.block_transfers.keys() and val2 != 20:
                                             val2 = val2 + 1
                                         if (val, val2) not in seen_pair:
                                             conditional_groups[self.cgid].append(
@@ -1172,9 +1104,9 @@ class MFSimTarget(BaseTarget):
                                                         [val2],
                                                         self.expid, 1, ))
                                         seen_pair.append((val, val2))
-                                    if 'w' in str(self.program.functions['main']['blocks'][val2].label):
+                                    if 'w' in str(self.program.functions['main']['blocks'][val2].label): #if a while, needs extra edge
                                         val2 = val2 + 1
-                                        while val2 not in self.block_transfers.keys() and val2 != 20:  # this is here to move up to a dag that does have its own dag file
+                                        while val2 not in self.block_transfers.keys() and val2 != 20:
                                             val2 = val2 + 1
                                         if (val, val2) not in seen_pair:
                                             conditional_groups[self.cgid].append(
@@ -1190,7 +1122,7 @@ class MFSimTarget(BaseTarget):
                                                 edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
                                             continue
                                     self.cgid += 1
-                                else:
+                                else: #create conditional groups for the previously found transfers
                                     for t in transfers:
                                         conditional_groups[self.cgid].append(
                                             self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
@@ -1198,9 +1130,9 @@ class MFSimTarget(BaseTarget):
                                                         [t],
                                                         self.expid, 1, 'LOOP'))
                                         seen_pair.append((val, t))
-                                    if len(transfers) == 0:
+                                    if len(transfers) == 0: #if transfers are empty
                                         val3 = self.loop_headers[succ_id]['t']
-                                        while val3 not in self.block_transfers.keys() and val3 != -1:  # this is here to drop down from a from dag that does not have its own dag file
+                                        while val3 not in self.block_transfers.keys() and val3 != -1:
                                             val3 = val3 - 1
                                         if val3 != 0 and (val, val3) not in seen_pair:
                                             conditional_groups[self.cgid].append(
@@ -1230,13 +1162,10 @@ class MFSimTarget(BaseTarget):
                                         self.cgid += 1
 
 
-                            # deal with exit from loop
+                            # deal with exit from loop (Old method, handled elsewhere)
                             # check if this assay has TDs, if not, act normal, if so, change behavior of exits
-                            # expID = self.expid
                             # if self.loop_headers[succ_id]['t'] in self.block_transfers:
                             # for to in [self.block_transfers[self.loop_headers[succ_id]['t']]]:
-                            # if isinstance(to, set):
-                            # expID = expID + 1000
                             # for val in self.predecessor_edges:
                             # if val[1] == self.loop_headers[succ_id]['f']:
                             # string_key = 't'
@@ -1247,8 +1176,7 @@ class MFSimTarget(BaseTarget):
                             # self.cgid,
                             # [self.loop_headers[val[0]][string_key]], 1,
                             # [val[1]],
-                            # expID, 1, ))  #adding 1000 to diffentiate exps for entering and leaving loops #changed to self.loop_headers[val[0]]['f']
-                            # expID = expID +1
+                            # self.expid, 1, ))
                             # edges_not_translated.remove((succ_id, self.loop_headers[succ_id]['f']))
                             self.cgid += 1
                         else:  # dealing with if conditional
@@ -1278,7 +1206,7 @@ class MFSimTarget(BaseTarget):
                                             skip = False
                                             if self.cfg[bid][instr.iid]['f'] not in self.block_transfers:
                                                 skip = True
-                                            if skip:
+                                            if skip: #need to manually find transfers
                                                 transfers2 = list()
                                                 for inst2 in edges_not_translated:
                                                     if inst2[0] == self.cfg[bid][instr.iid]['f']:
@@ -1287,7 +1215,7 @@ class MFSimTarget(BaseTarget):
                                                 for t in transfers2:
                                                     if t not in self.block_transfers:
                                                         transfers2.remove(t)
-                                                        for inst in edges_not_translated: #not as sure about this one
+                                                        for inst in edges_not_translated:
                                                             if inst[0] == t:
                                                                 transfers2.append(inst[1])
                                                 for t in transfers2:
@@ -1300,9 +1228,6 @@ class MFSimTarget(BaseTarget):
                                                 edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
                                                 self.cgid += 1
                                                 continue
-                                                #edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
-                                                #self.cgid += 1
-                                                #continue
                                             conditional_groups[self.cgid].append(
                                                 self.write_cond(self.cfg[bid][instr.iid]['instr'],
                                                                 cgid, [bid], 1,
@@ -1313,7 +1238,7 @@ class MFSimTarget(BaseTarget):
                                             # self.cgid += 1
                                 self.cgid += 1
                             else:  # unconditional exit from an if block
-                                # check to see if edge should be displayed at all
+                                # check to see if transfers must be manually found
                                 skip = True
                                 for to in [self.block_transfers[bid]]:
                                     for to2 in to:
@@ -1376,11 +1301,11 @@ class MFSimTarget(BaseTarget):
                                     self.write_cond(None,
                                                     cgid, [bid], 1,
                                                     [succ_id],
-                                                    self.expid, 1))  # added cgid
+                                                    self.expid, 1))
                                 seen_pair.append((bid, succ_id))
                                 edges_not_translated.remove((bid, succ_id))
                                 self.cgid += 1
-                else:
+                else: #not an active dag, remove edges directly connected to it
                     edges = list()
                     for e in edges_not_translated:
                         if e[0] == bid:
@@ -1472,7 +1397,7 @@ class MFSimTarget(BaseTarget):
                             else:
                                 self.block_transfers[bid] = {tn}
 
-                for a, b in self.live_droplets:
+                for a, b in self.live_droplets: #transfer live droplets if necessary
                     if b in dispenses or b in already_transferred_in:
                         continue
                     if b not in block.defs:
@@ -1522,7 +1447,7 @@ class MFSimTarget(BaseTarget):
 
                 # this is a bit of a hack, because SSA renaming doesn't quite work how we might hope for heats/detects
                 # for all defs without uses, we must transfer out (if used elsewhere)
-                #   or dispose (if never used again)
+                #   or dispose (if never used again) (Old)
 
                 # For now, for each rdef in the block, we get the original variable name (_def) and instruction (i)
                 #  Then, we check if rdef is used in the block (we do not need to transfer) AFTER this instruction
@@ -1532,7 +1457,7 @@ class MFSimTarget(BaseTarget):
                     _def = None
                     skip = False
                     defIndex = -1
-                    for index in range(len(block.instructions)): #reverse? reversed()
+                    for index in range(len(block.instructions)):
                         i = block.instructions[index]
                         if i.name in ['PHI', 'BINARYOP', 'CONDITIONAL', 'DISPOSE', 'MATH', 'NOP', 'DETECT']:
                             skip = True
@@ -1561,7 +1486,7 @@ class MFSimTarget(BaseTarget):
                                 x = [x for x in i.uses if x['name'] == rdef]
                                 _def = x[0]['var'].points_to.name
                             break
-                        if i.name == 'PHI':
+                        if i.name == 'PHI': #move along if phi
                              continue
                         x = [x for x in i.uses if x['name'] == rdef]
                         if x:  # we use this variable after it is defined in this block
@@ -1576,7 +1501,7 @@ class MFSimTarget(BaseTarget):
                     # we've made it here, we must transfer this rdef
 
                     def transfer_(trans):
-                        tn = None   #TD was not always working before this was placed, tn wasn't defined by the end
+                        tn = None   #tn must be defined
                         try:
                             reachable = (
                                 {x for v in dict(nx.bfs_successors(self.cfg['graph'], bid)).values() for x in v})
@@ -1593,27 +1518,17 @@ class MFSimTarget(BaseTarget):
                                     continue
                                 if trans:
                                     break
-                                #for t in si.uses:
+                                #for t in si.uses: (old)
                                     #x = t['name']
                                 if si.name is 'DISPENSE':
                                     x = si.uses[0]['name']
                                 else:
-                                    x = [x['var'].points_to.name for x in si.uses if type(x['var']) is not Symbol]  #x = si.uses[len(si.uses) -1]['var'].points_to.name
-                                z = instr #added this
+                                    x = [x['var'].points_to.name for x in si.uses if type(x['var']) is not Symbol]  #x = si.uses[len(si.uses) -1]['var'].points_to.name (old method)
                                 if _def in x:
-                                    #done_instr = False
-                                    #for x in self.cblock.instructions:
-                                        #if x.name in ['BINARYOP', 'CONDITIONAL', 'DISPOSE', 'MATH', 'NOP']: #Loop through this block until the correct final instruction and hence it's id is found
-                                            #done_instr = True
-                                            #break
-                                        #if not done_instr:
-                                            #z = x
-                                            #continue
-                                    dag_file.write(self.write_edge(z.iid, self.tid))
+                                    dag_file.write(self.write_edge(instr.iid, self.tid))
                                     dag_file.write(self.write_transfer(self.tid, _def, True))
                                     tn = TransferNode(self.tid, bid, _def, 'out')
                                     self.live_droplets.append((bid, _def))
-                                    #self.known_transfer.append((bid, s))
                                     self.tid += 1
                                     trans = True
                                     break
@@ -1661,225 +1576,14 @@ class MFSimTarget(BaseTarget):
 
             # for each edge in bb_graph, must have corresponding in .cfg
 
+            # see create_conditional_groups
+
             edges_not_translated = list(nx.edges(self.cfg['graph']))
 
             conditional_groups = self.create_conditional_groups(edges_not_translated)
 
-            # conditional_groups = dict()
 
-            # while len(edges_not_translated) > 0:
-            #     for bid, block in self.program.functions[root]['blocks'].items():
-            #         if block.instructions is None:
-            #             continue
-            #         cond = False
-            #         executable = False
-            #         if block.dag is not None:
-            #             for instr in block.instructions:
-            #                 if cond and executable:
-            #                     break
-            #                 if instr.name is 'CONDITIONAL':
-            #                     cond = True
-            #                 if instr.name in ['MIX', 'DETECT', 'SPLIT', 'HEAT', 'DISPENSE', 'DISPOSE']:
-            #                     executable = True
-
-                        # deal with successor loop headers, which will take care of [current : translated]:
-                        #   bid->succ               :   bid->true
-                        #   succ->true              :   [no translation]
-                        #   succ->false             :   true->false
-                        #   back-edge(s) to succ    :   back1->true...backn->true
-                        #                   for succ_id in self.program.functions[root]['graph'].succ[bid]:
-                       # for succ_id in self.cfg['graph'].successors(bid):
-                            # we know there is an edge from bid to succ_id, need to check if bid or succ_id is a loop
-                            # header
-                            # if (bid, succ_id) not in edges_not_translated:
-                            #     continue
-                            # if bid in self.loop_headers:
-                            #     # bid is loop header
-                            #     print("if I take care of everything already, then continue?")
-                            #     continue
-                            # elif succ_id in self.loop_headers:
-                            #     if len(edges_not_translated) == 1:   #catch a stragling condition that doesnt belong
-                            #         edges_not_translated.remove((bid, succ_id))
-                            #         continue
-                                # unconditional branch into loop (MFSim interprets all loops as do-while)
-                                # ensure cgid groups stay together
-                                # cgid = self.cgid
-                                # if bid not in self.cgid_pair.keys():
-                                #     self.cgid_pair[bid] = self.cgid
-                                # else:
-                                #     check = self.cgid_pair[bid]
-                                #     if check != self.cgid:
-                                #         cgid = check
-                                # conditional_groups[self.cgid] = []
-                                # conditional_groups[self.cgid].append(
-                                #     self.write_cond(self.loop_headers[succ_id]['instr'],
-                                #                     cgid, [bid], 1,
-                                #                     [self.loop_headers[succ_id]['t']],
-                                #                     self.expid, 1))
-                                # edges_not_translated.remove((bid, succ_id))
-                                # if edges_not_translated:
-                                #     edges_not_translated.remove((succ_id, self.loop_headers[succ_id]['t']))
-                                #     self.cgid += 1
-                                # else:
-                                #     continue
-                                #
-                                # conditional_groups[self.cgid] = []
-                                # find all back edges -- this is probably wrong, as these may fall into different CGs
-                                # iteration = 0
-                                # prev_val = -1
-                                # dup = False
-                                # back_edges = [x for x in edges_not_translated if x[1] is succ_id and x[0] > x[1]]
-                                # for be in back_edges:
-                                #     if dup and iteration < 2: #allocate space for the duplicated instructions
-                                #         conditional_groups[self.cgid] = []
-                                #     iteration += 1
-                                #     val = be[0]
-                                #     if len(self.block_transfers.keys()) >= 1:
-                                #         if be[0] not in self.block_transfers.keys():
-                                #             val = val - 1
-                                #             while val not in self.block_transfers.keys() and val != -1: #this is here to drop down from a from dag that does not have its own dag file
-                                #                 val = val - 1
-                                #     if prev_val is val:
-                                #         val -= 1
-                                #     prev_val = val
-                                    # ensure cgid groups stay together
-                                    # cgid = self.cgid
-                                    # if val not in self.cgid_pair.keys():
-                                    #     self.cgid_pair[val] = self.cgid
-                                    # else:
-                                    #     check = self.cgid_pair[val]
-                                    #     if check != self.cgid:
-                                    #         cgid = check
-                                    # dup = False
-                                    #last_block = None
-                                    # if be[0] not in self.block_transfers:#check if need to duplicate the back edge and out edge for a second conditional (else)
-                                    #     times_to_last_block = 0
-                                    #     for e in edges_not_translated:
-                                    #         if e[1] is be[0]:
-                                    #             times_to_last_block += 1
-                                                #last_block = e[0]
-                                        #valid = True #False
-                                        #for instru in self.program.functions[root]['blocks'][last_block].instructions:
-                                            #if instru.name is 'CONDITIONAL':
-                                        #if len(self.program.functions[root]['blocks'][last_block].jumps) > 0:
-                                           #valid = True
-                                    #     if times_to_last_block is 2 and iteration < 2 and valid:
-                                    #         dup = True
-                                    #         back_edges.append(be)
-                                    # conditional_groups[self.cgid].append(
-                                    #     self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
-                                    #                     [val], 1,
-                                    #                     [self.loop_headers[succ_id]['t']],
-                                    #                     self.expid, 1, 'LOOP'))
-                                    # edges_not_translated.remove((be[0], succ_id))
-                                    # if dup and iteration < 2:
-                                    #     edges_not_translated.append((be[0], succ_id))
-                                    # if len(self.block_transfers.keys()) >= 1:
-                                    #     if self.loop_headers[succ_id]['f'] not in self.block_transfers.keys():
-                                    #         if (be[1], self.loop_headers[succ_id]['f']) in edges_not_translated:
-                                    #             edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
-                                    #         continue
-                                    #
-                                    # conditional_groups[self.cgid].append(
-                                    #     self.write_cond(self.loop_headers[succ_id]['instr'], cgid,
-                                    #                     [val], 1,
-                                    #                     [self.loop_headers[succ_id]['f']],
-                                    #                     self.expid, 1, ))
-                                    # edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
-                                    # if dup and iteration < 2:
-                                    #     edges_not_translated.append((be[1], self.loop_headers[succ_id]['f']))
-                                    #     self.cgid += 1
-
-                                # deal with exit from loop
-                                # check if this assay has TDs, if not, act normal, if so, change behavior of exits
-                                # expID = self.expid
-                                #if self.loop_headers[succ_id]['t'] in self.block_transfers:
-                                    #for to in [self.block_transfers[self.loop_headers[succ_id]['t']]]:
-                                        #if isinstance(to, set):
-                                            #expID = expID + 1000
-                                #for val in self.predecessor_edges:
-                                    #if val[1] == self.loop_headers[succ_id]['f']:
-                                        #string_key = 't'
-                                        #if 2 <= len(self.program.functions[root]['blocks'][val[0]].jumps): #only currently checking if last block, not likely to work in all scenarios
-                                            #string_key = 't'
-                                        #conditional_groups[self.cgid].append(
-                                        #self.write_cond(self.loop_headers[val[0]]['instr'],
-                                                    #self.cgid,
-                                                    #[self.loop_headers[val[0]][string_key]], 1,
-                                                    #[val[1]],
-                                                    #expID, 1, ))  #adding 1000 to diffentiate exps for entering and leaving loops #changed to self.loop_headers[val[0]]['f']
-                                        #expID = expID +1
-                                #edges_not_translated.remove((succ_id, self.loop_headers[succ_id]['f']))
-                            #     self.cgid += 1
-                            # else:  # dealing with if conditional
-                            #     if cond and executable:
-                            #         self.cblock = block
-                            #         conditional_groups[self.cgid] = []
-                            #         for instr in self.program.functions[root]['blocks'][bid].instructions:
-                            #             if instr.op is IRInstruction.CONDITIONAL:
-                            #                 # ensure cgid groups stay together
-                            #                 cgid = self.cgid
-                            #                 if bid not in self.cgid_pair.keys():
-                            #                     self.cgid_pair[bid] = self.cgid
-                            #                 else:
-                            #                     check = self.cgid_pair[bid]
-                            #                     if check != self.cgid:
-                            #                         cgid = check
-                            #                 conditional_groups[self.cgid].append(
-                            #                     self.write_cond(self.cfg[bid][instr.iid]['instr'],
-                            #                                     cgid, [bid], 1,
-                            #                                     [self.cfg[bid][instr.iid]['t']],
-                            #                                     self.expid, 1, 'IF'))
-                            #                 edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['t']))
-                            #                 if self.cfg[bid][instr.iid]['f'] is not None:
-                            #                     skip = False
-                            #                     if self.cfg[bid][instr.iid]['f'] not in self.block_transfers:
-                            #                         skip = True
-                            #                     if skip:
-                            #                         edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
-                            #                         self.cgid += 1
-                            #                         continue
-                            #                     conditional_groups[self.cgid].append(
-                            #                         self.write_cond(self.cfg[bid][instr.iid]['instr'],
-                            #                                         cgid, [bid], 1,
-                            #                                         [self.cfg[bid][instr.iid]['f']],
-                            #                                         self.expid, 1))
-                            #                     edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
-                                                #self.cgid += 1
-                            #        self.cgid += 1
-                            #    else: #unconditional exit from an if block
-                                    #check to see if edge should be displayed at all
-                                    # skip = True
-                                    # for to in [self.block_transfers[bid]]:
-                                    #     for to2 in to:
-                                    #         if to2.type is 'out':
-                                    #             skip = False
-                                    # if succ_id not in self.block_transfers:
-                                    #     skip = True
-                                    # if skip:
-                                    #     conditional_groups[self.cgid] = []
-                                    #     self.cgid += 1
-                                    #     edges_not_translated.remove((bid, succ_id))
-                                    #     continue
-                                    # ensure cgid groups stay together
-                                    # cgid = self.cgid
-                                    # if bid not in self.cgid_pair.keys():
-                                    #     self.cgid_pair[bid] = self.cgid
-                                    # else:
-                                    #     check = self.cgid_pair[bid]
-                                    #     if check != self.cgid:
-                                    #         cgid = check
-                                    # self.cblock = block
-                                    # conditional_groups[self.cgid] = []
-                                    # conditional_groups[self.cgid].append(
-                                    #     self.write_cond(None,
-                                    #                     cgid, [bid], 1,
-                                    #                     [succ_id],
-                                    #                     self.expid, 1)) #added cgid
-                                    # edges_not_translated.remove((bid, succ_id))
-                                    # self.cgid += 1
-
-            #self.num_cgs = conditional_groups.__len__()
+            #self.num_cgs = conditional_groups.__len__() (old method)
             self.num_cgs = len(self.cgid_pair)
             cfg_file.write("\nNUMCGS(%s)\n\n" % self.num_cgs)
 
