@@ -1,7 +1,6 @@
 DagName (DAG1)
 NODE (14, DISPENSE, droplet_a, [10], a)
-EDGE (14, 19)
-EDGE (14, 20)
+EDGE (14, 17)
 NODE (15, DISPENSE, droplet_b, [10], b)
 EDGE (15, 18)
 NODE (16, DISPENSE, droplet_c, [10], c)

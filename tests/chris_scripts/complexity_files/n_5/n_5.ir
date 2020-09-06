@@ -1,0 +1,20 @@
+main:
+	a1[0] = dispense(aa)
+	b1[0] = dispense(bb)
+	c1[0] = dispense(cc)
+	d1[0] = dispense(dd)
+	e1[0] = dispense(ee)
+	heat(a1[0]) @ 100.0CELSIUS @ 50.0SECOND usein 5.0SECOND
+	heat(b1[0]) @ 100.0CELSIUS @ 40.0SECOND usein 5.0SECOND
+	heat(c1[0]) @ 100.0CELSIUS @ 30.0SECOND usein 5.0SECOND
+	heat(d1[0]) @ 100.0CELSIUS @ 20.0SECOND usein 5.0SECOND
+	heat(e1[0]) @ 100.0CELSIUS @ 10.0SECOND usein 5.0SECOND
+	ab1[0] = mix(a1[0], b1[0]) @ 10.0SECOND usein 5.0SECOND
+	heat(ab1[0]) @ 100.0CELSIUS @ 10.0SECOND usein 5.0SECOND
+	abc1[0] = mix(ab1[0], c1[0]) @ 10.0SECOND usein 5.0SECOND
+	heat(abc1[0]) @ 100.0CELSIUS @ 10.0SECOND usein 5.0SECOND
+	abcd1[0] = mix(abc1[0], d1[0]) @ 10.0SECOND usein 5.0SECOND
+	heat(abcd1[0]) @ 100.0CELSIUS @ 10.0SECOND usein 5.0SECOND
+	abcde1[0] = mix(abcd1[0], e1[0]) @ 10.0SECOND usein 5.0SECOND
+	dispose(abcde1[0])
+	NOP

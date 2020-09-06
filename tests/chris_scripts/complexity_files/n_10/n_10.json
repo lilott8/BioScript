@@ -1,0 +1,143 @@
+{
+    "constraints": [
+        {
+            "useins": [
+                {
+                    "node": 123,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 124,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 125,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 126,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 127,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 128,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 129,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 130,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 131,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 132,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 133,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 134,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 135,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 136,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 137,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 138,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 139,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 140,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 141,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 142,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 143,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 144,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 145,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 146,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 147,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 148,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 149,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                }
+            ]
+        }
+    ]
+}

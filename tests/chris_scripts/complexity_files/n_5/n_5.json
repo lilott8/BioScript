@@ -1,0 +1,68 @@
+{
+    "constraints": [
+        {
+            "useins": [
+                {
+                    "node": 58,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 59,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 60,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 61,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 62,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 63,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 64,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 65,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 66,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 67,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 68,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 69,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                }
+            ]
+        }
+    ]
+}

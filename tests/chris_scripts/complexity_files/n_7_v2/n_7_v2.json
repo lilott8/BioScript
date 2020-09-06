@@ -1,0 +1,43 @@
+{
+    "constraints": [
+        {
+            "useins": [
+                {
+                    "node": 73,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 74,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 75,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 76,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 77,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 78,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 79,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                }
+            ]
+        }
+    ]
+}

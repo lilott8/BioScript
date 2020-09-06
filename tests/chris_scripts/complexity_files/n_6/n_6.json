@@ -1,0 +1,83 @@
+{
+    "constraints": [
+        {
+            "useins": [
+                {
+                    "node": 71,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 72,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 73,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 74,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 75,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 76,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 77,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 78,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 79,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 80,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 81,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 82,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 83,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 84,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                },
+                {
+                    "node": 85,
+                    "quantity": 10.0,
+                    "unit": "SECOND"
+                }
+            ]
+        }
+    ]
+}
