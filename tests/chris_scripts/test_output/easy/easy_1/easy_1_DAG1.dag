@@ -1,8 +1,0 @@
-DagName (DAG1)
-NODE (9, DISPENSE, droplet_a, [10], a)
-EDGE (9, 11)
-NODE (10, DISPENSE, droplet_b, [10], b)
-EDGE (10, 11)
-NODE (11, MIX, 2, 60.0, c)
-EDGE (11, 12)
-NODE (12, OUTPUT, null, c)

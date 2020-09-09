@@ -1,5 +1,0 @@
-main:
-	a1[0] = dispense(droplet_a)
-	heat(a1[0]) @ 90.0CELSIUS @ 60.0SECOND usein 30.0SECOND
-	dispose(a1[0])
-	NOP
