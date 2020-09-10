@@ -112,6 +112,69 @@ class TestMFSim(FrontEndBase):
         expected = str([0, 0, 1, 0, 3, 4, 12, 1, 2, 3, 0])
         assert expected == counts
 
+    def test_split_size2_detect_SIMD(self, get_visitor):
+        file = "test_cases/split/size2_detect_simd.bs"
+        counts = self.get_compiled_mfsim(get_visitor(file), file)
+
+        expected = str([0, 0, 1, 2, 2, 2, 7, 0, 1, 1, 0])
+        assert expected == counts
+
+    def test_split_size4_detect_SIMD(self, get_visitor):
+        file = "test_cases/split/size4_detect_simd.bs"
+        counts = self.get_compiled_mfsim(get_visitor(file), file)
+
+        expected = str([0, 0, 1, 4, 2, 4, 13, 0, 1, 3, 0])
+        assert expected == counts
+
+    def test_split_size8_detect_SIMD(self, get_visitor):
+        file = "test_cases/split/size8_detect_simd.bs"
+        counts = self.get_compiled_mfsim(get_visitor(file), file)
+
+        expected = str([0, 0, 1, 8, 2, 8, 25, 0, 1, 7, 0])
+        assert expected == counts
+
+    def test_split_size2_heat_SIMD(self, get_visitor):
+        file = "test_cases/split/size2_heat_simd.bs"
+        counts = self.get_compiled_mfsim(get_visitor(file), file)
+
+        expected = str([0, 0, 1, 0, 2, 2, 7, 2, 1, 1, 0])
+        assert expected == counts
+
+    def test_split_size4_heat_SIMD(self, get_visitor):
+        file = "test_cases/split/size4_heat_simd.bs"
+        counts = self.get_compiled_mfsim(get_visitor(file), file)
+
+        expected = str([0, 0, 1, 0, 2, 4, 13, 4, 1, 3, 0])
+        assert expected == counts
+
+    def test_split_size8_heat_SIMD(self, get_visitor):
+        file = "test_cases/split/size8_heat_simd.bs"
+        counts = self.get_compiled_mfsim(get_visitor(file), file)
+
+        expected = str([0, 0, 1, 0, 2, 8, 25, 8, 1, 7, 0])
+        assert expected == counts
+
+    def test_split_size2_mix_x_and_y_SIMD(self, get_visitor):
+        file = "test_cases/split/size2_mix_x_and_y_simd.bs"
+        counts = self.get_compiled_mfsim(get_visitor(file), file)
+
+        expected = str([0, 0, 1, 0, 4, 2, 12, 0, 4, 2, 0])
+        assert expected == counts
+
+    def test_split_size4_mix_x_and_y_SIMD(self, get_visitor):
+        file = "test_cases/split/size4_mix_x_and_y_simd.bs"
+        counts = self.get_compiled_mfsim(get_visitor(file), file)
+
+        expected = str([0, 0, 1, 0, 4, 4, 22, 0, 6, 6, 0])
+        assert expected == counts
+
+    def test_split_size8_mix_x_and_y_SIMD(self, get_visitor):
+        file = "test_cases/split/size8_mix_x_and_y_simd.bs"
+        counts = self.get_compiled_mfsim(get_visitor(file), file)
+
+        expected = str([0, 0, 1, 0, 4, 8, 42, 0, 10, 14, 0])
+        assert expected == counts
+
     #begin exisitng assay tests
     def test_pcr(self, get_visitor):
         file = "test_cases/assays/pcr.bs"

@@ -11,11 +11,11 @@ ab = mix ta with tb
 
 x = detect fluor on ab for 10s
 
-while x > 3 {
+while (x > 3) {
    heat ab at 10c for 30s //dag3
-   while x > 3{
+   while (x > 3){
       heat ab at 10c for 50s //dag 5
-      while x > 3{
+      while (x > 3){
       heat ab at 10c for 70s //dag 7
    }
    heat ab at 10c for 80s //dag8

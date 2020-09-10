@@ -7,6 +7,9 @@ instructions:
 sa = dispense 10 units of substance_a
 d1 = dispense 1 units of dilutant1
 
+
 first_dilute = mix sa with d1 for 5s
 x = split first_dilute into 4
+
+z = detect fluorescence on x for 2s
 dispose x
