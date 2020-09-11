@@ -116,7 +116,10 @@ class IRTarget(BaseTarget):
                     # Add any meta operations.
                     if instruction.meta:
                         for meta in instruction.meta:
-                            self.compiled += " @ {}{}".format(meta.quantity, meta.unit.name)
+                            if meta.name == "USEIN":
+                                self.compiled += " usein {}{}".format(meta.quantity, meta.unit.name)
+                            else:
+                                self.compiled += " @ {}{}".format(meta.quantity, meta.unit.name)
 
                     self.compiled += "\n"
                 if block.jumps:

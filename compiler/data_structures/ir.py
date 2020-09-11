@@ -28,7 +28,7 @@ class IRInstruction(IntEnum):
     LABEL = 15
     RETURN = 16
     # Meta
-    USEBY = 17
+    USEIN = 17
     EXECUTEFOR = 18
     NOP = 19
     PHI = 20
@@ -604,13 +604,13 @@ class TempConstraint(Meta):
         return self.__repr__()
 
 
-class UseBy(TimeConstraint):
+class UseIn(TimeConstraint):
 
     def __init__(self, time: float, unit: BSTime):
-        super().__init__(IRInstruction.USEBY, time, unit)
+        super().__init__(IRInstruction.USEIN, time, unit)
 
     def __repr__(self):
-        return "USEBY {}{}".format(self.quantity, self.unit.value)
+        return "{}{}".format(self.quantity, self.unit.name)
 
 
 class ExecuteFor(TimeConstraint):

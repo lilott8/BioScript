@@ -1,10 +1,14 @@
 import networkx as nx
+import json
 
 from compiler.data_structures import IRInstruction
 from compiler.data_structures import RelationalOps
 from compiler.data_structures.ir import Conditional
 from compiler.data_structures.variable import *
 from compiler.targets.base_target import BaseTarget
+from compiler.data_structures.ir import TempConstraint
+from compiler.data_structures.ir import TimeConstraint
+from compiler.data_structures.ir import UseIn
 
 
 class TransferNode:
@@ -33,6 +37,13 @@ class MFSimTarget(BaseTarget):
         self.cfg = dict()
         self.block_transfers = dict()
         self.loop_headers = dict()
+
+        # for generating usein constraints in json file, dictionaries and lists
+        self.constraints = []
+        self.useins = []
+        self.usein_data = {"constraints": self.constraints}
+        self.usein_subdata = {"useins": self.useins}
+
         # start transfer nodes from id 100.
         if self.config.debug:
             self.log.debug("Statically starting transfer IDs from 100. This could be an issue for very large assays.")
@@ -201,14 +212,15 @@ class MFSimTarget(BaseTarget):
         :return:
         """
         _ret = list()
-        check = instr.defs['var'].points_to
+        check = instr.defs['var'].points_to   #original
+        #check = instr.uses[0]['name']        #try
         for i in self.cblock.instructions:
-            if i.op == IRInstruction.NOP:
+            if i.op in {IRInstruction.NOP, IRInstruction.CONDITIONAL}:  #if i.op in {IRInstruction.NOP, IRInstruction.CONDITIONAL}:
                 continue
             self.log.info(i)
             if i.defs['name'] in uses:  # this instruction is one of the uses
-                if i.defs['var'].points_to != check:
-                    _ret.append(i.defs['var'].points_to.name)
+                if i.defs['var'].points_to != check:   #if i.uses[0]['name'] != check:
+                    _ret.append(i.defs['var'].name) #_ret.append(i.defs['var'].points_to.name)
 
         if len(_ret) < 1:
             self.log.fatal("A non-split instruction has multiple successors!")
@@ -240,25 +252,61 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, MIX, " % str(self.opid)
 
-        if self.config.debug:
-            self.log.warning("Using default time and mixType values -- these should be IRInstruction attributes discovered"
-                          "during parsing")
+        #if self.config.debug:
+        #    self.log.warning("Using default time and mixType values -- these should be IRInstruction attributes discovered"
+        #                  "during parsing")
         time = 10
+
+        for t in instr.meta:
+            if type(t) is TimeConstraint:
+                time = t.quantity
+                break
         # mixType = '_'.join([x['var'].name for x in instr.uses])
 
         # MFSim supports >= 2 input droplets, but BS requires distinct mix operations for every 2 droplets,
         #  hence, we can safely assume every mix has exactly 2 inputs
         _ret += "2, %s, %s)\n" % (str(time), instr.defs['var'].points_to.name)
 
+        for meta in instr.meta:
+            if meta.name is "USEIN":
+                self.write_usein(instr)
+                break
+
         to = list(self.cblock.dag.successors(instr.defs['var'].name))
 
         if len(to) > 1:
+            found_instr = False
+            for x in self.cblock.instructions:  # added these
+                if x is instr:
+                    found_instr = True
+                    continue
+                if not found_instr:
+                    continue
+                if x.defs['var'].name == instr.defs['var'].name:
+                    to = list() #to = list(instr.defs['var'].name)
+                    to.append(instr.defs['var'].points_to.name) #used to be just .name
+                    break
+                break
+
+        if len(to) > 1:
             to = self.get_dependent_instr(instr, to)
+            to = list(dict.fromkeys(to))  # remove potential duplicates and keep order
 
         for key in to:
             to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].name is key]
             for ti in to_instr:
+                if ti.iid == self.opid: #added these
+                    continue
                 _ret += self.write_edge(self.opid, ti.iid)
+                break
+
+        for key in to:
+            to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].points_to.name is key]
+            for ti in to_instr:
+                if ti.iid == self.opid: #added these
+                    continue
+                _ret += self.write_edge(self.opid, ti.iid)
+                break
 
         self.num_mixes += 1
         return _ret
@@ -275,10 +323,15 @@ class MFSimTarget(BaseTarget):
         _ret = "NODE (%s, SPLIT, " % str(self.opid)
 
         if self.config.debug:
-            self.log.warning("Using default numDrops and time value for SPLIT; at least numDrops should be a Split "
+            self.log.warning("Using default numDrops and time value for SPLIT; at least numDrops should be a f "
                           "instruction attribute discovered during parsing")
         numDrops = 2
         time = 2
+
+        for t in instr.meta:
+            if type(t) is TimeConstraint:
+                time = t.quantity
+                break
 
         _ret += "%s, %s, SPLIT)\n" % (str(numDrops), str(time))
 
@@ -328,42 +381,31 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, DETECT, 1, " % str(self.opid)
 
-        if self.config.debug:
-            self.log.warning("Using default time for DETECT; time should be an IRInstruction attribute discovered "
-                          "during parsing")
+        #if self.config.debug:
+        #    self.log.warning("Using default time for DETECT; time should be an IRInstruction attribute discovered "
+        #                  "during parsing")
         time = 10
+
+        for t in instr.meta:
+            if type(t) is TimeConstraint:
+                time = t.quantity
+                break
 
         _ret += "%s, %s(%s))\n" % (str(time), instr.defs['var'].points_to.name, instr.uses[1]['var'].points_to.name)
 
-        self.num_detects += 1
-        return _ret
+        #for ti in to_instr:
+         #   _ret += self.write_edge(self.opid, ti.iid) No to_instr found, debug and see what is available or just ask
 
-    def write_heat(self, instr) -> str:
-        """
-             An MFSim HEAT node has 4 parameters:
-                  nodeid, "HEAT", time, nodeName
-                  nodeName  <- this means nothing to MFSim
-        :param instr:
-        :return:
-        """
-        _ret = "NODE (%s, HEAT, " % str(self.opid)
-
-        if self.config.debug:
-            self.log.warning("Using default time for HEAT; time should be an IRInstruction attribute discovered "
-                          "during parsing")
-        time = 10
-
-        _ret += "{}, {})\n".format(str(time), instr.uses[0]['var'].points_to.name)
-
-        to = list(self.cblock.dag.successors(instr.defs['var'].name))
+        to = list(self.cblock.dag.successors(instr.uses[1]['name']))
+        to = [x for x in to if x != instr.defs['name']]
 
         if len(to) > 1:
             to = self.get_dependent_instr(instr, to)
+            to = list(dict.fromkeys(to))  # remove potential duplicates and keep order
 
         for key in to:
             to_instr = []
             # as long as order of instructions is maintained this works.
-            # ideally, the SSA form would have explicit defs for all heats
             found_instr = False
             for x in self.cblock.instructions:
                 if x is instr:
@@ -380,7 +422,80 @@ class MFSimTarget(BaseTarget):
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
 
-        self.num_heats += 1
+        self.num_detects += 1
+        return _ret
+
+    def write_heat(self, instr) -> str:
+        """
+             An MFSim HEAT node has 4 parameters:
+                  nodeid, "HEAT", time, nodeName
+                  nodeName  <- this means nothing to MFSim
+        :param instr:
+        :return:
+        """
+        _ret = "NODE (%s, HEAT, " % str(self.opid)
+
+        #if self.config.debug:
+        #    self.log.warning("Using default time for HEAT; time should be an IRInstruction attribute discovered "
+        #                  "during parsing")
+        time = 10
+
+        for t in instr.meta:
+            if type(t) is TimeConstraint:
+                time = t.quantity
+                break
+
+        _ret += "{}, {})\n".format(str(time), instr.uses[0]['var'].points_to.name)
+
+        for meta in instr.meta:
+            if meta.name is "USEIN":
+                self.write_usein(instr)
+                break
+
+        to = list(self.cblock.dag.successors(instr.defs['var'].name))
+
+        if len(to) > 1:
+            found_instr = False
+            for x in self.cblock.instructions:  # added these
+                if x is instr:
+                    found_instr = True
+                    continue
+                if not found_instr:
+                    continue
+                if x.defs['var'].name == instr.defs['var'].name:
+                    to = list() #to = list(instr.defs['var'].name)
+                    to.append(instr.defs['var'].name) #used to be just .name
+                    break
+                break
+
+        if len(to) > 1:
+            to = self.get_dependent_instr(instr, to)
+            to = list(dict.fromkeys(to))  # remove potential duplicates and keep order
+
+        for key in to:
+            to_instr = []
+            # as long as order of instructions is maintained this works.
+            # ideally, the SSA form would have explicit defs for all heats
+            found_instr = False
+            for x in self.cblock.instructions:
+                if x is instr:
+                    found_instr = True
+                    continue
+                if not found_instr:
+                    continue
+                if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
+                    if x.defs['var'].name  == key: #for y in x.uses:
+                        #if y['var'].name == key:
+                        to_instr.append(x)
+                        break
+
+            for ti in to_instr:
+                if ti.iid == self.opid: #added these
+                    continue
+                _ret += self.write_edge(self.opid, ti.iid)
+                break
+
+            self.num_heats += 1
         return _ret
 
     def write_dispose(self, instr) -> str:
@@ -392,9 +507,9 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].points_to.name)
 
-        if self.config.debug:
-            self.log.warning(
-                "DISPOSE for mfsim requires the sinkname and type (drain, save, etc).  Using default for now.")
+        #if self.config.debug:
+        #    self.log.warning(
+        #        "DISPOSE for mfsim requires the sinkname and type (drain, save, etc).  Using default for now. Only needed for archfile, defaults are fine currently")
         self.num_dispose += 1
         return _ret
 
@@ -408,10 +523,14 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, DISPENSE, " % str(self.opid)
 
-        if self.config.debug:
-            self.log.warning("Using default volume for DISPENSE; this should be an IRInstruction attribute discovered "
-                          "during parsing")
-        volume = 10
+        #if self.config.debug:
+        #    self.log.warning("Using default volume for DISPENSE; this should be an IRInstruction attribute discovered "
+        #                  "during parsing")
+        #volume = 10
+
+
+        capture = instr.defs['var'].volumes
+        volume = next(iter(capture.values()))
 
         _ret += "%s, %s, %s)\n" % (instr.uses[0]['name'], str(volume), instr.defs['var'].points_to.name)
 
@@ -425,8 +544,27 @@ class MFSimTarget(BaseTarget):
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
 
+        #for key in to:
+        #    to_instr = [x for x in self.cblock.instructions if x.defs is not None and x.defs['var'].points_to.name is key]
+        #    for ti in to_instr:
+        #        _ret += self.write_edge(self.opid, ti.iid)
+
         self.num_dispense += 1
         return _ret
+
+
+    def write_usein(self, instr) -> str:
+
+        for meta in instr.meta:
+            if meta.name is "USEIN":
+                node = self.opid
+                qty = meta.quantity
+                unit = meta.unit.name
+                temp = {"node": node, "quantity": qty, "unit": unit}
+                self.useins.append(temp)
+
+        return None
+
 
     def write_td(self, from_dag, to_dag) -> str:
         _ret = ""
@@ -582,7 +720,7 @@ class MFSimTarget(BaseTarget):
                         dispenses.add(node.defs['var'].points_to.name)
                 for node in block.instructions:
 
-                    if node.name in ['BINARYOP', 'CONDITIONAL', 'DISPENSE', 'MATH']:
+                    if node.name in ['PHI', 'BINARYOP', 'CONDITIONAL', 'DISPENSE', 'MATH']: #added PHI
                         continue
 
                     # for each use, we must check if predecessors in this block defined it
@@ -627,7 +765,7 @@ class MFSimTarget(BaseTarget):
                         dag_file.write(self.write_dispose(node))
                     elif node.op is IRInstruction.DISPENSE:
                         dag_file.write(self.write_dispense(node))
-                    elif node.op is IRInstruction.PHI or node.op is IRInstruction.CONDITIONAL:
+                    elif node.op is IRInstruction.PHI or node.op is IRInstruction.CONDITIONAL or node.op is IRInstruction.MATH or node.op is IRInstruction.NOP:
                         continue
                     else:
                         if self.config.debug:
@@ -673,6 +811,8 @@ class MFSimTarget(BaseTarget):
                                 x = [x for x in i.uses if x['name'] == rdef]
                                 _def = x[0]['var'].points_to.name
                             break
+                        if i.name == 'PHI':
+                             break
                         x = [x for x in i.uses if x['name'] == rdef]
                         if x:  # we use this variable after it is defined in this block
                             skip = True
@@ -686,6 +826,7 @@ class MFSimTarget(BaseTarget):
                     # we've made it here, we must transfer this rdef
 
                     def transfer_(trans):
+                        tn = None   #TD was not always working before this was placed, tn wasn't defined by the end
                         try:
                             reachable = (
                                 {x for v in dict(nx.bfs_successors(self.cfg['graph'], bid)).values() for x in v})
@@ -698,18 +839,32 @@ class MFSimTarget(BaseTarget):
                             # get successor block
                             sblock = self.program.functions[root]['blocks'][s]
                             for si in sblock.instructions:
-                                if si.op in {IRInstruction.PHI}:
+                                if si.op in {IRInstruction.PHI, IRInstruction.CONDITIONAL}:
                                     continue
                                 if trans:
                                     break
-                                x = [x['var'].points_to.name for x in si.uses if type(x['var']) is not Symbol]
+                                x = si.uses[0]['name'] # x = [x['var'].points_to.name for x in si.uses if type(x['var']) is not Symbol]
+                                z = instr #added this
                                 if _def in x:
-                                    dag_file.write(self.write_edge(instr.iid, self.tid))
+                                    done_instr = False
+                                    for x in self.cblock.instructions:
+                                        if x.name in ['PHI', 'BINARYOP', 'CONDITIONAL', 'DISPOSE', 'MATH', 'NOP']: #Loop through this block until the correct final instruction and hence it's id is found
+                                            done_instr = True
+                                            break
+                                        if not done_instr:
+                                            z = x
+                                            continue
+                                    dag_file.write(self.write_edge(z.iid, self.tid))
                                     dag_file.write(self.write_transfer(self.tid, _def, True))
                                     tn = TransferNode(self.tid, bid, _def, 'out')
                                     self.tid += 1
                                     trans = True
                                     break
+                        if tn is not None:
+                            if bid in self.block_transfers:
+                                self.block_transfers[bid].add(tn)
+                            else:
+                                self.block_transfers[bid] = {tn}
                         return trans
 
                     if block.dag is not None:
@@ -844,6 +999,13 @@ class MFSimTarget(BaseTarget):
                     cfg_file.write(val)
 
             cfg_file.close()
+
+            # generate json file for usein constraint
+            self.constraints.append(self.usein_subdata)
+            exp_name = self.config.input.rsplit('/', 1)[1][:-3]  # get file input name -'.bs'
+            json_file = open("%s/%s.json" % (self.config.output, exp_name), "w")
+            json_file.write(json.dumps(self.usein_data, indent=4))
+            json_file.close()
 
         return True
 
