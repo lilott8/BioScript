@@ -654,10 +654,6 @@ class IRVisitor(BSBaseVisitor):
         if ctx.usein():
             usein_time_temp = self.visitUsein(ctx.usein())
             usein_time = (usein_time_temp['quantity'], usein_time_temp['units'])
-            #self.visit(ctx.usein())
-        #else:
-            #usein_time = (10, BSTime.SECOND)
-
 
         uses = list()
         for fluid in ctx.variable():
@@ -770,9 +766,6 @@ class IRVisitor(BSBaseVisitor):
         if ctx.usein():
             usein_time_temp = self.visitUsein(ctx.usein())
             usein_time = (usein_time_temp['quantity'], usein_time_temp['units'])
-            #self.visit(ctx.usein())
-        #else:
-            #usein_time = (10, BSTime.SECOND)
 
         temp = self.visitTemperatureIdentifier(ctx.temperatureIdentifier())
 
