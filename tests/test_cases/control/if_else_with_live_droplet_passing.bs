@@ -1,0 +1,25 @@
+manifest a
+manifest b
+manifest c
+
+module fluor
+
+instructions:
+
+ta = dispense a
+tb = dispense b
+tc = dispense c
+ab = mix ta with tb
+
+x = detect fluor on ab for 10s
+
+if (x > 10) {
+   dispose ab
+}
+
+else {
+    tc = mix ab with tc
+}
+
+heat tc at 10c for 60s
+dispose tc

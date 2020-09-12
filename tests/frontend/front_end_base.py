@@ -70,7 +70,7 @@ class FrontEndBase(metaclass=ABCMeta):
 
     def get_volume(self, tree, file):
         ir = self.get_ir(tree)
-        ir = Program(functions=ir.functions, config=CompilerCLI(["-d", "-i", file, "-o", "output/"]).config,
+        ir = Program(functions=ir.functions, config=CompilerCLI(["-d", "-tv", "-i", file, "-o", "output/"]).config,
                        symbol_table=ir.symbol_table, bb_graph=ir.graph, name=file, calls=ir.calls)
         pm = PassManager(ir)
         pm.run_analysis()
@@ -93,4 +93,5 @@ class FrontEndBase(metaclass=ABCMeta):
         target.transform()
         return str([target.num_cgs, target.num_transfers, target.num_dags, target.num_detects,
                 target.num_dispense, target.num_dispose, target.num_edges, target.num_heats,
-                target.num_mixes, target.num_splits])
+                target.num_mixes, target.num_splits, target.expid])
+

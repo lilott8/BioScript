@@ -1,0 +1,40 @@
+manifest substance_a
+manifest substance_b
+manifest substance_c
+manifest dilutant1
+manifest dilutant2
+manifest dilutant3
+
+instructions:
+
+sa = dispense 10 units of substance_a
+d1 = dispense 1 units of dilutant1
+
+first_dilute = mix sa with d1
+x = split first_dilute into 2
+
+dispose x[0]
+
+d2 = dispense 1 units of dilutant2
+
+second_dilute = mix x[1] with d2
+y = split second_dilute into 2
+dispose y[0]
+
+d3 = dispense 1 units of dilutant3
+
+third_dilute = mix y[1] with d3
+z = split third_dilute into 2
+dispose z[0]
+
+sb = dispense 10 units of substance_b
+sc = dispense 10 units of substance_c
+
+fourth_dilute = mix sb with sc
+a = split fourth_dilute into 2
+dispose a[0]
+
+final_dilute = mix z[1] with a[1]
+b = split final_dilute into 2
+dispose b[0]
+dispose b[1]

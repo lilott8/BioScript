@@ -30,6 +30,9 @@ class CompilerCLI(BaseCLI):
         self.parser.add_argument('-lu', '--loopunroll', help="Perform loop unrolling",
                                  default=False, action='store_true')
 
+        self.parser.add_argument('-tv', '--track_volume', help="Perform volume tracking",
+                                 default=False, action='store_true')
+
         chemistry = self.parser.add_argument_group('chemistry', 'Chemistry specific arguments')
         chemistry.add_argument('-sim', '--simulate', help='Simulate chemistry.', default=False,
                                choices={True, False}, type=bool)

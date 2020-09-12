@@ -54,6 +54,7 @@ class Config(object):
         self.write_cfg = args.write_cfg
         self.inline = False
         self.loopunroll = False
+        self.track_volume = False
         """
         Necessary for identify
         """
@@ -105,6 +106,9 @@ class Config(object):
 
         if args.loopunroll:
             self.loopunroll = True
+
+        if args.track_volume:
+            self.track_volume = True
 
         if args.typechecklevel.lower() == "none":
             self.error_level = ct.ReportingLevel.NONE
