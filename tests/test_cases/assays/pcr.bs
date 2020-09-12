@@ -1,20 +1,17 @@
-module mod
+module fluorescence
 manifest pcr_mixture
-manifest buffer
-
-
 
 instructions:
 
-PCRMix = dispense pcr_mixture
-heat PCRMix at 90f for 5s
+a = dispense pcr_mixture
+
+heat a at 95c for 5s
 
 repeat 20 times {
-    heat PCRMix at 60f for 15s
-    x = detect mod on PCRMix for 1s
-    heat PCRMix at 90f for 10s
+    heat a at 53c for 15s
+    heat a at 72c for 10s
 }
 
-x = detect mod on PCRMix for 3m
+x = detect fluorescence on a for 3m
 
-dispose PCRMix
+dispose a
