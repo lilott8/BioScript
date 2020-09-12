@@ -26,3 +26,4 @@ repeat 20 times {
 }
 
 heat PCR_Master_Mix at 70c for 5m
+dispose PCR_Master_Mix

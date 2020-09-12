@@ -187,7 +187,7 @@ class TestMFSim(FrontEndBase):
         file = "test_cases/assays/probabilistic_pcr.bs"
         counts = self.get_compiled_mfsim(get_visitor(file), file)
 
-        expected = str([4, 9, 6, 1, 4, 3, 18, 6, 2, 0, 7])
+        expected = str([4, 9, 6, 1, 2, 2, 15, 6, 1, 0, 7])
         assert expected == counts
 
     def test_pcr_droplet_replenishment(self, get_visitor):

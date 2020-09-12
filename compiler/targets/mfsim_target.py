@@ -46,9 +46,6 @@ class MFSimTarget(BaseTarget):
         self.last_split_size = list()  # for SIMD instructions following splits
         # for generating usein constraints in json file, dictionaries and lists
         self.constraints = []
-        self.useins = []
-        self.usein_data = {"constraints": self.constraints}
-        self.usein_subdata = {"useins": self.useins}
 
         # start transfer nodes from id 100.
         if self.config.debug:
@@ -99,7 +96,7 @@ class MFSimTarget(BaseTarget):
                     # deal with conditionals
                     if instruction.op is IRInstruction.CONDITIONAL:
 
-                        if len(block.instructions) is 1:
+                        if len(block.instructions) == 1:
                             write = False
 
                         true_label = instruction.true_branch.label
@@ -239,30 +236,31 @@ class MFSimTarget(BaseTarget):
 
     def write_mix(self, instr) -> str:
         """
-              An MFSim MIX node has 5 parameters:
-              nodeid, "MIX", number of input drops, time, mixName
+              An MFSim MIX node has 5 to 7 parameters:
+              nodeid, "MIX", number of input drops, time, <useinseconds>, <useintype>, mixName
               number of input drops must be >= 2
               mixName from [Mix, Vortex, Tap, Invert, Suspend, Stir]  <- this means nothing to MFSim
         :param instr:
         :return:
         """
-        _ret = "NODE (%s, MIX, " % str(self.opid)
+        _ret = "NODE ({}, MIX, ".format(str(self.opid))
 
         time = 10
-
+        usein = 0
         for t in instr.meta:
             if type(t) is TimeConstraint:
                 time = t.quantity
-                break
+            if type(t) is UseIn:
+                usein = t.quantity
 
         # MFSim supports >= 2 input droplets, but BS requires distinct mix operations for every 2 droplets,
         #  hence, we can safely assume every mix has exactly 2 inputs
-        _ret += "2, %s, %s)\n" % (str(time), instr.defs['var'].points_to.name)
+        _ret += "2, {}, ".format(str(time))  # %s)\n" % (str(time), instr.defs['var'].points_to.name)
 
-        for meta in instr.meta:
-            if meta.name is "USEIN":
-                self.write_usein(instr)
-                break
+        if usein > 0:
+            _ret += "{}, ".format("{}, {}".format(usein, "{}".format("SLE")))
+
+        _ret += "{})\n".format(instr.defs['var'].points_to.name)
 
         to = list(self.cblock.dag.successors(instr.defs['var'].name))
 
@@ -424,9 +422,9 @@ class MFSimTarget(BaseTarget):
             while counter != 2:
                 found_instr = False
                 for x in self.cblock.instructions:
-                    if x.name is 'NOP':
+                    if x.name == 'NOP':
                         continue
-                    if x.uses[0]['name'] is instr.uses[0]['name'] and x.name is 'SPLIT':
+                    if x.uses[0]['name'] == instr.uses[0]['name'] and x.name == 'SPLIT':
                         found_instr = True
                         continue
                     if not found_instr:
@@ -434,10 +432,10 @@ class MFSimTarget(BaseTarget):
                     if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
                         for y in x.uses:
                             if y['var'].name == key:
-                                if y['offset'] in self.split_offset or counter is 2:
+                                if y['offset'] in self.split_offset or counter == 2:
                                     continue
-                                if len(self.curr_split_offset) is 0:
-                                    if y['offset'] is 0:
+                                if len(self.curr_split_offset) == 0:
+                                    if y['offset'] == 0:
                                         self.curr_split_offset.append(y['offset'])
                                         self.split_offset.append(y['offset'])
                                         to_instr.append(x)
@@ -528,8 +526,8 @@ class MFSimTarget(BaseTarget):
 
     def write_heat(self, instr) -> str:
         """
-             An MFSim HEAT node has 4 parameters:
-                  nodeid, "HEAT", time, nodeName
+             An MFSim HEAT node has 4 to 6 parameters:
+                  nodeid, "HEAT", time, <usein seconds>, <usein_type>, nodeName
                   nodeName  <- this means nothing to MFSim
         :param instr:
         :return:
@@ -537,18 +535,21 @@ class MFSimTarget(BaseTarget):
         _ret = "NODE (%s, HEAT, " % str(self.opid)
 
         time = 10
-
+        usein = 0
         for t in instr.meta:
             if type(t) is TimeConstraint:
                 time = t.quantity
-                break
+            if type(t) is UseIn:
+                usein = t.quantity
 
-        _ret += "{}, {})\n".format(str(time), instr.uses[0]['var'].points_to.name)
+        _ret += "{}, ".format(str(time))  # {})\n".format(str(time), instr.uses[0]['var'].points_to.name)
 
-        for meta in instr.meta:
-            if meta.name is "USEIN":
-                self.write_usein(instr)
-                break
+        if usein > 0:
+            # TODO update grammar for usein types (SLE, SEQ, SGE, FLE, FEQ, FGE)
+            #     for now just assuming all usein markers are SLE
+            _ret += "{}, ".format("{}, {}".format(usein, "{}".format("SLE")))
+
+        _ret += "{})\n".format(instr.uses[0]['var'].points_to.name)
 
         to = list(self.cblock.dag.successors(instr.defs['var'].name))
 
@@ -657,29 +658,15 @@ class MFSimTarget(BaseTarget):
         self.num_dispense += 1
         return _ret
 
-
-    def write_usein(self, instr) -> str:
-
-        for meta in instr.meta:
-            if meta.name is "USEIN":
-                node = self.opid
-                qty = meta.quantity
-                unit = meta.unit.name
-                temp = {"node": node, "quantity": qty, "unit": unit}
-                self.useins.append(temp)
-
-        return None
-
-
     def write_td(self, from_dag, to_dag) -> str:
         _ret = ""
 
         if from_dag in self.block_transfers:
             for to in self.block_transfers[from_dag]:
-                if to.type is 'out':
+                if to.type == 'out':
                     if to_dag in self.block_transfers:
                         for ti in self.block_transfers[to_dag]:
-                            if ti.type is 'in' and ti.name is to.name:
+                            if ti.type == 'in' and ti.name == to.name:
                                 _ret += "TD(DAG%s, %s, DAG%s, %s)\n" % (from_dag, to.tid, to_dag, ti.tid)
 
         _ret += "\n"
@@ -688,7 +675,7 @@ class MFSimTarget(BaseTarget):
     def write_exp(self, cond: Conditional, exp_id: int, from_dag, to_dag, cond_type='UNCOND') -> str:
         _ret = ""
 
-        if cond_type is 'UNCOND':
+        if cond_type == 'UNCOND':
             _ret += "EXP(%s, " % str(exp_id)
         elif isinstance(cond.right, Conditional):
             # nested conditional
@@ -696,14 +683,14 @@ class MFSimTarget(BaseTarget):
         else:
             _ret += "EXP(%s, " % str(exp_id)
 
-        if cond_type is 'UNCOND':
+        if cond_type == 'UNCOND':
             _ret += "TRUE, UNCOND, DAG%s)\n" % str(from_dag)
-        elif cond_type is 'LOOP':
+        elif cond_type == 'LOOP':
             if cond.left['name'].startswith('REPEAT'):
                 _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), int(cond.left['var'].value.value[0]))
             else:  # must be a while
                 _ret += "while)\n"  # this is the simple while setup currently, can be updated with more information
-        elif cond_type is 'IF':
+        elif cond_type == 'IF':
             # ONE_SENSOR, relop, depDag, depNodeID, value)
             relop = "Unrecognized relational operator"
             if cond.relop is RelationalOps.LTE:
@@ -772,11 +759,11 @@ class MFSimTarget(BaseTarget):
         _ret += "%s)\n" % str(exp_id)
 
         # build expression(s)
-        if cond_type is 'UNCOND':
+        if cond_type == 'UNCOND':
             _ret += self.write_exp(cond, exp_id, dep_dags[0], branch_dags[0])
-        elif cond_type is 'LOOP':
+        elif cond_type == 'LOOP':
             _ret += self.write_exp(cond, exp_id, dep_dags[0], branch_dags[0], 'LOOP')
-        elif cond_type is 'IF':
+        elif cond_type == 'IF':
             _ret += self.write_exp(cond, exp_id, dep_dags[0], branch_dags[0], 'IF')
 
         return _ret
@@ -797,7 +784,7 @@ class MFSimTarget(BaseTarget):
             for a in self.block_transfers:
                 b = self.block_transfers[a]
                 for c in b:
-                    if c.type is 'out':
+                    if c.type == 'out':
                         no_trans = False
 
         while len(edges_not_translated) > 0:
@@ -813,7 +800,7 @@ class MFSimTarget(BaseTarget):
                     for instr in block.instructions:
                         if cond and executable:
                             break
-                        if instr.name is 'CONDITIONAL':
+                        if instr.name == 'CONDITIONAL':
                             cond = True
                         if instr.name in ['MIX', 'DETECT', 'SPLIT', 'HEAT', 'DISPENSE', 'DISPOSE']:
                             executable = True
@@ -848,7 +835,7 @@ class MFSimTarget(BaseTarget):
                                 if not no_trans:
                                     out = False
                                     for node in self.block_transfers[bid]:
-                                        if node.type is 'out':
+                                        if node.type == 'out':
                                             out = True
                                     if not out:  # this edge should not be here, remove
                                         edges_not_translated.remove((bid, succ_id))
@@ -983,7 +970,7 @@ class MFSimTarget(BaseTarget):
                             iteration = 0
                             prev_val = -1
                             dup = False
-                            back_edges = [x for x in edges_not_translated if x[1] is succ_id and x[0] > x[1]]
+                            back_edges = [x for x in edges_not_translated if x[1] == succ_id and x[0] > x[1]]
                             for be in back_edges:
                                 if dup and iteration < 2:  # allocate space for the duplicated instructions
                                     conditional_groups[self.cgid] = []
@@ -994,7 +981,7 @@ class MFSimTarget(BaseTarget):
                                         val = val - 1
                                         while val not in self.block_transfers.keys() and val != -1:  # drop down to active dag
                                             val = val - 1
-                                if prev_val is val:
+                                if prev_val == val:
                                     val -= 1
                                 prev_val = val
                                 if val not in self.block_transfers and not no_trans:  # if val still not in block transfers, it's not a live dag and should be skipped in the cfg
@@ -1014,9 +1001,9 @@ class MFSimTarget(BaseTarget):
                                 if be[0] not in self.block_transfers:  # check the need to duplicate the back edge and out edge for a second conditional (else)
                                     times_to_last_block = 0
                                     for e in edges_not_translated:
-                                        if e[1] is be[0]:
+                                        if e[1] == be[0]:
                                             times_to_last_block += 1
-                                    if times_to_last_block is 2 and iteration < 2:
+                                    if times_to_last_block == 2 and iteration < 2:
                                         dup = True
                                         back_edges.append(be)
                                 if self.loop_headers[succ_id]['t'] in self.block_transfers or no_trans:
@@ -1233,7 +1220,7 @@ class MFSimTarget(BaseTarget):
                                 skip = True
                                 for to in [self.block_transfers[bid]]:
                                     for to2 in to:
-                                        if to2.type is 'out':
+                                        if to2.type == 'out':
                                             skip = False
                                 if succ_id not in self.block_transfers:
                                     skip = True
@@ -1502,7 +1489,7 @@ class MFSimTarget(BaseTarget):
                                     continue
                                 if trans:
                                     break
-                                if si.name is 'DISPENSE':
+                                if si.name == 'DISPENSE':
                                     x = si.uses[0]['name']
                                 else:
                                     x = [x['var'].points_to.name for x in si.uses if type(x['var']) is not Symbol]
@@ -1572,13 +1559,6 @@ class MFSimTarget(BaseTarget):
                     cfg_file.write(val)
 
             cfg_file.close()
-
-            # generate json file for usein constraint
-            self.constraints.append(self.usein_subdata)
-            exp_name = self.config.input.rsplit('/', 1)[1][:-3]  # get file input name -'.bs'
-            json_file = open("%s/%s.json" % (self.config.output, exp_name), "w")
-            json_file.write(json.dumps(self.usein_data, indent=4))
-            json_file.close()
 
         return True
 

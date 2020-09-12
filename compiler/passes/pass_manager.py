@@ -38,7 +38,7 @@ class PassManager(object):
         # TODO: This should be handled through decorator.
         # TODO: Make this handle dependencies correctly.
         for key, value in self.transforms.items():
-            if key is 'loop_unroll' and not self.config.loopunroll:
+            if key == 'loop_unroll' and not self.config.loopunroll:
                 continue
 
             self.program = value.transform(self.program)
@@ -47,7 +47,7 @@ class PassManager(object):
         self.init_analysis()
         # TODO: This should be handled through decorator.
         for key, value in self.analysis.items():
-            if key is 'volume_tracking' and not self.config.track_volume:
+            if key == 'volume_tracking' and not self.config.track_volume:
                 continue
             self.program.analysis[key] = value.analyze(self.program)['result']
 

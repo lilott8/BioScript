@@ -1,0 +1,22 @@
+manifest a
+manifest b
+manifest c
+manifest d
+
+instructions:
+
+ta = dispense 10 units of a
+tb = dispense 10 units of b
+tc = dispense 10 units of c
+td = dispense 10 units of d
+
+@usein 30s
+ab = mix ta with tb for 10s
+cd = mix tc with td for 10s
+
+@usein 10s
+heat cd at 90f for 1m
+
+abcd = mix ab with cd for 1m
+
+dispose abcd
