@@ -156,6 +156,15 @@ class SymbolTableVisitor(BSBaseVisitor):
         # Look through the RHS vars.
         for fluid in ctx.variable():
             temp = self.visitVariable(fluid)
+            if ctx.unitTracker() and not self.symbol_table.get_local(temp['name']):
+                if not self.symbol_table.get_global(temp['name']):
+                    raise UndefinedVariable("{} isn't declared in the manifest.".format(temp['name']))
+                deff['types'].update(self.symbol_table.get_global(temp['name']).types)
+                # var = self.symbol_table.get_global(temp['name'])
+                temp['name'] = "temp_dispense_" + temp['name']
+                self.symbol_table.add_local(Symbol(temp['name'], self.scope_stack[-1], self.resolve_types(deff)))
+                fluid.children[0].symbol.text = temp['name']
+
             var = self.symbol_table.get_local(temp['name'])
             if not var:
                 raise UndefinedVariable("{}.{} is not defined.".format(self.scope_stack[-1], temp['name']))

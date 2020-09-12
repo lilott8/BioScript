@@ -605,6 +605,8 @@ class IRVisitor(BSBaseVisitor):
         # Start of volume parsing
         _volume = []  # A list that holds all the (if any) units parsed.
 
+        v1 = False
+        v2 = False
         if len(ctx.unitTracker()) == 0:
             _volume = [10, 10]
 
@@ -627,13 +629,17 @@ class IRVisitor(BSBaseVisitor):
                 _volume.append(int(ctx.unitTracker()[
                                        0].INTEGER_LITERAL().__str__()))  # Assume that the unit tracker is storing the parameter for the first variable
                 _volume.append(10)
+                v1 = True
 
             else:
                 _volume.append(10)
                 _volume.append(int(ctx.unitTracker()[
                                        0].INTEGER_LITERAL().__str__()))  # If it isn't the first variable's parameter, it must be the second's.
+                v2 = True
 
         if len(ctx.unitTracker()) == 2:
+            v1 = True
+            v2 = True
             for i in range(2):  # Iterate through the contents of the list returned by unitTracker()
                 if type(ctx.unitTracker()[i]) != BSParser.UnitTrackerContext:
                     _volume.append(10)  # Default to 10 if the volume hasn't been explicitly declared
@@ -656,10 +662,35 @@ class IRVisitor(BSBaseVisitor):
             usein_time = (usein_time_temp['quantity'], usein_time_temp['units'])
 
         uses = list()
+        index = 0
         for fluid in ctx.variable():
             use = self.visitVariable(fluid)
+            # if we are dispensing here, then we must create the variable
+            if (index == 0 and not v1) or (index == 1 and not v2):
+                _volume[index] = self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value.volume['quantity']
+            if (use['name'].startswith("temp_dispense_")):
+                if use['index'] == -1 or use['index'] == 0:
+                    size = 1
+                else:
+                    size = use['index']
+                self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value = Movable(use['name'],
+                                                                                               size=size,
+                                                                                               volume=_volume[index])
+                use_offset = use['index'] if use['index'] != size else -1
+                ir = Dispense({'name': use['name'], 'offset': use_offset, 'size': size,
+                               'var': self.symbol_table.get_local(use['name'], self.scope_stack[-1])},
+                              {'name': use['name'].split("temp_dispense_")[1], 'offset': 1, 'size': float("inf")})
+
+                if ir.iid in self.symbol_table.get_local(use['name'], self.scope_stack[-1]).volumes:
+                    self.symbol_table.get_local(use['name'], self.scope_stack[-1]).volumes[ir.iid].append(_volume[index])
+                else:
+                    self.symbol_table.get_local(use['name'], self.scope_stack[-1]).volumes[ir.iid] = [_volume[index]]
+
+                self.current_block.add(ir)
+
             var = self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value
             uses.append({'var': var, 'index': use['index'], 'name': use['name']})
+            index += 1
         use_a = uses[0]
         use_b = uses[1]
 
