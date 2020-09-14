@@ -667,7 +667,11 @@ class IRVisitor(BSBaseVisitor):
             use = self.visitVariable(fluid)
             # if we are dispensing here, then we must create the variable
             if (index == 0 and not v1) or (index == 1 and not v2):
-                _volume[index] = self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value.volume['quantity']
+                if use['index'] >= 0:
+                    self.check_bounds({'name': use['name'], 'index': use['index'], 'var': self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value})
+                    _volume[index] = self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value.value[use['index']].volume['quantity']
+                else:
+                    _volume[index] = self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value.volume['quantity']
             if (use['name'].startswith("temp_dispense_")):
                 if use['index'] == -1 or use['index'] == 0:
                     size = 1

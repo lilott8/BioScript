@@ -10,6 +10,7 @@ from compiler.data_structures.ir import TempConstraint
 from compiler.data_structures.ir import TimeConstraint
 from compiler.data_structures.ir import UseIn
 import math
+from io import StringIO
 
 
 class TransferNode:
@@ -27,8 +28,9 @@ class TransferNode:
 
 class MFSimTarget(BaseTarget):
 
-    def __init__(self, program):
+    def __init__(self, program, test=False):
         super().__init__(program, "MFSimTarget")
+        self.test = test
         self.cblock = None
         self.opid = None
         self.root = None
@@ -206,7 +208,6 @@ class MFSimTarget(BaseTarget):
                 continue
             if i.op in {IRInstruction.NOP, IRInstruction.CONDITIONAL}:
                 continue
-            self.log.info(i)
             if instr.op is IRInstruction.DETECT:  # Note: detect is looking for uses rather than defs
                 for use in i.uses:
                     if use['name'] in uses:
@@ -1309,7 +1310,10 @@ class MFSimTarget(BaseTarget):
         for root in self.program.functions:
             self.root = root
             exp_name = self.config.input.rsplit('/', 1)[1][:-3]  # get file input name -'.bs'
-            cfg_file = open("%s/%s.cfg" % (self.config.output, exp_name), "w")
+            if self.test:
+                cfg_file = StringIO()
+            else:
+                cfg_file = open("%s/%s.cfg" % (self.config.output, exp_name), "w")
             cfg_file.write("NAME(%s.cfg)\n\n" % exp_name)
 
             # conditional groups
@@ -1342,7 +1346,10 @@ class MFSimTarget(BaseTarget):
 
                 cfg_file.write("DAG(DAG%s)\n" % str(bid))
 
-                dag_file = open("%s/%s_DAG%s.dag" % (self.config.output, exp_name, str(bid)), "w")
+                if self.test:
+                    dag_file = StringIO()
+                else:
+                    dag_file = open("%s/%s_DAG%s.dag" % (self.config.output, exp_name, str(bid)), "w")
                 dag_file.write("DagName (DAG%s)\n" % str(bid))
 
                 # for all uses without defs, we must transfer in
@@ -1527,7 +1534,7 @@ class MFSimTarget(BaseTarget):
                     else:
                         transferred = True
                     if not transferred:  # what to do with this droplet?
-                        if self.config.debug:
+                        if self.config.debug and not self.test:
                             self.log.warning(
                                 "No more operations for {}, warning will appear in {}".format(_def, dag_file.name))
                         dag_file.write("// **NO MORE OPERATIONS FOR {}; SHOULD SAVE OR DISPOSE**".format(_def))
@@ -1537,7 +1544,8 @@ class MFSimTarget(BaseTarget):
                         else:
                             self.block_transfers[bid] = {tn}
 
-                dag_file.close()
+                if not self.test:
+                    dag_file.close()
                 self.num_dags += 1
 
             # now build the conditions, with their expressions and potential transfer droplets
@@ -1570,7 +1578,8 @@ class MFSimTarget(BaseTarget):
                 for val in cg:
                     cfg_file.write(val)
 
-            cfg_file.close()
+            if not self.test:
+                cfg_file.close()
 
         return True
 

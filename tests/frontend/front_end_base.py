@@ -82,14 +82,14 @@ class FrontEndBase(metaclass=ABCMeta):
     def get_compiled_mfsim(self, tree, file):
         BasicBlock.id_counter = 1
         ir = self.get_ir(tree)
-        ir = Program(functions=ir.functions, config=CompilerCLI(["-d", "-t", "mfsim", "-i", file, "-o", "output/"]).config,
+        ir = Program(functions=ir.functions, config=CompilerCLI(["-d", "-i", file, "-o", "output/"]).config,
                        symbol_table=ir.symbol_table, bb_graph=ir.graph, name=file, calls=ir.calls)
         pm = PassManager(ir)
         pm.run_analysis()
         pm.run_transformations()
         prog = pm.program
 
-        target = MFSimTarget(prog)
+        target = MFSimTarget(prog, test=True)
         target.transform()
         return str([target.num_cgs, target.num_transfers, target.num_dags, target.num_detects,
                 target.num_dispense, target.num_dispose, target.num_edges, target.num_heats,
