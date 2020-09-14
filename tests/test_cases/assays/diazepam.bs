@@ -14,7 +14,7 @@ instructions:
 urine = dispense 50 units of urinesample
 dpe = dispense diazepam_enzyme
 a = mix urine with dpe for 60s
-anti = dispense 100 units diazepam_antibody
+anti = dispense 100 units of diazepam_antibody
 b = mix a with anti for 60s
 heat b at 23c for 30m
 dispose b
