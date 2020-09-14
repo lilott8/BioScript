@@ -210,13 +210,16 @@ class MFSimTarget(BaseTarget):
                 for use in i.uses:
                     if use['name'] in uses:
                         if i.iid != check:
-                            if not _ret:
-                                _ret.append(use['name'])
+                            if instr.uses[1]['name'] == use['name'] and instr.uses[1]['offset'] == use['offset']:
+                                if not _ret:
+                                    _ret.append(use['name'])
             else:
                 if i.defs['name'] in uses:  # this instruction is one of the uses
                     if i.iid != check:
-                        if not _ret:
-                            _ret.append(i.defs['var'].name)
+                        for u in i.uses:
+                            if u['name'] == instr.defs['name'] and u['offset'] == instr.defs['offset']:
+                                if not _ret:
+                                    _ret.append(i.defs['var'].name)
 
         if len(_ret) < 1:
             self.log.fatal("A non-split instruction has multiple successors!")
@@ -300,7 +303,7 @@ class MFSimTarget(BaseTarget):
                     continue
                 if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH, IRInstruction.CONDITIONAL}:
                     if x.defs['var'].name == key:
-                        if not set_offset and self.last_split_size == x.defs['size'] and (x.defs['offset'] == instr.defs['offset'] + 1 or x.defs['offset'] == 0):
+                        if not set_offset and self.last_split_size == x.defs['size'] and (x.defs['offset'] == instr.defs['offset'] + 1 or x.defs['offset'] == 0 and instr.defs['offset'] == self.last_split_size - 1):
                             n = x.defs['size']
                             ex_of_2 = True
                             while n != 1 and n > 1:
@@ -505,7 +508,7 @@ class MFSimTarget(BaseTarget):
                 if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
                     for y in x.uses:
                         if y['var'].name == key:
-                            if not set_offset and self.last_split_size == y['size'] and (y['offset'] == instr.uses[1]['offset'] + 1 or y['offset'] == 0):
+                            if not set_offset and self.last_split_size == y['size'] and (y['offset'] == instr.uses[1]['offset'] + 1 or y['offset'] == 0 and instr.uses[1]['offset'] == self.last_split_size - 1):
                                 n = y['size']
                                 ex_of_2 = True
                                 while n != 1 and n > 1:
@@ -586,7 +589,7 @@ class MFSimTarget(BaseTarget):
                     continue
                 if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH, IRInstruction.CONDITIONAL}:
                     if x.defs['var'].name == key:
-                        if not set_offset and self.last_split_size == x.defs['size'] and (x.defs['offset'] == instr.defs['offset'] + 1 or x.defs['offset'] == 0):
+                        if not set_offset and self.last_split_size == x.defs['size'] and (x.defs['offset'] == instr.defs['offset'] + 1 or x.defs['offset'] == 0 and instr.defs['offset'] == self.last_split_size - 1):
                             n = x.defs['size']
                             ex_of_2 = True
                             while n != 1 and n > 1:
