@@ -9,6 +9,7 @@ from compiler.targets.base_target import BaseTarget
 from compiler.data_structures.ir import TempConstraint
 from compiler.data_structures.ir import TimeConstraint
 from compiler.data_structures.ir import UseIn
+import math
 
 
 class TransferNode:
@@ -47,13 +48,16 @@ class MFSimTarget(BaseTarget):
         # for generating usein constraints in json file, dictionaries and lists
         self.constraints = []
 
-        # start transfer nodes from id 100.
-        if self.config.debug:
-            self.log.debug("Statically starting transfer IDs from 100. This could be an issue for very large assays.")
         if not self.config.output:
             self.log.fatal("MFSim target requires an output path to be specified.  Include \"-o <path/to/output/>\" in arguments list.")
             exit(-1)
-        self.tid = 100
+        splits = 0
+        for fun in program.functions.values():
+            for bb in fun['blocks'].values():
+                for i in bb.instructions:
+                    if i.op is IRInstruction.SPLIT:
+                        splits += i.split_size
+        self.tid = int(math.ceil((self.program.functions['main']['blocks'][self.program.entry_point].instructions[0].id_counter + 1 + splits) / 100.0)) * 100
         self.num_dags = 0
         self.num_cgs = 0
         self.num_edges = 0
@@ -207,13 +211,16 @@ class MFSimTarget(BaseTarget):
                 for use in i.uses:
                     if use['name'] in uses:
                         if i.iid != check:
-                            if not _ret:
-                                _ret.append(use['name'])
+                            if instr.uses[1]['name'] == use['name'] and instr.uses[1]['offset'] == use['offset']:
+                                if not _ret:
+                                    _ret.append(use['name'])
             else:
                 if i.defs['name'] in uses:  # this instruction is one of the uses
                     if i.iid != check:
-                        if not _ret:
-                            _ret.append(i.defs['var'].name)
+                        for u in i.uses:
+                            if u['name'] == instr.defs['name'] and u['offset'] == instr.defs['offset']:
+                                if not _ret:
+                                    _ret.append(i.defs['var'].name)
 
         if len(_ret) < 1:
             self.log.fatal("A non-split instruction has multiple successors!")
@@ -298,7 +305,7 @@ class MFSimTarget(BaseTarget):
                     continue
                 if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH, IRInstruction.CONDITIONAL}:
                     if x.defs['var'].name == key:
-                        if not set_offset and self.last_split_size == x.defs['size'] and (x.defs['offset'] == instr.defs['offset'] + 1 or x.defs['offset'] == 0):
+                        if not set_offset and self.last_split_size == x.defs['size'] and (x.defs['offset'] == instr.defs['offset'] + 1 or x.defs['offset'] == 0 and instr.defs['offset'] == self.last_split_size - 1):
                             n = x.defs['size']
                             ex_of_2 = True
                             while n != 1 and n > 1:
@@ -503,7 +510,7 @@ class MFSimTarget(BaseTarget):
                 if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
                     for y in x.uses:
                         if y['var'].name == key:
-                            if not set_offset and self.last_split_size == y['size'] and (y['offset'] == instr.uses[1]['offset'] + 1 or y['offset'] == 0):
+                            if not set_offset and self.last_split_size == y['size'] and (y['offset'] == instr.uses[1]['offset'] + 1 or y['offset'] == 0 and instr.uses[1]['offset'] == self.last_split_size - 1):
                                 n = y['size']
                                 ex_of_2 = True
                                 while n != 1 and n > 1:
@@ -587,7 +594,7 @@ class MFSimTarget(BaseTarget):
                     continue
                 if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH, IRInstruction.CONDITIONAL}:
                     if x.defs['var'].name == key:
-                        if not set_offset and self.last_split_size == x.defs['size'] and (x.defs['offset'] == instr.defs['offset'] + 1 or x.defs['offset'] == 0):
+                        if not set_offset and self.last_split_size == x.defs['size'] and (x.defs['offset'] == instr.defs['offset'] + 1 or x.defs['offset'] == 0 and instr.defs['offset'] == self.last_split_size - 1):
                             n = x.defs['size']
                             ex_of_2 = True
                             while n != 1 and n > 1:
@@ -689,7 +696,12 @@ class MFSimTarget(BaseTarget):
             if cond.left['name'].startswith('REPEAT'):
                 _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), int(cond.left['var'].value.value[0]))
             else:  # must be a while
-                _ret += "while)\n"  # this is the simple while setup currently, can be updated with more information
+                # TODO translate while conditions properly -- if a while is statically known
+                #    we should translate to a repeat, i.e., i = 0; while (i < 10) { ...i++...} -> repeat 10 times
+                #    otherwise, i.e.: x = detect.., while (x...) { x = detect; }, we'll need to set up the sensor
+                #    reading as the conditional
+                self.log.error("Not translating \"while\" loop in mfsim properly")
+                _ret += "while)\n"
         elif cond_type == 'IF':
             # ONE_SENSOR, relop, depDag, depNodeID, value)
             relop = "Unrecognized relational operator"

@@ -274,6 +274,13 @@ class TestMFSim(FrontEndBase):
         expected = str([2, 0, 3, 1, 8, 3, 16, 2, 5, 0, 3])
         assert expected == counts
 
+    def test_titration(self, get_visitor):
+        file = "test_cases/assays/titration.bs"
+        counts = self.get_compiled_mfsim(get_visitor(file), file)
+
+        expected = str([0, 0, 1, 4, 4, 4, 17, 0, 3, 3, 0])
+        assert expected == counts
+
     #begin new control assasy tests
     def test_if_else_with_live_droplet_passing(self, get_visitor):
         file = "test_cases/control/if_else_with_live_droplet_passing.bs"
