@@ -1,4 +1,5 @@
 import networkx as nx
+import json
 
 from compiler.data_structures import IRInstruction
 from compiler.data_structures import RelationalOps
@@ -7,6 +8,7 @@ from compiler.data_structures.variable import *
 from compiler.targets.base_target import BaseTarget
 from compiler.data_structures.ir import TempConstraint
 from compiler.data_structures.ir import TimeConstraint
+from compiler.data_structures.ir import UseIn
 
 
 class TransferNode:
@@ -36,11 +38,18 @@ class MFSimTarget(BaseTarget):
         self.cfg = dict()
         self.block_transfers = dict()
         self.loop_headers = dict()
+        #for split semantics and live droplet tracking
         self.cgid_pair = dict()  # to ensure cgid stay consistent
         self.live_droplets = list()  # to ensure droplets are passed along accoringly
         self.split_offset = list()  # for split recursion
         self.curr_split_offset = list()  # for split recursion
         self.last_split_size = list()  # for SIMD instructions following splits
+        # for generating usein constraints in json file, dictionaries and lists
+        self.constraints = []
+        self.useins = []
+        self.usein_data = {"constraints": self.constraints}
+        self.usein_subdata = {"useins": self.useins}
+
         # start transfer nodes from id 100.
         if self.config.debug:
             self.log.debug("Statically starting transfer IDs from 100. This could be an issue for very large assays.")
@@ -201,13 +210,16 @@ class MFSimTarget(BaseTarget):
                 for use in i.uses:
                     if use['name'] in uses:
                         if i.iid != check:
-                            if not _ret:
-                                _ret.append(use['name'])
+                            if instr.uses[1]['name'] == use['name'] and instr.uses[1]['offset'] == use['offset']:
+                                if not _ret:
+                                    _ret.append(use['name'])
             else:
                 if i.defs['name'] in uses:  # this instruction is one of the uses
                     if i.iid != check:
-                        if not _ret:
-                            _ret.append(i.defs['var'].name)
+                        for u in i.uses:
+                            if u['name'] == instr.defs['name'] and u['offset'] == instr.defs['offset']:
+                                if not _ret:
+                                    _ret.append(i.defs['var'].name)
 
         if len(_ret) < 1:
             self.log.fatal("A non-split instruction has multiple successors!")
@@ -250,6 +262,11 @@ class MFSimTarget(BaseTarget):
         #  hence, we can safely assume every mix has exactly 2 inputs
         _ret += "2, %s, %s)\n" % (str(time), instr.defs['var'].points_to.name)
 
+        for meta in instr.meta:
+            if meta.name is "USEIN":
+                self.write_usein(instr)
+                break
+
         to = list(self.cblock.dag.successors(instr.defs['var'].name))
 
         if len(to) > 1:
@@ -286,7 +303,7 @@ class MFSimTarget(BaseTarget):
                     continue
                 if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH, IRInstruction.CONDITIONAL}:
                     if x.defs['var'].name == key:
-                        if not set_offset and self.last_split_size == x.defs['size'] and (x.defs['offset'] == instr.defs['offset'] + 1 or x.defs['offset'] == 0):
+                        if not set_offset and self.last_split_size == x.defs['size'] and (x.defs['offset'] == instr.defs['offset'] + 1 or x.defs['offset'] == 0 and instr.defs['offset'] == self.last_split_size - 1):
                             n = x.defs['size']
                             ex_of_2 = True
                             while n != 1 and n > 1:
@@ -491,7 +508,7 @@ class MFSimTarget(BaseTarget):
                 if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
                     for y in x.uses:
                         if y['var'].name == key:
-                            if not set_offset and self.last_split_size == y['size'] and (y['offset'] == instr.uses[1]['offset'] + 1 or y['offset'] == 0):
+                            if not set_offset and self.last_split_size == y['size'] and (y['offset'] == instr.uses[1]['offset'] + 1 or y['offset'] == 0 and instr.uses[1]['offset'] == self.last_split_size - 1):
                                 n = y['size']
                                 ex_of_2 = True
                                 while n != 1 and n > 1:
@@ -531,6 +548,11 @@ class MFSimTarget(BaseTarget):
 
         _ret += "{}, {})\n".format(str(time), instr.uses[0]['var'].points_to.name)
 
+        for meta in instr.meta:
+            if meta.name is "USEIN":
+                self.write_usein(instr)
+                break
+
         to = list(self.cblock.dag.successors(instr.defs['var'].name))
 
         if len(to) > 1:
@@ -567,7 +589,7 @@ class MFSimTarget(BaseTarget):
                     continue
                 if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH, IRInstruction.CONDITIONAL}:
                     if x.defs['var'].name == key:
-                        if not set_offset and self.last_split_size == x.defs['size'] and (x.defs['offset'] == instr.defs['offset'] + 1 or x.defs['offset'] == 0):
+                        if not set_offset and self.last_split_size == x.defs['size'] and (x.defs['offset'] == instr.defs['offset'] + 1 or x.defs['offset'] == 0 and instr.defs['offset'] == self.last_split_size - 1):
                             n = x.defs['size']
                             ex_of_2 = True
                             while n != 1 and n > 1:
@@ -637,6 +659,20 @@ class MFSimTarget(BaseTarget):
 
         self.num_dispense += 1
         return _ret
+
+
+    def write_usein(self, instr) -> str:
+
+        for meta in instr.meta:
+            if meta.name is "USEIN":
+                node = self.opid
+                qty = meta.quantity
+                unit = meta.unit.name
+                temp = {"node": node, "quantity": qty, "unit": unit}
+                self.useins.append(temp)
+
+        return None
+
 
     def write_td(self, from_dag, to_dag) -> str:
         _ret = ""
@@ -1539,6 +1575,13 @@ class MFSimTarget(BaseTarget):
                     cfg_file.write(val)
 
             cfg_file.close()
+
+            # generate json file for usein constraint
+            self.constraints.append(self.usein_subdata)
+            exp_name = self.config.input.rsplit('/', 1)[1][:-3]  # get file input name -'.bs'
+            json_file = open("%s/%s.json" % (self.config.output, exp_name), "w")
+            json_file.write(json.dumps(self.usein_data, indent=4))
+            json_file.close()
 
         return True
 
