@@ -408,7 +408,7 @@ class MFSimTarget(BaseTarget):
                 time = t.quantity
                 break
 
-        _ret += "%s, %s, SPLIT)\n" % (str(numDrops), str(time))
+        _ret += "%s, %s, %s)\n" % (str(numDrops), str(time), instr.defs['var'].name)
 
         to = list(self.cblock.dag.successors(instr.defs['var'].name))
         to = [x for x in to if x == instr.defs['name']]
