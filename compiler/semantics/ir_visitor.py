@@ -646,20 +646,7 @@ class IRVisitor(BSBaseVisitor):
                 else:
                     _volume.append(int(ctx.unitTracker()[i].INTEGER_LITERAL().__str__()))
 
-        #print(_volume)
-        # end of volume parsing
-
         symbol = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
-
-        if ctx.timeIdentifier():
-            temp_time = self.visitTimeIdentifier(ctx.timeIdentifier())
-            time = (temp_time['quantity'], temp_time['units'])
-        else:
-            time = (10, BSTime.SECOND)
-
-        if ctx.usein():
-            usein_time_temp = self.visitUsein(ctx.usein())
-            usein_time = (usein_time_temp['quantity'], usein_time_temp['units'])
 
         uses = list()
         index = 0
@@ -705,10 +692,9 @@ class IRVisitor(BSBaseVisitor):
             time_meta = TimeConstraint(IRInstruction.MIX, time['quantity'], time['units'])
 
         # Get the usein time modifier, should one exist.
-        usein_time_meta = None
+        usein_meta = None
         if ctx.usein():
-            usein_time = self.visitUsein(ctx.usein())
-            usein_time_meta = UseIn(usein_time['quantity'], usein_time['units'])
+            usein_meta = self.visitUsein(ctx.usein())
 
         if (use_a['index'] == -1 and use_a['var'].size > 1) and (use_b['index'] == -1 and use_b['var'].size > 1):
             if use_a['var'].size != use_b['var'].size:
@@ -728,8 +714,8 @@ class IRVisitor(BSBaseVisitor):
                  {'name': use_b['var'].name, 'offset': use_b['index'], 'size': use_b['var'].size, 'var': use_b['var']})
         if time_meta:
             ir.meta.append(time_meta)
-        if usein_time_meta:
-            ir.meta.append(usein_time_meta)
+        if usein_meta:
+            ir.meta.append(usein_meta)
 
         self.symbol_table.get_local(deff['name'], self.scope_stack[-1]).volumes[ir.iid] = _volume
 
@@ -766,11 +752,6 @@ class IRVisitor(BSBaseVisitor):
 
         self.check_bounds({'index': use['index'], 'name': use_var.name, 'var': use_var.value})
 
-        # if use['index'] == -1:
-        #     use['index'] = use_var.value.size
-        # if use['index'] == 0:
-        #     use['index'] = 1
-        # use_indices = list(use_var.value.value.keys())
         ir = Detect({'name': deff['name'], 'offset': use['index'], 'size': symbol.value.size, 'var': symbol.value},
                     {'name': module.name, 'offset': 0, 'size': float("inf"), 'var': module},
                     {'name': use['name'], 'offset': use['index'], 'size': use_var.value.size, 'var': use_var.value})
@@ -778,69 +759,45 @@ class IRVisitor(BSBaseVisitor):
             ir.meta.append(time_meta)
         self.current_block.add(ir)
 
-        # for x in range(use['index']):
-        #     ir = Detect({"name": deff['name'], 'offset': x},
-        #                 {'name': module.name, 'offset': 0},
-        #                 {'name': use['name'], 'offset': use_indices[x]})
-        #     if time_meta is not None:
-        #         ir.meta.append(time_meta)
-        #     self.current_block.add(ir)
         return None
 
     def visitHeat(self, ctx: BSParser.HeatContext):
         use = self.visitVariable(ctx.variable())
         use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
 
-        # if use['index'] == -1:
-        #     use['index'] = self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value.size
-
         time = None
         if ctx.timeIdentifier():
             time = self.visitTimeIdentifier(ctx.timeIdentifier())
 
-        if ctx.usein():
-            usein_time_temp = self.visitUsein(ctx.usein())
-            usein_time = (usein_time_temp['quantity'], usein_time_temp['units'])
-
         temp = self.visitTemperatureIdentifier(ctx.temperatureIdentifier())
 
         # Get the usein time modifier, should one exist.
-        usein_time_meta = None
+        usein_meta = None
         if ctx.usein():
-            usein_time = self.visitUsein(ctx.usein())
-            usein_time_meta = UseIn(usein_time['quantity'], usein_time['units'])
+            usein_meta = self.visitUsein(ctx.usein())
 
         self.check_bounds({'index': use['index'], 'name': use['name'], 'var': use_var.value})
-        # if use['index'] == -1:
-        #     use['index'] = use_var.value.size
-        # if use['index'] == 0:
-        #     use['index'] = 1
 
         val = {'name': use['name'], 'offset': use['index'], 'size': use_var.value.size, 'var': use_var}
         ir = Heat(val, val)
         ir.meta.append(TempConstraint(IRInstruction.HEAT, temp['quantity'], temp['units']))
         if time is not None:
             ir.meta.append(TimeConstraint(IRInstruction.HEAT, time['quantity'], time['units']))
-        if usein_time_meta:
-            ir.meta.append(usein_time_meta)
+        if usein_meta:
+            ir.meta.append(usein_meta)
         self.current_block.add(ir)
 
-        # for x in range(use['index']):
-        #     val = {'name': use['name'], 'offset': x}
-        #     ir = Heat(val, val)
-        #     if time is not None:
-        #         ir.meta.append(TimeConstraint(IRInstruction.HEAT, time[0], time[1]))
-        #     ir.meta.append(TempConstraint(IRInstruction.HEAT, temp['quantity'], temp['units']))
-        #     self.current_block.add(ir)
-        # We don't need to add a value to whatever symbol is being used.
-        # There is nothing being created, thus, no symbol to attach a value.
         return None
 
     def visitUsein(self, ctx:BSParser.UseinContext):
-
         time = self.visitTimeIdentifier(ctx.timeIdentifier())
+        if ctx.useinType():
+            uitype = self.visitUseinType(ctx.useinType())
+            return UseIn(time['quantity'], time['units'], uitype['uitype'])
+        return UseIn(time['quantity'], time['units'])
 
-        return time
+    def visitUseinType(self, ctx:BSParser.UseinTypeContext):
+        return {'uitype': BSParser.symbolicNames[ctx.children[1].symbol.type]}
 
     def visitSplit(self, ctx: BSParser.SplitContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
@@ -903,15 +860,6 @@ class IRVisitor(BSBaseVisitor):
         use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
 
         self.check_bounds({'index': use['index'], 'name': use['name'], 'var': use_var.value})
-        # if use['index'] == -1:
-        #     use['index'] = use_var.value.size
-        # if use['index'] == 0:
-        #     use['index'] = 1
-        # use_indices = list(use_var.value.value.keys())
         ir = Dispose({'name': use['name'], 'offset': use['index'], 'var': use_var.value, 'size': use_var.value.size})
         self.current_block.add(ir)
-        # for x in range(use['index']):
-        #     ir = Dispose({"name": use['name'], 'offset': use_indices[x]})
-        #     self.current_block.add(ir)
-
         return None

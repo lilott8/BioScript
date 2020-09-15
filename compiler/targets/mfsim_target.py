@@ -8,7 +8,7 @@ from compiler.data_structures.variable import *
 from compiler.targets.base_target import BaseTarget
 from compiler.data_structures.ir import TempConstraint
 from compiler.data_structures.ir import TimeConstraint
-from compiler.data_structures.ir import UseIn
+from compiler.data_structures.ir import UseIn, UseInType
 import math
 from io import StringIO
 
@@ -254,19 +254,22 @@ class MFSimTarget(BaseTarget):
         _ret = "NODE ({}, MIX, ".format(str(self.opid))
 
         time = 10
-        usein = 0
+        usein_time = 0
+        usein_type = UseInType.SLE
         for t in instr.meta:
             if type(t) is TimeConstraint:
                 time = t.quantity
             if type(t) is UseIn:
-                usein = t.quantity
+                usein_time = t.quantity
+                usein_type = t.useinType
 
-        # MFSim supports >= 2 input droplets, but BS requires distinct mix operations for every 2 droplets,
+
+        # MFSim supports >= 2 input droplets, but BS _currently_ requires distinct mix operations for every 2 droplets,
         #  hence, we can safely assume every mix has exactly 2 inputs
-        _ret += "2, {}, ".format(str(time))  # %s)\n" % (str(time), instr.defs['var'].points_to.name)
+        _ret += "2, {}, ".format(str(time))
 
-        if usein > 0:
-            _ret += "{}, ".format("{}, {}".format(usein, "{}".format("SLE")))
+        if usein_time > 0:
+            _ret += "{}, ".format("{}, {}".format(usein_time, "{}".format(usein_type.__str__())))
 
         _ret += "{})\n".format(instr.defs['var'].points_to.name)
 
@@ -543,19 +546,23 @@ class MFSimTarget(BaseTarget):
         _ret = "NODE (%s, HEAT, " % str(self.opid)
 
         time = 10
-        usein = 0
+        usein_time = 0
+        usein_type = UseInType.SLE
+        # TODO -- MFSim doesn't use temperatue for heating -- it may be useful to pass this over to an mfsim heat node
+        temp = 30
         for t in instr.meta:
             if type(t) is TimeConstraint:
                 time = t.quantity
             if type(t) is UseIn:
-                usein = t.quantity
+                usein_time = t.quantity
+                usein_type = t.useinType
+            if type(t) is TempConstraint:
+                temp = t.quantity
 
-        _ret += "{}, ".format(str(time))  # {})\n".format(str(time), instr.uses[0]['var'].points_to.name)
+        _ret += "{}, ".format(str(time))
 
-        if usein > 0:
-            # TODO update grammar for usein types (SLE, SEQ, SGE, FLE, FEQ, FGE)
-            #     for now just assuming all usein markers are SLE
-            _ret += "{}, ".format("{}, {}".format(usein, "{}".format("SLE")))
+        if usein_time > 0:
+            _ret += "{}, ".format("{}, {}".format(usein_time, "{}".format(usein_type.__str__())))
 
         _ret += "{})\n".format(instr.uses[0]['var'].points_to.name)
 

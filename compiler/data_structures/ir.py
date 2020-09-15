@@ -37,6 +37,31 @@ class IRInstruction(IntEnum):
     MATH = 23
 
 
+class UseInType(IntEnum):
+    SLE = 0
+    SEQ = 1
+    SGE = 2
+    FLE = 3
+    FEQ = 4
+    FGE = 5
+
+    def __str__(self):
+        if self.value == UseInType.SLE:
+            return "SLE"
+        elif self.value == UseInType.SEQ:
+            return "SEQ"
+        elif self.value == UseInType.SGE:
+            return "SGE"
+        elif self.value == UseInType.FLE:
+            return "FLE"
+        elif self.value == UseInType.FEQ:
+            return "FEQ"
+        elif self.value == UseInType.FGE:
+            return "FGE"
+        else:
+            return "Not a valid UseInType"
+
+
 class BinaryOps(IntEnum):
     ADD = 0
     SUBTRACT = 1
@@ -606,8 +631,9 @@ class TempConstraint(Meta):
 
 class UseIn(TimeConstraint):
 
-    def __init__(self, time: float, unit: BSTime):
+    def __init__(self, time: float, unit: BSTime, uitype: UseInType = UseInType.SLE):
         super().__init__(IRInstruction.USEIN, time, unit)
+        self.useinType = uitype
 
     def __repr__(self):
         return "{}{}".format(self.quantity, self.unit.name)

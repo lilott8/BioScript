@@ -4,14 +4,12 @@ manifest c
 manifest d
 
 instructions:
-ta = dispense 11 units of a
-td = dispense 14 units of d
+@usein(start) 30s
+ab = mix 11 units of a with 12 units of b for 10s
+@usein(finish <=) 62s
+cd = mix 13 units of c with 14 units of d for 10s
 
-@usein 30s
-ab = mix ta with 12 units of b for 10s
-cd = mix 13 units of c with td for 10s
-
-@usein 10s
+@usein(finish <=) 65s
 heat cd at 90f for 1m
 
 abcd = mix ab with cd for 1m
