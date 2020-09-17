@@ -653,6 +653,12 @@ class IRVisitor(BSBaseVisitor):
         for fluid in ctx.variable():
             use = self.visitVariable(fluid)
             # if we are dispensing here, then we must create the variable
+            # TODO for implicit dispenses, we should check if the deff exists already, if we are to supporting adding
+            #   to an indexed variable:
+            #   a[4] = dispense aaa has size 4
+            #   x[0] = mix aaa with bbb  # x is size one
+            #   x[1] = mix aaa with bbb  # x increased to size two
+            #     ...... etc.
             if (index == 0 and not v1) or (index == 1 and not v2):
                 if use['index'] >= 0:
                     self.check_bounds({'name': use['name'], 'index': use['index'], 'var': self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value})

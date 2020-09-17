@@ -1,17 +1,33 @@
+module sensor
 manifest a
 manifest b
 manifest c
 manifest d
+manifest e
 
 instructions:
-@usein(start) 30s
-ab = mix 11 units of a with 12 units of b for 10s
-@usein(finish <=) 62s
-cd = mix 13 units of c with 14 units of d for 10s
+@usein 30s
+ab = mix 1 units of a with 1 units of b for 1m
+@usein(finish) 62s
+cd = mix 1 units of c with 1 units of d for 1m
 
-@usein(finish <=) 65s
-heat cd at 90f for 1m
+t_e = dispense 2 units of e
+temp_e = split t_e into 2
 
-abcd = mix ab with cd for 1m
+@usein(finish <=) 20s
+heat temp_e[0] at 30c for 30s
 
-dispose abcd
+@usein(finish >=) 65s
+heat cd at 90c for 1m
+
+@usein(start) 10s
+cde = mix cd with temp_e[0] for 10s
+
+@usein(start >=) 10s
+abcde = mix ab with cde for 30s
+
+abcde = mix abcde with temp_e[1] for 10s
+
+result = detect sensor on abcde for 30s
+
+dispose abcde

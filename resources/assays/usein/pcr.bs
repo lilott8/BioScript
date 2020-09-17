@@ -1,0 +1,60 @@
+manifest fprimer
+manifest rprimer
+manifest template
+manifest pcr_master_mix
+
+instructions:
+
+    /* prepare target primers */
+    primer_mix = mix 1 units of fprimer with 1 units of rprimer 
+    
+    @usein(start) 1s
+    pcr_mix = mix 2 units of template with 1 units of pcr_master_mix for 10s
+    
+    @usein 2s
+    target = mix pcr_mix with primer_mix for 5s
+    
+    /* initialization
+    @usein 3s
+    heat target at 95c for 20s
+
+    /* denature */
+    @usein 1s
+    heat target at 98c for 15s
+
+    /* anneal */
+    @usein 1s
+    heat target at 50c for 15s
+
+    /*elongation extension */
+    @usein 1s
+    heat target at 74c for 10s
+
+        /* denature */
+    @usein 1s
+    heat target at 98c for 15s
+
+    /* anneal */
+    @usein 1s
+    heat target at 50c for 15s
+
+    /*elongation extension */
+    @usein 1s
+    heat target at 74c for 10s
+
+            /* denature */
+    @usein 1s
+    heat target at 98c for 15s
+
+    /* anneal */
+    @usein 1s
+    heat target at 50c for 15s
+
+    /*elongation extension */
+    @usein 1s
+    heat target at 74c for 10s
+    
+    /* final elongation */
+    heat target at 70c for 20s
+
+    dispose target
