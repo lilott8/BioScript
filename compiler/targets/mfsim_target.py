@@ -39,6 +39,7 @@ class MFSimTarget(BaseTarget):
         self.cfg = dict()
         self.block_transfers = dict()
         self.loop_headers = dict()
+        self.scope_variable = list()
         #for split semantics and live droplet tracking
         self.cgid_pair = dict()  # to ensure cgid stay consistent
         self.live_droplets = list()  # to ensure droplets are passed along accoringly
@@ -709,12 +710,88 @@ class MFSimTarget(BaseTarget):
             if cond.left['name'].startswith('REPEAT'):
                 _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), int(cond.left['var'].value.value[0]))
             else:  # must be a while
-                # TODO translate while conditions properly -- if a while is statically known
-                #    we should translate to a repeat, i.e., i = 0; while (i < 10) { ...i++...} -> repeat 10 times
-                #    otherwise, i.e.: x = detect.., while (x...) { x = detect; }, we'll need to set up the sensor
+                #    We should translate to a repeat, i.e., i = 0; while (i < 10) { ...i++...} -> repeat 10 times
+                #    otherwise, i.e.: x = detect.., while (x...) { x = detect; }, we set up the sensor
                 #    reading as the conditional
-                self.log.error("Not translating \"while\" loop in mfsim properly")
-                _ret += "while)\n"
+                # TODO -- if a while is statically known
+                #    statically find and save the loop num before translation
+                #    currently mfsim_target can only handle i++ or i--
+                #    currently cannot factor in i+=2 or i+=3 and operates
+                #    by finding the difference between the values of the variable and the constant
+                if self.scope_variable == cond.left['var'].name or self.scope_variable == cond.right['var'].name:  # logical while
+                    if cond.relop == RelationalOps.LT: #i = 0 < 10
+                        loop_num = abs(cond.right['var'].value.value[0] - cond.left['var'].value.value[0])
+                        _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), loop_num)
+                    elif cond.relop == RelationalOps.GT: #i = 10 > 0
+                        loop_num = abs(cond.left['var'].value.value[0] - cond.right['var'].value.value[0])
+                        _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), loop_num)
+                    elif cond.relop == RelationalOps.LTE: #i = 0 <= 10
+                        loop_num = abs(cond.right['var'].value.value[0] - cond.left['var'].value.value[0]) + 1
+                        _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), loop_num)
+                    elif cond.relop == RelationalOps.GTE: #i = 10 >= 0
+                        loop_num = abs(cond.left['var'].value.value[0] - cond.right['var'].value.value[0]) + 1
+                        _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), loop_num)
+                else: #fluidic while that needs the conditional to be the sensor value
+                    # ONE_SENSOR, relop, depDag, depNodeID, value)
+                    relop = "Unrecognized relational operator"
+                    if cond.relop is RelationalOps.LTE:
+                        relop = "LoE"
+                    elif cond.relop is RelationalOps.GTE:
+                        relop = "GoE"
+                    elif cond.relop is RelationalOps.GT:
+                        relop = "GT"
+                    elif cond.relop is RelationalOps.LT:
+                        relop = "LT"
+                    elif cond.relop is RelationalOps.EQUALITY:
+                        relop = "EQ"
+                    cond_var = None
+                    for v in cond.uses:
+                        if isinstance(v['var'], RenamedSymbol):
+                            cond_var = v
+                            break
+                    if cond_var is None:
+                        self.log.fatal("Could not find a conditional variable")
+                        exit(-1)
+
+                    depDag = None
+                    dep_node_id = -1
+                    # current block has the definition to this conditional variable
+                    if cond_var['var'].name in self.cblock.defs:
+                        depDag = from_dag
+                    else:
+                        cond_v = cond_var['var'].name
+                        predes = reversed(list(self.program.functions['main']['blocks']))  # find the last def of this variable
+                        for p in predes:
+                            block = self.program.functions['main']['blocks'][p]
+                            if cond_v in block.defs:
+                                depDag = p
+                                for instr in block.instructions:
+                                    if instr.defs is not None:
+                                        if instr.defs['var'].points_to is cond_var['var'].points_to:
+                                            dep_node_id = instr.iid
+                                            break
+                        if depDag == None:
+                            cond_v = str(cond_var['var'].points_to.name) + str((int(cond_v[-1])) + 1)
+                            predes = reversed(list(self.program.functions['main']['blocks']))
+                            for p in predes:
+                                block = self.program.functions['main']['blocks'][p]
+                                if cond_v in block.defs:
+                                    depDag = p
+                                    for instr in block.instructions:
+                                        if instr.defs is not None:
+                                            if instr.defs['var'].points_to is cond_var['var'].points_to:
+                                                dep_node_id = instr.iid
+                                                break
+
+                    for instr in self.cblock.instructions:  # find the source instr
+                        if instr.defs is not None:
+                            if instr.defs['var'].points_to is cond_var['var'].points_to:
+                                dep_node_id = instr.iid
+                                break
+
+                    _ret += "ONE_SENSOR, %s, DAG%s, %s, %s)\n" % (
+                        relop, str(depDag), str(dep_node_id), int(cond.right['var'].value.value[0]))
+
         elif cond_type is 'IF':
             # ONE_SENSOR, relop, depDag, depNodeID, value)
             relop = "Unrecognized relational operator"
@@ -878,7 +955,7 @@ class MFSimTarget(BaseTarget):
                                                 [self.loop_headers[succ_id]['t']],
                                                 self.expid, 1))
                                 seen_pair.append((bid, self.loop_headers[succ_id]['t']))
-                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is not None:  # if conditional is a while, need a path to the false branch as well
+                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is not None and len(self.scope_variable) == 0:  # if conditional is a while, need a path to the false branch as well
                                     conditional_groups[self.cgid].append(
                                         self.write_cond(self.loop_headers[succ_id]['instr'],
                                                         cgid, [bid], 1,
@@ -1441,6 +1518,7 @@ class MFSimTarget(BaseTarget):
                     else:
                         if self.config.debug:
                             self.log.warning("Unrecognized/unsupported instruction type: %s" % node.name)
+                            self.scope_variable = node.defs['var'].points_to.name
 
                 # for all defs without uses, we must transfer out (if used elsewhere)
                 #   or dispose (if never used again)
