@@ -1,0 +1,42 @@
+manifest a
+manifest b
+manifest c
+manifest d
+manifest e
+manifest g
+
+instructions:
+
+@usein(finish) 10s
+tab = mix 2 units of a with 2 units of b
+ab = split tab into 4
+
+@usein(start) 0s
+heat ab[0] at 10c for 10s
+
+@usein(start) 2s
+abc = mix ab[1] with 1 units of c for 10s
+
+@usein(finish) 5s
+abc = mix abc with ab[0] for 10s
+
+@usein(start) 10s
+abd = mix ab[2] with 1 units of d for 4s
+
+@usein(finish) 4s
+abe = mix ab[3] with 1 units of e for 10s
+
+tg = dispense 1 units of g
+
+@usein(start) 20s
+heat tg at 10c for 10s
+
+@usein(finish) 10s
+abcd = mix abc with abd for 10s
+
+@usein(start) 10s
+abeg = mix abe with tg for 10s
+
+abcdeg = mix abcd with abeg for 5s
+
+dispose abcdeg

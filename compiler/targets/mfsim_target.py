@@ -1,5 +1,4 @@
 import networkx as nx
-import json
 
 from compiler.data_structures import IRInstruction
 from compiler.data_structures import RelationalOps
@@ -49,6 +48,7 @@ class MFSimTarget(BaseTarget):
         self.last_split_size = list()  # for SIMD instructions following splits
         # for generating usein constraints in json file, dictionaries and lists
         self.constraints = []
+        self.dot_file = None
 
         if not self.config.output:
             self.log.fatal("MFSim target requires an output path to be specified.  Include \"-o <path/to/output/>\" in arguments list.")
@@ -253,8 +253,10 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE ({}, MIX, ".format(str(self.opid))
 
+        self.dot_file.write("\n {} [label=\"mix{}\"];".format(self.opid, self.opid))
+
         time = 10
-        usein_time = 0
+        usein_time = -1
         usein_type = UseInType.SLE
         for t in instr.meta:
             if type(t) is TimeConstraint:
@@ -266,9 +268,12 @@ class MFSimTarget(BaseTarget):
 
         # MFSim supports >= 2 input droplets, but BS _currently_ requires distinct mix operations for every 2 droplets,
         #  hence, we can safely assume every mix has exactly 2 inputs
+
+        num_in = None
+
         _ret += "2, {}, ".format(str(time))
 
-        if usein_time > 0:
+        if usein_time > -1:
             _ret += "{}, ".format("{}, {}".format(usein_time, "{}".format(usein_type.__str__())))
 
         _ret += "{})\n".format(instr.defs['var'].points_to.name)
@@ -327,6 +332,7 @@ class MFSimTarget(BaseTarget):
                 if ti.iid == self.opid:
                     continue
                 _ret += self.write_edge(self.opid, ti.iid)
+                self.dot_file.write("\n{} -> {};".format(self.opid, ti.iid))
                 break
 
         for key in to:
@@ -335,6 +341,7 @@ class MFSimTarget(BaseTarget):
                 if ti.iid == self.opid:
                     continue
                 _ret += self.write_edge(self.opid, ti.iid)
+                self.dot_file.write("\n{} -> {};".format(self.opid, ti.iid))
                 break
 
         self.num_mixes += 1
@@ -354,6 +361,8 @@ class MFSimTarget(BaseTarget):
         else:
             _ret = "NODE (%s, SPLIT, " % str(self.opid)
 
+            self.dot_file.write("\n {} [label=\"split{}\"];".format(self.opid, self.opid))
+
             numDrops = 2
             time = 2
 
@@ -367,7 +376,9 @@ class MFSimTarget(BaseTarget):
 
             _ret += "%s, %s, SPLIT)\n" % (str(numDrops), str(time))
             _ret += self.write_edge(self.opid, self.opid + 1)
+            self.dot_file.write("\n{} -> {};".format(self.opid, self.opid + 1))
             _ret += self.write_edge(self.opid, self.opid + int(offset))
+            self.dot_file.write("\n{} -> {};".format(self.opid, self.opid + int(offset)))
             self.num_splits += 1
 
             valid = True
@@ -407,6 +418,8 @@ class MFSimTarget(BaseTarget):
         :return:
         """
         _ret = "NODE (%s, SPLIT, " % str(self.opid)
+
+        self.dot_file.write("\n {} [label=\"split{}\"];".format(self.opid, self.opid))
 
         # Default time value is expected, and num drops in mfsim is always required to be exactly 2
         # exponentials of 2 (4,8,16) etc handled in split helper
@@ -466,6 +479,7 @@ class MFSimTarget(BaseTarget):
 
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
+                self.dot_file.write("\n{} -> {};".format(self.opid, ti.iid))
 
         self.num_splits += 1
         return _ret
@@ -480,6 +494,8 @@ class MFSimTarget(BaseTarget):
         :return:
         """
         _ret = "NODE (%s, DETECT, 1, " % str(self.opid)
+
+        self.dot_file.write("\n {} [label=\"detect{}\"];".format(self.opid, self.opid))
 
         time = 10
 
@@ -530,6 +546,7 @@ class MFSimTarget(BaseTarget):
 
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
+                self.dot_file.write("\n{} -> {};".format(self.opid, ti.iid))
                 break
 
         self.num_detects += 1
@@ -545,8 +562,10 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, HEAT, " % str(self.opid)
 
+        self.dot_file.write("\n {} [label=\"heat{}\"];".format(self.opid, self.opid))
+
         time = 10
-        usein_time = 0
+        usein_time = -1
         usein_type = UseInType.SLE
         # TODO -- MFSim doesn't use temperatue for heating -- it may be useful to pass this over to an mfsim heat node
         temp = 30
@@ -561,7 +580,7 @@ class MFSimTarget(BaseTarget):
 
         _ret += "{}, ".format(str(time))
 
-        if usein_time > 0:
+        if usein_time > -1:
             _ret += "{}, ".format("{}, {}".format(usein_time, "{}".format(usein_type.__str__())))
 
         _ret += "{})\n".format(instr.uses[0]['var'].points_to.name)
@@ -620,6 +639,7 @@ class MFSimTarget(BaseTarget):
                 if ti.iid == self.opid:
                     continue
                 _ret += self.write_edge(self.opid, ti.iid)
+                self.dot_file.write("\n{} -> {};".format(self.opid, ti.iid))
                 break
 
             self.num_heats += 1
@@ -633,6 +653,8 @@ class MFSimTarget(BaseTarget):
         :return:
         """
         _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].points_to.name)
+
+        self.dot_file.write("\n {} [label=\"output{}\"];".format(self.opid, self.opid))
 
         live_drops = list(self.live_droplets)  # kill droplet
         for a, b in live_drops:
@@ -655,6 +677,8 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, DISPENSE, " % str(self.opid)
 
+        self.dot_file.write("\n {} [label=\"{}{}\"];".format(self.opid, instr.defs['var'].points_to.name, self.opid))
+
         capture = instr.defs['var'].volumes
         volume = next(iter(capture.values()))
 
@@ -669,6 +693,7 @@ class MFSimTarget(BaseTarget):
             to_instr = [x for x in self.cblock.instructions if x.defs is not None and x.defs['var'].name is key]
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
+                self.dot_file.write("\n{} -> {};".format(self.opid, ti.iid))
 
         self.num_dispense += 1
         return _ret
@@ -1359,6 +1384,9 @@ class MFSimTarget(BaseTarget):
                     dag_file = open("%s/%s_DAG%s.dag" % (self.config.output, exp_name, str(bid)), "w")
                 dag_file.write("DagName (DAG%s)\n" % str(bid))
 
+                self.dot_file = open("%s/%s_DAG%s.dot" % (self.config.output, exp_name, str(bid)), "w")
+                self.dot_file.write("digraph G {")
+
                 # for all uses without defs, we must transfer in
                 already_transferred_in = dict()
                 dispenses = set()
@@ -1554,6 +1582,8 @@ class MFSimTarget(BaseTarget):
                 if not self.test:
                     dag_file.close()
                 self.num_dags += 1
+                self.dot_file.write("\n}")
+                self.dot_file.close()
 
             # now build the conditions, with their expressions and potential transfer droplets
             # COND/EXP cases:

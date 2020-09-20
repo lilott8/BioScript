@@ -1,3 +1,5 @@
+// multiplexed PCR with 4 targets
+
 module fluorescence
 manifest template
 manifest ftp1   // forward target primer 1
@@ -18,73 +20,73 @@ p2_mix = mix 1 units of ftp2 with 1 units of rtp2 for 5s
 p3_mix = mix 1 units of ftp3 with 1 units of rtp3 for 5s
 p4_mix = mix 1 units of ftp4 with 1 units of rtp4 for 5s
 
-@usein(start) 1s // this droplet must be used immediately after mixing is complete
+@usein 0s
 pcr_mix = mix 10 units of template with 4 units of pcr_master_mix for 10s
 
 // without usein constraints, these could sit dormant
 samples = split pcr_mix into 4
 
-@usein 2s
+@usein 0s
 target1 = mix samples[0] with p1_mix for 5s
-@usein 2s
+@usein 0s
 target2 = mix samples[1] with p2_mix for 5s
-@usein 2s
+@usein 0s
 target3 = mix samples[2] with p3_mix for 5s
-@usein 2s
+@usein 0s
 target4 = mix samples[3] with p4_mix for 5s
 
 //initialization (necessary for hot-start polymerases)
-@usein 3s
+@usein 0s
 heat target1 at 95c for 45s
-@usein 3s
+@usein 0s
 heat target2 at 95c for 45s
-@usein 3s
+@usein 0s
 heat target3 at 95c for 45s
-@usein 3s
+@usein 0s
 heat target4 at 95c for 45s
 
 //thermocycling
-// repeat 15-40 times  {
+repeat 30 times  {
 // denature
-@usein 1s
+@usein 0s
 heat target1 at 98c for 15s
-@usein 1s
+@usein 0s
 heat target2 at 98c for 15s
-@usein 1s
+@usein 0s
 heat target3 at 98c for 15s
-@usein 1s
+@usein 0s
 heat target4 at 98c for 15s
 
 //anneal   // note: 'heat' syntax sends droplet to resource to control temperature, does not mean to increase temperature
-@usein 1s
+@usein 0s
 heat target1 at 50c for 30s
-@usein 1s
+@usein 0s
 heat target2 at 50c for 30s
-@usein 1s
+@usein 0s
 heat target3 at 50c for 30s
-@usein 1s
+@usein 0s
 heat target4 at 50c for 30s
 
 //elongation/extension
-@usein 1s
+@usein 0s
 heat target1 at 74c for 3m
-@usein 1s
+@usein 0s
 heat target2 at 74c for 3m
-@usein 1s
+@usein 0s
 heat target3 at 74c for 3m
-@usein 1s
+@usein 0s
 heat target4 at 74c for 3m
 
-//end of thermocycling }
+}
 
 //final elongation
-@usein 1s
+@usein 0s
 heat target1 at 70c for 5m
-@usein 1s
+@usein 0s
 heat target2 at 70c for 5m
-@usein 1s
+@usein 0s
 heat target3 at 70c for 5m
-@usein 1s
+@usein 0s
 heat target4 at 70c for 5m
 
 dispose target1

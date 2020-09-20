@@ -1,0 +1,42 @@
+// enzyme-linked-immunosorbent assay (ELISA) follows a similar procedure for detecting various opiate
+//    drugs in urine samples
+// fentanyl elisa adapted from [Mao, et al 2006]
+//
+module fluorescence
+
+stationary antigen // antigen is baked onto the top dmfb plate
+manifest urine_sample
+manifest fentanyl_conjugate
+manifest tmb_substrate
+manifest distilled_water
+manifest stop_reagent
+
+instructions:
+
+@usein 0s
+sample = mix 20 units of urine_sample on antigen for 25s
+@usein 0s
+reagent = mix 100 units of fentanyl_conjugate on antigen for 25s
+@usein 0s
+mixture = mix sample with reagent for 10s
+
+@usein 0s
+heat mixture at 23c for 60m
+dispose mixture
+
+repeat 6 times {
+    wash = mix 350 units of distilled_water on antigen for 10m
+    dispose wash
+}
+
+@usein 0s
+substrate = mix 100 units of tmb_substrate on antigen for 30s
+@usein 0s
+heat substrate at 23c for 25m
+
+@usein 0s
+stop = mix 100 units of stop_reagent on antigen for 10s
+stop = mix stop with substrate for 16m
+dispose stop
+
+negative_reading = detect fluorescence on antigen for 30m

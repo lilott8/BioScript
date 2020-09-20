@@ -1,0 +1,23 @@
+//basic thermocycling pcr assay
+//pcr mix is sensitive to temperature -- assume no time for storing droplets
+module fluorescence
+manifest pcr_mixture
+manifest primer_mixture
+
+instructions:
+@usein 0s
+a = mix 10 units of pcr_mixture with 10 units of primer_mixture
+
+@usein 0s
+heat a at 95c for 5s
+
+repeat 20 times {
+    @usein 0s
+    heat a at 53c for 15s
+    @usein 0s
+    heat a at 72c for 10s
+}
+
+x = detect fluorescence on a for 3m
+
+dispose a
