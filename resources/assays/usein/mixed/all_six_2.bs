@@ -1,0 +1,43 @@
+module sensor
+
+manifest a
+manifest b
+manifest c
+manifest d
+manifest e
+
+instructions:
+temp_a = dispense 10 units of a
+
+// droplet given time to cool before mixing with b
+@usein(start >=) 60s
+heat temp_a at 80c for 30s  //edge to 22
+
+// droplet must be measured exactly 25s after mixing
+@usein(start) 25s
+cd = mix 10 units of c with 10 units of d for 10s //edge to 24
+
+//volatile reaction needs to be mixed with cd within 30s
+@usein(finish <=) 30s
+ab = mix temp_a with 10 units of b for 10s  // edge to 28
+
+x = detect sensor on cd for 15s // edge to 28
+
+// want to start measuring changes after adding ab within 10s
+@usein 10s
+abcd = mix ab with cd for 10s // edge to 30
+
+y = detect sensor on abcd for 15s  //edge to 34
+
+// final mixture needs to sit after mixing before detection
+@usein(finish >=) 60s
+abcde = mix abcd with 10 units of e for 10s //edge to 36
+
+z = detect sensor on abcde for 10s  //edge to 40
+
+// after cooling mixture, must collect sample at precise time
+@usein(finish) 10s
+heat abcde at 10c for 30s
+
+dispose abcde
+

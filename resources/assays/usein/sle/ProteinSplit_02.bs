@@ -1,0 +1,75 @@
+//protein dilution assay derived from [Su and Chakrabarty, 2008]
+// we assume volatility of all new mixed constituents, which must be used immediately.
+module sensor
+manifest DsS //sample
+manifest DsB //buffer
+manifest DsR //reagent
+
+instructions:
+@usein 0s
+mix1 = mix 10 units of DsS with 10 units of DsB for 3s
+slt1 = split mix1 into 2
+
+@usein 0s
+mix2 = mix slt1[0] with 10 units of DsB for 3s
+slt2 = split mix2 into 2
+
+@usein 0s
+mix3 = mix slt1[1] with 10 units of DsB for 3s
+slt3 = split mix3 into 2
+
+// path 1
+@usein 0s
+mix4 = mix slt2[0] with 10 units of DsB for 3s
+@usein 0s
+mix5 = mix mix4 with 10 units of DsB for 3s
+@usein 0s
+mix6 = mix mix5 with 10 units of DsB for 3s
+@usein 0s
+mix7 = mix mix6 with 10 units of DsB for 3s
+@usein 0s
+mix8 = mix mix7 with 10 units of DsB for 3s
+det1 = detect sensor on mix8 for 30s
+dispose mix8
+
+// path 2
+@usein 0s
+mix9 = mix slt2[1] with 10 units of DsB for 3s
+@usein 0s
+mix10 = mix mix9 with 10 units of DsB for 3s
+@usein 0s
+mix11 = mix mix10 with 10 units of DsB for 3s
+@usein 0s
+mix12 = mix mix11 with 10 units of DsB for 3s
+@usein 0s
+mix13 = mix mix12 with 10 units of DsB for 3s
+det2 = detect sensor on mix13 for 30s
+dispose mix13
+
+// path 3
+@usein 0s
+mix14 = mix slt3[0] with 10 units of DsB for 3s
+@usein 0s
+mix15 = mix mix14 with 10 units of DsB for 3s
+@usein 0s
+mix16 = mix mix15 with 10 units of DsB for 3s
+@usein 0s
+mix17 = mix mix16 with 10 units of DsB for 3s
+@usein 0s
+mix18 = mix mix17 with 10 units of DsB for 3s
+det3 = detect sensor on mix18 for 30s
+dispose mix18
+
+// path 4
+@usein 0s
+mix19 = mix slt3[1] with 10 units of DsB for 3s
+@usein 0s
+mix20 = mix mix19 with 10 units of DsB for 3s
+@usein 0s
+mix21 = mix mix20 with 10 units of DsB for 3s
+@usein 0s
+mix22 = mix mix21 with 10 units of DsB for 3s
+@usein 0s
+mix23 = mix mix22 with 10 units of DsB for 3s
+det4 = detect sensor on mix23 for 30s
+dispose mix23

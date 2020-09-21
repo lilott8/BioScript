@@ -1,0 +1,19 @@
+manifest a
+manifest b
+manifest c
+manifest d
+
+instructions:
+
+@usein(start <=) 30s
+ab = mix 1 units of a with 1 units of b for 10s
+
+tc = dispense 1 units of c
+@usein(start) 15s
+heat tc at 10c for 5s
+
+@usein(start >=) 15s
+cd = mix tc with 1 units of d for 13s
+
+abcd = mix ab with cd for 13s
+dispose abcd

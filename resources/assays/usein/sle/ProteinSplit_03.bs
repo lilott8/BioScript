@@ -1,4 +1,4 @@
-// protein dilution assay derived from [Su and Chakrabarty, 2008]
+//protein dilution assay derived from [Su and Chakrabarty, 2008]
 // we assume volatility of all new mixed constituents, which must be used immediately.
 module sensor
 manifest DsS //sample
@@ -34,7 +34,7 @@ slt6 = split mix6 into 2
 mix7 = mix slt3[1] with 10 units of DsB for 3s
 slt7 = split mix7 into 2
 
-// first path
+// path 1
 @usein 0s
 mix8 = mix slt4[0] with 10 units of DsB for 3s
 @usein 0s
@@ -44,11 +44,11 @@ mix10 = mix mix9 with 10 units of DsB for 3s
 @usein 0s
 mix11 = mix mix10 with 10 units of DsB for 3s
 @usein 0s
-mix12 = mix mix11 with 10 units of DsR for 3s
+mix12 = mix mix11 with 10 units of DsB for 3s
 det1 = detect sensor on mix12 for 30s
 dispose mix12
 
-// second path
+// path 2
 @usein 0s
 mix13 = mix slt4[1] with 10 units of DsB for 3s
 @usein 0s
@@ -58,11 +58,11 @@ mix15 = mix mix14 with 10 units of DsB for 3s
 @usein 0s
 mix16 = mix mix15 with 10 units of DsB for 3s
 @usein 0s
-mix17 = mix mix16 with 10 units of DsR for 3s
+mix17 = mix mix16 with 10 units of DsB for 3s
 det2 = detect sensor on mix17 for 30s
 dispose mix17
 
-// third path
+// path 3
 @usein 0s
 mix18 = mix slt5[0] with 10 units of DsB for 3s
 @usein 0s
@@ -72,11 +72,11 @@ mix20 = mix mix19 with 10 units of DsB for 3s
 @usein 0s
 mix21 = mix mix20 with 10 units of DsB for 3s
 @usein 0s
-mix22 = mix mix21 with 10 units of DsR for 3s
+mix22 = mix mix21 with 10 units of DsB for 3s
 det3 = detect sensor on mix22 for 30s
 dispose mix22
 
-// fourth path
+// path 4
 @usein 0s
 mix23 = mix slt5[1] with 10 units of DsB for 3s
 @usein 0s
@@ -86,11 +86,11 @@ mix25 = mix mix24 with 10 units of DsB for 3s
 @usein 0s
 mix26 = mix mix25 with 10 units of DsB for 3s
 @usein 0s
-mix27 = mix mix26 with 10 units of DsR for 3s
+mix27 = mix mix26 with 10 units of DsB for 3s
 det4 = detect sensor on mix27 for 30s
 dispose mix27
 
-// fifth path
+// path 5
 @usein 0s
 mix28 = mix slt6[0] with 10 units of DsB for 3s
 @usein 0s
@@ -100,11 +100,11 @@ mix30 = mix mix29 with 10 units of DsB for 3s
 @usein 0s
 mix31 = mix mix30 with 10 units of DsB for 3s
 @usein 0s
-mix32 = mix mix31 with 10 units of DsR for 3s
+mix32 = mix mix31 with 10 units of DsB for 3s
 det5 = detect sensor on mix32 for 30s
 dispose mix32
 
-// sixth path
+// path 6
 @usein 0s
 mix33 = mix slt6[1] with 10 units of DsB for 3s
 @usein 0s
@@ -114,11 +114,11 @@ mix35 = mix mix34 with 10 units of DsB for 3s
 @usein 0s
 mix36 = mix mix35 with 10 units of DsB for 3s
 @usein 0s
-mix37 = mix mix36 with 10 units of DsR for 3s
+mix37 = mix mix36 with 10 units of DsB for 3s
 det6 = detect sensor on mix37 for 30s
 dispose mix37
 
-// seventh path
+// path 7
 @usein 0s
 mix38 = mix slt7[0] with 10 units of DsB for 3s
 @usein 0s
@@ -128,11 +128,11 @@ mix40 = mix mix39 with 10 units of DsB for 3s
 @usein 0s
 mix41 = mix mix40 with 10 units of DsB for 3s
 @usein 0s
-mix42 = mix mix41 with 10 units of DsR for 3s
+mix42 = mix mix41 with 10 units of DsB for 3s
 det7 = detect sensor on mix42 for 30s
 dispose mix42
 
-// eight path
+// path 8
 @usein 0s
 mix43 = mix slt7[1] with 10 units of DsB for 3s
 @usein 0s
@@ -142,6 +142,6 @@ mix45 = mix mix44 with 10 units of DsB for 3s
 @usein 0s
 mix46 = mix mix45 with 10 units of DsB for 3s
 @usein 0s
-mix47 = mix mix46 with 10 units of DsR for 3s
+mix47 = mix mix46 with 10 units of DsB for 3s
 det8 = detect sensor on mix47 for 30s
 dispose mix47

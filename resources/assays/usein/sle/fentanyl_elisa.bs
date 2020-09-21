@@ -12,16 +12,15 @@ manifest distilled_water
 manifest stop_reagent
 
 instructions:
+@usein 0s
+sample = mix 20 units of urine_sample on antigen for 15s
+@usein 0s
+reagent = mix 100 units of fentanyl_conjugate on antigen for 35s
+@usein 0s
+mixture = mix sample with reagent for 20s
 
 @usein 0s
-sample = mix 20 units of urine_sample on antigen for 25s
-@usein 0s
-reagent = mix 100 units of fentanyl_conjugate on antigen for 25s
-@usein 0s
-mixture = mix sample with reagent for 10s
-
-@usein 0s
-heat mixture at 23c for 60m
+heat mixture at 23c for 20m
 dispose mixture
 
 repeat 6 times {

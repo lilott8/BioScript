@@ -3,7 +3,6 @@
 module sensor
 manifest Plasma
 manifest Serum
-manifest Saliva
 manifest Glucose
 manifest Lactate
 manifest Pyruvate
@@ -38,18 +37,3 @@ dispose mix5
 mix6 = mix 10 units of Serum with 10 units of Pyruvate for 5s
 det6 = detect sensor on mix6 for 5s
 dispose mix6
-
-@usein 0s
-mix7 = mix 10 units of Saliva with 10 units of Glucose for 5s
-det7 = detect sensor on mix7 for 5s
-dispose mix7
-
-@usein 0s
-mix8 = mix 10 units of Saliva with 10 units of Lactate for 5s
-det8 = detect sensor on mix8 for 5s
-dispose mix8
-
-@usein 0s
-mix9 = mix 10 units of Saliva with 10 units of Pyruvate for 5s
-det9 = detect sensor on mix9 for 5s
-dispose mix9

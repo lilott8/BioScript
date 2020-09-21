@@ -1,0 +1,1155 @@
+//protein dilution assay derived from [Su and Chakrabarty, 2008]
+// we assume volatility of all new mixed constituents, which must be used immediately.
+module sensor
+manifest DsS //sample
+manifest DsB //buffer
+manifest DsR //reagent
+
+instructions:
+@usein 0s
+mix1 = mix 10 units of DsS with 10 units of DsB for 3s
+slt1 = split mix1 into 2
+
+@usein 0s
+mix2 = mix slt1[0] with 10 units of DsB for 3s
+slt2 = split mix2 into 2
+
+@usein 0s
+mix3 = mix slt1[1] with 10 units of DsB for 3s
+slt3 = split mix3 into 2
+
+@usein 0s
+mix4 = mix slt2[0] with 10 units of DsB for 3s
+slt4 = split mix4 into 2
+
+@usein 0s
+mix5 = mix slt2[1] with 10 units of DsB for 3s
+slt5 = split mix5 into 2
+
+@usein 0s
+mix6 = mix slt3[0] with 10 units of DsB for 3s
+slt6 = split mix6 into 2
+
+@usein 0s
+mix7 = mix slt3[1] with 10 units of DsB for 3s
+slt7 = split mix7 into 2
+
+@usein 0s
+mix8 = mix slt4[0] with 10 units of DsB for 3s
+slt8 = split mix8 into 2
+
+@usein 0s
+mix9 = mix slt4[1] with 10 units of DsB for 3s
+slt9 = split mix9 into 2
+
+@usein 0s
+mix10 = mix slt5[0] with 10 units of DsB for 3s
+slt10 = split mix10 into 2
+
+@usein 0s
+mix11 = mix slt5[1] with 10 units of DsB for 3s
+slt11 = split mix11 into 2
+
+@usein 0s
+mix12 = mix slt6[0] with 10 units of DsB for 3s
+slt12 = split mix12 into 2
+
+@usein 0s
+mix13 = mix slt6[1] with 10 units of DsB for 3s
+slt13 = split mix13 into 2
+
+@usein 0s
+mix14 = mix slt7[0] with 10 units of DsB for 3s
+slt14 = split mix14 into 2
+
+@usein 0s
+mix15 = mix slt7[1] with 10 units of DsB for 3s
+slt15 = split mix15 into 2
+
+@usein 0s
+mix16 = mix slt8[0] with 10 units of DsB for 3s
+slt16 = split mix16 into 2
+
+@usein 0s
+mix17 = mix slt8[1] with 10 units of DsB for 3s
+slt17 = split mix17 into 2
+
+@usein 0s
+mix18 = mix slt9[0] with 10 units of DsB for 3s
+slt18 = split mix18 into 2
+
+@usein 0s
+mix19 = mix slt9[1] with 10 units of DsB for 3s
+slt19 = split mix19 into 2
+
+@usein 0s
+mix20 = mix slt10[0] with 10 units of DsB for 3s
+slt20 = split mix20 into 2
+
+@usein 0s
+mix21 = mix slt10[1] with 10 units of DsB for 3s
+slt21 = split mix21 into 2
+
+@usein 0s
+mix22 = mix slt11[0] with 10 units of DsB for 3s
+slt22 = split mix22 into 2
+
+@usein 0s
+mix23 = mix slt11[1] with 10 units of DsB for 3s
+slt23 = split mix23 into 2
+
+@usein 0s
+mix24 = mix slt12[0] with 10 units of DsB for 3s
+slt24 = split mix24 into 2
+
+@usein 0s
+mix25 = mix slt12[1] with 10 units of DsB for 3s
+slt25 = split mix25 into 2
+
+@usein 0s
+mix26 = mix slt13[0] with 10 units of DsB for 3s
+slt26 = split mix26 into 2
+
+@usein 0s
+mix27 = mix slt13[1] with 10 units of DsB for 3s
+slt27 = split mix27 into 2
+
+@usein 0s
+mix28 = mix slt14[0] with 10 units of DsB for 3s
+slt28 = split mix28 into 2
+
+@usein 0s
+mix29 = mix slt14[1] with 10 units of DsB for 3s
+slt29 = split mix29 into 2
+
+@usein 0s
+mix30 = mix slt15[0] with 10 units of DsB for 3s
+slt30 = split mix30 into 2
+
+@usein 0s
+mix31 = mix slt15[1] with 10 units of DsB for 3s
+slt31 = split mix31 into 2
+
+@usein 0s
+mix32 = mix slt16[0] with 10 units of DsB for 3s
+slt32 = split mix32 into 2
+
+@usein 0s
+mix33 = mix slt16[1] with 10 units of DsB for 3s
+slt33 = split mix33 into 2
+
+@usein 0s
+mix34 = mix slt17[0] with 10 units of DsB for 3s
+slt34 = split mix34 into 2
+
+@usein 0s
+mix35 = mix slt17[1] with 10 units of DsB for 3s
+slt35 = split mix35 into 2
+
+@usein 0s
+mix36 = mix slt18[0] with 10 units of DsB for 3s
+slt36 = split mix36 into 2
+
+@usein 0s
+mix37 = mix slt18[1] with 10 units of DsB for 3s
+slt37 = split mix37 into 2
+
+@usein 0s
+mix38 = mix slt19[0] with 10 units of DsB for 3s
+slt38 = split mix38 into 2
+
+@usein 0s
+mix39 = mix slt19[1] with 10 units of DsB for 3s
+slt39 = split mix39 into 2
+
+@usein 0s
+mix40 = mix slt20[0] with 10 units of DsB for 3s
+slt40 = split mix40 into 2
+
+@usein 0s
+mix41 = mix slt20[1] with 10 units of DsB for 3s
+slt41 = split mix41 into 2
+
+@usein 0s
+mix42 = mix slt21[0] with 10 units of DsB for 3s
+slt42 = split mix42 into 2
+
+@usein 0s
+mix43 = mix slt21[1] with 10 units of DsB for 3s
+slt43 = split mix43 into 2
+
+@usein 0s
+mix44 = mix slt22[0] with 10 units of DsB for 3s
+slt44 = split mix44 into 2
+
+@usein 0s
+mix45 = mix slt22[1] with 10 units of DsB for 3s
+slt45 = split mix45 into 2
+
+@usein 0s
+mix46 = mix slt23[0] with 10 units of DsB for 3s
+slt46 = split mix46 into 2
+
+@usein 0s
+mix47 = mix slt23[1] with 10 units of DsB for 3s
+slt47 = split mix47 into 2
+
+@usein 0s
+mix48 = mix slt24[0] with 10 units of DsB for 3s
+slt48 = split mix48 into 2
+
+@usein 0s
+mix49 = mix slt24[1] with 10 units of DsB for 3s
+slt49 = split mix49 into 2
+
+@usein 0s
+mix50 = mix slt25[0] with 10 units of DsB for 3s
+slt50 = split mix50 into 2
+
+@usein 0s
+mix51 = mix slt25[1] with 10 units of DsB for 3s
+slt51 = split mix51 into 2
+
+@usein 0s
+mix52 = mix slt26[0] with 10 units of DsB for 3s
+slt52 = split mix52 into 2
+
+@usein 0s
+mix53 = mix slt26[1] with 10 units of DsB for 3s
+slt53 = split mix53 into 2
+
+@usein 0s
+mix54 = mix slt27[0] with 10 units of DsB for 3s
+slt54 = split mix54 into 2
+
+@usein 0s
+mix55 = mix slt27[1] with 10 units of DsB for 3s
+slt55 = split mix55 into 2
+
+@usein 0s
+mix56 = mix slt28[0] with 10 units of DsB for 3s
+slt56 = split mix56 into 2
+
+@usein 0s
+mix57 = mix slt28[1] with 10 units of DsB for 3s
+slt57 = split mix57 into 2
+
+@usein 0s
+mix58 = mix slt29[0] with 10 units of DsB for 3s
+slt58 = split mix58 into 2
+
+@usein 0s
+mix59 = mix slt29[1] with 10 units of DsB for 3s
+slt59 = split mix59 into 2
+
+@usein 0s
+mix60 = mix slt30[0] with 10 units of DsB for 3s
+slt60 = split mix60 into 2
+
+@usein 0s
+mix61 = mix slt30[1] with 10 units of DsB for 3s
+slt61 = split mix61 into 2
+
+@usein 0s
+mix62 = mix slt31[0] with 10 units of DsB for 3s
+slt62 = split mix62 into 2
+
+@usein 0s
+mix63 = mix slt31[1] with 10 units of DsB for 3s
+slt63 = split mix63 into 2
+
+// path 1
+@usein 0s
+mix64 = mix slt32[0] with 10 units of DsB for 3s
+@usein 0s
+mix65 = mix mix64 with 10 units of DsB for 3s
+@usein 0s
+mix66 = mix mix65 with 10 units of DsB for 3s
+@usein 0s
+mix67 = mix mix66 with 10 units of DsB for 3s
+@usein 0s
+mix68 = mix mix67 with 10 units of DsB for 3s
+det1 = detect sensor on mix68 for 30s
+dispose mix68
+
+// path 2
+@usein 0s
+mix69 = mix slt32[1] with 10 units of DsB for 3s
+@usein 0s
+mix70 = mix mix69 with 10 units of DsB for 3s
+@usein 0s
+mix71 = mix mix70 with 10 units of DsB for 3s
+@usein 0s
+mix72 = mix mix71 with 10 units of DsB for 3s
+@usein 0s
+mix73 = mix mix72 with 10 units of DsB for 3s
+det2 = detect sensor on mix73 for 30s
+dispose mix73
+
+// path 3
+@usein 0s
+mix74 = mix slt33[0] with 10 units of DsB for 3s
+@usein 0s
+mix75 = mix mix74 with 10 units of DsB for 3s
+@usein 0s
+mix76 = mix mix75 with 10 units of DsB for 3s
+@usein 0s
+mix77 = mix mix76 with 10 units of DsB for 3s
+@usein 0s
+mix78 = mix mix77 with 10 units of DsB for 3s
+det3 = detect sensor on mix78 for 30s
+dispose mix78
+
+// path 4
+@usein 0s
+mix79 = mix slt33[1] with 10 units of DsB for 3s
+@usein 0s
+mix80 = mix mix79 with 10 units of DsB for 3s
+@usein 0s
+mix81 = mix mix80 with 10 units of DsB for 3s
+@usein 0s
+mix82 = mix mix81 with 10 units of DsB for 3s
+@usein 0s
+mix83 = mix mix82 with 10 units of DsB for 3s
+det4 = detect sensor on mix83 for 30s
+dispose mix83
+
+// path 5
+@usein 0s
+mix84 = mix slt34[0] with 10 units of DsB for 3s
+@usein 0s
+mix85 = mix mix84 with 10 units of DsB for 3s
+@usein 0s
+mix86 = mix mix85 with 10 units of DsB for 3s
+@usein 0s
+mix87 = mix mix86 with 10 units of DsB for 3s
+@usein 0s
+mix88 = mix mix87 with 10 units of DsB for 3s
+det5 = detect sensor on mix88 for 30s
+dispose mix88
+
+// path 6
+@usein 0s
+mix89 = mix slt34[1] with 10 units of DsB for 3s
+@usein 0s
+mix90 = mix mix89 with 10 units of DsB for 3s
+@usein 0s
+mix91 = mix mix90 with 10 units of DsB for 3s
+@usein 0s
+mix92 = mix mix91 with 10 units of DsB for 3s
+@usein 0s
+mix93 = mix mix92 with 10 units of DsB for 3s
+det6 = detect sensor on mix93 for 30s
+dispose mix93
+
+// path 7
+@usein 0s
+mix94 = mix slt35[0] with 10 units of DsB for 3s
+@usein 0s
+mix95 = mix mix94 with 10 units of DsB for 3s
+@usein 0s
+mix96 = mix mix95 with 10 units of DsB for 3s
+@usein 0s
+mix97 = mix mix96 with 10 units of DsB for 3s
+@usein 0s
+mix98 = mix mix97 with 10 units of DsB for 3s
+det7 = detect sensor on mix98 for 30s
+dispose mix98
+
+// path 8
+@usein 0s
+mix99 = mix slt35[1] with 10 units of DsB for 3s
+@usein 0s
+mix100 = mix mix99 with 10 units of DsB for 3s
+@usein 0s
+mix101 = mix mix100 with 10 units of DsB for 3s
+@usein 0s
+mix102 = mix mix101 with 10 units of DsB for 3s
+@usein 0s
+mix103 = mix mix102 with 10 units of DsB for 3s
+det8 = detect sensor on mix103 for 30s
+dispose mix103
+
+// path 9
+@usein 0s
+mix104 = mix slt36[0] with 10 units of DsB for 3s
+@usein 0s
+mix105 = mix mix104 with 10 units of DsB for 3s
+@usein 0s
+mix106 = mix mix105 with 10 units of DsB for 3s
+@usein 0s
+mix107 = mix mix106 with 10 units of DsB for 3s
+@usein 0s
+mix108 = mix mix107 with 10 units of DsB for 3s
+det9 = detect sensor on mix108 for 30s
+dispose mix108
+
+// path 10
+@usein 0s
+mix109 = mix slt36[1] with 10 units of DsB for 3s
+@usein 0s
+mix110 = mix mix109 with 10 units of DsB for 3s
+@usein 0s
+mix111 = mix mix110 with 10 units of DsB for 3s
+@usein 0s
+mix112 = mix mix111 with 10 units of DsB for 3s
+@usein 0s
+mix113 = mix mix112 with 10 units of DsB for 3s
+det10 = detect sensor on mix113 for 30s
+dispose mix113
+
+// path 11
+@usein 0s
+mix114 = mix slt37[0] with 10 units of DsB for 3s
+@usein 0s
+mix115 = mix mix114 with 10 units of DsB for 3s
+@usein 0s
+mix116 = mix mix115 with 10 units of DsB for 3s
+@usein 0s
+mix117 = mix mix116 with 10 units of DsB for 3s
+@usein 0s
+mix118 = mix mix117 with 10 units of DsB for 3s
+det11 = detect sensor on mix118 for 30s
+dispose mix118
+
+// path 12
+@usein 0s
+mix119 = mix slt37[1] with 10 units of DsB for 3s
+@usein 0s
+mix120 = mix mix119 with 10 units of DsB for 3s
+@usein 0s
+mix121 = mix mix120 with 10 units of DsB for 3s
+@usein 0s
+mix122 = mix mix121 with 10 units of DsB for 3s
+@usein 0s
+mix123 = mix mix122 with 10 units of DsB for 3s
+det12 = detect sensor on mix123 for 30s
+dispose mix123
+
+// path 13
+@usein 0s
+mix124 = mix slt38[0] with 10 units of DsB for 3s
+@usein 0s
+mix125 = mix mix124 with 10 units of DsB for 3s
+@usein 0s
+mix126 = mix mix125 with 10 units of DsB for 3s
+@usein 0s
+mix127 = mix mix126 with 10 units of DsB for 3s
+@usein 0s
+mix128 = mix mix127 with 10 units of DsB for 3s
+det13 = detect sensor on mix128 for 30s
+dispose mix128
+
+// path 14
+@usein 0s
+mix129 = mix slt38[1] with 10 units of DsB for 3s
+@usein 0s
+mix130 = mix mix129 with 10 units of DsB for 3s
+@usein 0s
+mix131 = mix mix130 with 10 units of DsB for 3s
+@usein 0s
+mix132 = mix mix131 with 10 units of DsB for 3s
+@usein 0s
+mix133 = mix mix132 with 10 units of DsB for 3s
+det14 = detect sensor on mix133 for 30s
+dispose mix133
+
+// path 15
+@usein 0s
+mix134 = mix slt39[0] with 10 units of DsB for 3s
+@usein 0s
+mix135 = mix mix134 with 10 units of DsB for 3s
+@usein 0s
+mix136 = mix mix135 with 10 units of DsB for 3s
+@usein 0s
+mix137 = mix mix136 with 10 units of DsB for 3s
+@usein 0s
+mix138 = mix mix137 with 10 units of DsB for 3s
+det15 = detect sensor on mix138 for 30s
+dispose mix138
+
+// path 16
+@usein 0s
+mix139 = mix slt39[1] with 10 units of DsB for 3s
+@usein 0s
+mix140 = mix mix139 with 10 units of DsB for 3s
+@usein 0s
+mix141 = mix mix140 with 10 units of DsB for 3s
+@usein 0s
+mix142 = mix mix141 with 10 units of DsB for 3s
+@usein 0s
+mix143 = mix mix142 with 10 units of DsB for 3s
+det16 = detect sensor on mix143 for 30s
+dispose mix143
+
+// path 17
+@usein 0s
+mix144 = mix slt40[0] with 10 units of DsB for 3s
+@usein 0s
+mix145 = mix mix144 with 10 units of DsB for 3s
+@usein 0s
+mix146 = mix mix145 with 10 units of DsB for 3s
+@usein 0s
+mix147 = mix mix146 with 10 units of DsB for 3s
+@usein 0s
+mix148 = mix mix147 with 10 units of DsB for 3s
+det17 = detect sensor on mix148 for 30s
+dispose mix148
+
+// path 18
+@usein 0s
+mix149 = mix slt40[1] with 10 units of DsB for 3s
+@usein 0s
+mix150 = mix mix149 with 10 units of DsB for 3s
+@usein 0s
+mix151 = mix mix150 with 10 units of DsB for 3s
+@usein 0s
+mix152 = mix mix151 with 10 units of DsB for 3s
+@usein 0s
+mix153 = mix mix152 with 10 units of DsB for 3s
+det18 = detect sensor on mix153 for 30s
+dispose mix153
+
+// path 19
+@usein 0s
+mix154 = mix slt41[0] with 10 units of DsB for 3s
+@usein 0s
+mix155 = mix mix154 with 10 units of DsB for 3s
+@usein 0s
+mix156 = mix mix155 with 10 units of DsB for 3s
+@usein 0s
+mix157 = mix mix156 with 10 units of DsB for 3s
+@usein 0s
+mix158 = mix mix157 with 10 units of DsB for 3s
+det19 = detect sensor on mix158 for 30s
+dispose mix158
+
+// path 20
+@usein 0s
+mix159 = mix slt41[1] with 10 units of DsB for 3s
+@usein 0s
+mix160 = mix mix159 with 10 units of DsB for 3s
+@usein 0s
+mix161 = mix mix160 with 10 units of DsB for 3s
+@usein 0s
+mix162 = mix mix161 with 10 units of DsB for 3s
+@usein 0s
+mix163 = mix mix162 with 10 units of DsB for 3s
+det20 = detect sensor on mix163 for 30s
+dispose mix163
+
+// path 21
+@usein 0s
+mix164 = mix slt42[0] with 10 units of DsB for 3s
+@usein 0s
+mix165 = mix mix164 with 10 units of DsB for 3s
+@usein 0s
+mix166 = mix mix165 with 10 units of DsB for 3s
+@usein 0s
+mix167 = mix mix166 with 10 units of DsB for 3s
+@usein 0s
+mix168 = mix mix167 with 10 units of DsB for 3s
+det21 = detect sensor on mix168 for 30s
+dispose mix168
+
+// path 22
+@usein 0s
+mix169 = mix slt42[1] with 10 units of DsB for 3s
+@usein 0s
+mix170 = mix mix169 with 10 units of DsB for 3s
+@usein 0s
+mix171 = mix mix170 with 10 units of DsB for 3s
+@usein 0s
+mix172 = mix mix171 with 10 units of DsB for 3s
+@usein 0s
+mix173 = mix mix172 with 10 units of DsB for 3s
+det22 = detect sensor on mix173 for 30s
+dispose mix173
+
+// path 23
+@usein 0s
+mix174 = mix slt43[0] with 10 units of DsB for 3s
+@usein 0s
+mix175 = mix mix174 with 10 units of DsB for 3s
+@usein 0s
+mix176 = mix mix175 with 10 units of DsB for 3s
+@usein 0s
+mix177 = mix mix176 with 10 units of DsB for 3s
+@usein 0s
+mix178 = mix mix177 with 10 units of DsB for 3s
+det23 = detect sensor on mix178 for 30s
+dispose mix178
+
+// path 24
+@usein 0s
+mix179 = mix slt43[1] with 10 units of DsB for 3s
+@usein 0s
+mix180 = mix mix179 with 10 units of DsB for 3s
+@usein 0s
+mix181 = mix mix180 with 10 units of DsB for 3s
+@usein 0s
+mix182 = mix mix181 with 10 units of DsB for 3s
+@usein 0s
+mix183 = mix mix182 with 10 units of DsB for 3s
+det24 = detect sensor on mix183 for 30s
+dispose mix183
+
+// path 25
+@usein 0s
+mix184 = mix slt44[0] with 10 units of DsB for 3s
+@usein 0s
+mix185 = mix mix184 with 10 units of DsB for 3s
+@usein 0s
+mix186 = mix mix185 with 10 units of DsB for 3s
+@usein 0s
+mix187 = mix mix186 with 10 units of DsB for 3s
+@usein 0s
+mix188 = mix mix187 with 10 units of DsB for 3s
+det25 = detect sensor on mix188 for 30s
+dispose mix188
+
+// path 26
+@usein 0s
+mix189 = mix slt44[1] with 10 units of DsB for 3s
+@usein 0s
+mix190 = mix mix189 with 10 units of DsB for 3s
+@usein 0s
+mix191 = mix mix190 with 10 units of DsB for 3s
+@usein 0s
+mix192 = mix mix191 with 10 units of DsB for 3s
+@usein 0s
+mix193 = mix mix192 with 10 units of DsB for 3s
+det26 = detect sensor on mix193 for 30s
+dispose mix193
+
+// path 27
+@usein 0s
+mix194 = mix slt45[0] with 10 units of DsB for 3s
+@usein 0s
+mix195 = mix mix194 with 10 units of DsB for 3s
+@usein 0s
+mix196 = mix mix195 with 10 units of DsB for 3s
+@usein 0s
+mix197 = mix mix196 with 10 units of DsB for 3s
+@usein 0s
+mix198 = mix mix197 with 10 units of DsB for 3s
+det27 = detect sensor on mix198 for 30s
+dispose mix198
+
+// path 28
+@usein 0s
+mix199 = mix slt45[1] with 10 units of DsB for 3s
+@usein 0s
+mix200 = mix mix199 with 10 units of DsB for 3s
+@usein 0s
+mix201 = mix mix200 with 10 units of DsB for 3s
+@usein 0s
+mix202 = mix mix201 with 10 units of DsB for 3s
+@usein 0s
+mix203 = mix mix202 with 10 units of DsB for 3s
+det28 = detect sensor on mix203 for 30s
+dispose mix203
+
+// path 29
+@usein 0s
+mix204 = mix slt46[0] with 10 units of DsB for 3s
+@usein 0s
+mix205 = mix mix204 with 10 units of DsB for 3s
+@usein 0s
+mix206 = mix mix205 with 10 units of DsB for 3s
+@usein 0s
+mix207 = mix mix206 with 10 units of DsB for 3s
+@usein 0s
+mix208 = mix mix207 with 10 units of DsB for 3s
+det29 = detect sensor on mix208 for 30s
+dispose mix208
+
+// path 30
+@usein 0s
+mix209 = mix slt46[1] with 10 units of DsB for 3s
+@usein 0s
+mix210 = mix mix209 with 10 units of DsB for 3s
+@usein 0s
+mix211 = mix mix210 with 10 units of DsB for 3s
+@usein 0s
+mix212 = mix mix211 with 10 units of DsB for 3s
+@usein 0s
+mix213 = mix mix212 with 10 units of DsB for 3s
+det30 = detect sensor on mix213 for 30s
+dispose mix213
+
+// path 31
+@usein 0s
+mix214 = mix slt47[0] with 10 units of DsB for 3s
+@usein 0s
+mix215 = mix mix214 with 10 units of DsB for 3s
+@usein 0s
+mix216 = mix mix215 with 10 units of DsB for 3s
+@usein 0s
+mix217 = mix mix216 with 10 units of DsB for 3s
+@usein 0s
+mix218 = mix mix217 with 10 units of DsB for 3s
+det31 = detect sensor on mix218 for 30s
+dispose mix218
+
+// path 32
+@usein 0s
+mix219 = mix slt47[1] with 10 units of DsB for 3s
+@usein 0s
+mix220 = mix mix219 with 10 units of DsB for 3s
+@usein 0s
+mix221 = mix mix220 with 10 units of DsB for 3s
+@usein 0s
+mix222 = mix mix221 with 10 units of DsB for 3s
+@usein 0s
+mix223 = mix mix222 with 10 units of DsB for 3s
+det32 = detect sensor on mix223 for 30s
+dispose mix223
+
+// path 33
+@usein 0s
+mix224 = mix slt48[0] with 10 units of DsB for 3s
+@usein 0s
+mix225 = mix mix224 with 10 units of DsB for 3s
+@usein 0s
+mix226 = mix mix225 with 10 units of DsB for 3s
+@usein 0s
+mix227 = mix mix226 with 10 units of DsB for 3s
+@usein 0s
+mix228 = mix mix227 with 10 units of DsB for 3s
+det33 = detect sensor on mix228 for 30s
+dispose mix228
+
+// path 34
+@usein 0s
+mix229 = mix slt48[1] with 10 units of DsB for 3s
+@usein 0s
+mix230 = mix mix229 with 10 units of DsB for 3s
+@usein 0s
+mix231 = mix mix230 with 10 units of DsB for 3s
+@usein 0s
+mix232 = mix mix231 with 10 units of DsB for 3s
+@usein 0s
+mix233 = mix mix232 with 10 units of DsB for 3s
+det34 = detect sensor on mix233 for 30s
+dispose mix233
+
+// path 35
+@usein 0s
+mix234 = mix slt49[0] with 10 units of DsB for 3s
+@usein 0s
+mix235 = mix mix234 with 10 units of DsB for 3s
+@usein 0s
+mix236 = mix mix235 with 10 units of DsB for 3s
+@usein 0s
+mix237 = mix mix236 with 10 units of DsB for 3s
+@usein 0s
+mix238 = mix mix237 with 10 units of DsB for 3s
+det35 = detect sensor on mix238 for 30s
+dispose mix238
+
+// path 36
+@usein 0s
+mix239 = mix slt49[1] with 10 units of DsB for 3s
+@usein 0s
+mix240 = mix mix239 with 10 units of DsB for 3s
+@usein 0s
+mix241 = mix mix240 with 10 units of DsB for 3s
+@usein 0s
+mix242 = mix mix241 with 10 units of DsB for 3s
+@usein 0s
+mix243 = mix mix242 with 10 units of DsB for 3s
+det36 = detect sensor on mix243 for 30s
+dispose mix243
+
+// path 37
+@usein 0s
+mix244 = mix slt50[0] with 10 units of DsB for 3s
+@usein 0s
+mix245 = mix mix244 with 10 units of DsB for 3s
+@usein 0s
+mix246 = mix mix245 with 10 units of DsB for 3s
+@usein 0s
+mix247 = mix mix246 with 10 units of DsB for 3s
+@usein 0s
+mix248 = mix mix247 with 10 units of DsB for 3s
+det37 = detect sensor on mix248 for 30s
+dispose mix248
+
+// path 38
+@usein 0s
+mix249 = mix slt50[1] with 10 units of DsB for 3s
+@usein 0s
+mix250 = mix mix249 with 10 units of DsB for 3s
+@usein 0s
+mix251 = mix mix250 with 10 units of DsB for 3s
+@usein 0s
+mix252 = mix mix251 with 10 units of DsB for 3s
+@usein 0s
+mix253 = mix mix252 with 10 units of DsB for 3s
+det38 = detect sensor on mix253 for 30s
+dispose mix253
+
+// path 39
+@usein 0s
+mix254 = mix slt51[0] with 10 units of DsB for 3s
+@usein 0s
+mix255 = mix mix254 with 10 units of DsB for 3s
+@usein 0s
+mix256 = mix mix255 with 10 units of DsB for 3s
+@usein 0s
+mix257 = mix mix256 with 10 units of DsB for 3s
+@usein 0s
+mix258 = mix mix257 with 10 units of DsB for 3s
+det39 = detect sensor on mix258 for 30s
+dispose mix258
+
+// path 40
+@usein 0s
+mix259 = mix slt51[1] with 10 units of DsB for 3s
+@usein 0s
+mix260 = mix mix259 with 10 units of DsB for 3s
+@usein 0s
+mix261 = mix mix260 with 10 units of DsB for 3s
+@usein 0s
+mix262 = mix mix261 with 10 units of DsB for 3s
+@usein 0s
+mix263 = mix mix262 with 10 units of DsB for 3s
+det40 = detect sensor on mix263 for 30s
+dispose mix263
+
+// path 41
+@usein 0s
+mix264 = mix slt52[0] with 10 units of DsB for 3s
+@usein 0s
+mix265 = mix mix264 with 10 units of DsB for 3s
+@usein 0s
+mix266 = mix mix265 with 10 units of DsB for 3s
+@usein 0s
+mix267 = mix mix266 with 10 units of DsB for 3s
+@usein 0s
+mix268 = mix mix267 with 10 units of DsB for 3s
+det41 = detect sensor on mix268 for 30s
+dispose mix268
+
+// path 42
+@usein 0s
+mix269 = mix slt52[1] with 10 units of DsB for 3s
+@usein 0s
+mix270 = mix mix269 with 10 units of DsB for 3s
+@usein 0s
+mix271 = mix mix270 with 10 units of DsB for 3s
+@usein 0s
+mix272 = mix mix271 with 10 units of DsB for 3s
+@usein 0s
+mix273 = mix mix272 with 10 units of DsB for 3s
+det42 = detect sensor on mix273 for 30s
+dispose mix273
+
+// path 43
+@usein 0s
+mix274 = mix slt53[0] with 10 units of DsB for 3s
+@usein 0s
+mix275 = mix mix274 with 10 units of DsB for 3s
+@usein 0s
+mix276 = mix mix275 with 10 units of DsB for 3s
+@usein 0s
+mix277 = mix mix276 with 10 units of DsB for 3s
+@usein 0s
+mix278 = mix mix277 with 10 units of DsB for 3s
+det43 = detect sensor on mix278 for 30s
+dispose mix278
+
+// path 44
+@usein 0s
+mix279 = mix slt53[1] with 10 units of DsB for 3s
+@usein 0s
+mix280 = mix mix279 with 10 units of DsB for 3s
+@usein 0s
+mix281 = mix mix280 with 10 units of DsB for 3s
+@usein 0s
+mix282 = mix mix281 with 10 units of DsB for 3s
+@usein 0s
+mix283 = mix mix282 with 10 units of DsB for 3s
+det44 = detect sensor on mix283 for 30s
+dispose mix283
+
+// path 45
+@usein 0s
+mix284 = mix slt54[0] with 10 units of DsB for 3s
+@usein 0s
+mix285 = mix mix284 with 10 units of DsB for 3s
+@usein 0s
+mix286 = mix mix285 with 10 units of DsB for 3s
+@usein 0s
+mix287 = mix mix286 with 10 units of DsB for 3s
+@usein 0s
+mix288 = mix mix287 with 10 units of DsB for 3s
+det45 = detect sensor on mix288 for 30s
+dispose mix288
+
+// path 46
+@usein 0s
+mix289 = mix slt54[1] with 10 units of DsB for 3s
+@usein 0s
+mix290 = mix mix289 with 10 units of DsB for 3s
+@usein 0s
+mix291 = mix mix290 with 10 units of DsB for 3s
+@usein 0s
+mix292 = mix mix291 with 10 units of DsB for 3s
+@usein 0s
+mix293 = mix mix292 with 10 units of DsB for 3s
+det46 = detect sensor on mix293 for 30s
+dispose mix293
+
+// path 47
+@usein 0s
+mix294 = mix slt55[0] with 10 units of DsB for 3s
+@usein 0s
+mix295 = mix mix294 with 10 units of DsB for 3s
+@usein 0s
+mix296 = mix mix295 with 10 units of DsB for 3s
+@usein 0s
+mix297 = mix mix296 with 10 units of DsB for 3s
+@usein 0s
+mix298 = mix mix297 with 10 units of DsB for 3s
+det47 = detect sensor on mix298 for 30s
+dispose mix298
+
+// path 48
+@usein 0s
+mix299 = mix slt55[1] with 10 units of DsB for 3s
+@usein 0s
+mix300 = mix mix299 with 10 units of DsB for 3s
+@usein 0s
+mix301 = mix mix300 with 10 units of DsB for 3s
+@usein 0s
+mix302 = mix mix301 with 10 units of DsB for 3s
+@usein 0s
+mix303 = mix mix302 with 10 units of DsB for 3s
+det48 = detect sensor on mix303 for 30s
+dispose mix303
+
+// path 49
+@usein 0s
+mix304 = mix slt56[0] with 10 units of DsB for 3s
+@usein 0s
+mix305 = mix mix304 with 10 units of DsB for 3s
+@usein 0s
+mix306 = mix mix305 with 10 units of DsB for 3s
+@usein 0s
+mix307 = mix mix306 with 10 units of DsB for 3s
+@usein 0s
+mix308 = mix mix307 with 10 units of DsB for 3s
+det49 = detect sensor on mix308 for 30s
+dispose mix308
+
+// path 50
+@usein 0s
+mix309 = mix slt56[1] with 10 units of DsB for 3s
+@usein 0s
+mix310 = mix mix309 with 10 units of DsB for 3s
+@usein 0s
+mix311 = mix mix310 with 10 units of DsB for 3s
+@usein 0s
+mix312 = mix mix311 with 10 units of DsB for 3s
+@usein 0s
+mix313 = mix mix312 with 10 units of DsB for 3s
+det50 = detect sensor on mix313 for 30s
+dispose mix313
+
+// path 51
+@usein 0s
+mix314 = mix slt57[0] with 10 units of DsB for 3s
+@usein 0s
+mix315 = mix mix314 with 10 units of DsB for 3s
+@usein 0s
+mix316 = mix mix315 with 10 units of DsB for 3s
+@usein 0s
+mix317 = mix mix316 with 10 units of DsB for 3s
+@usein 0s
+mix318 = mix mix317 with 10 units of DsB for 3s
+det51 = detect sensor on mix318 for 30s
+dispose mix318
+
+// path 52
+@usein 0s
+mix319 = mix slt57[1] with 10 units of DsB for 3s
+@usein 0s
+mix320 = mix mix319 with 10 units of DsB for 3s
+@usein 0s
+mix321 = mix mix320 with 10 units of DsB for 3s
+@usein 0s
+mix322 = mix mix321 with 10 units of DsB for 3s
+@usein 0s
+mix323 = mix mix322 with 10 units of DsB for 3s
+det52 = detect sensor on mix323 for 30s
+dispose mix323
+
+// path 53
+@usein 0s
+mix324 = mix slt58[0] with 10 units of DsB for 3s
+@usein 0s
+mix325 = mix mix324 with 10 units of DsB for 3s
+@usein 0s
+mix326 = mix mix325 with 10 units of DsB for 3s
+@usein 0s
+mix327 = mix mix326 with 10 units of DsB for 3s
+@usein 0s
+mix328 = mix mix327 with 10 units of DsB for 3s
+det53 = detect sensor on mix328 for 30s
+dispose mix328
+
+// path 54
+@usein 0s
+mix329 = mix slt58[1] with 10 units of DsB for 3s
+@usein 0s
+mix330 = mix mix329 with 10 units of DsB for 3s
+@usein 0s
+mix331 = mix mix330 with 10 units of DsB for 3s
+@usein 0s
+mix332 = mix mix331 with 10 units of DsB for 3s
+@usein 0s
+mix333 = mix mix332 with 10 units of DsB for 3s
+det54 = detect sensor on mix333 for 30s
+dispose mix333
+
+// path 55
+@usein 0s
+mix334 = mix slt59[0] with 10 units of DsB for 3s
+@usein 0s
+mix335 = mix mix334 with 10 units of DsB for 3s
+@usein 0s
+mix336 = mix mix335 with 10 units of DsB for 3s
+@usein 0s
+mix337 = mix mix336 with 10 units of DsB for 3s
+@usein 0s
+mix338 = mix mix337 with 10 units of DsB for 3s
+det55 = detect sensor on mix338 for 30s
+dispose mix338
+
+// path 56
+@usein 0s
+mix339 = mix slt59[1] with 10 units of DsB for 3s
+@usein 0s
+mix340 = mix mix339 with 10 units of DsB for 3s
+@usein 0s
+mix341 = mix mix340 with 10 units of DsB for 3s
+@usein 0s
+mix342 = mix mix341 with 10 units of DsB for 3s
+@usein 0s
+mix343 = mix mix342 with 10 units of DsB for 3s
+det56 = detect sensor on mix343 for 30s
+dispose mix343
+
+// path 57
+@usein 0s
+mix344 = mix slt60[0] with 10 units of DsB for 3s
+@usein 0s
+mix345 = mix mix344 with 10 units of DsB for 3s
+@usein 0s
+mix346 = mix mix345 with 10 units of DsB for 3s
+@usein 0s
+mix347 = mix mix346 with 10 units of DsB for 3s
+@usein 0s
+mix348 = mix mix347 with 10 units of DsB for 3s
+det57 = detect sensor on mix348 for 30s
+dispose mix348
+
+// path 58
+@usein 0s
+mix349 = mix slt60[1] with 10 units of DsB for 3s
+@usein 0s
+mix350 = mix mix349 with 10 units of DsB for 3s
+@usein 0s
+mix351 = mix mix350 with 10 units of DsB for 3s
+@usein 0s
+mix352 = mix mix351 with 10 units of DsB for 3s
+@usein 0s
+mix353 = mix mix352 with 10 units of DsB for 3s
+det58 = detect sensor on mix353 for 30s
+dispose mix353
+
+// path 59
+@usein 0s
+mix354 = mix slt61[0] with 10 units of DsB for 3s
+@usein 0s
+mix355 = mix mix354 with 10 units of DsB for 3s
+@usein 0s
+mix356 = mix mix355 with 10 units of DsB for 3s
+@usein 0s
+mix357 = mix mix356 with 10 units of DsB for 3s
+@usein 0s
+mix358 = mix mix357 with 10 units of DsB for 3s
+det59 = detect sensor on mix358 for 30s
+dispose mix358
+
+// path 60
+@usein 0s
+mix359 = mix slt61[1] with 10 units of DsB for 3s
+@usein 0s
+mix360 = mix mix359 with 10 units of DsB for 3s
+@usein 0s
+mix361 = mix mix360 with 10 units of DsB for 3s
+@usein 0s
+mix362 = mix mix361 with 10 units of DsB for 3s
+@usein 0s
+mix363 = mix mix362 with 10 units of DsB for 3s
+det60 = detect sensor on mix363 for 30s
+dispose mix363
+
+// path 61
+@usein 0s
+mix364 = mix slt62[0] with 10 units of DsB for 3s
+@usein 0s
+mix365 = mix mix364 with 10 units of DsB for 3s
+@usein 0s
+mix366 = mix mix365 with 10 units of DsB for 3s
+@usein 0s
+mix367 = mix mix366 with 10 units of DsB for 3s
+@usein 0s
+mix368 = mix mix367 with 10 units of DsB for 3s
+det61 = detect sensor on mix368 for 30s
+dispose mix368
+
+// path 62
+@usein 0s
+mix369 = mix slt62[1] with 10 units of DsB for 3s
+@usein 0s
+mix370 = mix mix369 with 10 units of DsB for 3s
+@usein 0s
+mix371 = mix mix370 with 10 units of DsB for 3s
+@usein 0s
+mix372 = mix mix371 with 10 units of DsB for 3s
+@usein 0s
+mix373 = mix mix372 with 10 units of DsB for 3s
+det62 = detect sensor on mix373 for 30s
+dispose mix373
+
+// path 63
+@usein 0s
+mix374 = mix slt63[0] with 10 units of DsB for 3s
+@usein 0s
+mix375 = mix mix374 with 10 units of DsB for 3s
+@usein 0s
+mix376 = mix mix375 with 10 units of DsB for 3s
+@usein 0s
+mix377 = mix mix376 with 10 units of DsB for 3s
+@usein 0s
+mix378 = mix mix377 with 10 units of DsB for 3s
+det63 = detect sensor on mix378 for 30s
+dispose mix378
+
+// path 64
+@usein 0s
+mix379 = mix slt63[1] with 10 units of DsB for 3s
+@usein 0s
+mix380 = mix mix379 with 10 units of DsB for 3s
+@usein 0s
+mix381 = mix mix380 with 10 units of DsB for 3s
+@usein 0s
+mix382 = mix mix381 with 10 units of DsB for 3s
+@usein 0s
+mix383 = mix mix382 with 10 units of DsB for 3s
+det64 = detect sensor on mix383 for 30s
+dispose mix383

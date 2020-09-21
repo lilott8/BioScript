@@ -1,0 +1,91 @@
+// protein dilution assay derived from [Su and Chakrabarty, 2008]
+// we assume volatility of all new mixed constituents, which must be used immediately.
+module sensor
+manifest Plasma
+manifest Serum
+manifest Saliva
+manifest Urine
+manifest Glucose
+manifest Lactate
+manifest Pyruvate
+manifest Glutamate
+
+instructions:
+@usein 0s
+mix1 = mix 10 units of Plasma with 10 units of Glucose for 5s
+det1 = detect sensor on mix1 for 5s
+dispose mix1
+@usein 0s
+mix2 = mix 10 units of Plasma with 10 units of Lactate for 5s
+det2 = detect sensor on mix2 for 5s
+dispose mix2
+
+@usein 0s
+mix3 = mix 10 units of Plasma with 10 units of Pyruvate for 5s
+det3 = detect sensor on mix3 for 5s
+dispose mix3
+
+@usein 0s
+mix4 = mix 10 units of Plasma with 10 units of Glutamate for 5s
+det4 = detect sensor on mix4 for 5s
+dispose mix4
+
+@usein 0s
+mix5 = mix 10 units of Serum with 10 units of Glucose for 5s
+det5 = detect sensor on mix5 for 5s
+dispose mix5
+
+@usein 0s
+mix6 = mix 10 units of Serum with 10 units of Lactate for 5s
+det6 = detect sensor on mix6 for 5s
+dispose mix6
+
+@usein 0s
+mix7 = mix 10 units of Serum with 10 units of Pyruvate for 5s
+det7 = detect sensor on mix7 for 5s
+dispose mix7
+
+@usein 0s
+mix8 = mix 10 units of Serum with 10 units of Glutamate for 5s
+det8 = detect sensor on mix8 for 5s
+dispose mix8
+
+@usein 0s
+mix9 = mix 10 units of Saliva with 10 units of Glucose for 5s
+det9 = detect sensor on mix9 for 5s
+dispose mix9
+
+@usein 0s
+mix10 = mix 10 units of Saliva with 10 units of Lactate for 5s
+det10 = detect sensor on mix10 for 5s
+dispose mix10
+
+@usein 0s
+mix11 = mix 10 units of Saliva with 10 units of Pyruvate for 5s
+det11 = detect sensor on mix11 for 5s
+dispose mix11
+
+@usein 0s
+mix12 = mix 10 units of Saliva with 10 units of Glutamate for 5s
+det12 = detect sensor on mix12 for 5s
+dispose mix12
+
+@usein 0s
+mix13 = mix 10 units of Urine with 10 units of Glucose for 5s
+det13 = detect sensor on mix13 for 5s
+dispose mix13
+
+@usein 0s
+mix14 = mix 10 units of Urine with 10 units of Lactate for 5s
+det14 = detect sensor on mix14 for 5s
+dispose mix14
+
+@usein 0s
+mix15 = mix 10 units of Urine with 10 units of Pyruvate for 5s
+det15 = detect sensor on mix15 for 5s
+dispose mix15
+
+@usein 0s
+mix16 = mix 10 units of Urine with 10 units of Glutamate for 5s
+det16 = detect sensor on mix16 for 5s
+dispose mix16

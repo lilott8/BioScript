@@ -10,6 +10,7 @@ from compiler.data_structures.ir import TimeConstraint
 from compiler.data_structures.ir import UseIn, UseInType
 import math
 from io import StringIO
+import os
 
 
 class TransferNode:
@@ -253,7 +254,6 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE ({}, MIX, ".format(str(self.opid))
 
-        self.dot_file.write("\n {} [label=\"mix{}\"];".format(self.opid, self.opid))
 
         time = 10
         usein_time = -1
@@ -265,6 +265,7 @@ class MFSimTarget(BaseTarget):
                 usein_time = t.quantity
                 usein_type = t.useinType
 
+        self.dot_file.write("\n {} [label=\"mix({}s)\" fillcolor=\"#99 D5 CA\", style=filled];".format(self.opid, int(time)))
 
         # MFSim supports >= 2 input droplets, but BS _currently_ requires distinct mix operations for every 2 droplets,
         #  hence, we can safely assume every mix has exactly 2 inputs
@@ -332,7 +333,7 @@ class MFSimTarget(BaseTarget):
                 if ti.iid == self.opid:
                     continue
                 _ret += self.write_edge(self.opid, ti.iid)
-                self.dot_file.write("\n{} -> {};".format(self.opid, ti.iid))
+                self.dot_file.write("\n{} -> {}{};".format(self.opid, ti.iid, "" if usein_time == -1 else " [ label=\"{} {}\" ]".format(usein_type.__str__(), usein_time)))
                 break
 
         for key in to:
@@ -341,7 +342,7 @@ class MFSimTarget(BaseTarget):
                 if ti.iid == self.opid:
                     continue
                 _ret += self.write_edge(self.opid, ti.iid)
-                self.dot_file.write("\n{} -> {};".format(self.opid, ti.iid))
+                self.dot_file.write("\n{} -> {}{};".format(self.opid, ti.iid, "" if usein_time == -1 else " [ label=\"{} {}\" ]".format(usein_type.__str__(), usein_time)))
                 break
 
         self.num_mixes += 1
@@ -361,7 +362,7 @@ class MFSimTarget(BaseTarget):
         else:
             _ret = "NODE (%s, SPLIT, " % str(self.opid)
 
-            self.dot_file.write("\n {} [label=\"split{}\"];".format(self.opid, self.opid))
+            self.dot_file.write("\n {} [label=\"split\" fillcolor=\"#99 D2 F2\", style=filled];".format(self.opid))
 
             numDrops = 2
             time = 2
@@ -419,7 +420,7 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, SPLIT, " % str(self.opid)
 
-        self.dot_file.write("\n {} [label=\"split{}\"];".format(self.opid, self.opid))
+        self.dot_file.write("\n {} [label=\"split\" fillcolor=\"#99 D2 F2\", style=filled];".format(self.opid))
 
         # Default time value is expected, and num drops in mfsim is always required to be exactly 2
         # exponentials of 2 (4,8,16) etc handled in split helper
@@ -495,7 +496,6 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, DETECT, 1, " % str(self.opid)
 
-        self.dot_file.write("\n {} [label=\"detect{}\"];".format(self.opid, self.opid))
 
         time = 10
 
@@ -504,6 +504,7 @@ class MFSimTarget(BaseTarget):
                 time = t.quantity
                 break
 
+        self.dot_file.write("\n {} [label=\"detect({}s)\" fillcolor=\"#D1 BC D2\", style=filled];".format(self.opid, int(time)))
         _ret += "%s, %s(%s))\n" % (str(time), instr.defs['var'].points_to.name, instr.uses[1]['var'].points_to.name)
 
         to = list(self.cblock.dag.successors(instr.uses[1]['name']))
@@ -528,21 +529,21 @@ class MFSimTarget(BaseTarget):
                     offset -= 1
                     continue
                 if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
-                    for y in x.uses:
-                        if y['var'].name == key:
-                            if not set_offset and self.last_split_size == y['size'] and (y['offset'] == instr.uses[1]['offset'] + 1 or y['offset'] == 0 and instr.uses[1]['offset'] == self.last_split_size - 1):
-                                n = y['size']
-                                ex_of_2 = True
-                                while n != 1 and n > 1:
-                                    if n % 2 != 0:
-                                        ex_of_2 = False
-                                    n = n / 2
-                                if ex_of_2:
-                                    offset = y['size'] - 2
-                                    set_offset = True
-                                    continue
-                            to_instr.append(x)
-                            break
+                    y = x.defs
+                    if y['var'].name == key:
+                        if not set_offset and self.last_split_size == y['size'] and (y['offset'] == instr.uses[1]['offset'] + 1 or y['offset'] == 0 and instr.uses[1]['offset'] == self.last_split_size - 1):
+                            n = y['size']
+                            ex_of_2 = True
+                            while n != 1 and n > 1:
+                                if n % 2 != 0:
+                                    ex_of_2 = False
+                                n = n / 2
+                            if ex_of_2:
+                                offset = y['size'] - 2
+                                set_offset = True
+                                continue
+                        to_instr.append(x)
+                        break
 
             for ti in to_instr:
                 _ret += self.write_edge(self.opid, ti.iid)
@@ -562,7 +563,6 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, HEAT, " % str(self.opid)
 
-        self.dot_file.write("\n {} [label=\"heat{}\"];".format(self.opid, self.opid))
 
         time = 10
         usein_time = -1
@@ -577,6 +577,8 @@ class MFSimTarget(BaseTarget):
                 usein_type = t.useinType
             if type(t) is TempConstraint:
                 temp = t.quantity
+
+        self.dot_file.write("\n {} [label=\"heat({}s)\" fillcolor=\"#FF C3 74\", style=filled];".format(self.opid, int(time)))
 
         _ret += "{}, ".format(str(time))
 
@@ -593,7 +595,7 @@ class MFSimTarget(BaseTarget):
                 if x is instr:
                     found_instr = True
                     continue
-                if not found_instr:
+                if not found_instr or x.op in [IRInstruction.NOP]:
                     continue
                 if x.defs['var'].name == instr.defs['var'].name:
                     to = list()
@@ -639,7 +641,7 @@ class MFSimTarget(BaseTarget):
                 if ti.iid == self.opid:
                     continue
                 _ret += self.write_edge(self.opid, ti.iid)
-                self.dot_file.write("\n{} -> {};".format(self.opid, ti.iid))
+                self.dot_file.write("\n{} -> {}{};".format(self.opid, ti.iid, "" if usein_time == -1 else " [ label=\"{} {}\" ]".format(usein_type.__str__(), usein_time)))
                 break
 
             self.num_heats += 1
@@ -654,7 +656,7 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].points_to.name)
 
-        self.dot_file.write("\n {} [label=\"output{}\"];".format(self.opid, self.opid))
+        self.dot_file.write("\n {} [label=\"output\" shape=plaintext];".format(self.opid))
 
         live_drops = list(self.live_droplets)  # kill droplet
         for a, b in live_drops:
@@ -677,7 +679,7 @@ class MFSimTarget(BaseTarget):
         """
         _ret = "NODE (%s, DISPENSE, " % str(self.opid)
 
-        self.dot_file.write("\n {} [label=\"{}{}\"];".format(self.opid, instr.defs['var'].points_to.name, self.opid))
+        self.dot_file.write("\n {} [label=\"{}\" shape=plaintext];".format(self.opid, instr.uses[0]['name']))
 
         capture = instr.defs['var'].volumes
         volume = next(iter(capture.values()))
@@ -1584,6 +1586,8 @@ class MFSimTarget(BaseTarget):
                 self.num_dags += 1
                 self.dot_file.write("\n}")
                 self.dot_file.close()
+                os.system("dot -Tpng {}/{}_DAG{}.dot -o {}/{}_DAG{}.png".format(self.config.output, exp_name, str(bid),
+                                                                                self.config.output, exp_name, str(bid)))
 
             # now build the conditions, with their expressions and potential transfer droplets
             # COND/EXP cases:

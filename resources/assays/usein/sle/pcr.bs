@@ -1,23 +1,103 @@
 //basic thermocycling pcr assay
-//pcr mix is sensitive to temperature -- assume no time for storing droplets
+//pcr master is sensitive to temperature -- assume no time for storing droplets, and fluorescence can be bleached out
 module fluorescence
-manifest pcr_mixture
-manifest primer_mixture
+manifest template
+manifest pcr_master
+manifest forward_primer
+manifest reverse_primer
 
 instructions:
 @usein 0s
-a = mix 10 units of pcr_mixture with 10 units of primer_mixture
+pcr_mix = mix 10 units of pcr_master with 10 units of template for 5s
+
+/* warm up pcr_mix */
+@usein 0s
+heat pcr_mix at 95c for 5s
 
 @usein 0s
-heat a at 95c for 5s
+primer_mix = mix 10 units of forward_primer with 10 units of reverse_primer for 5s
 
-repeat 20 times {
+@usein 0s
+sample = mix pcr_mix with primer_mix for 5s
+
+@usein 0s
+heat sample at 53c for 15s
+@usein 0s
+heat sample at 72c for 10s
     @usein 0s
-    heat a at 53c for 15s
+    heat sample at 53c for 15s
     @usein 0s
-    heat a at 72c for 10s
-}
+    heat sample at 72c for 10s
+        @usein 0s
+    heat sample at 53c for 15s
+    @usein 0s
+    heat sample at 72c for 10s
+        @usein 0s
+    heat sample at 53c for 15s
+    @usein 0s
+    heat sample at 72c for 10s
+    @usein 0s
+heat sample at 53c for 15s
+@usein 0s
+heat sample at 72c for 10s
+    @usein 0s
+    heat sample at 53c for 15s
+    @usein 0s
+    heat sample at 72c for 10s
+        @usein 0s
+    heat sample at 53c for 15s
+    @usein 0s
+    heat sample at 72c for 10s
+        @usein 0s
+    heat sample at 53c for 15s
+    @usein 0s
+    heat sample at 72c for 10s
+        @usein 0s
+    heat sample at 53c for 15s
+    @usein 0s
+    heat sample at 72c for 10s
+    @usein 0s
+heat sample at 53c for 15s
+@usein 0s
+heat sample at 72c for 10s
+    @usein 0s
+    heat sample at 53c for 15s
+    @usein 0s
+    heat sample at 72c for 10s
+        @usein 0s
+    heat sample at 53c for 15s
+    @usein 0s
+    heat sample at 72c for 10s
+        @usein 0s
+    heat sample at 53c for 15s
+    @usein 0s
+    heat sample at 72c for 10s
+        @usein 0s
+    heat sample at 53c for 15s
+    @usein 0s
+    heat sample at 72c for 10s
+    @usein 0s
+heat sample at 53c for 15s
+@usein 0s
+heat sample at 72c for 10s
+    @usein 0s
+    heat sample at 53c for 15s
+    @usein 0s
+    heat sample at 72c for 10s
+        @usein 0s
+    heat sample at 53c for 15s
+    @usein 0s
+    heat sample at 72c for 10s
+        @usein 0s
+    heat sample at 53c for 15s
+    @usein 0s
+    heat sample at 72c for 10s
+        @usein 0s
+    heat sample at 53c for 15s
+    @usein 0s
+    heat sample at 72c for 10s
 
-x = detect fluorescence on a for 3m
 
-dispose a
+x = detect fluorescence on sample for 3m
+
+dispose sample

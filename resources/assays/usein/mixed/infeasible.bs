@@ -1,0 +1,11 @@
+manifest a
+manifest b
+
+instructions:
+
+@usein(finish <=) 5s
+ab = mix 1 units of a with 1 units of b
+
+heat ab at 10c for 6s
+
+dispose ab

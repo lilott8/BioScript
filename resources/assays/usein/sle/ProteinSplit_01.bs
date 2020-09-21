@@ -1,4 +1,4 @@
-// protein dilution assay derived from [Su and Chakrabarty, 2008]
+//protein dilution assay derived from [Su and Chakrabarty, 2008]
 // we assume volatility of all new mixed constituents, which must be used immediately.
 module sensor
 manifest DsS //sample
@@ -10,7 +10,7 @@ instructions:
 mix1 = mix 10 units of DsS with 10 units of DsB for 3s
 slt1 = split mix1 into 2
 
-// first path
+// path 1
 @usein 0s
 mix2 = mix slt1[0] with 10 units of DsB for 3s
 @usein 0s
@@ -20,11 +20,11 @@ mix4 = mix mix3 with 10 units of DsB for 3s
 @usein 0s
 mix5 = mix mix4 with 10 units of DsB for 3s
 @usein 0s
-mix6 = mix mix5 with 10 units of DsR for 3s
+mix6 = mix mix5 with 10 units of DsB for 3s
 det1 = detect sensor on mix6 for 30s
 dispose mix6
 
-// second path
+// path 2
 @usein 0s
 mix7 = mix slt1[1] with 10 units of DsB for 3s
 @usein 0s
@@ -34,6 +34,6 @@ mix9 = mix mix8 with 10 units of DsB for 3s
 @usein 0s
 mix10 = mix mix9 with 10 units of DsB for 3s
 @usein 0s
-mix11 = mix mix10 with 10 units of DsR for 3s
+mix11 = mix mix10 with 10 units of DsB for 3s
 det2 = detect sensor on mix11 for 30s
 dispose mix11
