@@ -799,7 +799,7 @@ class IRVisitor(BSBaseVisitor):
         time = self.visitTimeIdentifier(ctx.timeIdentifier())
         if ctx.useinType():
             uitype = self.visitUseinType(ctx.useinType())
-            return UseIn(time['quantity'], time['units'], uitype['uitype'])
+            return UseIn(time['quantity'], time['units'], UseInType.get_from_string(uitype['uitype']))
         return UseIn(time['quantity'], time['units'])
 
     def visitUseinType(self, ctx:BSParser.UseinTypeContext):

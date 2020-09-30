@@ -45,21 +45,22 @@ class UseInType(IntEnum):
     FEQ = 4
     FGE = 5
 
-    def __str__(self):
-        if self.value == UseInType.SLE:
-            return "SLE"
-        elif self.value == UseInType.SEQ:
-            return "SEQ"
-        elif self.value == UseInType.SGE:
-            return "SGE"
-        elif self.value == UseInType.FLE:
-            return "FLE"
-        elif self.value == UseInType.FEQ:
-            return "FEQ"
-        elif self.value == UseInType.FGE:
-            return "FGE"
+    @staticmethod
+    def get_from_string(ui_type: str):
+        if ui_type == "SLE":
+            return UseInType.SLE
+        elif ui_type == "SEQ":
+            return UseInType.SEQ
+        elif ui_type == "SGE":
+            return UseInType.SGE
+        elif ui_type == "FLE":
+            return UseInType.FLE
+        elif ui_type == "FEQ":
+            return UseInType.FEQ
+        elif ui_type == "FGE":
+            return UseInType.FGE
         else:
-            return "Not a valid UseInType"
+            raise ValueError("{} not a valid UseInType".format(ui_type))
 
 
 class BinaryOps(IntEnum):
@@ -636,7 +637,7 @@ class UseIn(TimeConstraint):
         self.useinType = uitype
 
     def __repr__(self):
-        return "{}{}".format(self.quantity, self.unit.name)
+        return "{} {} {}".format(self.useinType.name, self.quantity, self.unit.name)
 
 
 class ExecuteFor(TimeConstraint):

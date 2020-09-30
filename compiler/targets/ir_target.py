@@ -117,7 +117,7 @@ class IRTarget(BaseTarget):
                     if instruction.meta:
                         for meta in instruction.meta:
                             if meta.name == "USEIN":
-                                self.compiled += " usein {}{}".format(meta.quantity, meta.unit.name)
+                                self.compiled += " usein({})".format(meta.__repr__())
                             else:
                                 self.compiled += " @ {}{}".format(meta.quantity, meta.unit.name)
 

@@ -6,6 +6,7 @@ manifest d
 manifest e
 
 instructions:
+
 @usein 30s
 ab = mix 1 units of a with 1 units of b for 1m
 @usein(finish) 62s
@@ -17,7 +18,7 @@ temp_e = split t_e into 2
 @usein(finish <=) 20s
 heat temp_e[0] at 30c for 30s
 
-@usein(finish >=) 65s
+@usein(finish >=) 15s
 heat cd at 90c for 1m
 
 @usein(start) 10s
