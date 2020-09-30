@@ -215,7 +215,7 @@ class MFSimTarget(BaseTarget):
                         if i.iid != check:
                             if instr.uses[1]['name'] == use['name'] and instr.uses[1]['offset'] == use['offset']:
                                 if not _ret:
-                                    _ret.append(use['name'])
+                                    _ret.append(i.defs['name'])
             else:
                 if i.defs['name'] in uses:  # this instruction is one of the uses
                     if i.iid != check:
@@ -528,7 +528,7 @@ class MFSimTarget(BaseTarget):
                 if offset > 0:
                     offset -= 1
                     continue
-                if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH}:
+                if x.op not in {IRInstruction.NOP, IRInstruction.PHI, IRInstruction.DISPENSE, IRInstruction.MATH, IRInstruction.CONDITIONAL}:
                     y = x.defs
                     if y['var'].name == key:
                         if not set_offset and self.last_split_size == y['size'] and (y['offset'] == instr.uses[1]['offset'] + 1 or y['offset'] == 0 and instr.uses[1]['offset'] == self.last_split_size - 1):
