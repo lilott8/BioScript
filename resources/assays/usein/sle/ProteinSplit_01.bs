@@ -20,7 +20,7 @@ mix4 = mix mix3 with 10 units of DsB for 3s
 @usein 0s
 mix5 = mix mix4 with 10 units of DsB for 3s
 @usein 0s
-mix6 = mix mix5 with 10 units of DsB for 3s
+mix6 = mix mix5 with 10 units of DsR for 3s
 det1 = detect sensor on mix6 for 30s
 dispose mix6
 
@@ -34,6 +34,6 @@ mix9 = mix mix8 with 10 units of DsB for 3s
 @usein 0s
 mix10 = mix mix9 with 10 units of DsB for 3s
 @usein 0s
-mix11 = mix mix10 with 10 units of DsB for 3s
+mix11 = mix mix10 with 10 units of DsR for 3s
 det2 = detect sensor on mix11 for 30s
 dispose mix11

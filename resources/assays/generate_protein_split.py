@@ -4,7 +4,7 @@ import math
 
 # num = 2^exp (eg. proteinsplit 2 gets exp = 2 for 4 dilution samples)
 # this gives us a concentration factor diluting the protein sample
-exp = 5
+exp = 6
 num = 2 ** exp
 usein = True
 n = 0
@@ -52,7 +52,7 @@ with open("output/ProteinSplit_{}.bs".format(exp), mode='w') as file:
         if usein:
             file.write("\n@usein {}s".format(n))
 
-        file.write("\nmix{} = mix mix{} with 10 units of DsB for 3s".format(j+4, j+3))
+        file.write("\nmix{} = mix mix{} with 10 units of DsR for 3s".format(j+4, j+3))
         file.write("\ndet{} = detect sensor on mix{} for 30s".format(i+1, j+4))
         file.write("\ndispose mix{}".format(j+4))
     file.write("\n")
