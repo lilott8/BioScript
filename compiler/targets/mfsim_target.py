@@ -275,7 +275,7 @@ class MFSimTarget(BaseTarget):
         _ret += "2, {}, ".format(str(time))
 
         if usein_time > -1:
-            _ret += "{}, ".format("{}, {}".format(usein_time, "{}".format(usein_type.__str__())))
+            _ret += "{}, ".format("{}, {}".format(usein_time, "{}".format(usein_type.name)))
 
         _ret += "{})\n".format(instr.defs['var'].points_to.name)
 
@@ -333,7 +333,7 @@ class MFSimTarget(BaseTarget):
                 if ti.iid == self.opid:
                     continue
                 _ret += self.write_edge(self.opid, ti.iid)
-                self.dot_file.write("\n{} -> {}{};".format(self.opid, ti.iid, "" if usein_time == -1 else " [ label=\"{} {}\" ]".format(usein_type.__str__(), usein_time)))
+                self.dot_file.write("\n{} -> {}{};".format(self.opid, ti.iid, "" if usein_time == -1 else " [ label=\"{} {}\" ]".format(usein_type.name, usein_time)))
                 break
 
         for key in to:
@@ -342,7 +342,7 @@ class MFSimTarget(BaseTarget):
                 if ti.iid == self.opid:
                     continue
                 _ret += self.write_edge(self.opid, ti.iid)
-                self.dot_file.write("\n{} -> {}{};".format(self.opid, ti.iid, "" if usein_time == -1 else " [ label=\"{} {}\" ]".format(usein_type.__str__(), usein_time)))
+                self.dot_file.write("\n{} -> {}{};".format(self.opid, ti.iid, "" if usein_time == -1 else " [ label=\"{} {}\" ]".format(usein_type.name, usein_time)))
                 break
 
         self.num_mixes += 1
@@ -583,7 +583,7 @@ class MFSimTarget(BaseTarget):
         _ret += "{}, ".format(str(time))
 
         if usein_time > -1:
-            _ret += "{}, ".format("{}, {}".format(usein_time, "{}".format(usein_type.__str__())))
+            _ret += "{}, ".format("{}, {}".format(usein_time, "{}".format(usein_type.name)))
 
         _ret += "{})\n".format(instr.uses[0]['var'].points_to.name)
 
@@ -641,7 +641,7 @@ class MFSimTarget(BaseTarget):
                 if ti.iid == self.opid:
                     continue
                 _ret += self.write_edge(self.opid, ti.iid)
-                self.dot_file.write("\n{} -> {}{};".format(self.opid, ti.iid, "" if usein_time == -1 else " [ label=\"{} {}\" ]".format(usein_type.__str__(), usein_time)))
+                self.dot_file.write("\n{} -> {}{};".format(self.opid, ti.iid, "" if usein_time == -1 else " [ label=\"{} {}\" ]".format(usein_type.name, usein_time)))
                 break
 
             self.num_heats += 1
