@@ -40,15 +40,15 @@ class BasicBlock(object):
         return jumps
 
     def get_returns(self):
-        for jump in self.jumps:
-            if jump.op == IRInstruction.RETURN:
-                return jump
+        for i in self.instructions: #jump in self.jumps
+            if i.op == IRInstruction.RETURN:
+                return i
         return None
 
     def get_call(self):
-        for jump in self.jumps:
-            if jump.op == IRInstruction.CALL:
-                return jump
+        for i in self.instructions: #jump in self.jumps:
+            if i.op == IRInstruction.CALL:
+                return i
         return None
 
     def add_binop(self, bo: BinaryOp):

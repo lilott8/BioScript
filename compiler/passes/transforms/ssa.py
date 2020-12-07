@@ -91,6 +91,9 @@ class SSA(BSTransform):
             while work_list:
                 # This is Appel's n
                 nid = work_list.pop()
+                if nid not in self.frontier[root]:
+                    nid -= 1
+                    #continue
                 # This is Appel's y \in DF[n]
                 for dominator in self.frontier[root][nid]:
                     # This is Appel's a \notin A_{phi}[y]
@@ -130,10 +133,16 @@ class SSA(BSTransform):
                 for x, use in enumerate(instruction.uses):
                     if self.program.symbol_table.is_global(use['name']):
                         continue
-                    renamed = {'name': use['name'] + str(self.bookkeeper[use['name']]['stack'][-1]),
+
+                    if use['name'][-1].isdigit():
+                        continue
+                    else:
+                        use_name = use['name']
+
+                    renamed = {'name': use_name + str(self.bookkeeper[use_name]['stack'][-1]),
                                'offset': use['offset'], 'size': use['size'], 'var': None}
                     renamed_var = RenamedSymbol(renamed['name'],
-                                                self.program.symbol_table.get_symbol(use['name'], root))
+                                                self.program.symbol_table.get_symbol(use_name, root))
                     self.program.symbol_table.add_local_to_scope(renamed_var, root)
                     renamed['var'] = renamed_var
                     instruction.uses[x] = renamed
@@ -147,17 +156,28 @@ class SSA(BSTransform):
                 # count[deff] = count[deff] + 1
                 # i = count[deff]
                 # stack[deff].push(i)
-                self.bookkeeper[old['name']]['count'] += 1
-                self.bookkeeper[old['name']]['stack'].append(self.bookkeeper[old['name']]['count'])
 
-                renamed = {'name': old['name'] + str(self.bookkeeper[old['name']]['stack'][-1]),
+                if old['name'][-1].isdigit():
+                    continue
+                else:
+                    old_name = old['name']
+
+                self.bookkeeper[old_name]['count'] += 1
+                self.bookkeeper[old_name]['stack'].append(self.bookkeeper[old_name]['count'])
+
+                if not hasattr(old, 'size'):
+                    renamed = {'name': old_name + str(self.bookkeeper[old_name]['stack'][-1]),
+                               'offset': old['offset'], 'size': 1, 'var': None}
+
+                else:
+                    renamed = {'name': old_name + str(self.bookkeeper[old_name]['stack'][-1]),
                            'offset': old['offset'], 'size': old['size'], 'var': None}
-                renamed_var = RenamedSymbol(renamed['name'], self.program.symbol_table.get_symbol(old['name'], root))
+                renamed_var = RenamedSymbol(renamed['name'], self.program.symbol_table.get_symbol(old_name, root))
                 self.program.symbol_table.add_local_to_scope(renamed_var, root)
                 # replace deff with deff_i in instruction
                 renamed['var'] = renamed_var
                 instruction.defs = renamed
-            if instruction.op in {IRInstruction.HEAT, IRInstruction.DISPOSE}:
+            if instruction.op in {IRInstruction.HEAT, IRInstruction.DISPOSE, IRInstruction.RETURN}:
                 '''
                 This exists because a heat and dispose don't create new definitions.
                 In other words, it doesn't consume any variable, just changes
@@ -165,33 +185,45 @@ class SSA(BSTransform):
                 Because of this fact, we set the def to the renamed use. 
                 '''
                 instruction.defs = instruction.uses[0]
-        for j, successor in enumerate(self.program.bb_graph.out_edges(block.nid)):
-            '''
-            This successor is a successor -- or an outgoing edge within the CFG. 
-            '''
-            succ_block = self.program.functions[root]['blocks'][successor[1]]
-            # We only care about the PHI nodes of this block
-            for instruction in list(filter(lambda instr: instr.op == IRInstruction.PHI, succ_block.instructions)):
-                if isinstance(instruction.defs, dict):
-                    original_var = instruction.defs['var'].points_to.name
+        if instruction.name is not 'RETURN': #if last intrustion is return, there is no further nesting
+
+            for j, successor in enumerate(self.program.bb_graph.out_edges(block.nid)):
+                '''
+                This successor is a successor -- or an outgoing edge within the CFG. 
+                '''
+
+                if successor[1] not in self.program.functions[root]['blocks']:
+                    continue
+
                 else:
-                    original_var = instruction.defs
-                use_count = len(instruction.uses)
-                # i = stack[deff].peek()
-                # replace use[i] with use[i]_i
-                # If the variable has been replaced already,
-                # we don't need to look at this phi node.
-                if self.bookkeeper[original_var]['renamed'][instruction.iid] < use_count:
-                    next_id = self.bookkeeper[original_var]['renamed'][instruction.iid]
-                    instruction.uses[next_id] = f"{original_var}{self.bookkeeper[original_var]['stack'][-1]}"
-                    self.bookkeeper[original_var]['renamed'][instruction.iid] += 1
+                    succ_block = self.program.functions[root]['blocks'][successor[1]]
+                # We only care about the PHI nodes of this block
+                for instruction in list(filter(lambda instr: instr.op == IRInstruction.PHI, succ_block.instructions)):
+                    if isinstance(instruction.defs, dict):
+                        original_var = instruction.defs['var'].points_to.name
+                    else:
+                        original_var = instruction.defs
+                    use_count = len(instruction.uses)
+                    # i = stack[deff].peek()
+                    # replace use[i] with use[i]_i
+                    # If the variable has been replaced already,
+                    # we don't need to look at this phi node.
+                    if self.bookkeeper[original_var]['renamed'][instruction.iid] < use_count:
+                        next_id = self.bookkeeper[original_var]['renamed'][instruction.iid]
+                        instruction.uses[next_id] = f"{original_var}{self.bookkeeper[original_var]['stack'][-1]}"
+                        self.bookkeeper[original_var]['renamed'][instruction.iid] += 1
         for successor in self.dominator_tree[root][block.nid]:
             '''
             This is a child -- or an outgoing edge within the dominator tree.
             '''
-            self.rename(self.program.functions[root]['blocks'][successor], root)
+            if successor == list(self.program.functions[root]['blocks'].keys())[-1] + 1 and instruction.op == IRInstruction.CALL:
+                successor = list(self.program.functions[root]['blocks'].keys())[-1]
+            if successor in self.program.functions[root]['blocks']:
+                self.rename(self.program.functions[root]['blocks'][successor], root)
+            else:
+                continue
         for instruction in block.instructions:
-            if instruction.defs and instruction.op not in {IRInstruction.HEAT, IRInstruction.DISPOSE}:
+            if instruction.defs and instruction.op not in {IRInstruction.HEAT, IRInstruction.DISPOSE, IRInstruction.RETURN}:
                 # We must use the old points to name
                 # because we've lost it at this point.
                 self.bookkeeper[instruction.defs['var'].points_to.name]['stack'].pop()
@@ -205,7 +237,7 @@ class SSA(BSTransform):
                     continue
                 for use in instruction.uses:
                     block.uses.add(use['name'])
-                if instruction.op in {IRInstruction.HEAT, IRInstruction.DISPOSE}:
+                if instruction.op in {IRInstruction.HEAT, IRInstruction.DISPOSE, IRInstruction.RETURN}:
                     continue
                 if instruction.defs:
                     block.defs.add(instruction.defs['name'])

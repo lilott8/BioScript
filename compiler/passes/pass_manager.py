@@ -58,7 +58,7 @@ class PassManager(object):
         # self.dependencies['analysis'].add_node('call_graph')
 
     def init_transforms(self):
-        if self.config.inline:
+        if self.config.inline: #TODO: move inling to a prior stage before SSA
             self.transforms['inline'] = Inline()
         self.transforms['split_edges'] = SplitEdges()
         self.transforms['simd_expansion'] = SIMDExpansion()
