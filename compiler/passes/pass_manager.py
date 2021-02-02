@@ -22,7 +22,10 @@ class PassManager(object):
         # self.dependencies = {'analysis': nx.DiGraph(), 'transforms': nx.DiGraph()}
         self.transforms = dict()
         self.analysis = dict()
-        # Ensure SSA is run first.
+        # Ensure SSA is run first
+        if self.config.inline:
+            In = Inline()
+            self.program = In.transform(self.program)
         self.run_ssa()
 
     def run_ssa(self):
@@ -58,8 +61,8 @@ class PassManager(object):
         # self.dependencies['analysis'].add_node('call_graph')
 
     def init_transforms(self):
-        if self.config.inline: #TODO: move inling to a prior stage before SSA
-            self.transforms['inline'] = Inline()
+        #if self.config.inline:
+        #    self.transforms['inline'] = Inline()
         self.transforms['split_edges'] = SplitEdges()
         self.transforms['simd_expansion'] = SIMDExpansion()
         # self.dependencies['transforms'].add_node('split_edges')

@@ -1,7 +1,7 @@
 from compiler.data_structures import Program
 from compiler.passes.transforms.bs_transform import BSTransform
 from compiler.data_structures.ir import *
-from compiler.data_structures.variable import Variable
+from compiler.data_structures.variable import *
 
 class Inline(BSTransform):
 
@@ -16,14 +16,15 @@ class Inline(BSTransform):
             small local function for transforming parameter arguments into their
             appropriate outer scope variables
             '''
+            if a in global_vars:
+                return a
+
             if a[:-1] in parameter_map:
                 return parameter_map[a[:-1]]
 
             if a in parameter_map:
                 return parameter_map[a]
 
-            if a in global_vars:
-                return a
             return a
             #return '{}_{}{}'.format(call.name, a, str(self.var_num))
 
@@ -58,28 +59,46 @@ class Inline(BSTransform):
 
                 if type(instr) == Dispose:
                     a = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
-                    inline_instr = Dispose(Variable(a))
+                    #inline_instr = Dispose(Variable(a))
+                    inline_instr = deepcopy(instr)
+                    inline_instr.uses[0]['name'] = a
                 elif type(instr) == Mix:
                     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
                     a   = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
                     b   = inline_var_names(instr.uses[1]['name'], parameter_map, global_vars)
-                    inline_instr = Mix(Variable(r), Variable(a), Variable(b))
+                    #inline_instr = Mix(Variable(r), Variable(a), Variable(b))
+                    inline_instr = deepcopy(instr)
+                    inline_instr.defs['name'] = r
+                    inline_instr.uses[0]['name'] = a
+                    inline_instr.uses[1]['name'] = b
                 elif type(instr) == Split:
                     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
                     a = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
-                    inline_instr = Split(Variable(r), Variable(a))
+                    #inline_instr = Split(Variable(r), Variable(a))
+                    inline_instr = deepcopy(instr)
+                    inline_instr.defs['name'] = r
+                    inline_instr.uses[0]['name'] = a
                 elif type(instr) == Detect:
                     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
                     a   = inline_var_names(instr.uses[0]['name'], global_vars)
-                    inline_instr = Detect(Variable(r), instr.module, Variable(a))
+                    #inline_instr = Detect(Variable(r), instr.module, Variable(a))
+                    inline_instr = deepcopy(instr)
+                    inline_instr.defs['name'] = r
+                    inline_instr.uses[0]['name'] = a
                 elif type(instr) == Heat:
                     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
                     a = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
-                    inline_instr = Heat(Variable(r), Variable(a))
+                    #inline_instr = Heat(Variable(r), Variable(a))
+                    inline_instr = deepcopy(instr)
+                    inline_instr.defs['name'] = r
+                    inline_instr.uses[0]['name'] = a
                 elif type(instr) == Dispense:
                     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
                     a   = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
-                    inline_instr = Dispense(Variable(r), Variable(a))
+                    #inline_instr = Dispense(Variable(r), Variable(a))
+                    inline_instr = deepcopy(instr)
+                    inline_instr.defs['name'] = r
+                    inline_instr.uses[0]['name'] = a
                 elif type(instr) == Return:
                     inline_instr = NOP()
                 elif type(instr) == Call:

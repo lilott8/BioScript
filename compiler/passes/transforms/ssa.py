@@ -128,6 +128,9 @@ class SSA(BSTransform):
         :return: None
         """
         # For each phi function and x = y op z.
+        if self.program.config.inline:
+            if root in self.program.symbol_table.functions:
+                return
         for instruction in block.instructions:
             if instruction.op != IRInstruction.PHI:
                 for x, use in enumerate(instruction.uses):
@@ -141,8 +144,15 @@ class SSA(BSTransform):
 
                     renamed = {'name': use_name + str(self.bookkeeper[use_name]['stack'][-1]),
                                'offset': use['offset'], 'size': use['size'], 'var': None}
+                    if use_name in self.program.symbol_table.scope_map[root].locals:
+                        location = root
+                    else:
+                        location = root
+                        for area in self.program.symbol_table.scope_map:
+                            if use_name in self.program.symbol_table.scope_map[area].locals:
+                                location = area
                     renamed_var = RenamedSymbol(renamed['name'],
-                                                self.program.symbol_table.get_symbol(use_name, root))
+                                                self.program.symbol_table.get_symbol(use_name, location))
                     self.program.symbol_table.add_local_to_scope(renamed_var, root)
                     renamed['var'] = renamed_var
                     instruction.uses[x] = renamed
@@ -172,7 +182,14 @@ class SSA(BSTransform):
                 else:
                     renamed = {'name': old_name + str(self.bookkeeper[old_name]['stack'][-1]),
                            'offset': old['offset'], 'size': old['size'], 'var': None}
-                renamed_var = RenamedSymbol(renamed['name'], self.program.symbol_table.get_symbol(old_name, root))
+                if old_name in self.program.symbol_table.scope_map[root].locals:
+                    location = root
+                else:
+                    location = root
+                    for area in self.program.symbol_table.scope_map:
+                        if old_name in self.program.symbol_table.scope_map[area].locals:
+                            location = area
+                renamed_var = RenamedSymbol(renamed['name'], self.program.symbol_table.get_symbol(old_name, location))
                 self.program.symbol_table.add_local_to_scope(renamed_var, root)
                 # replace deff with deff_i in instruction
                 renamed['var'] = renamed_var
