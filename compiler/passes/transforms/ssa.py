@@ -93,11 +93,12 @@ class SSA(BSTransform):
                 nid = work_list.pop()
                 if nid not in self.frontier[root]:
                     nid -= 1
-                    #continue
+                    continue
                 # This is Appel's y \in DF[n]
                 for dominator in self.frontier[root][nid]:
                     # This is Appel's a \notin A_{phi}[y]
-                    if dominator not in needs_phi:
+                    if dominator not in needs_phi and dominator in self.program.functions[root]['blocks']:
+                        #added the above check to make sure dominiator is in the blocks so functions can be called muliple times in a bs file
                         phi = Phi(var, [var for x in range(len(self.program.bb_graph.in_edges(dominator)))])
                         self.program.functions[root]['blocks'][dominator].phis.add(phi)
                         self.program.functions[root]['blocks'][dominator].instructions.insert(0, phi)
@@ -131,16 +132,14 @@ class SSA(BSTransform):
         if self.program.config.inline:
             if root in self.program.symbol_table.functions:
                 return
+        instruction = None #added such that instruction can't end up undeclared later
         for instruction in block.instructions:
             if instruction.op != IRInstruction.PHI:
                 for x, use in enumerate(instruction.uses):
                     if self.program.symbol_table.is_global(use['name']):
                         continue
 
-                    if use['name'][-1].isdigit():
-                        continue
-                    else:
-                        use_name = use['name']
+                    use_name = use['name']
 
                     renamed = {'name': use_name + str(self.bookkeeper[use_name]['stack'][-1]),
                                'offset': use['offset'], 'size': use['size'], 'var': None}
@@ -167,15 +166,12 @@ class SSA(BSTransform):
                 # i = count[deff]
                 # stack[deff].push(i)
 
-                if old['name'][-1].isdigit():
-                    continue
-                else:
-                    old_name = old['name']
+                old_name = old['name']
 
                 self.bookkeeper[old_name]['count'] += 1
                 self.bookkeeper[old_name]['stack'].append(self.bookkeeper[old_name]['count'])
 
-                if not hasattr(old, 'size'):
+                if 'size' not in old:
                     renamed = {'name': old_name + str(self.bookkeeper[old_name]['stack'][-1]),
                                'offset': old['offset'], 'size': 1, 'var': None}
 
@@ -202,11 +198,11 @@ class SSA(BSTransform):
                 Because of this fact, we set the def to the renamed use. 
                 '''
                 instruction.defs = instruction.uses[0]
-        if instruction.name is not 'RETURN': #if last intrustion is return, there is no further nesting
+        if instruction is None or instruction.name not in {'RETURN', 'DISPOSE', 'NOP'}: #if last intrustion is return, there is no further nesting
 
             for j, successor in enumerate(self.program.bb_graph.out_edges(block.nid)):
                 '''
-                This successor is a successor -- or an outgoing edge within the CFG. 
+                This successor is a successor -- or an outgoing edge within the CFG.
                 '''
 
                 if successor[1] not in self.program.functions[root]['blocks']:

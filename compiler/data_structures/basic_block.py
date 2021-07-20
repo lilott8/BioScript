@@ -40,13 +40,13 @@ class BasicBlock(object):
         return jumps
 
     def get_returns(self):
-        for i in self.instructions: #jump in self.jumps
+        for i in self.instructions:
             if i.op == IRInstruction.RETURN:
                 return i
         return None
 
     def get_call(self):
-        for i in self.instructions: #jump in self.jumps:
+        for i in self.instructions:
             if i.op == IRInstruction.CALL:
                 return i
         return None

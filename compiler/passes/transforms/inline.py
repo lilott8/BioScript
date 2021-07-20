@@ -56,17 +56,16 @@ class Inline(BSTransform):
             for instr in block.instructions:
 
                 inline_instr = None
+                returned_instructions = []
 
                 if type(instr) == Dispose:
                     a = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
-                    #inline_instr = Dispose(Variable(a))
                     inline_instr = deepcopy(instr)
                     inline_instr.uses[0]['name'] = a
                 elif type(instr) == Mix:
                     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
                     a   = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
                     b   = inline_var_names(instr.uses[1]['name'], parameter_map, global_vars)
-                    #inline_instr = Mix(Variable(r), Variable(a), Variable(b))
                     inline_instr = deepcopy(instr)
                     inline_instr.defs['name'] = r
                     inline_instr.uses[0]['name'] = a
@@ -74,45 +73,53 @@ class Inline(BSTransform):
                 elif type(instr) == Split:
                     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
                     a = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
-                    #inline_instr = Split(Variable(r), Variable(a))
                     inline_instr = deepcopy(instr)
                     inline_instr.defs['name'] = r
                     inline_instr.uses[0]['name'] = a
                 elif type(instr) == Detect:
                     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
                     a   = inline_var_names(instr.uses[0]['name'], global_vars)
-                    #inline_instr = Detect(Variable(r), instr.module, Variable(a))
                     inline_instr = deepcopy(instr)
                     inline_instr.defs['name'] = r
                     inline_instr.uses[0]['name'] = a
                 elif type(instr) == Heat:
                     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
                     a = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
-                    #inline_instr = Heat(Variable(r), Variable(a))
                     inline_instr = deepcopy(instr)
                     inline_instr.defs['name'] = r
                     inline_instr.uses[0]['name'] = a
                 elif type(instr) == Dispense:
                     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
                     a   = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
-                    #inline_instr = Dispense(Variable(r), Variable(a))
                     inline_instr = deepcopy(instr)
                     inline_instr.defs['name'] = r
                     inline_instr.uses[0]['name'] = a
                 elif type(instr) == Return:
-                    inline_instr = NOP()
+                    inline_instr = None
                 elif type(instr) == Call:
                     if instr.name != func_name and instr.name not in already_called:
-                        instructions = instructions + self.handle_call(program, instr, already_called=already_called|{func_name})
-                        inline_instr = NOP()
+                        returned_instructions = self.handle_call(program, instr, already_called=already_called|{func_name}) #
+                        instructions = instructions + returned_instructions
+                        inline_instr = None
                     else:
                         #we have entered a recursive area, cannot inline
-                        ret = inline_var_names(instr.defs['name'], parameter_map, global_vars)
-                        arguments = map(lambda a: Variable(inline_var_names(a.name, parameter_map, global_vars)), instr.uses)
-                        inline_instr = Call(Variable(ret), instr.function, arguments)
+                        self.log.warning("target inlining detected recursion. Not currently implemented.")
+                        #exit(-1)
 
-                instructions.append(inline_instr)
-       
+                        #old methods
+                        #ret = inline_var_names(instr.defs['name'], parameter_map, global_vars)
+                        #arguments = map(lambda a: Variable(inline_var_names(a.name, parameter_map, global_vars)), instr.uses)
+                        #inline_instr = Call(Variable(ret), instr.function, arguments)
+
+                if inline_instr is not None:
+                    instructions.append(inline_instr)
+                # New method to allow for inlining time optimization,as we no longer need to do nested call chains after we do one once
+                if type(instr) == Call:
+                    block.instructions.pop() #pop the call instruction
+                    block.instructions = block.instructions + deepcopy(returned_instructions) #append returned instructions
+                    # After we remove the call, we directly insert the nested instructions
+                    # so future calls to this function don't have to call any other functions at all
+
         self.var_num = self.var_num + 1 
         return instructions
 
@@ -128,16 +135,22 @@ class Inline(BSTransform):
         """
 
         for block in program.functions['main']['blocks'].values():
-            #TODO: I assume call is always the last element
-            #may or may not be true...
-            call = block.get_call()
-            if call != None:
-                #ret = call.defs.name #unused
-                func_name = call.name
-                #blocks = program.functions[func_name]['blocks'] #unused
-                #get rid of last instruction, replace with inline code.
-                block.instructions[-1] = NOP()
-                block.instructions = block.instructions + self.handle_call(program, call)
+            #new method that can handle multiple function calls and potential instructions before, after, or between those calls
+            if block.label.label != 'main': #inlining only needs to deal with the main
+                continue
+            final_block = deepcopy(block)
+            final_block.instructions = []
+            regular_instructions = []
+            for internal_blocks in program.functions['main']['blocks'].values():
+                for instruc in internal_blocks.instructions: #method to add instructions for calls and regular instructions
+                    if type(instruc) == Call:
+                        final_block.instructions = final_block.instructions + regular_instructions + self.handle_call(program, instruc)
+                        regular_instructions = []
+                    else:
+                        instru_to_append = deepcopy(instruc)
+                        regular_instructions.append(instru_to_append)
+
+            block.instructions = final_block.instructions + regular_instructions
 
         return program
 

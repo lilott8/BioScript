@@ -73,7 +73,8 @@ class MethodVisitor(BSBaseVisitor):
                 function.types.update(symbol.types)
             else:
                 function.types.update(ret['types'])
-        function.types.remove(ChemTypes.UNKNOWN)
+        if ChemTypes.UNKNOWN in function.types: #only remove if exists
+            function.types.remove(ChemTypes.UNKNOWN)
         self.scope_stack.pop()
 
     def visitFormalParameters(self, ctx: BSParser.FormalParametersContext):

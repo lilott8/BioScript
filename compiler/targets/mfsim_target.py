@@ -61,7 +61,8 @@ class MFSimTarget(BaseTarget):
                 for i in bb.instructions:
                     if i.op is IRInstruction.SPLIT:
                         splits += i.split_size
-        self.tid = int(math.ceil((self.program.functions['main']['blocks'][self.program.entry_point].instructions[0].id_counter + 1 + splits) / 100.0)) * 100
+        enter = next(iter(self.program.functions['main']['blocks'])) #updated from self.program.entry_point
+        self.tid = int(math.ceil((self.program.functions['main']['blocks'][enter].instructions[0].id_counter + 1 + splits) / 100.0)) * 100
         self.num_dags = 0
         self.num_cgs = 0
         self.num_edges = 0
@@ -75,6 +76,9 @@ class MFSimTarget(BaseTarget):
 
     def build_cfg(self):
         for root in self.program.functions:
+            if self.program.config.inline: #inline timesave
+                if root in self.program.symbol_table.functions:
+                    continue
             leafs = set()
             tags = dict()
             self.dags[root] = dict()
@@ -91,8 +95,9 @@ class MFSimTarget(BaseTarget):
                     # add bid to the list of nodes that must have all edges removed from final graph
                     remove_nodes.add(bid)
                     continue
-                for sid in self.program.functions[root]['graph'].successors(bid):
-                    self.cfg['graph'].add_edge(bid, sid)
+                if not self.program.config.inline: #Don't need this when inlining
+                    for sid in self.program.functions[root]['graph'].successors(bid):
+                       self.cfg['graph'].add_edge(bid, sid)
                 self.cfg[bid] = dict()
                 curr = self.cfg[bid]
                 write = True
@@ -265,7 +270,10 @@ class MFSimTarget(BaseTarget):
 
         # MFSim supports >= 2 input droplets, but BS requires distinct mix operations for every 2 droplets,
         #  hence, we can safely assume every mix has exactly 2 inputs
-        _ret += "2, %s, %s)\n" % (str(time), instr.defs['var'].points_to.name)
+        if hasattr(instr.defs['var'], 'points_to'): #ensure we grab the existing name
+            _ret += "2, %s, %s)\n" % (str(time), instr.defs['var'].points_to.name)
+        else:
+            _ret += "2, %s, %s)\n" % (str(time), instr.defs['var'].name)
 
         for meta in instr.meta:
             if meta.name is "USEIN":
@@ -329,7 +337,10 @@ class MFSimTarget(BaseTarget):
                 break
 
         for key in to:
-            to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].points_to.name is key]
+            if hasattr(instr.defs['var'], 'points_to'): #ensure we grab the existing name
+                to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].points_to.name is key]
+            else:
+                to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].name is key]
             for ti in to_instr:
                 if ti.iid == self.opid:
                     continue
@@ -624,12 +635,19 @@ class MFSimTarget(BaseTarget):
               nodeName  <- this means nothing to MFSim
         :return:
         """
-        _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].points_to.name)
+        if hasattr(instr.uses[0]['var'], 'points_to'): #ensure we grab the existing name
+            _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].points_to.name)
+        else:
+            _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].name)
 
         live_drops = list(self.live_droplets)  # kill droplet
         for a, b in live_drops:
-            if b == instr.uses[0]['var'].points_to.name:
-                self.live_droplets.remove((a, b))
+            if hasattr(instr.uses[0]['var'], 'points_to'): #ensure we grab the existing name
+                if b == instr.uses[0]['var'].points_to.name:
+                    self.live_droplets.remove((a, b))
+            else:
+                if b == instr.uses[0]['var'].name:
+                    self.live_droplets.remove((a, b))
 
         # DISPOSE for mfsim requires the sinkname and type (drain, save, etc)
         # Only needed for archfile, defaults are fine
@@ -650,7 +668,10 @@ class MFSimTarget(BaseTarget):
         capture = instr.defs['var'].volumes
         volume = next(iter(capture.values()))
 
-        _ret += "%s, %s, %s)\n" % (instr.uses[0]['name'], str(volume), instr.defs['var'].points_to.name)
+        if hasattr(instr.defs['var'], 'points_to'): #ensure we grab the existing name
+            _ret += "%s, %s, %s)\n" % (instr.uses[0]['name'], str(volume), instr.defs['var'].points_to.name)
+        else:
+            _ret += "%s, %s, %s)\n" % (instr.uses[0]['name'], str(volume), instr.defs['var'].name)
 
         to = list(self.cblock.dag._succ[instr.defs['var'].name])
 
@@ -1397,6 +1418,9 @@ class MFSimTarget(BaseTarget):
     def transform(self):
         self.build_cfg()
         for root in self.program.functions:
+            if self.program.config.inline: #inline optimization
+                if root in self.program.symbol_table.functions:
+                    continue
             self.root = root
             exp_name = self.config.input.rsplit('/', 1)[1][:-3]  # get file input name -'.bs'
             cfg_file = open("%s/%s.cfg" % (self.config.output, exp_name), "w")
@@ -1407,6 +1431,10 @@ class MFSimTarget(BaseTarget):
 
             for bid, block in sorted(self.program.functions[root]['blocks'].items()):
                 self.cblock = block
+
+                if self.program.config.inline: #Don't need this if not the main and we are inlining
+                    if bid is not next(iter(self.program.functions[root]['blocks'])):
+                        continue
 
                 write = False
                 for instr in block.instructions:
@@ -1440,7 +1468,25 @@ class MFSimTarget(BaseTarget):
                 dispenses = set()
                 for node in block.instructions:
                     if node.name in ['DISPENSE']:
+                        if hasattr(node.defs['var'], 'points_to'): #make sure to grab the existing name
+                            dispenses.add(node.defs['var'].points_to.name)
+                        else:
+                            dispenses.add(node.defs['var'].name)
                         dispenses.add(node.defs['var'].points_to.name)
+                        if node.defs['size'] >= 2: #Check if the offset for a use was left unchanged for a dispense with multiple drops
+                            to = list(self.cblock.dag._succ[node.defs['var'].name])
+                            index = 0
+                            for val in to:
+                                for instr in self.cblock.instructions:
+                                    if instr.name in {'NOP'}:
+                                        continue
+                                    if instr.defs['name'] == val:
+                                        for use in instr.uses:
+                                            if use['name'] == node.defs['name']:
+                                                if use['offset'] != 0: #this means the offset is fine as is
+                                                    continue
+                                                use['offset'] = index
+                                                index = index + 1
                 for node in block.instructions:
 
                     if node.name in ['PHI', 'BINARYOP', 'CONDITIONAL', 'DISPENSE', 'MATH']:
@@ -1541,7 +1587,10 @@ class MFSimTarget(BaseTarget):
                                 defIndex = index
                                 skip = False
                                 # find the points_to def
-                                _def = i.defs['var'].points_to.name
+                                if hasattr(i.defs['var'], 'points_to'): # make sure to grab the existing name
+                                    _def = i.defs['var'].points_to.name
+                                else:
+                                    _def = i.defs['var'].name
                                 instr = i
                                 break
                             continue
