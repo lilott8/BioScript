@@ -420,6 +420,10 @@ class MFSimTarget(BaseTarget):
 
         # Default time value is expected, and num drops in mfsim is always required to be exactly 2
         # exponentials of 2 (4,8,16) etc handled in split helper
+        #TODO: Splits currently are treated as breaking a dropplet directly in half at each split.
+        # as such mfsim currently expects total splits to be of even size, specifically, a factor of 2
+        # in the future, this may not always be the case. In such a scenario, odd numbered sized splits,
+        # and splits in which the volume varies in each subsequent dropplet may vary, rather than just half
 
         numDrops = 2
         time = 2
@@ -443,7 +447,7 @@ class MFSimTarget(BaseTarget):
             while counter != 2:
                 found_instr = False
                 for x in self.cblock.instructions:
-                    if x.name is 'NOP':
+                    if x.name in {'NOP', 'PHI'}:
                         continue
                     if x.uses[0]['name'] is instr.uses[0]['name'] and x.name is 'SPLIT':
                         found_instr = True

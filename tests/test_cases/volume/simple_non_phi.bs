@@ -1,0 +1,17 @@
+manifest substance_a
+manifest dilutant1
+module fluorescence
+
+instructions:
+
+sa = dispense 10 units of substance_a
+d1 = dispense 1 units of dilutant1
+sas = dispense 10 units of substance_a
+d2 = dispense 1 units of dilutant1
+
+first_dilute = mix sa with d1 for 5s
+x = split first_dilute into 4
+second_dilute = mix sas with d2 for 5s
+y = split second_dilute into 4
+z = mix x with y for 5s
+//dispose z

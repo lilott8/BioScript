@@ -1,0 +1,14 @@
+manifest fluid_a
+
+instructions:
+
+if (3<=3) {
+	a = dispense 6 units of fluid_a
+} else {
+	a = dispense 10 units of fluid_a
+}
+
+b = split a into 2
+c = split b[0] into 2
+dispose b[1]
+dispose c

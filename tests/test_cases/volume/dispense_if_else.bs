@@ -8,4 +8,4 @@ if (3<=3) {
 	a = dispense 10 units of fluid_a
 }
 
-b = split a into 5
+b = split a into 2

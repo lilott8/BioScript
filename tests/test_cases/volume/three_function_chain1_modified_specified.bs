@@ -1,0 +1,26 @@
+manifest aaa
+functions:
+function bar(dd) {
+    e = dispense aaa
+    f = mix e with 5 units of dd
+    return f
+}
+
+function foo(aa) {
+    g = dispense aaa
+    h = bar(g)
+    c = mix aa with 5 units of h
+    return c
+}
+
+function rue(bb) {
+    k = dispense aaa
+    l = foo(k)
+    v = mix bb with 5 units of l
+    return v
+}
+
+instructions:
+z = dispense aaa
+y = rue(z)
+dispose y

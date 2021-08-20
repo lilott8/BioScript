@@ -188,6 +188,10 @@ class SSA(BSTransform):
                 renamed_var = RenamedSymbol(renamed['name'], self.program.symbol_table.get_symbol(old_name, location))
                 self.program.symbol_table.add_local_to_scope(renamed_var, root)
                 # replace deff with deff_i in instruction
+                # preserve volume data if applicable
+                if instruction.op in {IRInstruction.DISPENSE, IRInstruction.MIX, IRInstruction.SPLIT, IRInstruction.DISPOSE, IRInstruction.HEAT, IRInstruction.DETECT}:
+                    if hasattr(instruction.defs['var'], 'volumes') and hasattr(renamed_var, 'volumes'):
+                        renamed_var.volumes = instruction.defs['var'].volumes  # keep passed in volume info
                 renamed['var'] = renamed_var
                 instruction.defs = renamed
             if instruction.op in {IRInstruction.HEAT, IRInstruction.DISPOSE, IRInstruction.RETURN}:
