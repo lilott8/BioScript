@@ -88,6 +88,9 @@ class VolumeTracker(BSAnalysis):
             if deepcopy(min(self.variable_volume[instructions.uses[i]]['volumes'])) not in possible_volumes:  # treat as a set
                 possible_volumes.append(deepcopy(min(self.variable_volume[instructions.uses[i]]['volumes'])))
 
+            self.variable_volume[instructions.uses[i]]['volumes'] = [-1]
+            self.variable_volume[instructions.uses[i]]['size'] = 0
+
         entry = dict()  # The dict that will hold our new entry in the variable_volume ds
 
         # Build the entry dict
@@ -156,6 +159,8 @@ class VolumeTracker(BSAnalysis):
         if instructions['offset'] >= 0:
             if self.variable_volume.get(instructions['name'], None) is not None:
                 self.variable_volume[instructions['name']]['volumes'] = [-1]
+                if self.variable_volume[instructions['name']]['size'] == 1:
+                    self.variable_volume[instructions['name']]['size'] = 0
             else:
                 self.violation_found = True
 

@@ -11,21 +11,6 @@ from tests.frontend.front_end_base import FrontEndBase
 @pytest.mark.dispose
 class TestDispose(FrontEndBase):
 
-    # For whatever reason, this test will fail depending on where you place it. Beware.
-    def test_if_else(self, get_visitor):
-        file = "test_cases/volume/dispense_if_else.bs"
-
-        tree = get_visitor(file)
-
-        vol = self.get_volume(tree, file)
-
-        assert not vol[0]  # == False
-
-        assert sum(vol[1][-1]['a2']['volumes']) == 10
-
-        for i in range(2):
-            assert vol[1][-1]['b1']['volumes'][i] == 2.5
-
     def test_basic(self, get_visitor):
         file = "test_cases/volume/dispose.bs"
 
@@ -35,6 +20,20 @@ class TestDispose(FrontEndBase):
 
         assert not vol[0]  # == False
         assert sum(vol[1][-1]['a1']['volumes']) == -1
+
+    def test_if_else(self, get_visitor):
+        file = "test_cases/volume/dispense_if_else.bs"
+
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        assert not vol[0]  # == False
+
+        assert sum(vol[1][-1]['a2']['volumes']) == -1
+
+        for i in range(2):
+            assert vol[1][-1]['b1']['volumes'][i] == 2.5
 
 
 @pytest.mark.frontend
