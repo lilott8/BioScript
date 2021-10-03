@@ -211,6 +211,33 @@ class TestSplit(FrontEndBase):
 @pytest.mark.volume
 @pytest.mark.repeat_loop
 class TestRepeat(FrontEndBase):
+    def test_prob_pcr_mod1(self, get_visitor):
+        file = "test_cases/volume/probabilistic_pcr_mod1.bs"
+
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        assert not vol[0]  # == False
+
+        # Middle state tests
+        assert sum(vol[1][0]['a1']['volumes']) == 10
+        assert sum(vol[1][1]['b1']['volumes']) == 10
+        assert vol[1][2]['PCR_Master_Mix1']['volumes'][0] == 20
+        assert sum(vol[1][2]['a1']['volumes']) == -1
+        assert sum(vol[1][2]['b1']['volumes']) == -1
+        assert vol[1][6]['PCR_Master_Mix1']['volumes'][0] == 0
+        assert vol[1][6]['PCR_Master_Mix1']['volumes'][1] == 20
+        assert vol[1][9]['PCR_Master_Mix2']['volumes'][0] == 0
+        assert vol[1][9]['PCR_Master_Mix2']['volumes'][1] == 20
+        assert vol[1][9]['PCR_Master_Mix1']['volumes'][0] == -1
+
+        # Final state tests
+        assert sum(vol[1][-1]['a1']['volumes']) == -1
+        assert sum(vol[1][-1]['b1']['volumes']) == -1
+        assert sum(vol[1][-1]['PCR_Master_Mix1']['volumes']) == -1
+        assert sum(vol[1][-1]['PCR_Master_Mix2']['volumes']) == -1
+
     def test_prob_pcr(self, get_visitor):
         file = "test_cases/assays/probabilistic_pcr.bs"
 
@@ -218,8 +245,420 @@ class TestRepeat(FrontEndBase):
 
         vol = self.get_volume(tree, file)
 
-        # TODO: after fixing volume tracking to deal with phi nodes generated from loops, add correct assertions
-        assert vol[0]
+        assert not vol[0]  # == False
+
+        # Middle state tests -- will need to update after repeats actually repeat instructions in terms of volume tracking
+        assert sum(vol[1][0]['a1']['volumes']) == 10
+        assert sum(vol[1][1]['b1']['volumes']) == 10
+        assert vol[1][2]['PCR_Master_Mix1']['volumes'][0] == 20
+        assert sum(vol[1][2]['a1']['volumes']) == -1
+        assert sum(vol[1][2]['b1']['volumes']) == -1
+        assert vol[1][5]['PCR_Master_Mix2']['volumes'][0] == 20
+        assert vol[1][5]['PCR_Master_Mix1']['volumes'][0] == -1
+        assert vol[1][12]['PCR_Master_Mix2']['volumes'][0] == 0
+        assert vol[1][12]['PCR_Master_Mix2']['volumes'][1] == 20
+        assert vol[1][13]['PCR_Master_Mix3']['volumes'][0] == 0
+        assert vol[1][13]['PCR_Master_Mix3']['volumes'][1] == 20
+        assert vol[1][13]['PCR_Master_Mix2']['volumes'][0] == -1
+        assert vol[1][15]['PCR_Master_Mix4']['volumes'][0] == 0
+        assert vol[1][15]['PCR_Master_Mix4']['volumes'][1] == 20
+        assert vol[1][15]['PCR_Master_Mix3']['volumes'][0] == -1
+        assert vol[1][21]['PCR_Master_Mix4']['volumes'][0] == -1
+        assert sum(vol[1][22]['d1']['volumes']) == 10
+        assert sum(vol[1][23]['e1']['volumes']) == 10
+        assert vol[1][24]['f1']['volumes'][0] == 20
+        assert sum(vol[1][24]['d1']['volumes']) == -1
+        assert sum(vol[1][24]['e1']['volumes']) == -1
+
+        # Final state tests
+        assert sum(vol[1][-1]['a1']['volumes']) == -1
+        assert sum(vol[1][-1]['b1']['volumes']) == -1
+        assert sum(vol[1][-1]['PCR_Master_Mix1']['volumes']) == -1
+        assert sum(vol[1][-1]['PCR_Master_Mix2']['volumes']) == -1
+        assert sum(vol[1][-1]['PCR_Master_Mix3']['volumes']) == -1
+        assert sum(vol[1][-1]['PCR_Master_Mix4']['volumes']) == -1
+        assert sum(vol[1][-1]['d1']['volumes']) == -1
+        assert sum(vol[1][-1]['e1']['volumes']) == -1
+        assert sum(vol[1][-1]['f1']['volumes']) == -1
+
+    def test_mix_in_if_else(self, get_visitor):
+        file = "test_cases/volume/mix_in_if_else.bs"
+
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        assert not vol[0]  # == False
+
+        # Middle state tests
+        assert sum(vol[1][0]['a1']['volumes']) == 10
+        assert sum(vol[1][1]['b1']['volumes']) == 20
+        assert sum(vol[1][2]['c1']['volumes']) == 30
+        assert sum(vol[1][3]['d1']['volumes']) == 5
+        # assert vol[1][7]['e1']['volumes'][0] == 30
+        assert vol[1][7]['a1']['volumes'][0] == 10
+        assert vol[1][7]['a1']['volumes'][1] == 0
+        assert vol[1][7]['b1']['volumes'][0] == 20
+        assert vol[1][7]['b1']['volumes'][1] == 0
+        # assert vol[1][8]['e2']['volumes'][0] == 50
+        assert vol[1][8]['b1']['volumes'][0] == -1
+        # assert vol[1][8]['b1']['volumes'][1] == 0
+        assert vol[1][8]['c1']['volumes'][0] == 30
+        assert vol[1][8]['c1']['volumes'][1] == 0
+        #assert vol[1][9]['e3']['volumes'][0] == 30
+        #assert vol[1][9]['e3']['volumes'][1] == 50
+        #assert vol[1][9]['e2']['volumes'][0] == -1
+        #assert vol[1][9]['e1']['volumes'][0] == -1
+
+        # Final state tests
+        assert vol[1][-1]['e3']['volumes'][0] == -1
+        assert vol[1][-1]['e2']['volumes'][0] == -1
+        assert vol[1][-1]['e1']['volumes'][0] == -1
+        assert vol[1][-1]['a1']['volumes'][0] == 10
+        assert vol[1][-1]['a1']['volumes'][1] == 0
+        assert vol[1][-1]['b1']['volumes'][0] == -1
+        assert vol[1][-1]['c1']['volumes'][0] == 30
+        assert vol[1][-1]['c1']['volumes'][1] == 0
+        assert vol[1][-1]['d1']['volumes'][0] == -1
+
+    def test_mix_in_if_else_specified(self, get_visitor):
+        file = "test_cases/volume/mix_in_if_else_specified.bs"
+
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        assert not vol[0]  # == False
+
+        # Middle state tests
+        assert sum(vol[1][0]['a1']['volumes']) == 10
+        assert sum(vol[1][1]['b1']['volumes']) == 20
+        assert sum(vol[1][2]['c1']['volumes']) == 30
+        assert sum(vol[1][3]['d1']['volumes']) == 5
+        assert vol[1][7]['e1']['volumes'][0] == 16
+        assert vol[1][7]['a1']['volumes'][0] == 10
+        assert vol[1][7]['a1']['volumes'][1] == 5
+        assert vol[1][7]['b1']['volumes'][0] == 20
+        assert vol[1][7]['b1']['volumes'][1] == 9
+        assert vol[1][8]['e2']['volumes'][0] == 20
+        assert vol[1][8]['b1']['volumes'][0] == 20
+        assert vol[1][8]['b1']['volumes'][1] == 9
+        assert vol[1][8]['b1']['volumes'][2] == 15
+        assert vol[1][8]['c1']['volumes'][0] == 30
+        assert vol[1][8]['c1']['volumes'][1] == 15
+        assert vol[1][9]['e3']['volumes'][0] == 16
+        assert vol[1][9]['e3']['volumes'][1] == 20
+        assert vol[1][9]['e2']['volumes'][0] == -1
+        assert vol[1][9]['e1']['volumes'][0] == -1
+
+        # Final state tests
+        assert vol[1][-1]['e3']['volumes'][0] == -1
+        assert vol[1][-1]['e2']['volumes'][0] == -1
+        assert vol[1][-1]['e1']['volumes'][0] == -1
+        assert vol[1][-1]['a1']['volumes'][0] == 10
+        assert vol[1][-1]['a1']['volumes'][1] == 5
+        assert vol[1][-1]['b1']['volumes'][0] == 20
+        assert vol[1][-1]['b1']['volumes'][1] == 9
+        assert vol[1][-1]['b1']['volumes'][2] == 15
+        assert vol[1][-1]['c1']['volumes'][0] == 30
+        assert vol[1][-1]['c1']['volumes'][1] == 15
+        assert vol[1][-1]['d1']['volumes'][0] == -1
+
+    def test_mix_in_if_else_large_specified(self, get_visitor):
+        file = "test_cases/volume/mix_in_if_else_large_specified.bs"
+
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        assert not vol[0]  # == False
+
+        # Middle state tests
+        assert sum(vol[1][0]['a1']['volumes']) == 10
+        assert sum(vol[1][1]['b1']['volumes']) == 20
+        assert sum(vol[1][2]['c1']['volumes']) == 30
+        assert sum(vol[1][3]['d1']['volumes']) == 5
+        #assert vol[1][7]['e1']['volumes'][0] == 16
+        assert vol[1][7]['a1']['volumes'][0] == 10
+        assert vol[1][7]['a1']['volumes'][1] == 5
+        assert vol[1][7]['b1']['volumes'][0] == 20
+        assert vol[1][7]['b1']['volumes'][1] == 9
+        #assert vol[1][8]['e2']['volumes'][0] == 27
+        assert vol[1][8]['b1']['volumes'][0] == 20
+        assert vol[1][8]['b1']['volumes'][1] == 9
+        assert vol[1][8]['b1']['volumes'][2] == 8
+        assert vol[1][8]['c1']['volumes'][0] == 30
+        assert vol[1][8]['c1']['volumes'][1] == 15
+        #assert vol[1][9]['e3']['volumes'][0] == 16
+        #assert vol[1][9]['e3']['volumes'][1] == 27
+        #assert vol[1][9]['e2']['volumes'][0] == -1
+        #assert vol[1][9]['e1']['volumes'][0] == -1
+
+        # Final state tests
+        assert vol[1][-1]['e3']['volumes'][0] == -1
+        assert vol[1][-1]['e2']['volumes'][0] == -1
+        assert vol[1][-1]['e1']['volumes'][0] == -1
+        assert vol[1][-1]['a1']['volumes'][0] == 10
+        assert vol[1][-1]['a1']['volumes'][1] == 5
+        assert vol[1][-1]['b1']['volumes'][0] == 20
+        assert vol[1][-1]['b1']['volumes'][1] == 9
+        assert vol[1][-1]['b1']['volumes'][2] == 8
+        assert vol[1][-1]['c1']['volumes'][0] == 30
+        assert vol[1][-1]['c1']['volumes'][1] == 15
+        assert vol[1][-1]['d1']['volumes'][0] == -1
+
+    def test_individual_mix_in_if_else(self, get_visitor):
+        file = "test_cases/volume/individual_mix_in_if_else.bs"
+
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        assert not vol[0]  # == False
+
+        # Middle state tests
+        assert sum(vol[1][0]['z1']['volumes']) == 20
+        assert sum(vol[1][1]['a1']['volumes']) == 10
+        assert vol[1][2]['b1']['volumes'][0] == 10
+        assert vol[1][2]['b1']['volumes'][1] == 10
+        assert sum(vol[1][3]['c1']['volumes']) == 30
+        assert sum(vol[1][4]['d1']['volumes']) == 5
+        assert vol[1][8]['e1']['volumes'][0] == 20
+        assert vol[1][8]['a1']['volumes'][0] == 10
+        assert vol[1][8]['a1']['volumes'][1] == 0
+        assert vol[1][8]['b1']['volumes'][0] == 10
+        assert vol[1][8]['b1']['volumes'][1] == 10
+        assert vol[1][8]['b1']['volumes'][2] == 0
+        assert vol[1][8]['b1']['volumes'][3] == 10
+        assert vol[1][9]['e2']['volumes'][0] == 40
+        assert vol[1][9]['b1']['volumes'][0] == 10
+        assert vol[1][9]['b1']['volumes'][1] == 10
+        assert vol[1][9]['b1']['volumes'][2] == 0
+        assert vol[1][9]['b1']['volumes'][3] == 10
+        assert vol[1][9]['b1']['volumes'][4] == 10
+        assert vol[1][9]['b1']['volumes'][5] == 0
+        assert vol[1][9]['c1']['volumes'][0] == 30
+        assert vol[1][9]['c1']['volumes'][1] == 0
+        assert vol[1][10]['e3']['volumes'][0] == 20
+        assert vol[1][10]['e3']['volumes'][1] == 40
+
+        # Final state tests
+        assert vol[1][-1]['e3']['volumes'][0] == -1
+        assert vol[1][-1]['e2']['volumes'][0] == -1
+        assert vol[1][-1]['e1']['volumes'][0] == -1
+        assert vol[1][-1]['a1']['volumes'][0] == 10
+        assert vol[1][-1]['a1']['volumes'][1] == 0
+        assert vol[1][-1]['b1']['volumes'][0] == 10
+        assert vol[1][-1]['b1']['volumes'][1] == 10
+        assert vol[1][-1]['b1']['volumes'][2] == 0
+        assert vol[1][-1]['b1']['volumes'][3] == 10
+        assert vol[1][-1]['b1']['volumes'][4] == 10
+        assert vol[1][-1]['b1']['volumes'][5] == 0
+        assert vol[1][-1]['c1']['volumes'][0] == 30
+        assert vol[1][-1]['c1']['volumes'][1] == 0
+        assert vol[1][-1]['d1']['volumes'][0] == -1
+        assert vol[1][-1]['z1']['volumes'][0] == -1
+
+    def test_individual_mix_in_if_else2(self, get_visitor):
+        file = "test_cases/volume/individual_mix_in_if_else_2.bs"
+
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        assert not vol[0]  # == False
+
+        # Middle state tests
+        assert sum(vol[1][0]['z1']['volumes']) == 20
+        assert sum(vol[1][1]['a1']['volumes']) == 10
+        assert vol[1][2]['b1']['volumes'][0] == 10
+        assert vol[1][2]['b1']['volumes'][1] == 10
+        assert sum(vol[1][3]['c1']['volumes']) == 30
+        assert sum(vol[1][4]['d1']['volumes']) == 5
+        #assert vol[1][8]['e1']['volumes'][0] == 20
+        assert vol[1][8]['b1']['volumes'][0] == 10
+        assert vol[1][8]['b1']['volumes'][1] == 10
+        assert vol[1][8]['b1']['volumes'][2] == 0
+        assert vol[1][8]['b1']['volumes'][3] == 0
+        #assert vol[1][9]['e2']['volumes'][0] == 40
+        assert vol[1][9]['a1']['volumes'][0] == 10
+        assert vol[1][9]['a1']['volumes'][1] == 0
+        assert vol[1][9]['c1']['volumes'][0] == 30
+        assert vol[1][9]['c1']['volumes'][1] == 0
+        #assert vol[1][10]['e3']['volumes'][0] == 20
+        #assert vol[1][10]['e3']['volumes'][1] == 40
+
+        # Final state tests
+        assert vol[1][-1]['e3']['volumes'][0] == -1
+        assert vol[1][-1]['e2']['volumes'][0] == -1
+        assert vol[1][-1]['e1']['volumes'][0] == -1
+        assert vol[1][-1]['a1']['volumes'][0] == 10
+        assert vol[1][-1]['a1']['volumes'][1] == 0
+        assert vol[1][-1]['b1']['volumes'][0] == 10
+        assert vol[1][-1]['b1']['volumes'][1] == 10
+        assert vol[1][-1]['b1']['volumes'][2] == 0
+        assert vol[1][-1]['b1']['volumes'][3] == 0
+        assert vol[1][-1]['c1']['volumes'][0] == 30
+        assert vol[1][-1]['c1']['volumes'][1] == 0
+        assert vol[1][-1]['d1']['volumes'][0] == -1
+        assert vol[1][-1]['z1']['volumes'][0] == -1
+
+    def test_individual_mix_in_if_else_specified(self, get_visitor):
+        file = "test_cases/volume/individual_mix_in_if_else_specified.bs"
+
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        assert not vol[0]  # == False
+
+        # Middle state tests
+        assert sum(vol[1][0]['z1']['volumes']) == 20
+        assert sum(vol[1][1]['a1']['volumes']) == 10
+        assert vol[1][2]['b1']['volumes'][0] == 10
+        assert vol[1][2]['b1']['volumes'][1] == 10
+        assert sum(vol[1][3]['c1']['volumes']) == 30
+        assert sum(vol[1][4]['d1']['volumes']) == 5
+        assert vol[1][8]['e1']['volumes'][0] == 10
+        assert vol[1][8]['a1']['volumes'][0] == 10
+        assert vol[1][8]['a1']['volumes'][1] == 5
+        assert vol[1][8]['b1']['volumes'][0] == 10
+        assert vol[1][8]['b1']['volumes'][1] == 10
+        assert vol[1][8]['b1']['volumes'][2] == 5
+        assert vol[1][8]['b1']['volumes'][3] == 10
+        assert vol[1][9]['e2']['volumes'][0] == 18
+        assert vol[1][9]['b1']['volumes'][0] == 10
+        assert vol[1][9]['b1']['volumes'][1] == 10
+        assert vol[1][9]['b1']['volumes'][2] == 5
+        assert vol[1][9]['b1']['volumes'][3] == 10
+        assert vol[1][9]['b1']['volumes'][4] == 10
+        assert vol[1][9]['b1']['volumes'][5] == 7
+        assert vol[1][9]['c1']['volumes'][0] == 30
+        assert vol[1][9]['c1']['volumes'][1] == 15
+        assert vol[1][10]['e3']['volumes'][0] == 10
+        assert vol[1][10]['e3']['volumes'][1] == 18
+
+        # Final state tests
+        assert vol[1][-1]['e3']['volumes'][0] == -1
+        assert vol[1][-1]['e2']['volumes'][0] == -1
+        assert vol[1][-1]['e1']['volumes'][0] == -1
+        assert vol[1][-1]['a1']['volumes'][0] == 10
+        assert vol[1][-1]['a1']['volumes'][1] == 5
+        assert vol[1][-1]['b1']['volumes'][0] == 10
+        assert vol[1][-1]['b1']['volumes'][1] == 10
+        assert vol[1][-1]['b1']['volumes'][2] == 5
+        assert vol[1][-1]['b1']['volumes'][3] == 10
+        assert vol[1][-1]['b1']['volumes'][4] == 10
+        assert vol[1][-1]['b1']['volumes'][5] == 7
+        assert vol[1][-1]['c1']['volumes'][0] == 30
+        assert vol[1][-1]['c1']['volumes'][1] == 15
+        assert vol[1][-1]['d1']['volumes'][0] == -1
+        assert vol[1][-1]['z1']['volumes'][0] == -1
+
+    def test_individual_if_else_dispose(self, get_visitor):
+        file = "test_cases/volume/individual_if_else_dispose.bs"
+
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        assert not vol[0]  # == False
+
+        # Middle state tests
+        assert sum(vol[1][0]['z1']['volumes']) == 20
+        assert vol[1][1]['b1']['volumes'][0] == 10
+        assert vol[1][1]['b1']['volumes'][1] == 10
+        assert vol[1][2]['d1']['volumes'][0] == 5
+        assert vol[1][6]['b1']['volumes'][0] == 10
+        assert vol[1][6]['b1']['volumes'][1] == 10
+        assert vol[1][6]['b1']['volumes'][2] == 0
+        assert vol[1][6]['b1']['volumes'][3] == 10
+        assert vol[1][7]['b1']['volumes'][0] == 10
+        assert vol[1][7]['b1']['volumes'][1] == 10
+        assert vol[1][7]['b1']['volumes'][2] == 0
+        assert vol[1][7]['b1']['volumes'][3] == 10
+        assert vol[1][7]['b1']['volumes'][4] == 10
+        assert vol[1][7]['b1']['volumes'][5] == 0
+
+        # Final state tests
+        assert sum(vol[1][-1]['z1']['volumes']) == -1
+        assert sum(vol[1][-1]['d1']['volumes']) == -1
+        assert vol[1][-1]['b1']['volumes'][0] == 10
+        assert vol[1][-1]['b1']['volumes'][1] == 10
+        assert vol[1][-1]['b1']['volumes'][2] == 0
+        assert vol[1][-1]['b1']['volumes'][3] == 10
+        assert vol[1][-1]['b1']['volumes'][4] == 10
+        assert vol[1][-1]['b1']['volumes'][5] == 0
+
+    def test_split_in_if(self, get_visitor):
+        file = "test_cases/volume/split_in_if.bs"
+
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        assert not vol[0]  # == False
+
+        # Middle state tests
+        assert sum(vol[1][0]['z1']['volumes']) == 20
+        assert vol[1][1]['d1']['volumes'][0] == 5
+        assert vol[1][5]['z1']['volumes'][0] == 20
+        assert vol[1][5]['z1']['volumes'][1] == 0
+        assert vol[1][5]['b1']['volumes'][0] == 10
+        assert vol[1][5]['b1']['volumes'][1] == 10
+        assert vol[1][7]['b2']['volumes'][0] == 10
+        assert vol[1][7]['b2']['volumes'][1] == 10
+        assert vol[1][8]['d1']['volumes'][0] == -1
+
+        # Final state tests
+        assert vol[1][-1]['z1']['volumes'][0] == 20
+        assert vol[1][-1]['z1']['volumes'][1] == 0
+        assert vol[1][-1]['d1']['volumes'][0] == -1
+        assert vol[1][-1]['b2']['volumes'][0] == 10
+        assert vol[1][-1]['b2']['volumes'][1] == 10
+
+    def test_split_split_in_if_else(self, get_visitor):
+        file = "test_cases/volume/split_split_in_if_else.bs"
+
+        tree = get_visitor(file)
+
+        vol = self.get_volume(tree, file)
+
+        assert not vol[0]  # == False
+
+        # Middle state tests
+        assert sum(vol[1][0]['z1']['volumes']) == 20
+        assert vol[1][1]['b1']['volumes'][0] == 10
+        assert vol[1][1]['b1']['volumes'][1] == 10
+        assert vol[1][2]['d1']['volumes'][0] == 5
+        assert vol[1][6]['b1']['volumes'][0] == 10
+        assert vol[1][6]['b1']['volumes'][1] == 10
+        assert vol[1][6]['b1']['volumes'][2] == 0
+        assert vol[1][6]['b1']['volumes'][3] == 10
+        #assert vol[1][6]['a1']['volumes'][0] == 5
+        #assert vol[1][6]['a1']['volumes'][1] == 5
+        assert vol[1][7]['b1']['volumes'][0] == 10
+        assert vol[1][7]['b1']['volumes'][1] == 10
+        assert vol[1][7]['b1']['volumes'][2] == 0
+        assert vol[1][7]['b1']['volumes'][3] == 10
+        assert vol[1][7]['b1']['volumes'][4] == 10
+        assert vol[1][7]['b1']['volumes'][5] == 0
+        #assert vol[1][7]['c1']['volumes'][0] == 5
+        #assert vol[1][7]['c1']['volumes'][1] == 5
+
+        # Final state tests
+        assert sum(vol[1][-1]['z1']['volumes']) == -1
+        assert sum(vol[1][-1]['d1']['volumes']) == -1
+        assert vol[1][-1]['b1']['volumes'][0] == 10
+        assert vol[1][-1]['b1']['volumes'][1] == 10
+        assert vol[1][-1]['b1']['volumes'][2] == 0
+        assert vol[1][-1]['b1']['volumes'][3] == 10
+        assert vol[1][-1]['b1']['volumes'][4] == 10
+        assert vol[1][-1]['b1']['volumes'][5] == 0
+        assert vol[1][-1]['a1']['volumes'][0] == 5
+        assert vol[1][-1]['a1']['volumes'][1] == 5
+        assert vol[1][-1]['c2']['volumes'][0] == 5
+        assert vol[1][-1]['c2']['volumes'][1] == 5
 
 
 @pytest.mark.frontend
