@@ -5,7 +5,8 @@ from networkx.classes.function import add_cycle
 from chemicals.chemtypes import ChemTypeResolver
 from compiler.data_structures.basic_block import BasicBlock
 from compiler.data_structures.ir import *
-from compiler.data_structures.variable import Stationary, Number, Module, Dispensable, Movable
+from compiler.data_structures.variable import Stationary, Number, Module, Dispensable, Movable, Reagent
+from compiler.data_structures.properties import BSVolume
 from compiler.data_structures.variable import Symbol
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
@@ -483,6 +484,8 @@ class IRVisitor(BSBaseVisitor):
     def visitMethodInvocation(self, ctx: BSParser.MethodInvocationContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
         deff['var'] = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
+        if deff['var'].value is None: #last ditch effort to give this value a pseudo value
+            deff['var'].value = Reagent(deff['name'], 1, 10.0, BSVolume.MICROLITRE)
         if deff['var'].value.size <= 1 and deff['index'] == -1:
             offset = 0
         else:

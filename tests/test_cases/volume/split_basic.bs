@@ -5,5 +5,5 @@ instructions:
 
 a = dispense fluid_a
 
-b = split a into 5
+b = split a into 4
 
