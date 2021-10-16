@@ -1,0 +1,29 @@
+module fluorescence
+manifest Buffer
+manifest PCRMix
+
+instructions:
+a = dispense 10 units of PCRMix
+b = dispense 10 units of Buffer
+PCR_Master_Mix = mix a with b
+
+heat PCR_Master_Mix at 94c for 2m
+
+DNA_Sensor = detect fluorescence on PCR_Master_Mix for 30s
+
+if (DNA_Sensor <= 80) {
+    dispose PCR_Master_Mix
+}
+else {
+    heat PCR_Master_Mix at 60c for 5m
+}
+
+heat PCR_Master_Mix at 70c for 60s
+dispose PCR_Master_Mix
+
+
+
+
+
+
+

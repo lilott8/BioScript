@@ -39,6 +39,7 @@ class MFSimTarget(BaseTarget):
         self.cfg = dict()
         self.block_transfers = dict()
         self.loop_headers = dict()
+        self.scope_variable = list()
         #for split semantics and live droplet tracking
         self.cgid_pair = dict()  # to ensure cgid stay consistent
         self.live_droplets = list()  # to ensure droplets are passed along accoringly
@@ -60,7 +61,8 @@ class MFSimTarget(BaseTarget):
                 for i in bb.instructions:
                     if i.op is IRInstruction.SPLIT:
                         splits += i.split_size
-        self.tid = int(math.ceil((self.program.functions['main']['blocks'][self.program.entry_point].instructions[0].id_counter + 1 + splits) / 100.0)) * 100
+        enter = next(iter(self.program.functions['main']['blocks'])) #updated from self.program.entry_point
+        self.tid = int(math.ceil((self.program.functions['main']['blocks'][enter].instructions[0].id_counter + 1 + splits) / 100.0)) * 100
         self.num_dags = 0
         self.num_cgs = 0
         self.num_edges = 0
@@ -74,6 +76,9 @@ class MFSimTarget(BaseTarget):
 
     def build_cfg(self):
         for root in self.program.functions:
+            if self.program.config.inline: #inline timesave
+                if root in self.program.symbol_table.functions:
+                    continue
             leafs = set()
             tags = dict()
             self.dags[root] = dict()
@@ -90,8 +95,9 @@ class MFSimTarget(BaseTarget):
                     # add bid to the list of nodes that must have all edges removed from final graph
                     remove_nodes.add(bid)
                     continue
-                for sid in self.program.functions[root]['graph'].successors(bid):
-                    self.cfg['graph'].add_edge(bid, sid)
+                if not self.program.config.inline: #Don't need this when inlining
+                    for sid in self.program.functions[root]['graph'].successors(bid):
+                       self.cfg['graph'].add_edge(bid, sid)
                 self.cfg[bid] = dict()
                 curr = self.cfg[bid]
                 write = True
@@ -264,7 +270,10 @@ class MFSimTarget(BaseTarget):
 
         # MFSim supports >= 2 input droplets, but BS requires distinct mix operations for every 2 droplets,
         #  hence, we can safely assume every mix has exactly 2 inputs
-        _ret += "2, %s, %s)\n" % (str(time), instr.defs['var'].points_to.name)
+        if hasattr(instr.defs['var'], 'points_to'): #ensure we grab the existing name
+            _ret += "2, %s, %s)\n" % (str(time), instr.defs['var'].points_to.name)
+        else:
+            _ret += "2, %s, %s)\n" % (str(time), instr.defs['var'].name)
 
         for meta in instr.meta:
             if meta.name is "USEIN":
@@ -328,7 +337,10 @@ class MFSimTarget(BaseTarget):
                 break
 
         for key in to:
-            to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].points_to.name is key]
+            if hasattr(instr.defs['var'], 'points_to'): #ensure we grab the existing name
+                to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].points_to.name is key]
+            else:
+                to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].name is key]
             for ti in to_instr:
                 if ti.iid == self.opid:
                     continue
@@ -408,6 +420,10 @@ class MFSimTarget(BaseTarget):
 
         # Default time value is expected, and num drops in mfsim is always required to be exactly 2
         # exponentials of 2 (4,8,16) etc handled in split helper
+        #TODO: Splits currently are treated as breaking a dropplet directly in half at each split.
+        # as such mfsim currently expects total splits to be of even size, specifically, a factor of 2
+        # in the future, this may not always be the case. In such a scenario, odd numbered sized splits,
+        # and splits in which the volume varies in each subsequent dropplet may vary, rather than just half
 
         numDrops = 2
         time = 2
@@ -431,7 +447,7 @@ class MFSimTarget(BaseTarget):
             while counter != 2:
                 found_instr = False
                 for x in self.cblock.instructions:
-                    if x.name is 'NOP':
+                    if x.name in {'NOP', 'PHI'}:
                         continue
                     if x.uses[0]['name'] is instr.uses[0]['name'] and x.name is 'SPLIT':
                         found_instr = True
@@ -623,12 +639,19 @@ class MFSimTarget(BaseTarget):
               nodeName  <- this means nothing to MFSim
         :return:
         """
-        _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].points_to.name)
+        if hasattr(instr.uses[0]['var'], 'points_to'): #ensure we grab the existing name
+            _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].points_to.name)
+        else:
+            _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].name)
 
         live_drops = list(self.live_droplets)  # kill droplet
         for a, b in live_drops:
-            if b == instr.uses[0]['var'].points_to.name:
-                self.live_droplets.remove((a, b))
+            if hasattr(instr.uses[0]['var'], 'points_to'): #ensure we grab the existing name
+                if b == instr.uses[0]['var'].points_to.name:
+                    self.live_droplets.remove((a, b))
+            else:
+                if b == instr.uses[0]['var'].name:
+                    self.live_droplets.remove((a, b))
 
         # DISPOSE for mfsim requires the sinkname and type (drain, save, etc)
         # Only needed for archfile, defaults are fine
@@ -649,7 +672,10 @@ class MFSimTarget(BaseTarget):
         capture = instr.defs['var'].volumes
         volume = next(iter(capture.values()))
 
-        _ret += "%s, %s, %s)\n" % (instr.uses[0]['name'], str(volume), instr.defs['var'].points_to.name)
+        if hasattr(instr.defs['var'], 'points_to'): #ensure we grab the existing name
+            _ret += "%s, %s, %s)\n" % (instr.uses[0]['name'], str(volume), instr.defs['var'].points_to.name)
+        else:
+            _ret += "%s, %s, %s)\n" % (instr.uses[0]['name'], str(volume), instr.defs['var'].name)
 
         to = list(self.cblock.dag._succ[instr.defs['var'].name])
 
@@ -709,12 +735,88 @@ class MFSimTarget(BaseTarget):
             if cond.left['name'].startswith('REPEAT'):
                 _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), int(cond.left['var'].value.value[0]))
             else:  # must be a while
-                # TODO translate while conditions properly -- if a while is statically known
-                #    we should translate to a repeat, i.e., i = 0; while (i < 10) { ...i++...} -> repeat 10 times
-                #    otherwise, i.e.: x = detect.., while (x...) { x = detect; }, we'll need to set up the sensor
+                #    We should translate to a repeat, i.e., i = 0; while (i < 10) { ...i++...} -> repeat 10 times
+                #    otherwise, i.e.: x = detect.., while (x...) { x = detect; }, we set up the sensor
                 #    reading as the conditional
-                self.log.error("Not translating \"while\" loop in mfsim properly")
-                _ret += "while)\n"
+                # TODO -- if a while is statically known
+                #    statically find and save the loop num before translation
+                #    currently mfsim_target can only handle i++ or i--
+                #    currently cannot factor in i+=2 or i+=3 and operates
+                #    by finding the difference between the values of the variable and the constant
+                if self.scope_variable == cond.left['var'].name or self.scope_variable == cond.right['var'].name:  # logical while
+                    if cond.relop == RelationalOps.LT: #i = 0 < 10
+                        loop_num = abs(cond.right['var'].value.value[0] - cond.left['var'].value.value[0])
+                        _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), loop_num)
+                    elif cond.relop == RelationalOps.GT: #i = 10 > 0
+                        loop_num = abs(cond.left['var'].value.value[0] - cond.right['var'].value.value[0])
+                        _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), loop_num)
+                    elif cond.relop == RelationalOps.LTE: #i = 0 <= 10
+                        loop_num = abs(cond.right['var'].value.value[0] - cond.left['var'].value.value[0]) + 1
+                        _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), loop_num)
+                    elif cond.relop == RelationalOps.GTE: #i = 10 >= 0
+                        loop_num = abs(cond.left['var'].value.value[0] - cond.right['var'].value.value[0]) + 1
+                        _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), loop_num)
+                else: #fluidic while that needs the conditional to be the sensor value
+                    # ONE_SENSOR, relop, depDag, depNodeID, value)
+                    relop = "Unrecognized relational operator"
+                    if cond.relop is RelationalOps.LTE:
+                        relop = "LoE"
+                    elif cond.relop is RelationalOps.GTE:
+                        relop = "GoE"
+                    elif cond.relop is RelationalOps.GT:
+                        relop = "GT"
+                    elif cond.relop is RelationalOps.LT:
+                        relop = "LT"
+                    elif cond.relop is RelationalOps.EQUALITY:
+                        relop = "EQ"
+                    cond_var = None
+                    for v in cond.uses:
+                        if isinstance(v['var'], RenamedSymbol):
+                            cond_var = v
+                            break
+                    if cond_var is None:
+                        self.log.fatal("Could not find a conditional variable")
+                        exit(-1)
+
+                    depDag = None
+                    dep_node_id = -1
+                    # current block has the definition to this conditional variable
+                    if cond_var['var'].name in self.cblock.defs:
+                        depDag = from_dag
+                    else:
+                        cond_v = cond_var['var'].name
+                        predes = reversed(list(self.program.functions['main']['blocks']))  # find the last def of this variable
+                        for p in predes:
+                            block = self.program.functions['main']['blocks'][p]
+                            if cond_v in block.defs:
+                                depDag = p
+                                for instr in block.instructions:
+                                    if instr.defs is not None:
+                                        if instr.defs['var'].points_to is cond_var['var'].points_to:
+                                            dep_node_id = instr.iid
+                                            break
+                        if depDag == None:
+                            cond_v = str(cond_var['var'].points_to.name) + str((int(cond_v[-1])) + 1)
+                            predes = reversed(list(self.program.functions['main']['blocks']))
+                            for p in predes:
+                                block = self.program.functions['main']['blocks'][p]
+                                if cond_v in block.defs:
+                                    depDag = p
+                                    for instr in block.instructions:
+                                        if instr.defs is not None:
+                                            if instr.defs['var'].points_to is cond_var['var'].points_to:
+                                                dep_node_id = instr.iid
+                                                break
+
+                    for instr in self.cblock.instructions:  # find the source instr
+                        if instr.defs is not None:
+                            if instr.defs['var'].points_to is cond_var['var'].points_to:
+                                dep_node_id = instr.iid
+                                break
+
+                    _ret += "ONE_SENSOR, %s, DAG%s, %s, %s)\n" % (
+                        relop, str(depDag), str(dep_node_id), int(cond.right['var'].value.value[0]))
+
         elif cond_type is 'IF':
             # ONE_SENSOR, relop, depDag, depNodeID, value)
             relop = "Unrecognized relational operator"
@@ -878,7 +980,7 @@ class MFSimTarget(BaseTarget):
                                                 [self.loop_headers[succ_id]['t']],
                                                 self.expid, 1))
                                 seen_pair.append((bid, self.loop_headers[succ_id]['t']))
-                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is not None:  # if conditional is a while, need a path to the false branch as well
+                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is not None and len(self.scope_variable) == 0:  # if conditional is a while, need a path to the false branch as well
                                     conditional_groups[self.cgid].append(
                                         self.write_cond(self.loop_headers[succ_id]['instr'],
                                                         cgid, [bid], 1,
@@ -1320,6 +1422,9 @@ class MFSimTarget(BaseTarget):
     def transform(self):
         self.build_cfg()
         for root in self.program.functions:
+            if self.program.config.inline: #inline optimization
+                if root in self.program.symbol_table.functions:
+                    continue
             self.root = root
             exp_name = self.config.input.rsplit('/', 1)[1][:-3]  # get file input name -'.bs'
             cfg_file = open("%s/%s.cfg" % (self.config.output, exp_name), "w")
@@ -1330,6 +1435,10 @@ class MFSimTarget(BaseTarget):
 
             for bid, block in sorted(self.program.functions[root]['blocks'].items()):
                 self.cblock = block
+
+                if self.program.config.inline: #Don't need this if not the main and we are inlining
+                    if bid is not next(iter(self.program.functions[root]['blocks'])):
+                        continue
 
                 write = False
                 for instr in block.instructions:
@@ -1363,7 +1472,25 @@ class MFSimTarget(BaseTarget):
                 dispenses = set()
                 for node in block.instructions:
                     if node.name in ['DISPENSE']:
+                        if hasattr(node.defs['var'], 'points_to'): #make sure to grab the existing name
+                            dispenses.add(node.defs['var'].points_to.name)
+                        else:
+                            dispenses.add(node.defs['var'].name)
                         dispenses.add(node.defs['var'].points_to.name)
+                        if node.defs['size'] >= 2: #Check if the offset for a use was left unchanged for a dispense with multiple drops
+                            to = list(self.cblock.dag._succ[node.defs['var'].name])
+                            index = 0
+                            for val in to:
+                                for instr in self.cblock.instructions:
+                                    if instr.name in {'NOP'}:
+                                        continue
+                                    if instr.defs['name'] == val:
+                                        for use in instr.uses:
+                                            if use['name'] == node.defs['name']:
+                                                if use['offset'] != 0: #this means the offset is fine as is
+                                                    continue
+                                                use['offset'] = index
+                                                index = index + 1
                 for node in block.instructions:
 
                     if node.name in ['PHI', 'BINARYOP', 'CONDITIONAL', 'DISPENSE', 'MATH']:
@@ -1441,6 +1568,7 @@ class MFSimTarget(BaseTarget):
                     else:
                         if self.config.debug:
                             self.log.warning("Unrecognized/unsupported instruction type: %s" % node.name)
+                            self.scope_variable = node.defs['var'].points_to.name
 
                 # for all defs without uses, we must transfer out (if used elsewhere)
                 #   or dispose (if never used again)
@@ -1463,7 +1591,10 @@ class MFSimTarget(BaseTarget):
                                 defIndex = index
                                 skip = False
                                 # find the points_to def
-                                _def = i.defs['var'].points_to.name
+                                if hasattr(i.defs['var'], 'points_to'): # make sure to grab the existing name
+                                    _def = i.defs['var'].points_to.name
+                                else:
+                                    _def = i.defs['var'].name
                                 instr = i
                                 break
                             continue

@@ -1,0 +1,20 @@
+module fluorescence
+manifest PCRMix
+
+instructions:
+z = dispense 20 units of PCRMix
+b = split z into 2
+d = dispense 5 units of PCRMix
+
+heat d at 94c for 2m
+
+DNA_Sensor = detect fluorescence on d for 30s
+
+if (DNA_Sensor <= 80) {
+    a = split b[0] into 2
+}
+else {
+    c = split b[1] into 2
+}
+
+dispose d
