@@ -22,7 +22,15 @@ class PassManager(object):
         # self.dependencies = {'analysis': nx.DiGraph(), 'transforms': nx.DiGraph()}
         self.transforms = dict()
         self.analysis = dict()
-        # Ensure SSA is run first.
+        if len(self.program.functions) == 1:
+            self.config.inline = False #if there are no other functions than the main, then there is nothing to inline
+        if len(self.program.functions) >= 2 and self.config.inline is False:
+            self.log.warning("Functions found and inlining flag is off. May experience varing results. Consider using the -inline flag at configuration")
+        #Run inline before SSA
+        if self.config.inline:
+            In = Inline()
+            self.program = In.transform(self.program)
+        #Run SSA
         self.run_ssa()
 
     def run_ssa(self):
@@ -58,8 +66,8 @@ class PassManager(object):
         # self.dependencies['analysis'].add_node('call_graph')
 
     def init_transforms(self):
-        if self.config.inline:
-            self.transforms['inline'] = Inline()
+        #if self.config.inline:
+        #    self.transforms['inline'] = Inline()
         self.transforms['split_edges'] = SplitEdges()
         self.transforms['simd_expansion'] = SIMDExpansion()
         # self.dependencies['transforms'].add_node('split_edges')

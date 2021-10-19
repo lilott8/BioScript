@@ -1,0 +1,22 @@
+manifest aaa
+functions:
+function bar(dd) {
+    e = dispense aaa
+    f = mix e with dd
+    return f
+}
+
+function foo(aa) {
+    g = dispense aaa
+    h = bar(g)
+    c = mix aa with h
+    return c
+}
+
+instructions:
+a = dispense aaa
+z = dispense aaa
+b = foo(a)
+y = bar(z)
+w = mix b with y
+dispose w

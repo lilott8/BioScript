@@ -1,0 +1,22 @@
+module fluorescence
+manifest PCRMix
+
+instructions:
+a = dispense 10 units of PCRMix
+b = dispense 20 units of PCRMix
+c = dispense 30 units of PCRMix
+d = dispense 5 units of PCRMix
+
+heat d at 94c for 2m
+
+DNA_Sensor = detect fluorescence on d for 30s
+
+if (DNA_Sensor <= 80) {
+    e = mix a with b // == 30
+}
+else {
+    e = mix b with c //== 50
+}
+
+dispose d
+dispose e

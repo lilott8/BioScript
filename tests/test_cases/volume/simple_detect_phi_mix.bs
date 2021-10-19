@@ -1,0 +1,15 @@
+manifest fluid_a
+module fluor
+
+instructions:
+a = dispense 10 units of fluid_a
+x = detect fluor on a for 2s
+
+if (x <= 3) {
+	b = dispense 6 units of fluid_a
+} else {
+	b = dispense 10 units of fluid_a
+}
+
+c = mix a with b for 5s
+dispose c

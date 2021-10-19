@@ -1,7 +1,8 @@
 import colorlog
 
 from compiler.data_structures.scope import Scope
-from compiler.data_structures.variable import Symbol
+from compiler.data_structures.variable import Symbol, Movable, Reagent
+from compiler.data_structures.properties import BSVolume
 
 
 class SymbolTable(object):
@@ -30,6 +31,12 @@ class SymbolTable(object):
 
     def update_symbol(self, symbol: Symbol) -> Symbol:
         self.current_scope.locals[symbol.name] = symbol
+        #if symbol.value == None and symbol.scope is not 'main' and next(iter(self.scope_map[symbol.scope].locals)) == symbol.name:
+            #symbol.value = Reagent(symbol.name, 1, 10.0, BSVolume.MICROLITRE) #add a pseudo value
+        if symbol.value == None and symbol.scope is not 'main' and symbol.name in self.scope_map[symbol.scope].locals:
+            symbol.value = Reagent(symbol.name, 1, 10.0, BSVolume.MICROLITRE)  # add a pseudo value
+        elif symbol.value == None and len(symbol.types) == 2:
+            symbol.value = Reagent(symbol.name, 1, 10.0, BSVolume.MICROLITRE)  # add a pseudo value
         return symbol
 
     def get_local(self, name: str, scope_name: str = False) -> Symbol:
