@@ -95,9 +95,12 @@ class MFSimTarget(BaseTarget):
                     # add bid to the list of nodes that must have all edges removed from final graph
                     remove_nodes.add(bid)
                     continue
-                if not self.program.config.inline: #Don't need this when inlining
-                    for sid in self.program.functions[root]['graph'].successors(bid):
-                       self.cfg['graph'].add_edge(bid, sid)
+                if not self.program.config.inline:  # Don't need this when inlining
+                    try:
+                        for sid in self.program.functions[root]['graph'].successors(bid):
+                           self.cfg['graph'].add_edge(bid, sid)
+                    except nx.NetworkXError as e:
+                        pass
                 self.cfg[bid] = dict()
                 curr = self.cfg[bid]
                 write = True
@@ -1422,7 +1425,7 @@ class MFSimTarget(BaseTarget):
     def transform(self):
         self.build_cfg()
         for root in self.program.functions:
-            if self.program.config.inline: #inline optimization
+            if self.program.config.inline:  # inline optimization
                 if root in self.program.symbol_table.functions:
                     continue
             self.root = root
@@ -1436,7 +1439,7 @@ class MFSimTarget(BaseTarget):
             for bid, block in sorted(self.program.functions[root]['blocks'].items()):
                 self.cblock = block
 
-                if self.program.config.inline: #Don't need this if not the main and we are inlining
+                if self.program.config.inline:  # Don't need this if not the main and we are inlining
                     if bid is not next(iter(self.program.functions[root]['blocks'])):
                         continue
 
