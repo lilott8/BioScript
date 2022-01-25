@@ -31,11 +31,9 @@ class SymbolTable(object):
 
     def update_symbol(self, symbol: Symbol) -> Symbol:
         self.current_scope.locals[symbol.name] = symbol
-        #if symbol.value == None and symbol.scope is not 'main' and next(iter(self.scope_map[symbol.scope].locals)) == symbol.name:
-            #symbol.value = Reagent(symbol.name, 1, 10.0, BSVolume.MICROLITRE) #add a pseudo value
-        if symbol.value == None and symbol.scope is not 'main' and symbol.name in self.scope_map[symbol.scope].locals:
+        if symbol.value is None and symbol.scope != 'main' and symbol.name in self.scope_map[symbol.scope].locals:
             symbol.value = Reagent(symbol.name, 1, 10.0, BSVolume.MICROLITRE)  # add a pseudo value
-        elif symbol.value == None and len(symbol.types) == 2:
+        elif symbol.value is None and len(symbol.types) == 2:
             symbol.value = Reagent(symbol.name, 1, 10.0, BSVolume.MICROLITRE)  # add a pseudo value
         return symbol
 

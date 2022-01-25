@@ -64,7 +64,7 @@ class MFSimTarget(BaseTarget):
                 for i in bb.instructions:
                     if i.op is IRInstruction.SPLIT:
                         splits += i.split_size
-        enter = next(iter(self.program.functions['main']['blocks'])) #updated from self.program.entry_point
+        enter = next(iter(self.program.functions['main']['blocks']))  # updated from self.program.entry_point
         self.tid = int(math.ceil((self.program.functions['main']['blocks'][enter].instructions[0].id_counter + 1 + splits) / 100.0)) * 100
         self.num_dags = 0
         self.num_cgs = 0
@@ -268,7 +268,6 @@ class MFSimTarget(BaseTarget):
         """
         _ret = f'NODE ({self.opid}, MIX, '
 
-
         time = 10
         usein_time = -1
         usein_type = UseInType.SLE
@@ -281,27 +280,12 @@ class MFSimTarget(BaseTarget):
 
         self.dot_file.write("\n {} [label=\"mix({}s)\" fillcolor=\"#99 D5 CA\", style=filled];".format(self.opid, int(time)))
 
-        # MFSim supports >= 2 input droplets, but BS _currently_ requires distinct mix operations for every 2 droplets,
-        #  hence, we can safely assume every mix has exactly 2 inputs
-        if hasattr(instr.defs['var'], 'points_to'): #ensure we grab the existing name
-            _ret += "2, %s, %s)\n" % (str(time), instr.defs['var'].points_to.name)
-        else:
-            _ret += "2, %s, %s)\n" % (str(time), instr.defs['var'].name)
+        _ret += "2, {}, ".format(str(time))
 
-        for meta in instr.meta:
-            if meta.name is "USEIN":
-                self.write_usein(instr)
-                break
+        if usein_time > -1:
+            _ret += "{}, ".format("{}, {}".format(usein_time, "{}".format(usein_type.name)))
 
-        # TODO check this vs. above
-        #         num_in = None
-        #
-        #         _ret += "2, {}, ".format(str(time))
-        #
-        #         if usein_time > -1:
-        #             _ret += "{}, ".format("{}, {}".format(usein_time, "{}".format(usein_type.name)))
-        #
-        #         _ret += "{})\n".format(instr.defs['var'].points_to.name)
+        _ret += "{})\n".format(instr.defs['var'].points_to.name)
 
         to = list(self.cblock.dag.successors(instr.defs['var'].name))
 
@@ -361,7 +345,7 @@ class MFSimTarget(BaseTarget):
                 break
 
         for key in to:
-            if hasattr(instr.defs['var'], 'points_to'): #ensure we grab the existing name
+            if hasattr(instr.defs['var'], 'points_to'):  # ensure we grab the existing name
                 to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].points_to.name is key]
             else:
                 to_instr = [x for x in self.cblock.instructions if x.defs and x.defs['var'].name is key]
@@ -452,7 +436,7 @@ class MFSimTarget(BaseTarget):
         # Default time value is expected, and num drops in mfsim is always required to be exactly 2
         # exponentials of 2 (4,8,16) etc handled in split helper
         #TODO: Splits currently are treated as breaking a dropplet directly in half at each split.
-        # as such mfsim currently expects total splits to be of even size, specifically, a factor of 2
+        # as such mfsim currently expects total splits to be a factor of 2
         # in the future, this may not always be the case. In such a scenario, odd numbered sized splits,
         # and splits in which the volume varies in each subsequent dropplet may vary, rather than just half
 
@@ -596,7 +580,8 @@ class MFSimTarget(BaseTarget):
         time = 10
         usein_time = -1
         usein_type = UseInType.SLE
-        # TODO -- MFSim doesn't use temperatue for heating -- it may be useful to pass this over to an mfsim heat node
+        # TODO -- MFSim doesn't use temperatue for heating (yet)
+        #   it may be useful to pass this over to an mfsim heat node
         temp = 30
         for t in instr.meta:
             if type(t) is TimeConstraint:
@@ -683,7 +668,7 @@ class MFSimTarget(BaseTarget):
               nodeName  <- this means nothing to MFSim
         :return:
         """
-        if hasattr(instr.uses[0]['var'], 'points_to'): #ensure we grab the existing name
+        if hasattr(instr.uses[0]['var'], 'points_to'):  # ensure we grab the existing name
             _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].points_to.name)
         else:
             _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].name)
@@ -692,7 +677,7 @@ class MFSimTarget(BaseTarget):
 
         live_drops = list(self.live_droplets)  # kill droplet
         for a, b in live_drops:
-            if hasattr(instr.uses[0]['var'], 'points_to'): #ensure we grab the existing name
+            if hasattr(instr.uses[0]['var'], 'points_to'):  # ensure we grab the existing name
                 if b == instr.uses[0]['var'].points_to.name:
                     self.live_droplets.remove((a, b))
             else:
@@ -739,20 +724,6 @@ class MFSimTarget(BaseTarget):
         self.num_dispense += 1
         return _ret
 
-
-    def write_usein(self, instr) -> str:
-
-        for meta in instr.meta:
-            if meta.name is "USEIN":
-                node = self.opid
-                qty = meta.quantity
-                unit = meta.unit.name
-                temp = {"node": node, "quantity": qty, "unit": unit}
-                self.useins.append(temp)
-
-        return None
-
-
     def write_td(self, from_dag, to_dag) -> str:
         _ret = ""
 
@@ -790,22 +761,22 @@ class MFSimTarget(BaseTarget):
                 # TODO -- if a while is statically known
                 #    statically find and save the loop num before translation
                 #    currently mfsim_target can only handle i++ or i--
-                #    currently cannot factor in i+=2 or i+=3 and operates
+                #    currently cannot factor in e.g.,  i+=2 and operates
                 #    by finding the difference between the values of the variable and the constant
                 if self.scope_variable == cond.left['var'].name or self.scope_variable == cond.right['var'].name:  # logical while
-                    if cond.relop == RelationalOps.LT: #i = 0 < 10
+                    if cond.relop == RelationalOps.LT:  # i = 0 < 10
                         loop_num = abs(cond.right['var'].value.value[0] - cond.left['var'].value.value[0])
                         _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), loop_num)
-                    elif cond.relop == RelationalOps.GT: #i = 10 > 0
+                    elif cond.relop == RelationalOps.GT:  # i = 10 > 0
                         loop_num = abs(cond.left['var'].value.value[0] - cond.right['var'].value.value[0])
                         _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), loop_num)
-                    elif cond.relop == RelationalOps.LTE: #i = 0 <= 10
+                    elif cond.relop == RelationalOps.LTE:  # i = 0 <= 10
                         loop_num = abs(cond.right['var'].value.value[0] - cond.left['var'].value.value[0]) + 1
                         _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), loop_num)
-                    elif cond.relop == RelationalOps.GTE: #i = 10 >= 0
+                    elif cond.relop == RelationalOps.GTE:  # i = 10 >= 0
                         loop_num = abs(cond.left['var'].value.value[0] - cond.right['var'].value.value[0]) + 1
                         _ret += "RUN_COUNT, LT, DAG%s, %s)\n" % (str(from_dag), loop_num)
-                else: #fluidic while that needs the conditional to be the sensor value
+                else:  # fluidic while that needs the conditional to be the sensor value
                     # ONE_SENSOR, relop, depDag, depNodeID, value)
                     relop = "Unrecognized relational operator"
                     if cond.relop is RelationalOps.LTE:
@@ -865,7 +836,6 @@ class MFSimTarget(BaseTarget):
 
                     _ret += "ONE_SENSOR, %s, DAG%s, %s, %s)\n" % (
                         relop, str(depDag), str(dep_node_id), int(cond.right['var'].value.value[0]))
-
         elif cond_type == 'IF':
             # ONE_SENSOR, relop, depDag, depNodeID, value)
             relop = "Unrecognized relational operator"
@@ -1500,6 +1470,7 @@ class MFSimTarget(BaseTarget):
 
                 if not write:
                     continue
+
                 #     """
                 #         for each conditional group, we have a variable number of COND, EXP, and TD nodes
                 #         COND: variable number of parameters as:
@@ -1761,9 +1732,7 @@ class MFSimTarget(BaseTarget):
             #    the appropriate transferred droplet
 
             # store elements as: bid: (true branch, false branch)
-
             # for each edge in bb_graph, must have corresponding in .cfg
-
             # see create_conditional_groups function
 
             edges_not_translated = list(nx.edges(self.cfg['graph']))
@@ -1779,13 +1748,6 @@ class MFSimTarget(BaseTarget):
 
             if not self.test:
                 cfg_file.close()
-
-            # # generate json file for usein constraint
-            # self.constraints.append(self.usein_subdata)
-            # exp_name = self.config.input.rsplit('/', 1)[1][:-3]  # get file input name -'.bs'
-            # json_file = open("%s/%s.json" % (self.config.output, exp_name), "w")
-            # json_file.write(json.dumps(self.usein_data, indent=4))
-            # json_file.close()
 
         return True
 
