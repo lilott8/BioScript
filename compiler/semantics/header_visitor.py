@@ -4,6 +4,10 @@ from compiler.data_structures.variable import *
 from compiler.semantics.bs_base_visitor import BSBaseVisitor
 from grammar.parsers.python.BSParser import BSParser
 from shared.bs_exceptions import UndefinedFunction
+from antlr4 import *
+from grammar.parsers.python.BSLexer import BSLexer
+
+import os
 
 
 class HeaderVisitor(BSBaseVisitor):
@@ -38,18 +42,81 @@ class HeaderVisitor(BSBaseVisitor):
         symbol.types.update(self.identifier.identify(symbol.name, symbol.types))
         self.symbol_table.add_global(symbol)
 
-    def visitFunctions(self, ctx: BSParser.FunctionsContext):
-        for func in ctx.functionDeclaration():
-            self.visitFunctionDeclaration(func)
+    def visitFromLibrary(self, ctx: BSParser.FromLibraryContext):
+        lib_names = ctx.IDENTIFIER()
+        return '/'.join(l.__str__() for l in lib_names)
 
-    def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
+    def visitImportFuncFromLibrary(self, ctx: BSParser.ImportFuncFromLibraryContext):
+        lib_name = self.visitFromLibrary(ctx.fromLibrary())
+        from_lib_path = os.environ[str("BIOSCRIPTPATH")] + lib_name
+        func_names = [i.__str__() for i in ctx.IDENTIFIER()]
+
+        for file_name in os.listdir(from_lib_path):
+            if file_name.__contains__('.') and file_name.split('.')[0] in func_names:
+                if file_name.endswith('.bsf'):
+                    self.import_bioscript_function(from_lib_path+'/'+file_name)
+                elif file_name.endswith('.sbsf'):
+                    self.import_compiled_function(from_lib_path+'/'+file_name)
+                else:
+                    raise FileNotFoundError
+        pass
+
+    def import_bioscript_function(self, filename, prefix=""):
+        file_stream = FileStream(filename)
+        lexer = BSLexer(file_stream)
+        stream = CommonTokenStream(lexer)
+        parser = BSParser(stream)
+        tree = parser.functionDeclaration()
+        self.visitFunctionDeclaration(tree, prefix)
+
+    def import_compiled_function(self, filename, prefix=""):
+        name = prefix+filename.split('/')[-1].split('.')[0]
+
+        self.symbol_table.new_scope(name)
+        types = {ChemTypes.UNKNOWN}
+        args = list()
+
+        # parse out arg names
+        with open(filename, "r") as file:
+            for line in file.readlines():
+                if line.__contains__("PARAM("):
+                    arg = {'name': line.split(',')[-1].strip()[:-1], 'types': {ChemTypes.UNKNOWN}}
+                    self.symbol_table.add_local(Symbol(arg['name'], name, arg['types']))
+                    args.append(arg['name'])
+
+        bs_function = Function(name, types, args)
+
+        # we're ok with redefinition, when important.  'namespaced' functions can be imported directly with
+        #   import lib.func (used as lib.func())
+        #       or
+        #   import lib   (use any function in lib, i.e., lib.foo())
+        if name in self.symbol_table.functions.keys():
+            self.log.warning(f'Redefining function "{name}" during import.')
+            pass
+
+        self.symbol_table.functions[name] = bs_function
+        self.symbol_table.end_scope()
+
+    def visitImportLibrary(self, ctx: BSParser.ImportLibraryContext):
+        lib_name = ctx.IDENTIFIER().__str__()
+        lib_path = os.environ[str("BIOSCRIPTPATH")] + lib_name
+        # identify all names in library so we can call, e.g.: lib.func_name()
+        for file_name in os.listdir(lib_path):
+            if file_name.endswith('.bsf'):
+                self.import_bioscript_function(lib_path + '/' + file_name, lib_name + '.')
+            elif file_name.endswith('.sbsf'):
+                self.import_compiled_function(lib_path + '/' + file_name, lib_name + '.')
+        pass
+
+    def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext, prefix=""):
         """
         This populates the symbol table with methods.
         It does not visit statements.
         :param ctx: visitor context
+        :param prefix: for library function calls, we provide library name
         :return: nothing
         """
-        name = ctx.IDENTIFIER().__str__()
+        name = prefix+ctx.IDENTIFIER().__str__()
 
         self.symbol_table.new_scope(name)
         types = {ChemTypes.UNKNOWN}
@@ -68,6 +135,9 @@ class HeaderVisitor(BSBaseVisitor):
         bs_function = Function(name, types, args)
 
         if name in self.symbol_table.functions.keys():
+            # we can redefine functions that were imported, but only overriding is allowed (based on #/type params)
+            #  when functions are explicitly defined in the .bs file.
+            # TODO label function as imported or not, to redeclare here when necessary
             raise UndefinedFunction("Trying to redeclare function: {}.".format(name))
 
         self.symbol_table.functions[name] = bs_function

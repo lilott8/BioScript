@@ -28,9 +28,8 @@ class SymbolTableVisitor(BSBaseVisitor):
         if ctx.functions():
             self.visitFunctions(ctx.functions())
 
-    def visitFunctions(self, ctx: BSParser.FunctionsContext):
-        for func in ctx.functionDeclaration():
-            self.visitFunctionDeclaration(func)
+    def visitImportStatement(self, ctx:BSParser.ImportStatementContext):
+        pass
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
         """
