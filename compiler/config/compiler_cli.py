@@ -18,7 +18,7 @@ class CompilerCLI(BaseCLI):
         self.parser.add_argument('-t', '--target', help='Platforms to target.', type=str,
                                  default='ir', choices={'llvm', 'mfsim', 'puddle', 'inkwell', 'ir',
                                                         'l', 'm', 'p', 'i', 'ir'})
-        self.parser.add_argument('-a,', '--architecture', help='Underlying architecture for DMFB (mfsim) targeting',
+        self.parser.add_argument('-A,', '--architecture', help='Underlying architecture for DMFB (mfsim) targeting',
                                  type=str, default='')
         self.parser.add_argument('-cfg', '--write-cfg',
                                  help="Write the CFG to dot file", default=False, action='store_true')
