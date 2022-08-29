@@ -802,11 +802,29 @@ class IRVisitor(BSBaseVisitor):
         time = self.visitTimeIdentifier(ctx.timeIdentifier())
         if ctx.useinType():
             uitype = self.visitUseinType(ctx.useinType())
-            return UseIn(time['quantity'], time['units'], UseInType.get_from_string(uitype['uitype']))
+            return UseIn(time['quantity'], time['units'], uitype)
         return UseIn(time['quantity'], time['units'])
 
-    def visitUseinType(self, ctx:BSParser.UseinTypeContext):
-        return {'uitype': BSParser.symbolicNames[ctx.children[1].symbol.type]}
+    def visitSle(self, ctx:BSParser.SleContext):
+        return UseInType.SLE
+
+    def visitSeq(self, ctx:BSParser.SeqContext):
+        return UseInType.SEQ
+
+    def visitSge(self, ctx:BSParser.SgeContext):
+        return UseInType.SGE
+
+    def visitFle(self, ctx:BSParser.FleContext):
+        return UseInType.FLE
+
+    def visitFeq(self, ctx:BSParser.FeqContext):
+        return UseInType.FEQ
+
+    def visitFge(self, ctx:BSParser.FgeContext):
+        return UseInType.FGE
+
+    # def visitUseinType(self, ctx:BSParser.UseinTypeContext):
+        # return {'uitype': BSParser.symbolicNames[ctx.children[1].symbol.type]}
 
     def visitSplit(self, ctx: BSParser.SplitContext):
         deff = self.visitVariableDefinition(ctx.variableDefinition())

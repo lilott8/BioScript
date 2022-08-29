@@ -7,94 +7,94 @@ manifest forward_primer
 manifest reverse_primer
 
 instructions:
-@usein 0s
+@use.in 0s
 pcr_mix = mix 10 units of pcr_master with 10 units of template for 5s
 
 /* warm up pcr_mix */
-@usein 0s
+@use.in 0s
 heat pcr_mix at 95c for 5s
 
-@usein 0s
+@use.in 0s
 primer_mix = mix 10 units of forward_primer with 10 units of reverse_primer for 5s
 
-@usein 0s
+@use.in 0s
 sample = mix pcr_mix with primer_mix for 5s
 
-@usein 0s
+@use.in 0s
 heat sample at 53c for 15s
-@usein 0s
+@use.in 0s
 heat sample at 72c for 10s
-    @usein 0s
+    @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
-        @usein 0s
+        @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
-        @usein 0s
+        @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
-    @usein 0s
+    @use.in 0s
 heat sample at 53c for 15s
-@usein 0s
+@use.in 0s
 heat sample at 72c for 10s
-    @usein 0s
+    @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
-        @usein 0s
+        @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
-        @usein 0s
+        @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
-        @usein 0s
+        @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
-    @usein 0s
+    @use.in 0s
 heat sample at 53c for 15s
-@usein 0s
+@use.in 0s
 heat sample at 72c for 10s
-    @usein 0s
+    @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
-        @usein 0s
+        @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
-        @usein 0s
+        @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
-        @usein 0s
+        @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
-    @usein 0s
+    @use.in 0s
 heat sample at 53c for 15s
-@usein 0s
+@use.in 0s
 heat sample at 72c for 10s
-    @usein 0s
+    @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
-        @usein 0s
+        @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
-        @usein 0s
+        @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
-        @usein 0s
+        @use.in 0s
     heat sample at 53c for 15s
-    @usein 0s
+    @use.in 0s
     heat sample at 72c for 10s
 
 

@@ -580,8 +580,7 @@ class MFSimTarget(BaseTarget):
         time = 10
         usein_time = -1
         usein_type = UseInType.SLE
-        # TODO -- MFSim doesn't use temperatue for heating (yet)
-        #   it may be useful to pass this over to an mfsim heat node
+
         temp = 30
         for t in instr.meta:
             if type(t) is TimeConstraint:
@@ -599,7 +598,7 @@ class MFSimTarget(BaseTarget):
         if usein_time > -1:
             _ret += "{}, ".format("{}, {}".format(usein_time, "{}".format(usein_type.name)))
 
-        _ret += "{})\n".format(instr.uses[0]['var'].points_to.name)
+        _ret += "{}, {})\n".format(instr.uses[0]['var'].points_to.name, temp)
 
         to = list(self.cblock.dag.successors(instr.defs['var'].name))
 
@@ -668,10 +667,16 @@ class MFSimTarget(BaseTarget):
               nodeName  <- this means nothing to MFSim
         :return:
         """
-        if hasattr(instr.uses[0]['var'], 'points_to'):  # ensure we grab the existing name
-            _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].points_to.name)
+
+        if self.config.architecture == 'opendrop':
+            io = 'TCC'
         else:
-            _ret = "NODE (%s, OUTPUT, null, %s)\n" % (str(self.opid), instr.uses[0]['var'].name)
+            io = ''
+
+        if hasattr(instr.uses[0]['var'], 'points_to'):  # ensure we grab the existing name
+            _ret = f"NODE ({self.opid}, OUTPUT, null, {instr.uses[0]['var'].points_to.name}, {io})\n"
+        else:
+            _ret = f"NODE ({self.opid}, OUTPUT, null, {instr.uses[0]['var'].name}, {io})\n"
 
         self.dot_file.write("\n {} [label=\"output\" shape=plaintext];".format(self.opid))
 
@@ -705,10 +710,15 @@ class MFSimTarget(BaseTarget):
         capture = instr.defs['var'].volumes
         volume = next(iter(capture.values()))
 
-        if hasattr(instr.defs['var'], 'points_to'): #ensure we grab the existing name
-            _ret += "%s, %s, %s)\n" % (instr.uses[0]['name'], str(volume), instr.defs['var'].points_to.name)
+        if self.config.architecture == 'opendrop':
+            io = ', TCC'
         else:
-            _ret += "%s, %s, %s)\n" % (instr.uses[0]['name'], str(volume), instr.defs['var'].name)
+            io = ''
+
+        if hasattr(instr.defs['var'], 'points_to'):  # ensure we grab the existing name
+            _ret += f"{instr.uses[0]['name']}, {volume}, {instr.defs['var'].points_to.name}{io})\n"
+        else:
+            _ret += f"{instr.uses[0]['name']}, {volume}, {instr.defs['var'].name}{io})\n"
 
         to = list(self.cblock.dag._succ[instr.defs['var'].name])
 

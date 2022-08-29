@@ -3,7 +3,7 @@ from timeit import default_timer as timer
 import colorlog
 import networkx as nx
 from antlr4 import *
-from z3 import Solver
+from z3.z3 import Solver
 
 import compiler.config.config as config
 from compiler.data_structures.program import Program

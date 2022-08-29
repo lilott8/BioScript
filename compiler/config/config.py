@@ -139,7 +139,12 @@ class Config(object):
             target = args.target.lower()
             if target == "m" or target == "mfsim":
                 self.target = targets.TargetSelector.MFSIM
+                if args.architecture != '':
+                    self.architecture = args.architecture.lower()
+                else:
+                    self.architecture = None
                 self.supports_functions = True
+                self.supports_recursion = True
                 self.supports_nesting = True
             elif target == 'i' or target == 'inkwell':
                 self.target = targets.TargetSelector.INKWELL
