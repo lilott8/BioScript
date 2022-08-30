@@ -1451,6 +1451,8 @@ class MFSimTarget(BaseTarget):
     def transform(self):
         self.build_cfg()
         for root in self.program.functions:
+            if root != 'main':
+                continue
             if self.program.config.inline:  # inline optimization
                 if root in self.program.symbol_table.functions:
                     continue
@@ -1511,11 +1513,11 @@ class MFSimTarget(BaseTarget):
                 dispenses = set()
                 for node in block.instructions:
                     if node.name in ['DISPENSE']:
-                        if hasattr(node.defs['var'], 'points_to'): #make sure to grab the existing name
+                        if hasattr(node.defs['var'], 'points_to'):  # make sure to grab the existing name
                             dispenses.add(node.defs['var'].points_to.name)
                         else:
                             dispenses.add(node.defs['var'].name)
-                        dispenses.add(node.defs['var'].points_to.name)
+                        # dispenses.add(node.defs['var'].points_to.name)
                         if node.defs['size'] >= 2: #Check if the offset for a use was left unchanged for a dispense with multiple drops
                             to = list(self.cblock.dag._succ[node.defs['var'].name])
                             index = 0
@@ -1678,6 +1680,8 @@ class MFSimTarget(BaseTarget):
                             if trans:
                                 break
                             # get successor block
+                            if s not in self.program.functions[root]['blocks']: # this must be a function call
+                                continue
                             sblock = self.program.functions[root]['blocks'][s]
                             for si in sblock.instructions:
                                 if si.op in {IRInstruction.PHI, IRInstruction.CONDITIONAL, IRInstruction.NOP}:

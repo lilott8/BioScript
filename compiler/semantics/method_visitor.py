@@ -1,7 +1,11 @@
 from chemicals.chemtypes import ChemTypeResolver
 from compiler.data_structures.variable import *
 from grammar.parsers.python.BSParser import BSParser
+from grammar.parsers.python.BSLexer import BSLexer
 from .bs_base_visitor import BSBaseVisitor
+import os
+from antlr4 import *
+
 
 
 class MethodVisitor(BSBaseVisitor):
@@ -20,6 +24,11 @@ class MethodVisitor(BSBaseVisitor):
         self.call_chain = dict()
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
+        # Visit imports, for the 3rd time.
+        for child in ctx.globalDeclarations():
+            if child.importStatement():
+                self.visitImportStatement(child)
+
         # Visit the functions, for the 3rd time.
         if ctx.functions():
             self.visitFunctions(ctx.functions())
@@ -51,7 +60,58 @@ class MethodVisitor(BSBaseVisitor):
         for func in ctx.functionDeclaration():
             self.visitFunctionDeclaration(func)
 
-    def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
+
+    def visitFromLibrary(self, ctx:BSParser.FromLibraryContext):
+        return ctx.IDENTIFIER().symbol.text
+
+    def import_bioscript_function(self, filename, prefix=""):
+        file_stream = FileStream(filename)
+        lexer = BSLexer(file_stream)
+        stream = CommonTokenStream(lexer)
+        parser = BSParser(stream)
+        tree = parser.functionDeclaration()
+        self.visitFunctionDeclaration(tree, prefix)
+
+    # TODO not sure how to handle importing compiled functions for this pass
+    def import_compiled_function(self, filename, prefix=""):
+        name = prefix + filename.split('/')[-1].split('.')[0]
+        function = self.symbol_table.functions[name]
+        self.scope_stack.append(name)
+
+        # for compiled functions, then this ought to be the only possibility
+        if ChemTypes.UNKNOWN in function.types and len(function.types) == 1:
+            # ret = self.visitReturnStatement(ctx.returnStatement())
+            # # If this is a variable, grab the symbol and make the update.
+            # # Otherwise it's a function call.
+            # if 'method' not in ret.keys():
+            #     symbol = self.symbol_table.get_local(ret['name'], name)
+            #     function.types.update(symbol.types)
+            # else:
+            #     function.types.update(ret['types'])
+            print("what to do here?")
+        else:
+            assert False, "what happened"
+        if ChemTypes.UNKNOWN in function.types: # only remove if exists
+            function.types.remove(ChemTypes.UNKNOWN)
+        self.scope_stack.pop()
+
+    def visitImportFuncFromLibrary(self, ctx: BSParser.ImportFuncFromLibraryContext):
+        lib_name = self.visitFromLibrary(ctx.fromLibrary())
+        # TODO can just check path for lib name, rather than requiring install at $bioscriptpath
+        from_lib_path = os.environ[str("BIOSCRIPTPATH")] + '/' + lib_name
+        func_names = [i.__str__() for i in ctx.IDENTIFIER()]
+
+        for file_name in os.listdir(from_lib_path):
+            if file_name.__contains__('.') and file_name.split('.')[0] in func_names:
+                if file_name.endswith('.bsf'):
+                    self.import_bioscript_function(from_lib_path + '/' + file_name)
+                elif file_name.endswith('.sbsf'):
+                    self.import_compiled_function(from_lib_path + '/' + file_name)
+                else:
+                    raise FileNotFoundError
+        pass
+
+    def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext, prefix=''):
         """
         This populates the symbol table with methods.
         It cannot handle return values.  So all records
@@ -59,7 +119,7 @@ class MethodVisitor(BSBaseVisitor):
         :param ctx: visitor context
         :return: nothing
         """
-        name = ctx.IDENTIFIER().__str__()
+        name = prefix+ctx.IDENTIFIER().__str__()
         function = self.symbol_table.functions[name]
         self.scope_stack.append(name)
 

@@ -17,7 +17,7 @@ class SSA(BSTransform):
     def __init__(self):
         super().__init__("SSA Transform")
         # The dominance frontier for each function.
-        self.frontier = dict()
+        self.frontier = defaultdict(lambda: defaultdict(lambda: set()))
         # The dominator tree for each function.
         self.dominator_tree = dict()
         # The immediate dominators for each function.
@@ -32,7 +32,7 @@ class SSA(BSTransform):
         for root in self.program.functions:
             self.build_dominators(root)
             # self.log.debug("Inserting phi nodes.")
-            self.insert_phi_functions(root)
+            self.insert_phi_functions2(root)
             # self.log.debug("Done inserting phi nodes.")
             # self.log.debug("Renaming variables.")
             self.rename_variables(root)
@@ -106,6 +106,54 @@ class SSA(BSTransform):
                     if dominator not in seen_block:
                         work_list.add(dominator)
                         seen_block.add(dominator)
+
+    def insert_phi_functions2(self, root: str):
+        """
+        Appel alg 19.6
+        Step 1:
+        for each node n
+            for each variable a in Aorig[n]
+            defsites[a] ← defsites[a] ∪ {n}
+        """
+        V = set()
+        defsites = defaultdict(lambda: set())
+        for nid, block in self.program.functions[root]['blocks'].items():
+            for a in block.defs:
+                V.add(a)
+                defsites[a].add(nid)
+
+        """
+        Step 2: the worklist:
+        for each variable a
+            W ← defsites[a] 
+            while W not empty
+                remove some node n from W 
+                for each y in DF[n]
+                    if a ̸∈ Aφ[y]
+                        insert the statement a ← φ(a,a,...,a) at the top 
+                          of block y, where the φ-function has as many
+                          arguments as y has predecessors 
+                        Aφ[Y]← Aφ[Y]∪{a}
+                    if a ̸∈ Aorig[y]
+                        W ← W ∪ {y}
+        """
+        A_phi = defaultdict(lambda: set())
+        for a in V:
+            W = defsites[a]
+            while W:
+                nid = W.pop()
+                block = self.program.functions[root]['blocks'][nid]
+                if nid not in self.frontier[root]:
+                    print("what's pu with this?")
+                    continue
+                for y in self.frontier[root][nid]:
+                    if a not in A_phi[y]:
+                        phi = Phi(a, [a for _ in range(len(self.program.bb_graph.in_edges(y)))])
+                        self.program.functions[root]['blocks'][y].phis.add(phi)
+                        self.program.functions[root]['blocks'][y].instructions.insert(0, phi)
+                        A_phi[y].add(a)
+                    if a not in block.defs:
+                        W.add(y)
 
     def rename_variables(self, root: str):
         """
@@ -259,7 +307,6 @@ class SSA(BSTransform):
                 if instruction.defs:
                     block.defs.add(instruction.defs['name'])
 
-
     def remove_copies(self, root: str):
         # TODO [review]: I'm unconvinced that this does what you think it does, with the current implementation.
         #  It seems either checking for ...uses[0] == ...uses[1] may be the correct check, but there are more issues.
@@ -274,8 +321,8 @@ class SSA(BSTransform):
                     if block.instructions[x].op == IRInstruction.PHI:
                         if len(block.instructions[x].uses) == 2:
                             if block.instructions[x].uses[0] == block.instructions[x].uses[1]:
-                            # for use in block.instructions[x].uses:
-                            #     if use[-1] == '0':
+                                # for use in block.instructions[x].uses:
+                                #     if use[-1] == '0':
                                 phi = block.instructions[x]
                                 block.instructions.pop(x)
                                 block.phis.remove(phi)

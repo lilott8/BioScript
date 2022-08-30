@@ -2,8 +2,11 @@ from chemicals.chemtypes import ChemTypeResolver, ChemTypes
 from chemicals.identifier import Identifier
 from compiler.data_structures.variable import Symbol, Number
 from grammar.parsers.python.BSParser import BSParser
+from grammar.parsers.python.BSLexer import BSLexer
 from shared.bs_exceptions import UndefinedVariable, UndefinedFunction, UnsupportedOperation
 from .bs_base_visitor import BSBaseVisitor
+import os
+from antlr4 import *
 
 
 class SymbolTableVisitor(BSBaseVisitor):
@@ -25,20 +28,68 @@ class SymbolTableVisitor(BSBaseVisitor):
 
         self.scope_stack.pop()
 
+        # if there are imports, then deal with that here
+        for child in ctx.globalDeclarations():
+            if child.importStatement():
+                self.visitImportStatement(child)
+
         if ctx.functions():
             self.visitFunctions(ctx.functions())
 
-    def visitImportStatement(self, ctx:BSParser.ImportStatementContext):
+    def import_bioscript_function(self, filename, prefix=""):
+        file_stream = FileStream(filename)
+        lexer = BSLexer(file_stream)
+        stream = CommonTokenStream(lexer)
+        parser = BSParser(stream)
+        tree = parser.functionDeclaration()
+        try:
+            self.visitFunctionDeclaration(tree, prefix)
+        except Exception as e:
+            self.log.fatal(f"Unable to import function. Received error: '{e.__str__()}'")
+            exit(-1)
+
+    def import_compiled_function(self, filename, prefix=""):
+        name = prefix+filename.split('/')[-1].split('.')[0]
+        self.symbol_table.current_scope = self.symbol_table.scope_map[name]
+        self.scope_stack.append(name)
+
+        function = self.symbol_table.functions[name]
+        # no statements in a compiled function
+
+        # TODO compiled function should be annotated with types, if possible
+        function.types.update(ChemTypes.UNKNOWN)
+
+        self.symbol_table.functions[name] = function
+        self.scope_stack.pop()
+
+    def visitFromLibrary(self, ctx: BSParser.FromLibraryContext):
+        lib_names = ctx.IDENTIFIER()
+        return lib_names.symbol.text
+
+    def visitImportFuncFromLibrary(self, ctx:BSParser.ImportFuncFromLibraryContext):
+        lib_name = self.visitFromLibrary(ctx.fromLibrary())
+        # TODO can just check path for lib name, rather than requiring install at $bioscriptpath
+        from_lib_path = os.environ[str("BIOSCRIPTPATH")] + '/' + lib_name
+        func_names = [i.__str__() for i in ctx.IDENTIFIER()]
+
+        for file_name in os.listdir(from_lib_path):
+            if file_name.__contains__('.') and file_name.split('.')[0] in func_names:
+                if file_name.endswith('.bsf'):
+                    self.import_bioscript_function(from_lib_path + '/' + file_name)
+                elif file_name.endswith('.sbsf'):
+                    self.import_compiled_function(from_lib_path + '/' + file_name)
+                else:
+                    raise FileNotFoundError
         pass
 
-    def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext):
+    def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext, prefix=''):
         """
         This attempts to finish building the method signature.
         Including typing information.  It does visit statements.
         It cannot handle the case of method chaining.
         :return: nothing
         """
-        name = ctx.IDENTIFIER().__str__()
+        name = prefix+ctx.IDENTIFIER().__str__()
 
         self.symbol_table.current_scope = self.symbol_table.scope_map[name]
         self.scope_stack.append(name)

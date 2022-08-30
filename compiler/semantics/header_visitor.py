@@ -44,11 +44,13 @@ class HeaderVisitor(BSBaseVisitor):
 
     def visitFromLibrary(self, ctx: BSParser.FromLibraryContext):
         lib_names = ctx.IDENTIFIER()
-        return '/'.join(l.__str__() for l in lib_names)
+        return lib_names.symbol.text
+        # return '/'.join(l.__str__() for l in lib_names)
 
     def visitImportFuncFromLibrary(self, ctx: BSParser.ImportFuncFromLibraryContext):
         lib_name = self.visitFromLibrary(ctx.fromLibrary())
-        from_lib_path = os.environ[str("BIOSCRIPTPATH")] + lib_name
+        # TODO can just check path for lib name, rather than requiring install at $bioscriptpath
+        from_lib_path = os.environ[str("BIOSCRIPTPATH")] + '/' + lib_name
         func_names = [i.__str__() for i in ctx.IDENTIFIER()]
 
         for file_name in os.listdir(from_lib_path):
@@ -99,7 +101,7 @@ class HeaderVisitor(BSBaseVisitor):
 
     def visitImportLibrary(self, ctx: BSParser.ImportLibraryContext):
         lib_name = ctx.IDENTIFIER().__str__()
-        lib_path = os.environ[str("BIOSCRIPTPATH")] + lib_name
+        lib_path = os.environ[str("BIOSCRIPTPATH")] + '/' + lib_name
         # identify all names in library so we can call, e.g.: lib.func_name()
         for file_name in os.listdir(lib_path):
             if file_name.endswith('.bsf'):
