@@ -32,7 +32,7 @@ class SSA(BSTransform):
         for root in self.program.functions:
             self.build_dominators(root)
             # self.log.debug("Inserting phi nodes.")
-            self.insert_phi_functions2(root)
+            self.insert_phi_functions(root)
             # self.log.debug("Done inserting phi nodes.")
             # self.log.debug("Renaming variables.")
             self.rename_variables(root)
@@ -107,53 +107,54 @@ class SSA(BSTransform):
                         work_list.add(dominator)
                         seen_block.add(dominator)
 
-    def insert_phi_functions2(self, root: str):
-        """
-        Appel alg 19.6
-        Step 1:
-        for each node n
-            for each variable a in Aorig[n]
-            defsites[a] ← defsites[a] ∪ {n}
-        """
-        V = set()
-        defsites = defaultdict(lambda: set())
-        for nid, block in self.program.functions[root]['blocks'].items():
-            for a in block.defs:
-                V.add(a)
-                defsites[a].add(nid)
-
-        """
-        Step 2: the worklist:
-        for each variable a
-            W ← defsites[a] 
-            while W not empty
-                remove some node n from W 
-                for each y in DF[n]
-                    if a ̸∈ Aφ[y]
-                        insert the statement a ← φ(a,a,...,a) at the top 
-                          of block y, where the φ-function has as many
-                          arguments as y has predecessors 
-                        Aφ[Y]← Aφ[Y]∪{a}
-                    if a ̸∈ Aorig[y]
-                        W ← W ∪ {y}
-        """
-        A_phi = defaultdict(lambda: set())
-        for a in V:
-            W = defsites[a]
-            while W:
-                nid = W.pop()
-                block = self.program.functions[root]['blocks'][nid]
-                if nid not in self.frontier[root]:
-                    print(f"what's up with this --- {nid} not where it should be!")
-                    continue
-                for y in self.frontier[root][nid]:
-                    if a not in A_phi[y]:
-                        phi = Phi(a, [a for _ in range(len(self.program.bb_graph.in_edges(y)))])
-                        self.program.functions[root]['blocks'][y].phis.add(phi)
-                        self.program.functions[root]['blocks'][y].instructions.insert(0, phi)
-                        A_phi[y].add(a)
-                    if a not in block.defs:
-                        W.add(y)
+    # def insert_phi_functions2(self, root: str):
+    #     """
+    #      testing quickly...
+    #     Appel alg 19.6
+    #     Step 1:
+    #     for each node n
+    #         for each variable a in Aorig[n]
+    #         defsites[a] ← defsites[a] ∪ {n}
+    #     """
+    #     V = set()
+    #     defsites = defaultdict(lambda: set())
+    #     for nid, block in self.program.functions[root]['blocks'].items():
+    #         for a in block.defs:
+    #             V.add(a)
+    #             defsites[a].add(nid)
+    #
+    #     """
+    #     Step 2: the worklist:
+    #     for each variable a
+    #         W ← defsites[a]
+    #         while W not empty
+    #             remove some node n from W
+    #             for each y in DF[n]
+    #                 if a ̸∈ Aφ[y]
+    #                     insert the statement a ← φ(a,a,...,a) at the top
+    #                       of block y, where the φ-function has as many
+    #                       arguments as y has predecessors
+    #                     Aφ[Y]← Aφ[Y]∪{a}
+    #                 if a ̸∈ Aorig[y]
+    #                     W ← W ∪ {y}
+    #     """
+    #     A_phi = defaultdict(lambda: set())
+    #     for a in V:
+    #         W = defsites[a]
+    #         while W:
+    #             nid = W.pop()
+    #             block = self.program.functions[root]['blocks'][nid]
+    #             if nid not in self.frontier[root]:
+    #                 print(f"what's up with this --- {nid} not where it should be!")
+    #                 continue
+    #             for y in self.frontier[root][nid]:
+    #                 if a not in A_phi[y]:
+    #                     phi = Phi(a, [a for _ in range(len(self.program.bb_graph.in_edges(y)))])
+    #                     self.program.functions[root]['blocks'][y].phis.add(phi)
+    #                     self.program.functions[root]['blocks'][y].instructions.insert(0, phi)
+    #                     A_phi[y].add(a)
+    #                 if a not in block.defs:
+    #                     W.add(y)
 
     def rename_variables(self, root: str):
         """
@@ -168,6 +169,86 @@ class SSA(BSTransform):
         # for variable in self.program.symbol_table.globals:
         #     self.bookkeeper[variable] = {'count': 0, 'stack': [0]}
         self.rename(self.program.functions[root]['blocks'][self.program.functions[root]['entry']], root)
+
+    # def rename_variables2(self, root: str):
+    #     """
+    #      testing quickly
+    #     Appel alg 19.7
+    #     step 1: Initialization:
+    #     for each variable a
+    #         Count[a] ← 0
+    #         Stack[a] ← empty
+    #         push 0 onto Stack[a]
+    #     """
+    #     for variable in self.program.symbol_table.scope_map[root].locals:
+    #         self.bookkeeper[variable] = {'count': 0, 'stack': [0], 'renamed': defaultdict(lambda: 0)}
+    #
+    #     Count = dict()
+    #     Stack = dict()
+    #     for a in self.bookkeeper.keys():
+    #         Count[a] = 0
+    #         Stack[a] = [0]
+    #
+    #     def rename(n: BasicBlock, root: str):
+    #         """
+    #         Recursive algorthm that should walk the dominator tree
+    #         Rename(n) =
+    #         for each statement S in block n
+    #             if S is not a φ-function
+    #                 for each use of some variable x in S
+    #                     i ← top(Stack[x])
+    #                     replace the use of x with xi in S
+    #             for each definition of some variable a in S
+    #                 Count[a] ← Count[a] + 1
+    #                 i ← Count[a]
+    #                 push i onto Stack[a]
+    #                 replace definition of a with definition of ai in S
+    #         for each successor Y of block n,
+    #             Suppose n is the j th predecessor of Y
+    #             for each φ-function in Y
+    #                 suppose the jth operand of the φ-function is a
+    #                 i ← top(Stack[a])
+    #                 replace the jth operand with ai
+    #         for each child X of n
+    #             Rename( X )
+    #         for each statement S in block n
+    #             for each definition of some variable a in S
+    #                 pop Stack[a]
+    #         """
+    #         for S in n.instructions:
+    #             if S.op != IRInstruction.PHI:
+    #                 for x, use in enumerate(S.uses):
+    #                     # don't rename manifest/module idents
+    #                     if self.program.symbol_table.is_global(use['name']):
+    #                         continue
+    #                     i = Stack[use['name']][-1]
+    #                     use['name'] = f"{use['name']}{i}"
+    #             if S.defs and S.op not in [IRInstruction.HEAT]:
+    #                 _def = S.defs
+    #                 Count[_def['name']] += 1
+    #                 i = Count[_def['name']]
+    #                 Stack[_def['name']].append(i)
+    #                 _def['name'] = f"{_def['name']}{i}"
+    #         for succ_id in self.program.functions[root]['graph'].successors(n.nid):
+    #             Y = self.program.functions[root]['blocks'][succ_id]
+    #             # n is jth pred of Y:
+    #             j = 0
+    #             for k in self.program.functions[root]['graph'].predecessors(succ_id):
+    #                 if k == n.nid:
+    #                     break
+    #                 j += 1
+    #             for phi in Y.phis:
+    #                 a = phi.uses[j]
+    #                 i = Stack[a][-1]
+    #                 phi.uses[j] = f"{phi.uses[j]}{i}"
+    #         for child_id in self.dominator_tree[root][n.nid]:
+    #             rename(self.program.functions[root]['blocks'][child_id], root)
+    #         for S in n.instructions:
+    #             if S.defs and S.op not in [IRInstruction.HEAT]:
+    #                 Stack[S.defs['name']].pop()
+    #
+    #     rename(self.program.functions[root]['blocks'][self.program.functions[root]['entry']], root)
+
 
     def rename(self, block: BasicBlock, root: str):
         """
@@ -263,12 +344,13 @@ class SSA(BSTransform):
                 else:
                     succ_block = self.program.functions[root]['blocks'][successor[1]]
                 # We only care about the PHI nodes of this block
-                for instruction in list(filter(lambda instr: instr.op == IRInstruction.PHI, succ_block.instructions)):
+                for instruction in succ_block.phis:
                     if isinstance(instruction.defs, dict):
                         original_var = instruction.defs['var'].points_to.name
                     else:
                         original_var = instruction.defs
                     use_count = len(instruction.uses)
+                    # should rename jth operand
                     # i = stack[deff].peek()
                     # replace use[i] with use[i]_i
                     # If the variable has been replaced already,

@@ -3,15 +3,15 @@ from compiler.passes.transforms.bs_transform import BSTransform
 from compiler.data_structures.ir import *
 from compiler.data_structures.variable import *
 
+
 class Inline(BSTransform):
 
     def __init__(self):
         super().__init__("inliner")
         self.var_num = 0
 
-
     def handle_call(self, program, call, already_called=set()):
-        def inline_var_names(a, parameter_map, global_vars):
+        def inline_var_names(a, parameter_map=dict(), global_vars=dict()):
             '''
             small local function for transforming parameter arguments into their
             appropriate outer scope variables
@@ -26,9 +26,8 @@ class Inline(BSTransform):
                 return parameter_map[a]
 
             return a
-            #return '{}_{}{}'.format(call.name, a, str(self.var_num))
+            # return '{}_{}{}'.format(call.name, a, str(self.var_num))
 
-        
         func_name = call.name
         ret = call.defs['name']
         func_info = program.symbol_table.functions[func_name]
@@ -36,7 +35,7 @@ class Inline(BSTransform):
         parameter_map = {}
         instructions = []
 
-        #map the return value to the local variable
+        # map the return value to the local variable
         for block in program.functions[func_name]['blocks'].values():
             ret_names = block.get_returns()
             if ret_names != None:
@@ -44,13 +43,11 @@ class Inline(BSTransform):
                 value = ret
                 parameter_map[key] = value
 
-
-        #map the parameters to the actual variable names
+        # map the parameters to the actual variable names
         for arg, uses in zip(func_info.args, call.uses):
             key = arg
             value = uses['name']
             parameter_map[key] = value 
-
 
         for block in program.functions[func_name]['blocks'].values():
             for instr in block.instructions:
@@ -78,7 +75,7 @@ class Inline(BSTransform):
                     inline_instr.uses[0]['name'] = a
                 elif type(instr) == Detect:
                     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
-                    a   = inline_var_names(instr.uses[0]['name'], global_vars)
+                    a = inline_var_names(instr.uses[0]['name'], global_vars=global_vars)
                     inline_instr = deepcopy(instr)
                     inline_instr.defs['name'] = r
                     inline_instr.uses[0]['name'] = a
@@ -123,7 +120,6 @@ class Inline(BSTransform):
         self.var_num = self.var_num + 1 
         return instructions
 
-
     def transform(self, program: Program) -> Program:
         """
         This function will do three things:
@@ -133,6 +129,10 @@ class Inline(BSTransform):
         :param program: The program requiring modification.
         :return: The modified program.
         """
+
+        # TODO need to check if calls are part of recursive call chain before inlining.
+        #   for now, output warning that inlining only works when there are _no_ recursive calls
+        self.log.warning(f"Inlining option does not currently check for recursive calls --- use at your own risk!")
 
         for block in program.functions['main']['blocks'].values():
             #new method that can handle multiple function calls and potential instructions before, after, or between those calls
