@@ -89,7 +89,6 @@ class IRVisitor(BSBaseVisitor):
         for key, val in self.calls.items():
             for v in val:
                 add_cycle(self.graph, [key, self.functions[v]['entry']])
-                #self.graph.add_cycle([key, self.functions[v]['entry']])
 
     def visitModuleDeclaration(self, ctx: BSParser.ModuleDeclarationContext):
         name = ctx.IDENTIFIER().__str__()
@@ -126,13 +125,15 @@ class IRVisitor(BSBaseVisitor):
         self.symbol_table.current_scope = self.symbol_table.scope_map[name]
         self.current_block = BasicBlock()
         self.functions[name] = {"blocks": dict(), "entry": self.current_block.nid, 'graph': None}
+        self.functions[name]['returns'] = set()
         label = Label("{}_entry".format(name))
         # Build the mapping from label to nid.
         self.labels[name] = self.current_block.nid
         self.current_block.add(label)
         self.graph.add_node(self.current_block.nid, function=self.scope_stack[-1], label=self.current_block.label.label)
 
-        # pre-compiled, so no statements to deal with.
+        # pre-compiled, so no statements to deal with, we'll return "from here"
+        self.functions[self.scope_stack[-1]]['returns'].add(self.current_block.nid)
 
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
         self.functions[name]['graph'] = self.graph
@@ -176,12 +177,15 @@ class IRVisitor(BSBaseVisitor):
         self.symbol_table.current_scope = self.symbol_table.scope_map[name]
         self.current_block = BasicBlock()
         self.functions[name] = {"blocks": dict(), "entry": self.current_block.nid, 'graph': None}
+        self.functions[name]['returns'] = set()
         label = Label("{}_entry".format(name))
         # Build the mapping from label to nid.
         self.labels[name] = self.current_block.nid
         self.current_block.add(label)
         self.graph.add_node(self.current_block.nid, function=self.scope_stack[-1], label=self.current_block.label.label)
 
+        # TODO grammar syntax enforces single return point; semantics here follow suit.
+        #   Would be relatively straightforward to include multiple return points.
         for statement in ctx.statements():
              self.visitStatements(statement)
 
@@ -196,6 +200,7 @@ class IRVisitor(BSBaseVisitor):
                 self.add_call_to_graph(self.current_block.nid, ret_statement['name'])
             else:
                 self.current_block.add(Return(ret_statement))
+            self.functions[name]['returns'].add(self.current_block.nid)
 
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
         self.functions[name]['graph'] = self.graph
@@ -557,8 +562,8 @@ class IRVisitor(BSBaseVisitor):
         # Create the jump to the function.
         jump_location = self.get_entry_block(method_name)
         # Build the graph edge.
-        add_cycle(self.graph, [self.current_block.nid, jump_location['nid']])
-        #self.graph.add_cycle([self.current_block.nid, jump_location['nid']])
+        # add_cycle(self.graph, [self.current_block.nid, jump_location['nid']])
+        self.graph.add_edge(self.current_block.nid, jump_location['nid'])
         # self.current_block.add(Jump(jump_location['label']))
         # Sve the block.
         self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
@@ -566,8 +571,13 @@ class IRVisitor(BSBaseVisitor):
         previous_nid = self.current_block.nid
         # We must create a new block.
         self.current_block = BasicBlock()
-        # This is the return call from the return call.
-        self.current_block.add(Label('{}_return_{}'.format(method_name, previous_nid)))
+        # This is the block we return to after the function call
+        # we need to connect any/all return statements within a function call to this block
+        self.current_block.add(Label('{}_returnFrom_{}'.format(self.scope_stack[-1], method_name)))
+
+        # this pre-empts any desire for multiple return points
+        for ret_block in self.functions[method_name]['returns']:
+            self.graph.add_edge(ret_block, self.current_block.nid)
         # self.functions[self.scope_stack[-1]]['blocks'][self.current_block.nid] = self.current_block
 
     def visitMethodCall(self, ctx: BSParser.MethodCallContext):

@@ -144,7 +144,7 @@ class SSA(BSTransform):
                 nid = W.pop()
                 block = self.program.functions[root]['blocks'][nid]
                 if nid not in self.frontier[root]:
-                    print("what's pu with this?")
+                    print(f"what's up with this --- {nid} not where it should be!")
                     continue
                 for y in self.frontier[root][nid]:
                     if a not in A_phi[y]:
