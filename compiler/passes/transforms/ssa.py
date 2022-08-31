@@ -318,7 +318,7 @@ class SSA(BSTransform):
                 self.program.symbol_table.add_local_to_scope(renamed_var, root)
                 # replace deff with deff_i in instruction
                 # preserve volume data if applicable
-                if instruction.op in {IRInstruction.DISPENSE, IRInstruction.MIX, IRInstruction.SPLIT, IRInstruction.DISPOSE, IRInstruction.HEAT, IRInstruction.DETECT}:
+                if instruction.op in {IRInstruction.DISPENSE, IRInstruction.MIX, IRInstruction.SPLIT, IRInstruction.DISPOSE, IRInstruction.HEAT, IRInstruction.DETECT, IRInstruction.RENAME}:
                     if hasattr(instruction.defs['var'], 'volumes') and hasattr(renamed_var, 'volumes'):
                         renamed_var.volumes = instruction.defs['var'].volumes  # keep passed in volume info
                 renamed['var'] = renamed_var

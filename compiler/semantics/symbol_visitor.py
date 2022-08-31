@@ -14,6 +14,18 @@ class SymbolTableVisitor(BSBaseVisitor):
     def __init__(self, symbol_table, identifier: Identifier):
         super().__init__(symbol_table, "SimpleSymbolVisitor", identifier)
 
+    def visitRenameVarStatement(self, ctx:BSParser.RenameVarStatementContext):
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        self.symbol_table.add_local(Symbol(deff['name'], self.scope_stack[-1], ChemTypeResolver.numbers()))
+        use = self.visitVariable(ctx.variable())
+        var = self.symbol_table.get_local(use['name'])
+        if not var:
+            raise UndefinedVariable("{} is not defined.".format(use['name']))
+        if not ChemTypeResolver.is_mat_in_set(var.types):
+            var.types.add(ChemTypes.MAT)
+            self.symbol_table.update_symbol(var)
+        return None
+
     def visitProgram(self, ctx: BSParser.ProgramContext):
         # Visiting globals is done in global_visitor.
         # Add main first, it is the root.

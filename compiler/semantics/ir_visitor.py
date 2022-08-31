@@ -840,6 +840,23 @@ class IRVisitor(BSBaseVisitor):
 
         return None
 
+    def visitRenameVarStatement(self, ctx:BSParser.RenameVarStatementContext):
+        deff = self.visitVariableDefinition(ctx.variableDefinition())
+        symbol = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
+
+        use = self.visitVariable(ctx.variable())
+        use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])
+
+        if not symbol.value:
+            symbol.value = Movable(deff['name'], use_var.value.size, volume=use_var.value.volume['quantity'])
+
+        self.check_bounds({'index': use['index'], 'name': use_var.name, 'var': use_var.value})
+
+        ir = Rename({'name': deff['name'], 'offset': use['index'], 'size': symbol.value.size, 'var': symbol.value},
+                    {'name': use['name'], 'offset': use['index'], 'size': use_var.value.size, 'var': use_var.value})
+        self.current_block.add(ir)
+        return None
+
     def visitHeat(self, ctx: BSParser.HeatContext):
         use = self.visitVariable(ctx.variable())
         use_var = self.symbol_table.get_local(use['name'], self.scope_stack[-1])

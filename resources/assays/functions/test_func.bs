@@ -25,6 +25,41 @@ function foo(x) {
     return Y
 }
 
+// foo(x) {
+// b = dispense B
+// heat x at 10c
+// heat b at 10c
+// ab = mix x with b
+// x = detect weight on ab  // scope conflict with x
+// if (x <= 0.5) {
+//     heat ab at 10c
+// }
+// Y = ab
+// heat Y at 10c
+// return Y
+//}
+
+// a1 = dispense A
+// heat a1 at 10c
+// b1 = dispense B
+// heat a1 at 10c
+// heat b1 at 10c
+// ab1 = mix a1 with b1
+// x1 = detect weight on ab1
+// if (x1 <= 0.5) {
+//     heat ab1 at 10c
+// }
+// Y1 = ab1
+// heat Y1 at 10c
+// a2 = Y1
+// if (9 < 10) {
+//     b2 = dispense B
+//     a3 = mix a2 with b2
+// }
+// a4 = PHI(a2, a3)
+// heat a4 at 10c
+// dispose a4
+
 instructions:
 a = dispense A
 heat a at 10c

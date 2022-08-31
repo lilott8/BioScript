@@ -35,6 +35,7 @@ class IRInstruction(IntEnum):
     TIME = 21
     TEMPERATURE = 22
     MATH = 23
+    RENAME = 24
 
 
 class UseInType(IntEnum):
@@ -117,7 +118,8 @@ class InstructionSet(metaclass=ABCMeta):
                     IRInstruction.GRADIENT}
 
     assignment = {IRInstruction.MIX, IRInstruction.SPLIT, IRInstruction.DISPENSE, IRInstruction.PHI,
-                  IRInstruction.CALL, IRInstruction.MATH, IRInstruction.GRADIENT, IRInstruction.DETECT}
+                  IRInstruction.CALL, IRInstruction.MATH, IRInstruction.GRADIENT, IRInstruction.DETECT,
+                  IRInstruction.RENAME}
 
     numeric_assignment = {IRInstruction.CONSTANT, IRInstruction.MATH}
 
@@ -354,6 +356,13 @@ class Split(Statement):
         return "SPLIT: {}[{}] = split({}, {})".format(self.defs['name'], self.defs['offset'], self.uses[0]['name'],
                                                       self.defs['offset'])
 
+class Rename(Statement):
+    def __init__(self, out: Dict, one: Dict):
+        super().__init__(IRInstruction.RENAME, out)
+        self.uses.extend([one])
+
+    def expand(self) -> List:
+        return [self]
 
 class Detect(Statement):
     def __init__(self, out: Dict, module: Dict, one: Dict):
