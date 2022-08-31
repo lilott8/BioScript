@@ -27,9 +27,9 @@ class PassManager(object):
         if len(self.program.functions) >= 2 and self.config.inline is False:
             self.log.warning("Functions found and inlining flag is off. May experience varing results. Consider using the -inline flag at configuration")
         #Run inline before SSA
-        if self.config.inline:
-            In = Inline()
-            self.program = In.transform(self.program)
+        # if self.config.inline:
+        #     In = Inline()
+        #     self.program = In.transform(self.program)
         #Run SSA
         self.run_ssa()
 

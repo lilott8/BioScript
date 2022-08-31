@@ -187,11 +187,11 @@ class IRVisitor(BSBaseVisitor):
         # TODO grammar syntax enforces single return point; semantics here follow suit.
         #   Would be relatively straightforward to include multiple return points.
         for statement in ctx.statements():
-             self.visitStatements(statement)
+            self.visitStatements(statement)
 
         if ctx.returnStatement():
             ret_statement = self.visitReturnStatement(ctx.returnStatement())
-            self.log.info(ret_statement)
+            # self.log.debug(f"return instr: {ret_statement}")
             if ret_statement['function']:
                 ret_val = "{}_return".format(ret_statement['name'])
                 self.current_block.add(Call({'name': ret_val, 'offset': -1},

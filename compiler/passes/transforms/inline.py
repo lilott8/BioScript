@@ -61,13 +61,13 @@ class Inline(BSTransform):
                     inline_instr.uses[0]['name'] = a
                 elif type(instr) == Mix:
                     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
-                    a   = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
-                    b   = inline_var_names(instr.uses[1]['name'], parameter_map, global_vars)
+                    a = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
+                    b = inline_var_names(instr.uses[1]['name'], parameter_map, global_vars)
                     inline_instr = deepcopy(instr)
                     inline_instr.defs['name'] = r
                     inline_instr.uses[0]['name'] = a
                     inline_instr.uses[1]['name'] = b
-                elif type(instr) == Split:
+                elif type(instr) in [Split, Heat, Dispense]:
                     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
                     a = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
                     inline_instr = deepcopy(instr)
@@ -79,18 +79,18 @@ class Inline(BSTransform):
                     inline_instr = deepcopy(instr)
                     inline_instr.defs['name'] = r
                     inline_instr.uses[0]['name'] = a
-                elif type(instr) == Heat:
-                    r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
-                    a = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
-                    inline_instr = deepcopy(instr)
-                    inline_instr.defs['name'] = r
-                    inline_instr.uses[0]['name'] = a
-                elif type(instr) == Dispense:
-                    r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
-                    a   = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
-                    inline_instr = deepcopy(instr)
-                    inline_instr.defs['name'] = r
-                    inline_instr.uses[0]['name'] = a
+                # elif type(instr) == Heat:
+                #     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
+                #     a = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
+                #     inline_instr = deepcopy(instr)
+                #     inline_instr.defs['name'] = r
+                #     inline_instr.uses[0]['name'] = a
+                # elif type(instr) == Dispense:
+                #     r = inline_var_names(instr.defs['name'], parameter_map, global_vars)
+                #     a = inline_var_names(instr.uses[0]['name'], parameter_map, global_vars)
+                #     inline_instr = deepcopy(instr)
+                #     inline_instr.defs['name'] = r
+                #     inline_instr.uses[0]['name'] = a
                 elif type(instr) == Return:
                     inline_instr = None
                 elif type(instr) == Call:
@@ -129,13 +129,8 @@ class Inline(BSTransform):
         :param program: The program requiring modification.
         :return: The modified program.
         """
-
-        # TODO need to check if calls are part of recursive call chain before inlining.
-        #   for now, output warning that inlining only works when there are _no_ recursive calls
-        self.log.warning(f"Inlining option does not currently check for recursive calls --- use at your own risk!")
-
         for block in program.functions['main']['blocks'].values():
-            #new method that can handle multiple function calls and potential instructions before, after, or between those calls
+            # new method that can handle multiple function calls and potential instructions before, after, or between those calls
             if block.label.label != 'main': #inlining only needs to deal with the main
                 continue
             final_block = deepcopy(block)

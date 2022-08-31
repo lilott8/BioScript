@@ -14,6 +14,8 @@ class HeaderVisitor(BSBaseVisitor):
 
     def __init__(self, symbol_table, identifier: Identifier):
         super().__init__(symbol_table, "Global Visitor", identifier)
+        # we simply copy all statements in the tree for each function def
+        # self.functions = dict()
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         for header in ctx.globalDeclarations():
@@ -144,6 +146,8 @@ class HeaderVisitor(BSBaseVisitor):
 
         self.symbol_table.functions[name] = bs_function
         self.symbol_table.end_scope()
+        # self.functions[name] = ctx.statements()
+        # self.functions[name].append(ctx.returnStatement())
 
     def visitFormalParameters(self, ctx: BSParser.FormalParametersContext):
         if ctx.formalParameterList():

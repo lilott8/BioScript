@@ -3,6 +3,7 @@ from timeit import default_timer as timer
 import colorlog
 import networkx as nx
 from antlr4 import *
+from antlr4.TokenStreamRewriter import TokenStreamRewriter
 from z3.z3 import Solver
 
 import compiler.config.config as config
@@ -14,6 +15,7 @@ from compiler.semantics.header_visitor import HeaderVisitor
 from compiler.semantics.ir_visitor import IRVisitor
 from compiler.semantics.method_visitor import MethodVisitor
 from compiler.semantics.symbol_visitor import SymbolTableVisitor
+from compiler.semantics.inlining_visitor import InliningVisitor
 from compiler.semantics.type_visitor import TypeCheckVisitor
 from compiler.targets.target_selector import TargetSelector
 from grammar.parsers.python.BSLexer import BSLexer
@@ -91,6 +93,7 @@ class BSCompiler(object):
         lexer = BSLexer(file_stream)
         stream = CommonTokenStream(lexer)
         parser = BSParser(stream)
+        rewriter = TokenStreamRewriter(stream)
         tree = parser.program()
 
         # We can rely on Python's shallow copy and pass by reference semantics
@@ -99,10 +102,15 @@ class BSCompiler(object):
         identifier = self.config.identify.get_identifier()
 
         # Order matters, don't mess with the order, it should be Header, Symbol, Method.
-        visitor_passes = [HeaderVisitor(symbol_table, identifier), SymbolTableVisitor(symbol_table, identifier),
-                          MethodVisitor(symbol_table), IRVisitor(symbol_table)]
+        visitor_passes = [InliningVisitor(symbol_table, identifier, rewriter), HeaderVisitor(symbol_table, identifier),
+                          SymbolTableVisitor(symbol_table, identifier), MethodVisitor(symbol_table),
+                          IRVisitor(symbol_table)]
 
         for visitor in visitor_passes:
+            if isinstance(visitor, InliningVisitor):
+                if not self.config.inline:
+                    continue
+                # visitor.functions = visitor_passes[0].functions
             if self.config.debug:
                 self.log.debug("Running {} pass.".format(visitor.visitor_name))
             visitor.visit(tree)
