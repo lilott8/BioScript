@@ -12,6 +12,27 @@ import math
 from io import StringIO
 import os
 
+"""
+plan for functions:
+For caller's CFG:
+    create new dag for function call
+        instead of DAG(DAG#), it will be FC(FC<name>, name)
+        within FC<name>:
+        transfer_ins for all params
+        transfer_outs for return(s)
+        new node type: FUNCTION_CALL: NODE(node_id, FUNCTION_CALL, <name>, assignment_name)
+    for conditional expression:
+    COND(...)
+    EXP(... UNCOND)
+    then we transfer params with PD (instead of TD).
+    TD for droplets to successor blocks (not function)
+    when we return from FC<name>:
+    RD (for return drop) to the appropriate dag
+
+for function's CFG, add FUNC(F) (for fixed latency) or FUNC(<anything else) for non-fixed latency.
+    fixed_latency means it's either a single basic block, or that different paths have identical time steps
+"""
+# TODO determine IR for pre-functions
 
 class TransferNode:
 
@@ -54,6 +75,7 @@ class MFSimTarget(BaseTarget):
         self.useins = []
         self.usein_data = {"constraints": self.constraints}
         self.usein_subdata = {"useins": self.useins}
+        self.root = None
 
         if not self.config.output:
             self.log.fatal("MFSim target requires an output path to be specified.  Include \"-o <path/to/output/>\" in arguments list.")
@@ -79,13 +101,15 @@ class MFSimTarget(BaseTarget):
 
     def build_cfg(self):
         for root in self.program.functions:
+            self.root = root
             if self.program.config.inline: #inline timesave
                 if root in self.program.symbol_table.functions:
                     continue
             leafs = set()
             tags = dict()
             self.dags[root] = dict()
-            self.cfg['graph'] = nx.DiGraph()
+            self.cfg[self.root] = dict()
+            self.cfg[self.root]['graph'] = nx.DiGraph()
             remove_nodes = set()
             remove_edges_from = set()
 
@@ -94,18 +118,18 @@ class MFSimTarget(BaseTarget):
                     # attach edges from pred to succ
                     for pid in self.program.functions[root]['graph'].predecessors(bid):
                         for sid in self.program.functions[root]['graph'].successors(bid):
-                            self.cfg['graph'].add_edge(pid, sid)
+                            self.cfg[self.root]['graph'].add_edge(pid, sid)
                     # add bid to the list of nodes that must have all edges removed from final graph
                     remove_nodes.add(bid)
                     continue
                 if not self.program.config.inline:  # Don't need this when inlining
                     try:
                         for sid in self.program.functions[root]['graph'].successors(bid):
-                           self.cfg['graph'].add_edge(bid, sid)
+                           self.cfg[self.root]['graph'].add_edge(bid, sid)
                     except nx.NetworkXError as e:
                         pass
-                self.cfg[bid] = dict()
-                curr = self.cfg[bid]
+                self.cfg[self.root][bid] = dict()
+                curr = self.cfg[self.root][bid]
                 write = True
                 dag = nx.DiGraph()
                 for instruction in block.instructions:
@@ -191,13 +215,13 @@ class MFSimTarget(BaseTarget):
                     self.dags[root][bid] = dag
 
             for remove in remove_nodes:
-                if remove in self.cfg['graph'].nodes:
-                    self.cfg['graph'].remove_node(remove)
+                if remove in self.cfg[self.root]['graph'].nodes:
+                    self.cfg[self.root]['graph'].remove_node(remove)
 
             for remove in remove_edges_from:
-                succ = list(self.cfg['graph'].successors(remove))
+                succ = list(self.cfg[self.root]['graph'].successors(remove))
                 for s in succ:
-                    self.cfg['graph'].remove_edge(remove, s)
+                    self.cfg[self.root]['graph'].remove_edge(remove, s)
 
         return False
 
@@ -815,9 +839,9 @@ class MFSimTarget(BaseTarget):
                         depDag = from_dag
                     else:
                         cond_v = cond_var['var'].name
-                        predes = reversed(list(self.program.functions['main']['blocks']))  # find the last def of this variable
+                        predes = reversed(list(self.program.functions[self.root]['blocks']))  # find the last def of this variable
                         for p in predes:
-                            block = self.program.functions['main']['blocks'][p]
+                            block = self.program.functions[self.root]['blocks'][p]
                             if cond_v in block.defs:
                                 depDag = p
                                 for instr in block.instructions:
@@ -827,9 +851,9 @@ class MFSimTarget(BaseTarget):
                                             break
                         if depDag == None:
                             cond_v = str(cond_var['var'].points_to.name) + str((int(cond_v[-1])) + 1)
-                            predes = reversed(list(self.program.functions['main']['blocks']))
+                            predes = reversed(list(self.program.functions[self.root]['blocks']))
                             for p in predes:
-                                block = self.program.functions['main']['blocks'][p]
+                                block = self.program.functions[self.root]['blocks'][p]
                                 if cond_v in block.defs:
                                     depDag = p
                                     for instr in block.instructions:
@@ -874,9 +898,9 @@ class MFSimTarget(BaseTarget):
             if cond_var['var'].name in self.cblock.defs:
                 depDag = from_dag
             else:
-                predes = reversed(list(self.program.functions['main']['blocks']))  # find the last def of this variable
+                predes = reversed(list(self.program.functions[self.root]['blocks']))  # find the last def of this variable
                 for p in predes:
-                    block = self.program.functions['main']['blocks'][p]
+                    block = self.program.functions[self.root]['blocks'][p]
                     if cond_var['var'].name in block.defs:
                         depDag = p
                         for instr in block.instructions:
@@ -944,7 +968,7 @@ class MFSimTarget(BaseTarget):
                         no_trans = False
 
         while len(edges_not_translated) > 0:
-            for bid, block in self.program.functions['main']['blocks'].items():
+            for bid, block in self.program.functions[self.root]['blocks'].items():
                 if block.instructions is None:
                     for e in edges_not_translated:
                         if e[0] == bid:
@@ -966,7 +990,7 @@ class MFSimTarget(BaseTarget):
                     #   succ->true              :   [no translation]
                     #   succ->false             :   true->false
                     #   back-edge(s) to succ    :   back1->true...backn->true
-                    for succ_id in self.cfg['graph'].successors(bid):
+                    for succ_id in self.cfg[self.root]['graph'].successors(bid):
                         # we know there is an edge from bid to succ_id, need to check if bid or succ_id is a loop header
                         if (bid, succ_id) not in edges_not_translated:
                             continue
@@ -1009,7 +1033,7 @@ class MFSimTarget(BaseTarget):
                                                 [self.loop_headers[succ_id]['t']],
                                                 self.expid, 1))
                                 seen_pair.append((bid, self.loop_headers[succ_id]['t']))
-                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is not None and len(self.scope_variable) == 0:  # if conditional is a while, need a path to the false branch as well
+                                if 'w' in str(self.program.functions[self.root]['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is not None and len(self.scope_variable) == 0:  # if conditional is a while, need a path to the false branch as well
                                     conditional_groups[self.cgid].append(
                                         self.write_cond(self.loop_headers[succ_id]['instr'],
                                                         cgid, [bid], 1,
@@ -1025,7 +1049,7 @@ class MFSimTarget(BaseTarget):
                                     continue
                             elif self.loop_headers[succ_id]['t'] is None and bid == next(iter(self.block_transfers)):  # this is here for instances of nested conditionals with non active dags such that 't' path is None
                                 early_initialize = False
-                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is not None:  # if conditonal is also a while, must include path to the false branch
+                                if 'w' in str(self.program.functions[self.root]['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is not None:  # if conditonal is also a while, must include path to the false branch
                                     conditional_groups[self.cgid] = []
                                     conditional_groups[self.cgid].append(
                                         self.write_cond(self.loop_headers[succ_id]['instr'],
@@ -1049,7 +1073,7 @@ class MFSimTarget(BaseTarget):
                                                     self.expid, 1))
                                 seen_pair.append((bid, val2))
                                 edges_not_translated.remove((bid, succ_id))
-                                if 'w' in str(self.program.functions['main']['blocks'][succ_id].label): # if while, needs another edge
+                                if 'w' in str(self.program.functions[self.root]['blocks'][succ_id].label): # if while, needs another edge
                                     val2 = val2 + 1
                                     while val2 not in self.block_transfers.keys():
                                         val2 = val2 + 1
@@ -1176,7 +1200,7 @@ class MFSimTarget(BaseTarget):
                                         if self.loop_headers[succ_id]['f'] not in self.block_transfers.keys():
                                             if (be[1], self.loop_headers[succ_id]['f']) in edges_not_translated:
                                                 edges_not_translated.remove((be[1], self.loop_headers[succ_id]['f']))
-                                            elif 'w' in str(self.program.functions['main']['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is None:  # case for while where f path leads to an inactive dag
+                                            elif 'w' in str(self.program.functions[self.root]['blocks'][succ_id].label) and self.loop_headers[succ_id]['f'] is None:  # case for while where f path leads to an inactive dag
                                                 transfers4 = list()
                                                 for inst in edges_not_translated_save:
                                                     if inst[0] == self.loop_headers[succ_id]['t']:
@@ -1222,7 +1246,7 @@ class MFSimTarget(BaseTarget):
                                                         [val2],
                                                         self.expid, 1, ))
                                     seen_pair.append((val, val2))
-                                    if 'w' in str(self.program.functions['main']['blocks'][val2].label):  # if a while, needs extra edge
+                                    if 'w' in str(self.program.functions[self.root]['blocks'][val2].label):  # if a while, needs extra edge
                                         val2 = val2 + 1
                                         while val2 not in self.block_transfers.keys() and val2 != 20:
                                             val2 = val2 + 1
@@ -1258,7 +1282,7 @@ class MFSimTarget(BaseTarget):
                                                         [val2],
                                                         self.expid, 1, ))
                                         seen_pair.append((val, val2))
-                                    if 'w' in str(self.program.functions['main']['blocks'][val2].label):  # if a while, needs extra edge
+                                    if 'w' in str(self.program.functions[self.root]['blocks'][val2].label):  # if a while, needs extra edge
                                         val2 = val2 + 1
                                         while val2 not in self.block_transfers.keys() and val2 != 20:
                                             val2 = val2 + 1
@@ -1319,7 +1343,7 @@ class MFSimTarget(BaseTarget):
                         else:  # dealing with if conditional
                             if cond and executable:
                                 self.cblock = block
-                                for instr in self.program.functions['main']['blocks'][bid].instructions:
+                                for instr in self.program.functions[self.root]['blocks'][bid].instructions:
                                     if instr.op is IRInstruction.CONDITIONAL:
                                         # ensure cgid groups stay together
                                         cgid = self.cgid
@@ -1332,20 +1356,20 @@ class MFSimTarget(BaseTarget):
                                         if cgid == self.cgid:
                                             conditional_groups[self.cgid] = []
                                         conditional_groups[cgid].append(
-                                            self.write_cond(self.cfg[bid][instr.iid]['instr'],
+                                            self.write_cond(self.cfg[self.root][bid][instr.iid]['instr'],
                                                             cgid, [bid], 1,
-                                                            [self.cfg[bid][instr.iid]['t']],
+                                                            [self.cfg[self.root][bid][instr.iid]['t']],
                                                             self.expid, 1, 'IF'))
-                                        seen_pair.append((bid, self.cfg[bid][instr.iid]['t']))
-                                        edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['t']))
-                                        if self.cfg[bid][instr.iid]['f'] is not None:
+                                        seen_pair.append((bid, self.cfg[self.root][bid][instr.iid]['t']))
+                                        edges_not_translated.remove((bid, self.cfg[self.root][bid][instr.iid]['t']))
+                                        if self.cfg[self.root][bid][instr.iid]['f'] is not None:
                                             skip = False
-                                            if self.cfg[bid][instr.iid]['f'] not in self.block_transfers:
+                                            if self.cfg[self.root][bid][instr.iid]['f'] not in self.block_transfers:
                                                 skip = True
                                             if skip:  # need to manually find transfers
                                                 transfers2 = list()
                                                 for inst2 in edges_not_translated:
-                                                    if inst2[0] == self.cfg[bid][instr.iid]['f']:
+                                                    if inst2[0] == self.cfg[self.root][bid][instr.iid]['f']:
                                                         transfers2.append(inst2[1])
                                                 for t in transfers2:
                                                     if t not in self.block_transfers:
@@ -1360,16 +1384,16 @@ class MFSimTarget(BaseTarget):
                                                                         [t],
                                                                         self.expid, 1))
                                                     seen_pair.append((bid, t))
-                                                edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
+                                                edges_not_translated.remove((bid, self.cfg[self.root][bid][instr.iid]['f']))
                                                 self.cgid += 1
                                                 continue
                                             conditional_groups[self.cgid].append(
-                                                self.write_cond(self.cfg[bid][instr.iid]['instr'],
+                                                self.write_cond(self.cfg[self.root][bid][instr.iid]['instr'],
                                                                 cgid, [bid], 1,
-                                                                [self.cfg[bid][instr.iid]['f']],
+                                                                [self.cfg[self.root][bid][instr.iid]['f']],
                                                                 self.expid, 1))
-                                            seen_pair.append((bid, self.cfg[bid][instr.iid]['f']))
-                                            edges_not_translated.remove((bid, self.cfg[bid][instr.iid]['f']))
+                                            seen_pair.append((bid, self.cfg[self.root][bid][instr.iid]['f']))
+                                            edges_not_translated.remove((bid, self.cfg[self.root][bid][instr.iid]['f']))
                                 self.cgid += 1
                             else:  # unconditional exit from an if block
                                 # check to see if transfers must be manually found
@@ -1451,8 +1475,7 @@ class MFSimTarget(BaseTarget):
     def transform(self):
         self.build_cfg()
         for root in self.program.functions:
-            if root != 'main':
-                continue
+            self.root = root
             if self.program.config.inline:  # inline optimization
                 if root in self.program.symbol_table.functions:
                     continue
@@ -1672,7 +1695,7 @@ class MFSimTarget(BaseTarget):
                         tn = None
                         try:
                             reachable = (
-                                {x for v in dict(nx.bfs_successors(self.cfg['graph'], bid)).values() for x in v})
+                                {x for v in dict(nx.bfs_successors(self.cfg[self.root]['graph'], bid)).values() for x in v})
                         except nx.NetworkXError as e:
                             # self.log.warning("Droplet {} is not being disposed or saved.".format(_def))
                             return trans
@@ -1749,7 +1772,7 @@ class MFSimTarget(BaseTarget):
             # for each edge in bb_graph, must have corresponding in .cfg
             # see create_conditional_groups function
 
-            edges_not_translated = list(nx.edges(self.cfg['graph']))
+            edges_not_translated = list(nx.edges(self.cfg[self.root]['graph']))
 
             conditional_groups = self.create_conditional_groups(edges_not_translated)
 

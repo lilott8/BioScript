@@ -22,7 +22,9 @@ function foo(x) {
     heat b at 10c
     Y = bar(x, b)
     heat Y at 10c        // foo_1
-    return Y
+    Y = split Y into 2
+    drain Y[0]
+    return Y[1]
 }
 
 // foo(x) {
@@ -62,14 +64,18 @@ function foo(x) {
 
 instructions:
 a = dispense A
+bb = dispense B
 heat a at 10c
+heat bb at 10c
 a = foo(a)
 if (9 < 10) {
     b = dispense B
     a = mix a with b
 }
 heat a at 10c
+heat bb at 10c
 dispose a
+dispose bb
 
 //  a0 = dispense A
 //  heat a0 at 10c        // main_0

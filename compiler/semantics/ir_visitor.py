@@ -550,7 +550,7 @@ class IRVisitor(BSBaseVisitor):
         deff = self.visitVariableDefinition(ctx.variableDefinition())
         deff['var'] = self.symbol_table.get_local(deff['name'], self.scope_stack[-1])
         if deff['var'].value is None: #last ditch effort to give this value a pseudo value
-            deff['var'].value = Reagent(deff['name'], 1, 10.0, BSVolume.MICROLITRE)
+            deff['var'].value = Movable(deff['name'], 1, 10.0, BSVolume.MICROLITRE)
         if deff['var'].value.size <= 1 and deff['index'] == -1:
             offset = 0
         else:
@@ -931,6 +931,8 @@ class IRVisitor(BSBaseVisitor):
         if symbol.value is None:
             split_modifier = 1 if use['index'] >= 0 else use_var.value.size
             symbol.value = Movable(deff['name'], size=split_num * split_modifier)
+        else:
+            symbol.value = Movable(deff['name'], size=split_num * symbol.value.size)
 
         return None
 
