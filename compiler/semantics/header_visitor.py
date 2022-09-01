@@ -15,7 +15,7 @@ class HeaderVisitor(BSBaseVisitor):
     def __init__(self, symbol_table, identifier: Identifier):
         super().__init__(symbol_table, "Global Visitor", identifier)
         # we simply copy all statements in the tree for each function def
-        # self.functions = dict()
+        self.imported = set()
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         for header in ctx.globalDeclarations():
@@ -63,6 +63,7 @@ class HeaderVisitor(BSBaseVisitor):
                     self.import_compiled_function(from_lib_path+'/'+file_name)
                 else:
                     raise FileNotFoundError
+                self.imported.add(file_name.split('.')[0])
         pass
 
     def import_bioscript_function(self, filename, prefix=""):
@@ -139,10 +140,13 @@ class HeaderVisitor(BSBaseVisitor):
         bs_function = Function(name, types, args)
 
         if name in self.symbol_table.functions.keys():
-            # we can redefine functions that were imported, but only overriding is allowed (based on #/type params)
-            #  when functions are explicitly defined in the .bs file.
-            # TODO label function as imported or not, to redeclare here when necessary
-            raise UndefinedFunction("Trying to redeclare function: {}.".format(name))
+            if name in self.imported:
+                # TODO -- verify #/type params before allowing override for those imported from .bs files
+                #  we can redefine functions that were imported, but overriding should only be allowed
+                #  (based on #/type params) when functions are explicitly defined in the .bs file.
+                self.imported.remove(name)
+            else:  # redeclaring within this file
+                raise UndefinedFunction("Trying to redeclare function: {}.".format(name))
 
         self.symbol_table.functions[name] = bs_function
         self.symbol_table.end_scope()

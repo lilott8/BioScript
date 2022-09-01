@@ -1,5 +1,15 @@
 // imports
-//import bar from bar
+import bar from bar
+/* bar is defined as:
+ * function bar(C, D) {
+ *    ab = mix C with D
+ *    x = detect weight on ab
+ *    if (x <= 0.5) {
+ *        heat ab at 10c
+ *    }
+ *    return ab
+ * }
+ */
 
 // substances
 module weight
@@ -7,15 +17,6 @@ manifest A
 manifest B
 
 functions:
-function bar(C, D) {
-    ab = mix C with D              // bar_0
-    x = detect weight on ab
-    if (x <= 0.5) {                // bar_1
-        heat ab at 10c             // bar_2
-    }
-    return ab                      // bar_3
-}
-
 function foo(x) {
     b = dispense B       // foo_0
     heat x at 10c
@@ -27,64 +28,17 @@ function foo(x) {
     return Y[1]
 }
 
-// foo(x) {
-// b = dispense B
-// heat x at 10c
-// heat b at 10c
-// ab = mix x with b
-// x = detect weight on ab  // scope conflict with x
-// if (x <= 0.5) {
-//     heat ab at 10c
-// }
-// Y = ab
-// heat Y at 10c
-// return Y
-//}
-
-// a1 = dispense A
-// heat a1 at 10c
-// b1 = dispense B
-// heat a1 at 10c
-// heat b1 at 10c
-// ab1 = mix a1 with b1
-// x1 = detect weight on ab1
-// if (x1 <= 0.5) {
-//     heat ab1 at 10c
-// }
-// Y1 = ab1
-// heat Y1 at 10c
-// a2 = Y1
-// if (9 < 10) {
-//     b2 = dispense B
-//     a3 = mix a2 with b2
-// }
-// a4 = PHI(a2, a3)
-// heat a4 at 10c
-// dispose a4
-
 instructions:
 a = dispense A
 bb = dispense B
 heat a at 10c
-heat bb at 10c
-a = foo(a)
+heat bb at 10c // live across foo, can go to either if or after if
+a = foo(a)          // FC block
 if (9 < 10) {
-    b = dispense B
+    b = dispense B        // true block
     a = mix a with b
-}
-heat a at 10c
+}    // no false block
+heat a at 10c    // after true block
 heat bb at 10c
 dispose a
 dispose bb
-
-//  a0 = dispense A
-//  heat a0 at 10c        // main_0
-//  a1 = foo(a0)
-//  if (9 < 10) {         // main_1
-//      b0 = dispense B           // main_2
-//      a2 = mix a1  with b0
-//  }
-//  a3 = phi(a1, a2)         // main_3
-//  heat a3 at 10c
-//  dispose a3
-
