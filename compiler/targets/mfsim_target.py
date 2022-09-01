@@ -202,10 +202,22 @@ class MFSimTarget(BaseTarget):
                 if write:
                     self.program.functions[root]['blocks'][bid].dag = dag
                     self.dags[root][bid] = dag
-                else: # conditional all by its lonesome self -- must have had a function call just prior
-                    last_dag = [x for x in self.program.bb_graph.predecessors(bid)][0]
-                    self.program.functions[root]['blocks'][last_dag].add(instruction)
-                    self.cfg[self.root][last_dag] = curr
+                else:
+                    # the only time this should hit is if bid is a conditional with no executable
+                    # instructions. currently, this only happens when the previous block was a function call
+                    #  TODO this is hacky right now; consider:
+                    #    if ()              b0
+                    #    { foo() }          b1
+                    #    else { bar() }     b2
+                    #    if ()              b3
+                    #   if we are looking at b3, then either b1 or b2 could be preds.  We should apply this to all
+                    #    function call predecessors.
+                    # get the func call
+                    func_call_bid = [x for x in self.program.bb_graph.predecessors(bid)][0]
+                    # add the cond instruction explicitly to the block
+                    self.program.functions[root]['blocks'][func_call_bid].add(instruction)
+                    # add the conditional meta to func_call's conditional's mapping
+                    self.cfg[self.root][func_call_bid] = curr
 
             for remove in remove_nodes:
                 if remove in self.cfg[self.root]['graph'].nodes:
