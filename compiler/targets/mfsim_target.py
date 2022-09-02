@@ -8,7 +8,7 @@ from compiler.data_structures.variable import *
 from compiler.targets.base_target import BaseTarget
 from compiler.data_structures.ir import TempConstraint
 from compiler.data_structures.ir import TimeConstraint
-from compiler.data_structures.ir import UseIn, UseInType
+from compiler.data_structures.ir import UseIn, UseInType, Rename
 import math
 from io import StringIO
 import os
@@ -122,7 +122,7 @@ class MFSimTarget(BaseTarget):
                 write = True
                 dag = nx.DiGraph()
                 for instruction in block.instructions:
-                    if instruction.op is IRInstruction.NOP:
+                    if instruction.op in [IRInstruction.NOP]:
                         continue
 
                     # deal with conditionals
@@ -160,6 +160,7 @@ class MFSimTarget(BaseTarget):
                         else:  # could be nested conditional
                             curr[instruction.iid]['c'] = instruction.relop
                     #  non-conditionals
+                    # elif instruction.op == IRInstruction.RENAME:
                     elif hasattr(instruction, 'uses'):
                         # Case x = op y (dispense, heat, dispose, store)
                         if len(instruction.uses) == 1:
@@ -470,9 +471,9 @@ class MFSimTarget(BaseTarget):
         # and splits in which the volume varies in each subsequent dropplet may vary, rather than just half
 
         numDrops = 2
-        time = 2
+        time = 1
 
-        for t in instr.meta:  # has no purpose as split intructions have no time metadata
+        for t in instr.meta:
             if type(t) is TimeConstraint:
                 time = t.quantity
                 break
@@ -596,6 +597,19 @@ class MFSimTarget(BaseTarget):
         self.num_detects += 1
         return _ret
 
+    def write_rename(self, node: Rename, bid) -> str:
+        if hasattr(node.defs['var'], 'points_to'):
+            def_var = node.defs['var'].points_to.name
+        else:
+            def_var = node.defs['var'].name
+        if hasattr(node.uses[0]['var'], 'points_to'):
+            use_var = node.uses[0]['var'].points_to.name
+        else:
+            use_var = node.uses[0]['var'].name
+        _ret = f"// RENAME instr ({def_var} = {use_var}) should be transferred directly to successor from predecessor\n"
+        self.log.warning(f"Function inlining introduced a RENAME statement. DAG{bid} should be manually amended per the comment therein")
+        return _ret
+
     def write_heat(self, instr) -> str:
         """
              An MFSim HEAT node has 4 to 6 parameters:
@@ -639,11 +653,15 @@ class MFSimTarget(BaseTarget):
                     continue
                 if not found_instr or x.op in [IRInstruction.NOP]:
                     continue
-                if x.defs['var'].name == instr.defs['var'].name:
-                    to = list()
-                    to.append(instr.defs['var'].name)
-                    break
-                break
+                for use in x.uses:
+                    if use['var'].name == instr.defs['var'].name:
+                        to = [instr.defs['var'].name]
+                        break
+                # if x.defs['var'].name == instr.defs['var'].name:
+                #     to = list()
+                #     to.append(instr.defs['var'].name)
+                #     break
+                # break
 
         if len(to) > 1:
             to = self.get_dependent_instr(instr, to)
@@ -1593,7 +1611,7 @@ class MFSimTarget(BaseTarget):
                 cfg_file = StringIO()
             else:
                 cfg_file = open("%s/%s.cfg" % (self.output_path, exp_name), "w")
-            cfg_file.write("NAME(%s.cfg)\n" % exp_name)
+            cfg_file.write("NAME(%s)\n" % exp_name)
             if self.is_function:
                 cfg_file.write("FUNC(F)\n")
             cfg_file.write("\n")
@@ -1738,6 +1756,8 @@ class MFSimTarget(BaseTarget):
 
                     if node.op is IRInstruction.DETECT:
                         dag_file.write(self.write_detect(node))
+                    elif node.op is IRInstruction.RENAME:
+                        dag_file.write(self.write_rename(node, bid))
                     elif node.op is IRInstruction.MIX:
                         dag_file.write(self.write_mix(node))
                     elif node.op is IRInstruction.SPLIT:
@@ -1754,7 +1774,9 @@ class MFSimTarget(BaseTarget):
                         dag_file.write(self.write_call(node))
                     elif node.op is IRInstruction.RETURN:
                         dag_file.write(self.write_return(node))
-                    elif node.op is IRInstruction.PHI or node.op is IRInstruction.CONDITIONAL or node.op is IRInstruction.MATH or node.op is IRInstruction.NOP:
+                    elif node.op is IRInstruction.RENAME:
+                        print("here")
+                    elif node.op in [IRInstruction.PHI, IRInstruction.CONDITIONAL, IRInstruction.MATH, IRInstruction.NOP]:
                         continue
                     else:
                         if self.config.debug:
@@ -1847,7 +1869,7 @@ class MFSimTarget(BaseTarget):
                         for s in reachable:
                             if trans:
                                 break
-                            sblock = self.program.functions[root]['blocks'][s]
+                            sblock = self.program.functions[self.root]['blocks'][s]
                             for si in sblock.instructions:
                                 if si.op in {IRInstruction.PHI, IRInstruction.CONDITIONAL, IRInstruction.NOP}:
                                     continue

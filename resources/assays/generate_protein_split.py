@@ -11,7 +11,8 @@ n = 0
 
 with open("output/ProteinSplit_{}.bs".format(exp), mode='w') as file:
     file.write("//protein dilution assay derived from [Su and Chakrabarty, 2008]")
-    file.write("\n// we assume volatility of all new mixed constituents, which must be used immediately.")
+    if usein:
+        file.write("\n// we assume volatility of all newly mixed constituents, which must be used immediately.")
 
     file.write("\nmodule sensor")
     file.write("\nmanifest DsS //sample")

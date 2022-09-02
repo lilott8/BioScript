@@ -8,8 +8,9 @@ usein = True
 n = 0
 
 with open("output/InVitro_{}s_{}r.bs".format(s, r), mode='w') as file:
-    file.write("// protein dilution assay derived from [Su and Chakrabarty, 2008]")
-    file.write("\n// we assume volatility of all new mixed constituents, which must be used immediately.")
+    file.write("// multiplexed in-vitro assay derived from [Su and Chakrabarty, 2008]")
+    if usein:
+        file.write("\n// we assume volatility of all newly mixed constituents, which must be used immediately.")
 
     file.write("\nmodule sensor")
 

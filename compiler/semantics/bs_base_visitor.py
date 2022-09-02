@@ -10,7 +10,10 @@ from compiler.data_structures.properties import BSTime, BSTemperature
 from compiler.data_structures.scope import Scope
 from compiler.data_structures.variable import Number
 from grammar.parsers.python.BSParser import BSParser
+from grammar.parsers.python.BSLexer import BSLexer
 from grammar.parsers.python.BSParserVisitor import BSParserVisitor
+from antlr4 import CommonTokenStream, FileStream
+import os
 
 
 class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
@@ -31,15 +34,21 @@ class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
         quantity = 10.0
         units = BSTime.SECOND
         if ctx:
-            x = self.split_number_from_unit(ctx.TIME_NUMBER().__str__())
-            units = BSTime.get_from_string(x['units'])
-            quantity = units.normalize(x['quantity'])
+            if ctx.TIME_NUMBER():
+                x = self.split_number_from_unit(ctx.TIME_NUMBER().__str__())
+                units = BSTime.get_from_string(x['units'])
+                quantity = units.normalize(x['quantity'])
+            elif ctx.numericAlias():
+                pass
         return {'quantity': quantity, 'units': BSTime.SECOND, 'preserved_units': units}
 
     def visitTemperatureIdentifier(self, ctx: BSParser.TemperatureIdentifierContext) -> dict:
-        x = self.split_number_from_unit(ctx.TEMP_NUMBER().__str__())
-        units = BSTemperature.get_from_string(x['units'])
-        quantity = units.normalize(x['quantity'])
+        quantity = 30.0
+        units = BSTemperature.CELSIUS
+        if ctx.TEMP_NUMBER():
+            x = self.split_number_from_unit(ctx.TEMP_NUMBER().__str__())
+            units = BSTemperature.get_from_string(x['units'])
+            quantity = units.normalize(x['quantity'])
         return {'quantity': quantity, 'units': BSTemperature.CELSIUS, 'preserved_units': units}
 
     def visitVariableDefinition(self, ctx: BSParser.VariableDefinitionContext):
@@ -74,6 +83,65 @@ class BSBaseVisitor(BSParserVisitor, metaclass=ABCMeta):
             primary = {'name': "{}{}".format(self.const, value), "index": 0,
                        'value': value, 'types': ChemTypeResolver.numbers()}
         return primary
+
+    def visitFromLibrary(self, ctx: BSParser.FromLibraryContext):
+        lib_names = ctx.IDENTIFIER()
+        return lib_names.symbol.text
+
+    def import_bioscript_function(self, filename, prefix=""):
+        try:
+            file_stream = FileStream(filename)
+            lexer = BSLexer(file_stream)
+            stream = CommonTokenStream(lexer)
+            parser = BSParser(stream)
+            tree = parser.functionDeclaration()
+            self.visitFunctionDeclaration(tree, prefix)
+        except Exception as e:
+            self.log.warning(f"exception encountered while trying to compile {filename}:\n{e.__str__()}")
+            if e.__str__().startswith("'NoneType'"):
+                raise e
+            self.scope_stack.pop()
+            return True
+        return False
+
+    def visitImportLibrary(self, ctx: BSParser.ImportLibraryContext):
+        lib_name = ctx.IDENTIFIER().__str__()
+        lib_path = os.environ[str("BIOSCRIPTPATH")] + '/' + lib_name
+        # identify all names in library so we can call, e.g.: lib.func_name()
+        for file_name in os.listdir(lib_path):
+            if file_name.endswith('.bsf'):
+                self.import_bioscript_function(lib_path + '/' + file_name, lib_name + '.')
+            elif file_name.endswith('.sbsf'):
+                self.import_compiled_function(lib_path + '/' + file_name, lib_name + '.')
+        pass
+
+    def visitImportFuncFromLibrary(self, ctx: BSParser.ImportFuncFromLibraryContext):
+        lib_name = self.visitFromLibrary(ctx.fromLibrary())
+        # TODO can just check path for lib name, rather than requiring install at $bioscriptpath
+        from_lib_path = os.environ[str("BIOSCRIPTPATH")] + '/' + lib_name
+        if ctx.IDENTIFIER():
+            func_names = [i.__str__() for i in ctx.IDENTIFIER()]
+        else:
+            func_names = False
+
+        retry = list()
+        for file_name in os.listdir(from_lib_path):
+            if file_name.__contains__('.'):
+                if (func_names and file_name.split('.')[0] in func_names) or (not func_names):
+                    if file_name.endswith('.bsf'):
+                        if self.import_bioscript_function(from_lib_path+'/'+file_name):
+                            retry.append(file_name)
+                    elif file_name.endswith('.sbsf'):
+                        self.log.warning(f"Cannot import pre-compiled function {file_name.split('.')[0]} for inlining.")
+                    else:
+                        raise FileNotFoundError
+
+        while retry:
+            retry = list(reversed(retry))
+            for i in range(len(retry)-1, -1, -1):
+                file_name = retry[i]
+                if not self.import_bioscript_function(from_lib_path + '/' + file_name):
+                    del retry[i]
 
     def visitLiteral(self, ctx: BSParser.LiteralContext):
         if ctx.INTEGER_LITERAL():

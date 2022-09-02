@@ -44,36 +44,6 @@ class HeaderVisitor(BSBaseVisitor):
         symbol.types.update(self.identifier.identify(symbol.name, symbol.types))
         self.symbol_table.add_global(symbol)
 
-    def visitFromLibrary(self, ctx: BSParser.FromLibraryContext):
-        lib_names = ctx.IDENTIFIER()
-        return lib_names.symbol.text
-        # return '/'.join(l.__str__() for l in lib_names)
-
-    def visitImportFuncFromLibrary(self, ctx: BSParser.ImportFuncFromLibraryContext):
-        lib_name = self.visitFromLibrary(ctx.fromLibrary())
-        # TODO can just check path for lib name, rather than requiring install at $bioscriptpath
-        from_lib_path = os.environ[str("BIOSCRIPTPATH")] + '/' + lib_name
-        func_names = [i.__str__() for i in ctx.IDENTIFIER()]
-
-        for file_name in os.listdir(from_lib_path):
-            if file_name.__contains__('.') and file_name.split('.')[0] in func_names:
-                if file_name.endswith('.bsf'):
-                    self.import_bioscript_function(from_lib_path+'/'+file_name)
-                elif file_name.endswith('.sbsf'):
-                    self.import_compiled_function(from_lib_path+'/'+file_name)
-                else:
-                    raise FileNotFoundError
-                self.imported.add(file_name.split('.')[0])
-        pass
-
-    def import_bioscript_function(self, filename, prefix=""):
-        file_stream = FileStream(filename)
-        lexer = BSLexer(file_stream)
-        stream = CommonTokenStream(lexer)
-        parser = BSParser(stream)
-        tree = parser.functionDeclaration()
-        self.visitFunctionDeclaration(tree, prefix)
-
     def import_compiled_function(self, filename, prefix=""):
         name = prefix+filename.split('/')[-1].split('.')[0]
 
@@ -101,17 +71,6 @@ class HeaderVisitor(BSBaseVisitor):
 
         self.symbol_table.functions[name] = bs_function
         self.symbol_table.end_scope()
-
-    def visitImportLibrary(self, ctx: BSParser.ImportLibraryContext):
-        lib_name = ctx.IDENTIFIER().__str__()
-        lib_path = os.environ[str("BIOSCRIPTPATH")] + '/' + lib_name
-        # identify all names in library so we can call, e.g.: lib.func_name()
-        for file_name in os.listdir(lib_path):
-            if file_name.endswith('.bsf'):
-                self.import_bioscript_function(lib_path + '/' + file_name, lib_name + '.')
-            elif file_name.endswith('.sbsf'):
-                self.import_compiled_function(lib_path + '/' + file_name, lib_name + '.')
-        pass
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext, prefix=""):
         """

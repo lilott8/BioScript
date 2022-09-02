@@ -105,18 +105,6 @@ class IRVisitor(BSBaseVisitor):
         symbol = self.symbol_table.get_global(name)
         symbol.value = Stationary(name)
 
-    def visitFromLibrary(self, ctx: BSParser.FromLibraryContext):
-        lib_names = ctx.IDENTIFIER()
-        return lib_names.symbol.text
-
-    def import_bioscript_function(self, filename, prefix=""):
-        file_stream = FileStream(filename)
-        lexer = BSLexer(file_stream)
-        stream = CommonTokenStream(lexer)
-        parser = BSParser(stream)
-        tree = parser.functionDeclaration()
-        self.visitFunctionDeclaration(tree, prefix)
-
     def import_compiled_function(self, filename, prefix=""):
         name = prefix+filename.split('/')[-1].split('.')[0]
         self.functions[name] = dict()
@@ -140,33 +128,6 @@ class IRVisitor(BSBaseVisitor):
 
         self.scope_stack.pop()
         return None
-
-    def visitImportFuncFromLibrary(self, ctx: BSParser.ImportFuncFromLibraryContext):
-        lib_name = self.visitFromLibrary(ctx.fromLibrary())
-        # TODO can just check path for lib name, rather than requiring install at $bioscriptpath
-        from_lib_path = os.environ[str("BIOSCRIPTPATH")] + '/' + lib_name
-        func_names = [i.__str__() for i in ctx.IDENTIFIER()]
-
-        for file_name in os.listdir(from_lib_path):
-            if file_name.__contains__('.') and file_name.split('.')[0] in func_names:
-                if file_name.endswith('.bsf'):
-                    self.import_bioscript_function(from_lib_path+'/'+file_name)
-                elif file_name.endswith('.sbsf'):
-                    self.import_compiled_function(from_lib_path+'/'+file_name)
-                else:
-                    raise FileNotFoundError
-        pass
-
-    def visitImportLibrary(self, ctx: BSParser.ImportLibraryContext):
-        lib_name = ctx.IDENTIFIER().__str__()
-        lib_path = os.environ[str("BIOSCRIPTPATH")] + '/' + lib_name
-        # identify all names in library so we can call, e.g.: lib.func_name()
-        for file_name in os.listdir(lib_path):
-            if file_name.endswith('.bsf'):
-                self.import_bioscript_function(lib_path + '/' + file_name, lib_name + '.')
-            elif file_name.endswith('.sbsf'):
-                self.import_compiled_function(lib_path + '/' + file_name, lib_name + '.')
-        pass
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext, prefix=''):
         name = prefix+ctx.IDENTIFIER().__str__()
@@ -518,6 +479,7 @@ class IRVisitor(BSBaseVisitor):
 
         # we now deal with the false branch
         false_block = BasicBlock()
+        # false_block = self.current_block
 
         false_label = Label("bsbbr_{}_f".format(false_block.nid))
         self.labels[false_label.name] = false_block.nid
@@ -749,12 +711,24 @@ class IRVisitor(BSBaseVisitor):
             #   x[0] = mix aaa with bbb  # x is size one
             #   x[1] = mix aaa with bbb  # x increased to size two
             #     ...... etc.
+
+            # TODO for uses of function parameters, need to conduct interprocedural analysis to determine possible volumes.
             if (index == 0 and not v1) or (index == 1 and not v2):
-                if use['index'] >= 0:
-                    self.check_bounds({'name': use['name'], 'index': use['index'], 'var': self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value})
-                    _volume[index] = self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value.value[use['index']].volume['quantity']
-                else:
-                    _volume[index] = self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value.volume['quantity']
+                try:
+                    if use['index'] >= 0:
+                        self.check_bounds({'name': use['name'], 'index': use['index'], 'var': self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value})
+                        _volume[index] = self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value.value[use['index']].volume['quantity']
+                    else:
+                        _volume[index] = self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value.volume['quantity']
+                except AttributeError:
+                    if ctx.parentCtx and ctx.parentCtx.parentCtx and isinstance(ctx.parentCtx.parentCtx, BSParser.FunctionDeclarationContext):
+                        # this is a param droplet, it should have a value.
+                        self.symbol_table.get_local(use['name'], self.scope_stack[-1]).value = Movable(use['name'],
+                                                                                               size=1,
+                                                                                               volume=_volume[index])
+                        self.log.warning(f"Attempting to read value(volume) from parameter within a function's body. "
+                                         f"Unable to determine volume; using default of {_volume[index]}")
+
             if (use['name'].startswith("temp_dispense_")):
                 if use['index'] == -1 or use['index'] == 0:
                     size = 1

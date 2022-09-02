@@ -16,6 +16,14 @@ class InliningVisitor(BSBaseVisitor):
         self.completed = set()
         self.functions = dict()  # func name to dict of ['statements'] and ['args']
         self.alpha_map = dict()
+        self.imported = set()
+
+    def visitFromLibrary(self, ctx: BSParser.FromLibraryContext):
+        lib_names = ctx.IDENTIFIER()
+        return lib_names.symbol.text
+
+    def visit_compiled_function(self):
+        pass
 
     def visitProgram(self, ctx: BSParser.ProgramContext):
         # want to update all methodInvocation statements
@@ -25,19 +33,32 @@ class InliningVisitor(BSBaseVisitor):
         self.log.warning(f"Inlining is currently unsupported for recursive functions. If your program contains any recursion, this will fail.")
 
         # to do so, we need to:
+        #   (0) import any functions where code is available
         #   (1) make sure methodsDeclarations have been inlined, themselves
         #   (2) for each methodInvocation, perform alpha conversion and inline statements in ctx
+        #   (3) remove functions from program
+
+        # (0)
+        for global_statement in ctx.globalDeclarations():
+            if global_statement.importStatement():
+                self.visitImportStatement(global_statement.importStatement())
 
         # (1)
-        self.visitFunctions(ctx.functions())
+        if ctx.functions():
+            self.visitFunctions(ctx.functions())
 
         # (2), starting at main
         self.inlineHelper(ctx)
 
-        for i, check in enumerate(ctx.children):
-            if isinstance(check, BSParser.FunctionsContext):
+        # (3)
+        # remove imports and function declerations
+        for i in range(len(ctx.children)-1, -1, -1):
+            check = ctx.children[i]
+            if isinstance(check, BSParser.GlobalDeclarationsContext):
+                if check.importStatement():
+                    del ctx.children[i]
+            elif isinstance(check, BSParser.FunctionsContext):
                 del ctx.children[i]
-                break
 
     def inlineHelper(self, ctx):
         # for main
@@ -90,6 +111,11 @@ class InliningVisitor(BSBaseVisitor):
             #  For now, we send everything to visit_vars, as it covers most of our use cases.
             if isinstance(new_statement, BSParser.ReturnStatementContext):
                 ret_var = new_statement.children[1].variable().children[0].symbol.text
+                ret_var = self.visitVariable(new_statement.children[1].variable())
+                if ret_var['index'] != -1:
+                    ret_var = f"{ret_var['name']}[{ret_var['index']}]"
+                else:
+                    ret_var = f"{ret_var['name']}"
                 rename_var = ctx.parentCtx.children[0].variableDefinition().variable().children[0].symbol.text
                 rename_text = f"{rename_var} = {ret_var}"
 
@@ -127,9 +153,9 @@ class InliningVisitor(BSBaseVisitor):
                 params.append(param)
         return params
 
-    def visitFunctionDeclaration(self, ctx:BSParser.FunctionDeclarationContext):
+    def visitFunctionDeclaration(self, ctx:BSParser.FunctionDeclarationContext, prefix=""):
         # returns true if parameter list has function call
-        name = ctx.IDENTIFIER().__str__()
+        name = prefix+ctx.IDENTIFIER().__str__()
         self.functions[name] = dict()
         self.functions[name]['statements'] = ctx.statements()
         self.functions[name]['statements'].append(ctx.returnStatement())

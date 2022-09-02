@@ -1,0 +1,8 @@
+function bar(C, D) {
+    ab = mix C with D for 2s
+    x = detect weight on ab for 2s
+    if (x <= 0.5) {
+        heat ab at 10c for 1s
+    }
+    return ab
+}

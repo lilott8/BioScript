@@ -60,19 +60,8 @@ class MethodVisitor(BSBaseVisitor):
         for func in ctx.functionDeclaration():
             self.visitFunctionDeclaration(func)
 
-
-    def visitFromLibrary(self, ctx:BSParser.FromLibraryContext):
-        return ctx.IDENTIFIER().symbol.text
-
-    def import_bioscript_function(self, filename, prefix=""):
-        file_stream = FileStream(filename)
-        lexer = BSLexer(file_stream)
-        stream = CommonTokenStream(lexer)
-        parser = BSParser(stream)
-        tree = parser.functionDeclaration()
-        self.visitFunctionDeclaration(tree, prefix)
-
     # TODO not sure how to handle importing compiled functions for this pass
+
     def import_compiled_function(self, filename, prefix=""):
         name = prefix + filename.split('/')[-1].split('.')[0]
         function = self.symbol_table.functions[name]
@@ -94,22 +83,6 @@ class MethodVisitor(BSBaseVisitor):
         if ChemTypes.UNKNOWN in function.types: # only remove if exists
             function.types.remove(ChemTypes.UNKNOWN)
         self.scope_stack.pop()
-
-    def visitImportFuncFromLibrary(self, ctx: BSParser.ImportFuncFromLibraryContext):
-        lib_name = self.visitFromLibrary(ctx.fromLibrary())
-        # TODO can just check path for lib name, rather than requiring install at $bioscriptpath
-        from_lib_path = os.environ[str("BIOSCRIPTPATH")] + '/' + lib_name
-        func_names = [i.__str__() for i in ctx.IDENTIFIER()]
-
-        for file_name in os.listdir(from_lib_path):
-            if file_name.__contains__('.') and file_name.split('.')[0] in func_names:
-                if file_name.endswith('.bsf'):
-                    self.import_bioscript_function(from_lib_path + '/' + file_name)
-                elif file_name.endswith('.sbsf'):
-                    self.import_compiled_function(from_lib_path + '/' + file_name)
-                else:
-                    raise FileNotFoundError
-        pass
 
     def visitFunctionDeclaration(self, ctx: BSParser.FunctionDeclarationContext, prefix=''):
         """

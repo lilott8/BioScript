@@ -1,8 +1,0 @@
-function bar(C, D) {
-    ab = mix C with D
-    x = detect weight on ab
-    if (x <= 0.5) {
-        heat ab at 10c
-    }
-    return ab
-}
